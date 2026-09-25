@@ -18,3 +18,6 @@ tsconfig.tsbuildinfo
 .vercel
 .env*.local
 public/downloads/
+
+# local reference material (copyrighted book PDF/text, scraped web sources, scratch SVGs) - never commit
+reference/
