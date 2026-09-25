@@ -71,7 +71,7 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 
 **Existing codebase** (mapped in `.planning/codebase/`): Next.js 14 + React 18 + TS + Tailwind viewer, 1,943-line `NumogramClient.tsx` coordinating state, `Projection.tsx` rendering, hand-authored base-10 constants in `app/data/`, zero tests, Vercel Blob/Analytics coupling, 41 MB `demo.mov` and committed `dist/`. See `.planning/codebase/CONCERNS.md` for the base-10 hard-coding inventory.
 
-**Environment**: Windows 10, Node 22, npm 11. `origin` currently points at `lumpenspace/ccru` (repoint before pushing). Git author is configured as `csysp <(old identity email removed)>` on this machine.
+**Environment**: Windows 10, Node 22, npm 11. `origin` currently points at `lumpenspace/ccru`; FND-05 renames it to `upstream` and adds `https://github.com/foGledenalzi/CCRUGen.git` (public, empty) as `origin`. Nothing is pushed until the user says so. Commits in this repo are authored as `foGledenalzi` via repo-local git config.
 
 ## Constraints
 

@@ -26,4 +26,4 @@ Use the GSD commands for project work (`/gsd-discuss-phase N` → `/gsd-plan-pha
 
 ## Environment
 
-Windows 10, Node 22, npm 11 (npm only; `yarn.lock` is to be removed in Phase 1). Git identity on this machine is `csysp`; `origin` still points at `lumpenspace/ccru` until repointed (FND-05). Commits end with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`.
+Windows 10, Node 22, npm 11 (npm only; `yarn.lock` is to be removed in Phase 1). Git identity for this repo is `foGledenalzi` (repo-local config; the global identity belongs to a different account, leave it alone). `origin` still points at `lumpenspace/ccru` until FND-05 renames it to `upstream` and adds `https://github.com/foGledenalzi/CCRUGen.git` as `origin`. **Never `git push` (any remote, any branch) unless the user explicitly says to push**; that step is user-approved and separate from all plans. Commits end with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`.
