@@ -11,14 +11,14 @@
 
 **Licensing and attribution (FND-05)**
 - **D-01:** This is an **own project that credits upstream**. A `NOTICE` file names `lumpenspace/ccru` as the origin of the upstream-derived files, which carry **no stated license** (upstream has no LICENSE and no `license` field). Requesting a permissive license from lumpenspace is a user action to run in parallel; do not send anything on the user's behalf.
-- **D-02:** New original code (`engine/`, layout, naming, export, tests, scripts written in this project) is **MIT**. Copyright holder line: use the git author name unless the user says otherwise (open item, see Claude's Discretion).
+- **D-02:** New original code (`engine/`, layout, naming, export, tests, scripts written in this project) is **MIT**. Copyright holder line: use the repo's git author name, now **`foGledenalzi`** (supersedes the earlier default), unless the user says otherwise (open item, see Claude's Discretion).
 - **D-03:** The CCRU-derived base-10 lore (`app/data/zones.ts`, `gates.ts`, `currents.ts`, `syzygies.ts`, `demons.ts`: zone/gate descriptions, names) is **third-party lore**. Evidence: gate names and phrases ("Gate of Submergence", "Gate of Charon", "Lo-Way", "Ulterior Vortex") appear in the CCRU book text; zone descriptions read as close paraphrase. It is **excluded from the MIT license and listed in NOTICE as CCRU-derived**. The text stays **unchanged** so the oracle stays byte-identical. In Phase 1 it is only marked (NOTICE + header comments); the physical move into a single clearly-marked base-10 lore file happens in Phase 2 (MIG-01, "joined with lore by id").
 - **D-04:** A guard fails if anything under `reference/` is tracked (`git ls-files reference` must be empty); `reference/` content never enters tracked files beyond citations.
 
 **Repo home, CI and hosting (FND-01, FND-05)**
-- **D-05:** **Local only for now.** Rename `origin` to `upstream` and add no remote until the user supplies a URL (satisfies "origin no longer points at lumpenspace/ccru"). No push, no remote creation.
+- **D-05 (amended 2026-09-25 by the user):** The push target is now known: **`https://github.com/foGledenalzi/CCRUGen.git`** (a public, empty repo). The FND-05 task renames `origin` (lumpenspace/ccru) to `upstream` and adds this URL as the new `origin` (satisfies "origin no longer points at lumpenspace/ccru"). **NO PUSH until the user explicitly says so**: pushing is a separate, user-approved step that is NOT part of any plan task (plans may only prepare the remote; verification must not run `git push`). Authentication is the user's Git Credential Manager sign-in as foGledenalzi; never handle credentials. Commits in this repo are authored as `foGledenalzi` via **repo-local** git config (already set; the 9 pre-existing local commits were re-authored and the old identity email was scrubbed from the docs).
 - **D-06:** The static export is **host-agnostic**: builds for the site root by default; one env variable sets a sub-path `basePath` (name is the planner's choice). No deploy workflow is committed. Assets/links must go through the basePath helper so sub-path hosting works.
-- **D-07:** CI: one `verify` npm script is the source of truth (build + tests + every `tsc` invocation + engine lint). A GitHub Actions workflow file (Windows + Ubuntu matrix) calls it. It is committed but stays dormant until a GitHub remote exists. (Derived from the roadmap's success criterion 1; not separately discussed.)
+- **D-07:** CI: one `verify` npm script is the source of truth (build + tests + every `tsc` invocation + engine lint). A GitHub Actions workflow file (Windows + Ubuntu matrix) calls it. It is committed but stays dormant until the user pushes to the GitHub remote (see D-05: the push is not part of this phase's plans). (Derived from the roadmap's success criterion 1; not separately discussed.)
 
 **Numogram-only site (FND-03)**
 - **D-08:** **Delete the non-numogram routes:** `/gematria`, `/gematria/plugin`, `/gematria/saved`, `/cyphers`, `/components` (pages and their client files). **Keep on disk:** `gematria/plugin/` source, `component-library/`, and any library files still imported (e.g. `app/cyphers/ccruCiphers.ts` and `gematria.ts`, which `CypherHoverText` and the component library use). **Verify the import graph before deleting anything.**
@@ -38,7 +38,7 @@
 - Next.js 14.2.35 exact pin, TypeScript 5.9.3, ESLint 8.57.1, root `target: ES2022`, `@types/node ^22`, npm only (delete `yarn.lock`, add `packageManager`/`engines`), `.gitattributes` (`* text=auto eol=lf`) before the first fixture, Vitest 5 + fast-check + Playwright, `engine/` scaffold with its own tsconfig and ESLint boundary (`--dir engine --dir workers`, `eslint.dirs`) enforced by one `typecheck` script, `output: 'export'` unconditional, `@vercel/blob` and `@vercel/analytics` removed, the share-image route (and `scripts/share-image-self-check.mjs`, `test:share-image`) deleted, static metadata replacing `generateMetadata(searchParams)`.
 
 ### Claude's Discretion
-- Script names and layout, CI file contents, the basePath env variable name, page-weight tolerance values, exact golden state list within the agreed shape, `.nojekyll` (only if useful), and the copyright holder name in LICENSE (use the git author name `csysp` unless the user specifies otherwise; flag it in the plan).
+- Script names and layout, CI file contents, the basePath env variable name, page-weight tolerance values, exact golden state list within the agreed shape, `.nojekyll` (only if useful), and the copyright holder name in LICENSE (use the repo's git author name `foGledenalzi` unless the user specifies otherwise; flag it in the plan).
 
 ### Deferred Ideas (OUT OF SCOPE)
 - Creating a GitHub remote, publishing, and a deploy workflow (Pages/Netlify) - when the user decides to.
@@ -67,7 +67,7 @@
 - Static-first: no server routes, Vercel Blob or Analytics. Stay on Next 14.2.35 (exact pin); no upgrade phase.
 - Do not edit `NumogramClient.tsx` before the Phase 1 oracle exists.
 - `reference/` is gitignored local material: never commit it, never paste long passages into tracked files, never read it from tests. Use Read with explicit paths (Grep skips ignored dirs).
-- npm only; `yarn.lock` is removed in this phase. Git identity on this machine is `csysp`; `origin` still points at `lumpenspace/ccru` until repointed (FND-05).
+- npm only; `yarn.lock` is removed in this phase. Git identity for this repo is `foGledenalzi` (repo-local git config, CONTEXT D-05); `origin` still points at `lumpenspace/ccru` until repointed (FND-05).
 - Commits end with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`. Never commit unless asked. Keep `.planning/` docs in sync via GSD commands.
 
 ## Summary
@@ -191,7 +191,7 @@ Do not run two npm processes concurrently on Windows: an accidental parallel ins
 ```
 .gitattributes                 # * text=auto eol=lf (+ binary types)
 LICENSE  NOTICE                # MIT text; NOTICE is authoritative on scope
-.github/workflows/ci.yml       # dormant until a remote exists
+.github/workflows/ci.yml       # dormant until the user pushes
 engine/
   package.json                 # { "name": "@ccrug/engine", "private": true } (no "type": "module")
   tsconfig.json  tsconfig.test.json
@@ -624,7 +624,7 @@ jobs:
 ### Text files
 `.gitattributes`: `* text=auto eol=lf`, then `*.mov binary`, `*.png binary`, `*.svg text` (svg stays text so goldens/diffs are LF).
 `.gitignore` additions: `/out/`, `/dist/`, `demo.mov`, `/artifacts/`, `/.pw-browsers/`, `/test-results/`, `/playwright-report/`, `.DS_Store`, `*.tsbuildinfo`.
-`LICENSE`: canonical MIT text, `Copyright (c) 2026 csysp` (flag in plan; user may change).
+`LICENSE`: canonical MIT text, `Copyright (c) 2026 foGledenalzi` (flag in plan; user may change).
 `NOTICE` skeleton (authoritative on scope): (1) project name and MIT scope = original code added after the fork commit (`git log --author=lumpenspace -1` gives the upstream tip): `engine/`, tests, scripts, layout/naming/export code; (2) "Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). Upstream ships no LICENSE; files inherited from it are NOT relicensed here and remain under their original, unstated terms: `app/**` (except new files), `component-library/`, `gematria/plugin/`, `public/*.svg`, `scripts/build-plugin-zip.mjs`"; (3) "CCRU-derived lore, excluded from MIT: `app/data/zones.ts`, `app/data/gates.ts`, `app/data/currents.ts`, `app/data/syzygies.ts`, `app/data/demons.ts` (zone/gate names and descriptions after the CCRU writings; text unchanged)"; (4) "`reference/` is local, untracked research material and is never distributed". Header comment on each of the five files: `// CCRU-derived lore. Not covered by the MIT license; see NOTICE.`
 
 ## Exact Change List (FND-03 / Q2 and Q3)
@@ -847,27 +847,34 @@ Recommendation: keep **all 10 states x 3 layouts**; the subset saves about 35% o
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
 | A1 | GitHub Actions `checkout`/`setup-node`/`cache`/`upload-artifact` current majors are at least v5 (a web-search summary said v7); Node 20 actions removed 2026-09-23 | CI | Workflow uses a stale major; low impact (dormant), fix at execution |
-| A2 | Chromium on Windows and Ubuntu serialize the same normalized SVG DOM text for the same state. Windows side now VERIFIED (identical across 3 runs, 2 timezones, dev vs static build, Chromium 153); the Linux side is still unverified (no Linux runner) | Q5 / SC3 | Goldens captured on Windows fail on Linux CI; mitigated by 3-decimal rounding and attribute-level text; CI proves it once a remote exists |
+| A2 | Chromium on Windows and Ubuntu serialize the same normalized SVG DOM text for the same state. Windows side now VERIFIED (identical across 3 runs, 2 timezones, dev vs static build, Chromium 153); the Linux side is still unverified (no Linux runner) | Q5 / SC3 | Goldens captured on Windows fail on Linux CI; mitigated by 3-decimal rounding and attribute-level text; CI proves it once the user pushes and CI runs |
 | A3 | (Mostly resolved) The intro-layer selector and 3.6 s wait were unnecessary and dropped; the final signal is viewBox + `__reactFiber$` key + 2 rAF + 300 ms stable DOM (0 mismatches in 48 exploratory captures and 212 comparisons). Still assumed: `__reactFiber$` remains the React 18 internal key name | golden spec | If React changes the key, replace the hydration check with a fixed 1 s wait and re-verify |
 | A4 | `next dev` rejects `searchParams` pages when `output: 'export'` is set (docs, not run) | Pitfall 1 | None if sequencing is followed; only changes the reason for the ordering |
 | A5 | `"license": "SEE LICENSE IN LICENSE"` is an accepted npm convention for mixed-license repos | LICENSE | Cosmetic; private package |
 | A6 | (VERIFIED on Playwright 1.63.0) `'missing'` writes only absent goldens and fails the writing test; `'none'` fails on absent and on changed goldens; neither overwrites; string snapshot names are sanitized, array names are verbatim | Playwright | None; the capture run must be expected to exit 1 |
 | A7 | `npx playwright install --with-deps` is unnecessary/unsafe on Windows runners | CI | Two-step install used to be safe either way |
 | A8 | The stale-`tsconfig.tsbuildinfo` result was an incremental-cache artefact (observed once, not root-caused) | Q1 | `--incremental false` costs a few seconds |
-| A9 | Copyright holder `csysp` (git author name) | LICENSE | User may prefer another name; flagged as Open Question 1 |
+| A9 | Copyright holder `foGledenalzi` (the repo's git author name, CONTEXT D-02) | LICENSE | User may prefer another name; flagged as Open Question 1 |
 | A10 | MIT scope excludes all upstream-inherited files, not only the five lore files | NOTICE | If the user wants only the lore excluded, NOTICE scope wording changes; D-01 says "upstream-derived files" so this is the conservative reading |
 | A11 | Known advisories exist for unsupported Next 14 versions; static export limits exposure | Security | Advisory posture differs; accepted project constraint |
 | A12 | `npx playwright install --only-shell chromium` is enough for headless runs (about 270 MB instead of 706 MB): the flag exists in 1.63.0 and headless launches use `chromium_headless_shell`, but a shell-only install was not exercised | Environment | Extra 432 MB download or a launch error; fall back to `install chromium` |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Copyright holder in LICENSE.** Use `csysp` (git author) per CONTEXT; flag in the plan for the user to confirm or replace.
+1. **Copyright holder in LICENSE.** Use `foGledenalzi` (the repo's git author) per CONTEXT D-02; flag in the plan for the user to confirm or replace.
+   **RESOLVED:** holder `foGledenalzi` in LICENSE and NOTICE (plan 01-07), flagged for user confirmation in the non-blocking checkpoint of plan 01-08.
 2. **`SourcesFooter` text "(c) qliphoth.systems / delight nexus".** D-12 says the footer stays and removes `qliphoth.systems` *URLs*; this is a copyright credit string, not a URL, and lives outside the SVG (goldens unaffected). Recommendation: keep it verbatim as upstream attribution and add the CCRUG credit in README/NOTICE; ask the user only if they want it reworded.
+   **RESOLVED:** `SourcesFooter` is kept verbatim (plan 01-07 context; listed in the plan 01-08 checkpoint).
 3. **How many golden states.** (Resolved by measurement.) CONTEXT says "about 5 per layout"; the enumerated list is 10 (default, 4 layers alone, 3 regions, one selected zone, tc). Measured: 30 files, 660,506 B (645 KiB; 79,762 B gzipped), 6,405 elements, about 31 s (dev) / 21 s (static) per browser project. The 6-state subset (default, gates, region-torque, region-warp, zone-5, tc) is 428,691 B and saves under 10 s. Recommend all 10 for original/labyrinth/ladder.
+   **RESOLVED:** all 10 states for original, labyrinth and ladder (30 goldens, plan 01-04).
 4. **Where the app-side oracle test lives.** Recommended `tests/oracle/` (root) importing `../../app/data/*` by relative path, fixture in `engine/test/fixtures/base10.golden.json`; keeps `engine/` free of `app/` imports even in tests.
+   **RESOLVED:** `tests/oracle/` (plan 01-03), fixture in `engine/test/fixtures/base10.golden.json`.
 5. **Orphans** (`shareParams.ts`, `useGlitchNavigate.ts`, `cyberColors.ts`): leave or delete now (see above).
+   **RESOLVED:** left in place for Phase 4 (plan 01-05 keeps them; listed in the plan 01-08 checkpoint).
 6. **Baseline timing.** Record the page-weight baseline at the end of Wave 2 (numogram-only export), not from today's tree.
+   **RESOLVED:** recorded at the end of Wave 2 in plan 01-06 (execution wave 4), on the numogram-only export produced by plan 01-05 and before any Phase 2 change.
 7. **Whether `out/.DS_Store`-style OS junk needs a `postbuild` clean** once `.DS_Store` files are untracked: no, if untracked files are deleted from the working tree.
+   **RESOLVED:** no postbuild clean needed; plan 01-08 deletes the tracked `.DS_Store` files and `check-repo --static-out` fails if `out/` ever contains one.
 
 ## Environment Availability
 
@@ -875,7 +882,7 @@ Recommendation: keep **all 10 states x 3 layouts**; the subset saves about 35% o
 |------------|------------|-----------|---------|----------|
 | Node | everything | yes | 22.16.0 | - |
 | npm | install/scripts | yes | 11.6.2 | - |
-| git | hygiene, guards | yes | (autocrlf=true, identity `csysp`) | - |
+| git | hygiene, guards | yes | (autocrlf=true, repo-local identity `foGledenalzi`) | - |
 | `zip` binary | old build script | **no** | - | fflate (verified) |
 | Playwright Chromium | DOM goldens, e2e | **yes** (installed with the user's approval) | 153.0.8010.12 (`chromium-1243` + `chromium_headless_shell-1243`), `@playwright/test` 1.63.0 | Cache `%LOCALAPPDATA%\ms-playwright` is 706 MB (432 + 270 + 3 ffmpeg), not about 150 MB; `--only-shell` should reduce it to about 270 MB `[ASSUMED]` (A12). A fresh clone or CI still runs `npx playwright install chromium` (approval gate on new machines) |
 | `gh` CLI / GitHub API | Action version lookup | no (lab) | - | look up releases pages at execution |
@@ -913,8 +920,8 @@ Recommendation: keep **all 10 states x 3 layouts**; the subset saves about 35% o
 
 ### Sampling Rate
 - **Per task commit:** `npm run test` (+ `npm run typecheck` when TS/config changed)
-- **Per wave merge:** `npm run verify` (Wave 1 runs the e2e in dev-server mode against the capture set)
-- **Phase gate:** full `npm run verify` green on this machine before `/gsd-verify-work`; the Windows+Linux matrix only becomes observable once a remote exists
+- **Per wave merge:** the wave-specific commands in its plans plus `npm run test` and `npm run typecheck`; the full `npm run verify` chain first becomes runnable in Wave 5 (`check-repo.mjs`, `check:weight` and `test:e2e:basepath` arrive in 01-08, 01-06 and 01-05) and is the phase gate
+- **Phase gate:** full `npm run verify` green on this machine before `/gsd-verify-work`; the Windows+Linux matrix only becomes observable once the user pushes and CI runs
 
 ### Wave 0 Gaps
 - [ ] `vitest.config.mts`, `playwright.config.ts`, `engine/tsconfig*.json`, `engine/index.ts`, `.eslintrc.json` override

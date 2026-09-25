@@ -30,10 +30,20 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Success Criteria** (what must be TRUE):
   1. `npm run build` succeeds on Windows with no `zip` binary installed, leaves no tracked file modified, and emits a fully static `out/` site; LF endings are enforced by `.gitattributes`, and a CI workflow file runs the same build and `typecheck` commands on Windows and Ubuntu
   2. The exported site serves the base-10 viewer offline with no request to Vercel Blob or Vercel Analytics and no server route, and old `/?...` and `/numogram/?...` share links still land on the numogram
-  3. A numeric `base10.golden.json` and normalized-SVG DOM goldens of the four base-10 layouts across several states, captured from the untouched viewer, pass against the static build and give identical results on repeated runs under two different `TZ` values
+  3. A numeric `base10.golden.json` (covering all four layouts, planetary numerically) and normalized-SVG DOM goldens of the three non-planetary layouts (original, labyrinth, ladder) x 10 states, captured from the untouched viewer, pass against the static build and give identical results on repeated runs under two different `TZ` values
   4. `npm run typecheck` runs every `tsc` invocation plus the engine lint rules, and deliberately adding a DOM/Node type or a non-relative import inside `engine/` makes it fail
   5. A guard fails if any file under `reference/` is tracked, `origin` no longer points at `lumpenspace/ccru`, and the licensing and upstream-attribution decision is recorded in the repo
-**Plans**: TBD
+**Plans**: 8 plans in 5 waves
+
+Plans:
+- [ ] 01-01-PLAN.md - Toolchain: .gitattributes, exact npm pins + lockfile, ES2022 target, engine scaffold, Vitest with TZ canary, golden-manifest freeze tool (wave 1)
+- [ ] 01-02-PLAN.md - Engine boundary: ESLint override + guard test proving tsc/ESLint reject DOM/Node types and non-relative imports (wave 2)
+- [ ] 01-03-PLAN.md - Numeric base-10 oracle from untouched app/data, frozen, with Gt-15/Gt-03 and definition-derived regressions (wave 2)
+- [ ] 01-04-PLAN.md - DOM oracle: 30 visual-DOM goldens (3 layouts x 10 states) captured from the untouched viewer on next dev, frozen (wave 2)
+- [ ] 01-05-PLAN.md - Static export change list, client redirect, @vercel removal; goldens proven 60/60 on serve out, root and /ccrug e2e (wave 3)
+- [ ] 01-06-PLAN.md - Page-weight baseline + budget, dormant Windows/Ubuntu CI calling npm run verify, deterministic fflate plugin ZIP (wave 4)
+- [ ] 01-07-PLAN.md - LICENSE (MIT), NOTICE (upstream credit, lore exclusion), lore headers, CCRUG README, npm launch config (wave 4)
+- [ ] 01-08-PLAN.md - check-repo guard, user-approved git mutations (untrack dist/demo.mov, origin -> upstream + new origin foGledenalzi/CCRUGen (no push)), full verify gate, licensing confirmation (wave 5)
 **Research**: Standard (skip `/gsd-research-phase`), but verify empirically in the first export build: root `target: ES2022` vs class-field diagnostics, `redirect()` in `app/gematria/saved`, `sitemap.ts`/`robots.ts` under `force-static`, `searchParams` pages, `engine/package.json` without `type: module`, Vite 8 with Vitest 5 (fallback Vite 7.3.6), `process.env.TZ` behavior on Windows, fflate zip byte-identity across `TZ`, `npm ls next` resolving to 14.2.35.
 **Notes**: Hard sequencing inside the phase: `.gitattributes` lands before the first fixture; the numeric oracle and DOM goldens are captured from the untouched viewer (against `next dev`) before static-export decoupling and before any edit to `NumogramClient.tsx`; only then is the Playwright web server switched to `serve out`. Next.js stays pinned at 14.2.35 (UPG-01 is v2).
 
@@ -161,7 +171,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations and Safety Net | 0/TBD | Not started | - |
+| 1. Foundations and Safety Net | 0/8 | Planned | - |
 | 2. Engine Core and Base-10 Migration | 0/TBD | Not started | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |

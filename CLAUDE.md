@@ -26,4 +26,13 @@ Use the GSD commands for project work (`/gsd-discuss-phase N` → `/gsd-plan-pha
 
 ## Environment
 
-Windows 10, Node 22, npm 11 (npm only; `yarn.lock` is to be removed in Phase 1). Git identity for this repo is `foGledenalzi` (repo-local config; the global identity belongs to a different account, leave it alone). `origin` still points at `lumpenspace/ccru` until FND-05 renames it to `upstream` and adds `https://github.com/foGledenalzi/CCRUGen.git` as `origin`. **Never `git push` (any remote, any branch) unless the user explicitly says to push**; that step is user-approved and separate from all plans. Commits end with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`.
+Windows 10, Node 22, npm 11 (npm only; `yarn.lock` is to be removed in Phase 1). Git identity for this repo is `foGledenalzi` (repo-local config; the global identity belongs to a different account, leave it alone). Remotes: `origin` = `https://github.com/foGledenalzi/CCRUGen.git`, `upstream` = `lumpenspace/ccru` with its push URL disabled. The user authorized ONE initial push of `main` on 2026-09-25 so a cloud session can continue. **Never `git push` again (any remote, any branch) unless the user explicitly says to**; pushing is user-approved and separate from all plans. Commits end with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`.
+
+## Resuming in a fresh or cloud session
+
+- **Where we are:** Phase 1 is planned and verified (8 plans, 5 waves, `.planning/phases/01-foundations-and-safety-net/01-0N-PLAN.md`); execution has not started. Next step: `/gsd-execute-phase 1`, or `/gsd-progress` to re-orient. Read `.planning/STATE.md`, `ROADMAP.md` and `01-CONTEXT.md` (locked decisions D-01..D-17) first.
+- **GSD** (v1.38.1) lives in the user's `~/.claude`, not in this repo. If the `/gsd-*` skills are missing in the new environment, follow the plan files by hand in wave order (01-01, then 01-02/03/04, 01-05, 01-06/07, 01-08); each task lists its own read_first, action and acceptance criteria.
+- **`workflow.use_worktrees` is `false` on purpose:** plans assume one shared working tree (shared `node_modules`, and 01-08's `git rm --cached` of `dist/` and `demo.mov` would become real deletions if merged from a worktree). Do not turn it on for Phase 1.
+- **`reference/` is absent in a fresh clone** (gitignored: CCRU book, guide, scraped pages). The verified math is in `.planning/PROJECT.md` and `.planning/research/`. Never recreate or commit it.
+- **Install carefully until plan 01-01/01-08 land:** use `npm install --ignore-scripts --no-package-lock`; the `prepare` script rewrites tracked `dist/` files. Plan 01-01 introduces exact pins and `package-lock.json`.
+- **Playwright Chromium** (~700 MB cache, 1.63.0) is needed for the DOM oracle: `npx playwright install chromium`, through the environment's normal permission prompt. Goldens are captured once from the untouched viewer and never regenerated with `-u`.

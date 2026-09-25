@@ -42,7 +42,7 @@ The project builds, type-checks and exports as a static, numogram-only site on t
 - Next.js 14.2.35 exact pin, TypeScript 5.9.3, ESLint 8.57.1, root `target: ES2022`, `@types/node ^22`, npm only (delete `yarn.lock`, add `packageManager`/`engines`), `.gitattributes` (`* text=auto eol=lf`) before the first fixture, Vitest 5 + fast-check + Playwright, `engine/` scaffold with its own tsconfig and ESLint boundary (`--dir engine --dir workers`, `eslint.dirs`) enforced by one `typecheck` script, `output: 'export'` unconditional, `@vercel/blob` and `@vercel/analytics` removed, the share-image route (and `scripts/share-image-self-check.mjs`, `test:share-image`) deleted, static metadata replacing `generateMetadata(searchParams)`.
 
 ### Claude's Discretion
-- Script names and layout, CI file contents, the basePath env variable name, page-weight tolerance values, exact golden state list within the agreed shape, `.nojekyll` (only if useful), and the copyright holder name in LICENSE (use the git author name `csysp` unless the user specifies otherwise; flag it in the plan).
+- Script names and layout, CI file contents, the basePath env variable name, page-weight tolerance values, exact golden state list within the agreed shape, `.nojekyll` (only if useful), and the copyright holder name in LICENSE (use the repo's git author name `foGledenalzi` unless the user specifies otherwise; flag it in the plan).
 
 </decisions>
 
