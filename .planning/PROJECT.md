@@ -38,7 +38,8 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - [ ] **Renderer generalization**: replace the 10-zone assumptions in Projection/NumogramClient with engine-driven rendering; tiered by size (rich interactive SVG for small bases, Canvas/LOD for large, headless SVG/JSON for huge), thresholds set by measurement
 - [ ] **Base picker + generator UI**: choose an even base, see summary (zones, regions, torque cycle lengths, demon count), live diagram, URL-shareable `?base=`
 - [ ] **Zone labelling for large bases**: in-base digits (0-9,a-z) up to base-36, a defined scheme beyond (decimal / glyph set), plus xenotation option
-- [ ] **Demons layer**: all T(n-1) demons with net-span, mesh number and type; virtualized/on-demand so it never freezes the page at high base
+- [ ] **Demons layer**: all T(n-1) demons with net-span, mesh number and type (including an explicit cross-Torque chronodemon subtype); virtualized/on-demand so it never freezes the page at high base
+- [ ] **Legibility and access**: region legend table with stable Torque ids and isolate/mute, syzygy-collapsed pair-graph view (each Torque cycle a clean ring), and a text view with keyboard traversal, ARIA and non-colour cues
 - [ ] **Naming builder**: user assigns a sound/phoneme per zone (seeded auto-generator for any base; CCRU zone phonemes for base-10 preset), demon names derived from net-span sounds, editable, importable/exportable as JSON
 - [ ] **Export**: self-contained SVG file, PNG, and engine-data JSON for the current numogram
 - [ ] **Static/offline deployability**: decouple `@vercel/blob`, `@vercel/analytics`, and the `/api/share-image` route so the generator works as a static export with no server
@@ -68,7 +69,7 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - Demons: all unordered zone pairs, T(n-1) = n(n-1)/2 (45, 66, 28, 1 for bases 10, 12, 8, 2). Mesh number of a::b = a(a-1)/2 + b.
 - The math is not the ceiling. Demons are O(n^2) (base 666 = 221,445; base 1000 = 499,500) and rites are exponential; rendering and the demon layer are the real limits.
 
-**Existing codebase** (mapped in `.planning/codebase/`): Next.js 14 + React 18 + TS + Tailwind viewer, ~1500-line `NumogramClient.tsx` coordinating state, `Projection.tsx` rendering, hand-authored base-10 constants in `app/data/`, zero tests, Vercel Blob/Analytics coupling, 41 MB `demo.mov` and committed `dist/`. See `.planning/codebase/CONCERNS.md` for the base-10 hard-coding inventory.
+**Existing codebase** (mapped in `.planning/codebase/`): Next.js 14 + React 18 + TS + Tailwind viewer, 1,943-line `NumogramClient.tsx` coordinating state, `Projection.tsx` rendering, hand-authored base-10 constants in `app/data/`, zero tests, Vercel Blob/Analytics coupling, 41 MB `demo.mov` and committed `dist/`. See `.planning/codebase/CONCERNS.md` for the base-10 hard-coding inventory.
 
 **Environment**: Windows 10, Node 22, npm 11. `origin` currently points at `lumpenspace/ccru` (repoint before pushing). Git author is configured as `csysp <(old identity email removed)>` on this machine.
 
@@ -92,7 +93,11 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 | Static web app + engine lib as the deliverable | User choice; keeps engine usable from tests/CLI and the app hostable anywhere | — Pending |
 | Even bases only | Odd bases force a self-paired zone, which the CCRU rejects (source guide, part 1) | ✓ Good |
 | Keep Next.js base rather than rewriting | "Base repo to build off"; revisit after ceiling spike | — Pending |
-| Zone labels beyond base-36 need a defined scheme | Digits 0-9,a-z run out; open question for research | — Pending |
+| Zone labels beyond base-36 need a defined scheme | Digits 0-9,a-z run out; default is decimal with a separator, plus custom alphabet; integer stays the identity in URLs/JSON | — Pending |
+| Explicit cross-Torque chronodemon subtype | User choice; in multi-Torque bases most chronodemons span different cycles (base 28: 108 of 378) and the guide names none of them; freezes the demon taxonomy in the engine phase | ✓ Good |
+| Text view/a11y, region legend and pair-graph view are v1 | User choice; expensive to retrofit, and bases like 64 have 6+ Torque cycles that a flat legend cannot show | ✓ Good |
+| Stay on Next 14.2.35, no upgrade phase | User choice; static export removes the server exposure that makes an unsupported Next major risky; revisit only if something forces it (tracked as UPG-01 in v2) | ✓ Good |
+| Poster-quality SVG export deferred to v2 | User choice; plain SVG/PNG/JSON export is v1 | ✓ Good |
 
 ## Evolution
 
@@ -112,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-25 after initialization*
+*Last updated: 2026-09-25 after requirements approval*
