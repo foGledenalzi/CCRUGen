@@ -1,93 +1,85 @@
-# CCRU
+# CCRUG - Arbitrary-Base Numogram Generator
 
-This repository currently centers on an interactive **Numogram** implementation inspired by CCRU concepts, including zones, syzygies, currents, gates, and related structures.
+A static web app and a pure TypeScript engine that generate **CCRU numograms for any even base**: base 2 up to however high the measured processing ceiling allows (base 32, 64, 666 and beyond), instead of only the canonical base-10 diagram.
 
-Over time, this repo will also include other CCRU-related experiments, tools, notes, and code projects beyond the Numogram.
+Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / Warp / Torque regions and the demon set, draws the result as SVG, and lets you name the demons and export the diagram. Base 10 is the reference preset: the engine must reproduce it exactly.
 
-## Live URLs
+Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). The upstream repository ships no license, so the files inherited from it are not relicensed here, and the CCRU-derived base-10 lore text is a third-party pack (see [Licensing](#licensing-and-credits)).
 
-- Home: [num.qliphoth.systems](https://num.qliphoth.systems)
-- Numogram: [num.qliphoth.systems/numogram](https://num.qliphoth.systems/numogram)
-- Components: [num.qliphoth.systems/components](https://num.qliphoth.systems/components)
-- Gematria: [num.qliphoth.systems/gematria](https://num.qliphoth.systems/gematria)
-- Gematria Plugin: [num.qliphoth.systems/gematria/plugin](https://num.qliphoth.systems/gematria/plugin)
-- Plugin ZIP: [num.qliphoth.systems/downloads/ccru-gematria-plugin.zip](https://num.qliphoth.systems/downloads/ccru-gematria-plugin.zip)
+> **Status: early development.** The repository still runs the inherited base-10 viewer. The generator is being built phase by phase (see the [roadmap](#roadmap)); Phase 1 is planned but not yet executed.
 
-## Component Library (Install From Repo)
+## The idea
 
-Install directly from GitHub:
+A numogram is usually shown as one diagram, the ten-zone base-10 one. It is really a construction that works in any even base, so CCRUG treats numograms as a class of objects rather than a single picture.
 
-```bash
-npm install github:lumpenspace/ccru
-```
+For an even base `n` (zones `0 .. n-1`), all arithmetic done in that base:
 
-Then import from `ccru/components`:
+- **Syzygies:** zones pair up so that each pair sums to `n-1` (a pair is written `hi::lo`). There are `n/2` pairs. Odd bases are excluded: they force a zone to pair with itself.
+- **Currents (major flows):** the pair `hi::lo` flows to the zone `hi-lo`.
+- **Gates (minor flows):** zone `k` flows to the in-base digital root of the triangular number `k(k+1)/2`.
+- **Regions:** the **Plex** is the pair `0::(n-1)` and is always present. The **Warp** is a pair that flows to itself and exists only when `n = 3o + 1` with `o` odd (bases 4, 10, 16, 22, 28, ...). Every remaining cycle of currents is a **Torque**, and there can be several.
+- **Demons:** every unordered pair of zones `a::b` is a demon, so there are `n(n-1)/2` of them (45 in base 10, 66 in base 12).
 
-```tsx
-import { CyberButton, CyberPanel, CypherHoverText, CCRU_CIPHERS } from 'ccru/components'
-```
+Torque cycles by base (lengths counted in syzygy pairs):
 
-Notes:
+| Base | Warp | Torque cycles |
+|------|------|---------------|
+| 10 | yes | 3 |
+| 12 | no | 5 |
+| 16 | yes | 4, 2 |
+| 28 | yes | 9, 3 |
+| 80 | no | 39 |
+| 82 | yes | 27, 9, 3 |
 
-- Components are React/Tailwind-oriented UI primitives.
-- This package export is built during install via the `prepare` script.
+The arithmetic itself is instant, even at base 100,000. The real limits are drawing that many nodes and the quadratic demon layer (base 666 has 221,445 demons), which is why the renderer is tiered and the ceiling is measured rather than assumed.
 
-## Gematria Plugin
+## What v1 covers
 
-The repo ships a Chrome extension (`gematria/plugin`) for in-page gematria overlays and saved phrase workflow.
+- The core diagram: zones, syzygies, currents, gates, Plex / Warp / Torque regions, and a generated layout for any even base.
+- All demons, with net-span, mesh number and type, kept virtual so they never freeze the page.
+- A naming builder: a sound per zone, demon names derived from net-spans, editable and shareable as JSON.
+- Export to SVG, PNG and JSON, plus a headless CLI.
+- A fully static site: no server, no accounts, no analytics.
 
-- Source: [github.com/lumpenspace/ccru/tree/main/gematria/plugin](https://github.com/lumpenspace/ccru/tree/main/gematria/plugin)
-- Docs page: [num.qliphoth.systems/gematria/plugin](https://num.qliphoth.systems/gematria/plugin)
-- Download ZIP: [num.qliphoth.systems/downloads/ccru-gematria-plugin.zip](https://num.qliphoth.systems/downloads/ccru-gematria-plugin.zip)
-
-Quick install:
-
-1. Download and extract the ZIP.
-2. Open `chrome://extensions`.
-3. Enable Developer mode.
-4. Click Load unpacked and select the extracted extension folder.
-
-### Demo Video
-
-https://github.com/user-attachments/assets/a36bf7f0-91d0-4479-801b-f9fba381a5b1
-
-## Features
-
-- Interactive Numogram with zones, syzygies, currents, and gates
-- Multiple visual layouts (`original`, `labyrinth`, `ladder`)
-- Layer toggles for focused exploration
-- Hover/selection details for zones, flows, gates, and demons
-- Built with Next.js + React + TypeScript
-
-## Running Locally
-
-```bash
-npm install
-npm run dev
-```
-
-Then open `http://localhost:3000`.
-
-## Repository Scope
-
-This is a growing CCRU workspace. In addition to the Numogram, this repository will accumulate other CCRU-adjacent artifacts, such as:
-
-- Experimental interfaces and visualizations
-- Notes and references
-- Utility code and small tools
-
-## Structure
-
-- `app/page.tsx` - primary Numogram interface
-- `app/components/` - UI and panel components
-- `component-library/index.ts` - exported installable components entrypoint (`ccru/components`)
-- `app/data/` - syzygies, currents, gates, and demon datasets
-- `app/lib/` - math, geometry, and helper logic
-- `gematria/plugin/` - Chrome extension source (unpacked build target)
-- `demo.mov` - local demo video asset
+Out of scope for now: pitch, the Decadence card games, rites and omens, and planet / zodiac / tarot correspondence packs for other bases.
 
 ## Roadmap
 
-- Add more CCRU modules alongside the Numogram
-- Improve documentation for concepts and terminology
-- Expand visual modes and interaction tooling
+Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`](.planning/PROJECT.md), [`REQUIREMENTS.md`](.planning/REQUIREMENTS.md) and [`ROADMAP.md`](.planning/ROADMAP.md).
+
+| Phase | Goal | Status |
+|-------|------|--------|
+| 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Planned (8 plans) |
+| 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Not started |
+| 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Not started |
+| 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Not started |
+| 5. Demons Layer | Browse, count and inspect every demon at any base | Not started |
+| 6. Canvas Tier and Worker | Large bases stay interactive; graceful degradation | Not started |
+| 7. Naming Builder | Zone sounds, derived demon names, JSON import / export | Not started |
+| 8. Export, CLI and Hardening | SVG / PNG / JSON export, headless CLI, cross-platform CI | Not started |
+
+## Running locally
+
+Requires Node 22 and npm (this project does not use yarn).
+
+```bash
+npm install --ignore-scripts
+npm run dev
+```
+
+Then open `http://localhost:3000/numogram`. The `--ignore-scripts` flag is temporary: until Phase 1 lands, the `prepare` script rebuilds a tracked `dist/` folder on every install.
+
+## Repository layout (current)
+
+- `app/` - the Next.js viewer (`app/numogram/`, `app/NumogramClient.tsx`, `app/components/`, `app/hooks/`, `app/lib/`).
+- `app/data/` - the hand-authored base-10 data and CCRU-derived lore (to be replaced by engine output in Phase 2).
+- `component-library/`, `gematria/plugin/` - inherited from upstream and out of scope for this project; kept on disk unchanged.
+- `.planning/` - project, requirements, roadmap, research and per-phase plans.
+- `CLAUDE.md` - notes for AI-assisted sessions (project rules and how to resume).
+- `reference/` - local research material (books, scraped pages). It is gitignored and never part of the repository.
+
+## Licensing and credits
+
+- New original code (the engine, layout, naming, export, tests and scripts written for this project) is intended to be **MIT**. The `LICENSE` and `NOTICE` files land in Phase 1; until then, treat the repository as not yet licensed.
+- The viewer inherited from **lumpenspace/ccru** is not relicensed by this project, and the base-10 lore text (zone and gate names and descriptions) derives from the CCRU writings and is excluded from the MIT grant.
+- The numogram construction follows the work of the Cybernetic Culture Research Unit (*Ccru: Writings 1997-2003*, Time Spiral Press, 2015) and community write-ups that generalize it to other bases, including the [DIY Numogram guide](https://alektryon.github.io/gramculator/diy.html) in the Gramculator.
