@@ -118,12 +118,53 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| FND-01 | Phase 1 | Pending |
+| FND-02 | Phase 1 | Pending |
+| FND-03 | Phase 1 | Pending |
+| FND-04 | Phase 1 | Pending |
+| FND-05 | Phase 1 | Pending |
+| ENG-01 | Phase 2 | Pending |
+| ENG-02 | Phase 2 | Pending |
+| ENG-03 | Phase 2 | Pending |
+| ENG-04 | Phase 2 | Pending |
+| ENG-05 | Phase 2 | Pending |
+| MIG-01 | Phase 2 | Pending |
+| LAY-01 | Phase 3 | Pending |
+| LAY-02 | Phase 3 | Pending |
+| LAY-03 | Phase 3 | Pending |
+| LAY-04 | Phase 3 | Pending |
+| REN-01 | Phase 3 | Pending |
+| UI-01 | Phase 4 | Pending |
+| UI-02 | Phase 4 | Pending |
+| UI-03 | Phase 4 | Pending |
+| UI-04 | Phase 4 | Pending |
+| UI-05 | Phase 4 | Pending |
+| UI-06 | Phase 4 | Pending |
+| UI-07 | Phase 4 | Pending |
+| UI-08 | Phase 4 | Pending |
+| MIG-02 | Phase 4 | Pending |
+| DEM-01 | Phase 5 | Pending |
+| DEM-02 | Phase 5 | Pending |
+| DEM-03 | Phase 5 | Pending |
+| DEM-04 | Phase 5 | Pending |
+| DEM-05 | Phase 5 | Pending |
+| REN-02 | Phase 6 | Pending |
+| REN-03 | Phase 6 | Pending |
+| NAM-01 | Phase 7 | Pending |
+| NAM-02 | Phase 7 | Pending |
+| NAM-03 | Phase 7 | Pending |
+| NAM-04 | Phase 7 | Pending |
+| EXP-01 | Phase 8 | Pending |
+| EXP-02 | Phase 8 | Pending |
+| EXP-03 | Phase 8 | Pending |
+| EXP-04 | Phase 8 | Pending |
+| HRD-01 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 41 total
-- Mapped to phases: 0
-- Unmapped: 41 ⚠️
+- Mapped to phases: 41
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-25*
-*Last updated: 2026-09-25 after requirements approval*
+*Last updated: 2026-09-25 after roadmap creation*
