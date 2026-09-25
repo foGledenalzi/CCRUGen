@@ -1,6 +1,6 @@
 # CCRUG - Arbitrary-Base Numogram Generator
 
-A static web app and a pure TypeScript engine that generate **CCRU numograms for any even base**: base 2 up to however high the measured processing ceiling allows (base 32, 64, 666 and beyond), instead of only the canonical base-10 diagram.
+A tool for **constructing and visualizing numograms in any even base**: base 2 up to however high the measured processing ceiling allows (base 32, 64, 666 and beyond), instead of only the canonical base-10 diagram. It is a static web app backed by a pure TypeScript engine.
 
 Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / Warp / Torque regions and the demon set, draws the result as SVG, and lets you name the demons and export the diagram. Base 10 is the reference preset: the engine must reproduce it exactly.
 
@@ -76,10 +76,9 @@ Then open `http://localhost:3000/numogram`. The `--ignore-scripts` flag is tempo
 - `component-library/`, `gematria/plugin/` - inherited from upstream and out of scope for this project; kept on disk unchanged.
 - `.planning/` - project, requirements, roadmap, research and per-phase plans.
 - `CLAUDE.md` - notes for AI-assisted sessions (project rules and how to resume).
-- `reference/` - local research material (books, scraped pages). It is gitignored and never part of the repository.
+- `reference/` - local-only reference material; gitignored and not part of the repository.
 
 ## Licensing and credits
 
 - New original code (the engine, layout, naming, export, tests and scripts written for this project) is intended to be **MIT**. The `LICENSE` and `NOTICE` files land in Phase 1; until then, treat the repository as not yet licensed.
-- The viewer inherited from **lumpenspace/ccru** is not relicensed by this project, and the base-10 lore text (zone and gate names and descriptions) derives from the CCRU writings and is excluded from the MIT grant.
-- The numogram construction follows the work of the Cybernetic Culture Research Unit (*Ccru: Writings 1997-2003*, Time Spiral Press, 2015) and community write-ups that generalize it to other bases, including the [DIY Numogram guide](https://alektryon.github.io/gramculator/diy.html) in the Gramculator.
+- The viewer inherited from **lumpenspace/ccru** is not relicensed by this project, and the base-10 lore text (zone and gate names and descriptions) is third-party material derived from the CCRU writings and is excluded from the MIT grant.
