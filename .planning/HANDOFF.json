@@ -17,7 +17,7 @@
     {"id": 5, "name": "01-05 delete non-numogram routes, static export, client redirect, goldens match on serve out (wave 3)", "status": "not_started"},
     {"id": 6, "name": "01-06 page-weight baseline, dormant CI, fflate plugin zip (wave 4)", "status": "not_started"},
     {"id": 7, "name": "01-07 LICENSE, NOTICE, lore headers, README extension (wave 4)", "status": "not_started"},
-    {"id": 8, "name": "01-08 check-repo guard, untrack dist/demo.mov, remote check-then-set, npm run verify, user checkpoint (wave 5)", "status": "not_started"}
+    {"id": 8, "name": "01-08 check-repo guard, untrack dist/, remote check-then-set, npm run verify, user checkpoint (wave 5)", "status": "not_started"}
   ],
   "blockers": [],
   "human_actions_pending": [
@@ -27,7 +27,7 @@
   ],
   "decisions": [
     {"decision": "Own project crediting upstream; MIT for new code; CCRU-derived lore excluded from MIT", "rationale": "Upstream has no license; lore text derives from the CCRU writings", "phase": "1"},
-    {"decision": "Numogram-only static site; build = next build; dist/ and demo.mov untracked", "rationale": "Host-agnostic static export, no zip binary", "phase": "1"},
+    {"decision": "Numogram-only static site; build = next build; dist/ untracked and demo.mov deleted by the user", "rationale": "Host-agnostic static export, no zip binary", "phase": "1"},
     {"decision": "Base-10 oracle: numeric JSON + 3 layouts x 10 states DOM goldens, visual-DOM comparison, never regenerate with -u", "rationale": "Safety net for the Phase 2 migration", "phase": "1"},
     {"decision": "workflow.use_worktrees=false", "rationale": "Plans assume one shared tree; git rm --cached would become real deletions from a worktree merge", "phase": "1"},
     {"decision": "Commit identity is foGledenalzi with the GitHub no-reply email; push only on explicit user request", "rationale": "GitHub blocks pushes exposing a private email; user privacy", "phase": "1"}
