@@ -1,0 +1,242 @@
+<svg class="w-[580px] flex-shrink-0" style="overflow:visible" viewBox="0 0 800 880">
+  <defs>
+    <filter id="gl">
+      <feGaussianBlur stdDeviation="3">
+      <feMerge>
+        <feMergeNode>
+        <feMergeNode in="SourceGraphic">
+    <filter id="gl2">
+      <feGaussianBlur stdDeviation="5">
+      <feMerge>
+        <feMergeNode>
+        <feMergeNode in="SourceGraphic">
+    <marker id="arr-c" markerHeight="7" markerWidth="9" orient="auto" refX="7" refY="3" viewBox="0 0 8 6">
+      <path d="M0,0.5 L7,3 L0,5.5" fill="#22ee66">
+    <marker id="arr-g" markerHeight="6" markerWidth="8" orient="auto" refX="7" refY="3" viewBox="0 0 8 6">
+      <path d="M0,0.5 L7,3 L0,5.5" fill="#cc44ff">
+    <filter id="sunGlow">
+      <feGaussianBlur result="blur" stdDeviation="6">
+      <feMerge>
+        <feMergeNode in="blur">
+        <feMergeNode in="blur">
+        <feMergeNode in="SourceGraphic">
+    <radialGradient cx="42%" cy="42%" fx="38%" fy="38%" id="sphere-0" r="55%">
+      <stop offset="0%" stop-color="#ffffff">
+      <stop offset="10%" stop-color="#eeeeee">
+      <stop offset="28%" stop-color="#aaaaaa">
+      <stop offset="62%" stop-color="#aaaaaa" stop-opacity="0.6">
+      <stop offset="100%" stop-color="#2b2b2b">
+    <radialGradient cx="50%" cy="50%" id="sun-halo" r="50%">
+      <stop offset="0%" stop-color="#aaaaaa" stop-opacity="0.35">
+      <stop offset="40%" stop-color="#aaaaaa" stop-opacity="0.1">
+      <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0">
+    <radialGradient cx="50%" cy="50%" id="sun-corona" r="50%">
+      <stop offset="0%" stop-color="#aaaaaa" stop-opacity="0.45">
+      <stop offset="50%" stop-color="#aaaaaa" stop-opacity="0.12">
+      <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0">
+  <text fill="#44cc77" font-family="monospace" font-size="9" opacity="0.4" text-anchor="middle" x="400" y="20">
+    #text "WARP"
+  <text fill="#00ccff" font-family="monospace" font-size="9" opacity="0.25" text-anchor="middle" x="400" y="438">
+    #text "TORQUE"
+  <text fill="#aa6633" font-family="monospace" font-size="9" opacity="0.4" text-anchor="middle" x="400" y="865">
+    #text "PLEX"
+  <g>
+    <path d="M400 655Q407.5 758.75 495 815" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M400 655Q407.5 758.75 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M400 220Q596.25 493.75 495 815" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M400 220Q596.25 493.75 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M400 220Q291.25 437.5 400 655" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M400 220Q291.25 437.5 400 655" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M495 60Q683.75 437.5 495 815" fill="none" opacity="0.15" stroke="#cc3333" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M495 60Q683.75 437.5 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M495 60Q596.25 381.25 400 655" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M495 60Q596.25 381.25 400 655" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M495 60Q407.5 116.25 400 220" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M495 60Q407.5 116.25 400 220" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 540Q278.75 751.25 495 815" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 540Q278.75 751.25 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 540Q271.25 647.5 400 655" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 540Q271.25 647.5 400 655" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 540Q220 330 400 220" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 540Q220 330 400 220" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 540Q227.5 226.25 495 60" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 540Q227.5 226.25 495 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 335Q227.5 648.75 495 815" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 335Q227.5 648.75 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 335Q220 545 400 655" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 335Q220 545 400 655" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 335Q271.25 227.5 400 220" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 335Q271.25 227.5 400 220" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M200 335Q278.75 123.75 495 60" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 335Q278.75 123.75 495 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 60Q588.75 390 495 815" fill="none" opacity="0.15" stroke="#cc3333" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 60Q588.75 390 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 60Q203.75 381.25 400 655" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 60Q203.75 381.25 400 655" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 60Q392.5 116.25 400 220" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 60Q392.5 116.25 400 220" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 60Q132.5 273.75 200 540" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 60Q132.5 273.75 200 540" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 60Q183.75 171.25 200 335" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 60Q183.75 171.25 200 335" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 335Q667.5 601.25 495 815" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 335Q667.5 601.25 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 335Q580 545 400 655" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 335Q580 545 400 655" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 335Q616.25 171.25 495 60" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 335Q616.25 171.25 495 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 335Q348.75 337.5 200 540" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 335Q348.75 337.5 200 540" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 335Q400 235 200 335" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 335Q400 235 200 335" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 335Q521.25 123.75 305 60" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 335Q521.25 123.75 305 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q616.25 703.75 495 815" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q616.25 703.75 495 815" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q580 330 400 220" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q580 330 400 220" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q667.5 273.75 495 60" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q667.5 273.75 495 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q400 640 200 540" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q400 640 200 540" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q451.25 337.5 200 335" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q451.25 337.5 200 335" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q572.5 226.25 305 60" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q572.5 226.25 305 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q651.25 437.5 600 335" fill="none" opacity="0.15" stroke="#00ccff" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q651.25 437.5 600 335" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q392.5 758.75 400 655" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q392.5 758.75 400 655" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q203.75 493.75 400 220" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q203.75 493.75 400 220" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q211.25 390 495 60" fill="none" opacity="0.15" stroke="#cc3333" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q211.25 390 495 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q183.75 703.75 200 540" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q183.75 703.75 200 540" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q132.5 601.25 200 335" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q132.5 601.25 200 335" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q116.25 437.5 305 60" fill="none" opacity="0.15" stroke="#cc3333" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q116.25 437.5 305 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q572.5 648.75 600 335" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q572.5 648.75 600 335" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q521.25 751.25 600 540" fill="none" opacity="0.15" stroke="#cc8833" stroke-width="0.4" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q521.25 751.25 600 540" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g style="cursor:pointer">
+    <circle cx="305" cy="60" fill="#ddcc3318" r="21" stroke="#ddcc3344" stroke-width="0.7">
+    <polygon fill="#ddcc33" opacity="0.2" points="313,60 301.464,63.536 301.464,56.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ddcc33aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="305" y="61">
+      #text "6"
+    <text dominant-baseline="central" fill="#ddcc3366" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="305" y="90">
+      #text "Saturn"
+    <circle cx="305" cy="109" fill="#44cc77" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="495" cy="60" fill="#44cc7718" r="21" stroke="#44cc7744" stroke-width="0.7">
+    <polygon fill="#44cc77" opacity="0.2" points="487,60 498.536,56.464 498.536,63.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#44cc77aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="495" y="61">
+      #text "3"
+    <text dominant-baseline="central" fill="#44cc7766" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="495" y="90">
+      #text "Earth"
+    <circle cx="495" cy="109" fill="#44cc77" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="600" cy="540" fill="#9944ee18" r="21" stroke="#9944ee44" stroke-width="0.7">
+    <polygon fill="#9944ee" opacity="0.2" points="593.065,543.988 601.303,535.173 604.827,541.303" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#9944eeaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="600" y="541">
+      #text "8"
+    <text dominant-baseline="central" fill="#9944ee66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="600" y="570">
+      #text "Neptune"
+    <circle cx="600" cy="589" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="600" cy="335" fill="#7755cc18" r="21" stroke="#7755cc44" stroke-width="0.7">
+    <polygon fill="#7755cc" opacity="0.2" points="593.065,331.012 604.827,333.697 601.303,339.827" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#7755ccaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="600" y="336">
+      #text "7"
+    <text dominant-baseline="central" fill="#7755cc66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="600" y="365">
+      #text "Uranus"
+    <circle cx="600" cy="384" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="400" cy="655" fill="#ee44ee18" r="21" stroke="#ee44ee44" stroke-width="0.7">
+    <polygon fill="#ee44ee" opacity="0.2" points="406.935,651.012 398.697,659.827 395.173,653.697" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee44eeaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="400" y="656">
+      #text "1"
+    <text dominant-baseline="central" fill="#ee44ee66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="400" y="685">
+      #text "Mercury"
+    <circle cx="400" cy="704" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="400" cy="220" fill="#4488ff18" r="21" stroke="#4488ff44" stroke-width="0.7">
+    <polygon fill="#4488ff" opacity="0.2" points="406.935,223.988 395.173,221.303 398.697,215.173" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#4488ffaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="400" y="221">
+      #text "2"
+    <text dominant-baseline="central" fill="#4488ff66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="400" y="250">
+      #text "Venus"
+    <circle cx="400" cy="269" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="200" cy="540" fill="#ee444418" r="21" stroke="#ee444444" stroke-width="0.7">
+    <polygon fill="#ee4444" opacity="0.2" points="200,532 203.536,543.536 196.464,543.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee4444aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="200" y="541">
+      #text "4"
+    <text dominant-baseline="central" fill="#ee444466" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="200" y="570">
+      #text "Mars"
+    <circle cx="200" cy="589" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="200" cy="335" fill="#ee883318" r="21" stroke="#ee883344" stroke-width="0.7">
+    <polygon fill="#ee8833" opacity="0.2" points="200,343 196.464,331.464 203.536,331.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee8833aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="200" y="336">
+      #text "5"
+    <text dominant-baseline="central" fill="#ee883366" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="200" y="365">
+      #text "Jupiter"
+    <circle cx="200" cy="384" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="305" cy="815" fill="#66666618" r="21" stroke="#66666644" stroke-width="0.7">
+    <polygon fill="#666666" opacity="0.2" points="313,815 301.464,818.536 301.464,811.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#666666aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="305" y="816">
+      #text "9"
+    <text dominant-baseline="central" fill="#66666666" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="305" y="845">
+      #text "Pluto"
+    <circle cx="305" cy="864" fill="#aa6633" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="495" cy="815" fill="#aaaaaa18" r="21" stroke="#aaaaaa44" stroke-width="0.7">
+    <polygon fill="#aaaaaa" opacity="0.2" points="487,815 498.536,811.464 498.536,818.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#aaaaaaaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="495" y="816">
+      #text "0"
+    <text dominant-baseline="central" fill="#aaaaaa66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="495" y="845">
+      #text "Sol"
+    <circle cx="495" cy="864" fill="#aa6633" opacity="0.3" r="2">

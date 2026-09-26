@@ -1,0 +1,317 @@
+<svg class="w-[580px] flex-shrink-0" style="overflow:visible" viewBox="0 0 800 880">
+  <defs>
+    <filter id="gl">
+      <feGaussianBlur stdDeviation="3">
+      <feMerge>
+        <feMergeNode>
+        <feMergeNode in="SourceGraphic">
+    <filter id="gl2">
+      <feGaussianBlur stdDeviation="5">
+      <feMerge>
+        <feMergeNode>
+        <feMergeNode in="SourceGraphic">
+    <marker id="arr-c" markerHeight="7" markerWidth="9" orient="auto" refX="7" refY="3" viewBox="0 0 8 6">
+      <path d="M0,0.5 L7,3 L0,5.5" fill="#22ee66">
+    <marker id="arr-g" markerHeight="6" markerWidth="8" orient="auto" refX="7" refY="3" viewBox="0 0 8 6">
+      <path d="M0,0.5 L7,3 L0,5.5" fill="#cc44ff">
+    <filter id="sunGlow">
+      <feGaussianBlur result="blur" stdDeviation="6">
+      <feMerge>
+        <feMergeNode in="blur">
+        <feMergeNode in="blur">
+        <feMergeNode in="SourceGraphic">
+    <radialGradient cx="42%" cy="42%" fx="38%" fy="38%" id="sphere-0" r="55%">
+      <stop offset="0%" stop-color="#ffffff">
+      <stop offset="10%" stop-color="#eeeeee">
+      <stop offset="28%" stop-color="#aaaaaa">
+      <stop offset="62%" stop-color="#aaaaaa" stop-opacity="0.6">
+      <stop offset="100%" stop-color="#2b2b2b">
+    <radialGradient cx="50%" cy="50%" id="sun-halo" r="50%">
+      <stop offset="0%" stop-color="#aaaaaa" stop-opacity="0.35">
+      <stop offset="40%" stop-color="#aaaaaa" stop-opacity="0.1">
+      <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0">
+    <radialGradient cx="50%" cy="50%" id="sun-corona" r="50%">
+      <stop offset="0%" stop-color="#aaaaaa" stop-opacity="0.45">
+      <stop offset="50%" stop-color="#aaaaaa" stop-opacity="0.12">
+      <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0">
+  <text fill="#44cc77" font-family="monospace" font-size="9" opacity="0.4" text-anchor="middle" x="400" y="20">
+    #text "WARP"
+  <text fill="#00ccff" font-family="monospace" font-size="9" opacity="0.25" text-anchor="middle" x="400" y="438">
+    #text "TORQUE"
+  <text fill="#aa6633" font-family="monospace" font-size="9" opacity="0.4" text-anchor="middle" x="400" y="865">
+    #text "PLEX"
+  <g>
+    <path d="M508.499 798.913Q598.405 833.233 502.182 834.734" fill="none" filter="url(#gl)" marker-end="url(#arr-g)" opacity="0.8" stroke="#cc44ff" stroke-dasharray="3 2" stroke-width="1.2" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M508.499 798.913Q598.405 833.233 502.182 834.734" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M398.17 675.92Q304.838 699.375 382.798 642.955" fill="none" marker-end="url(#arr-g)" opacity="0.08" stroke="#cc44ff" stroke-dasharray="3 2" stroke-width="0.7" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M398.17 675.92Q304.838 699.375 382.798 642.955" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M410.721 201.943Q420.901 124.207 484.279 78.057" fill="none" marker-end="url(#arr-g)" opacity="0.08" stroke="#cc44ff" stroke-dasharray="5 3" stroke-width="0.7" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M410.721 201.943Q420.901 124.207 484.279 78.057" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M474 60Q400 38.36 326 60" fill="none" marker-end="url(#arr-g)" opacity="0.08" stroke="#cc44ff" stroke-dasharray="5 3" stroke-width="0.7" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M474 60Q400 38.36 326 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M218.205 550.468Q285.561 622.612 381.795 644.532" fill="none" marker-end="url(#arr-g)" opacity="0.08" stroke="#cc44ff" stroke-dasharray="5 3" stroke-width="0.7" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M218.205 550.468Q285.561 622.612 381.795 644.532" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M207.491 315.381Q214.734 183.08 297.509 79.619" fill="none" marker-end="url(#arr-g)" opacity="0.08" stroke="#cc44ff" stroke-dasharray="5 3" stroke-width="0.7" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M207.491 315.381Q214.734 183.08 297.509 79.619" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M326 60Q400 38.36 474 60" fill="none" marker-end="url(#arr-g)" opacity="0.08" stroke="#cc44ff" stroke-dasharray="5 3" stroke-width="0.7" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M326 60Q400 38.36 474 60" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M588.87 352.808Q546.949 524.343 411.13 637.192" fill="none" marker-end="url(#arr-g)" opacity="0.08" stroke="#cc44ff" stroke-dasharray="5 3" stroke-width="0.7" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M588.87 352.808Q546.949 524.343 411.13 637.192" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M584.639 554.319Q496.845 725.07 320.361 800.681" fill="none" filter="url(#gl)" marker-end="url(#arr-g)" opacity="0.8" stroke="#cc44ff" stroke-dasharray="5 3" stroke-width="1.2" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M584.639 554.319Q496.845 725.07 320.361 800.681" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M303.17 835.92Q209.838 859.375 287.798 802.955" fill="none" filter="url(#gl)" marker-end="url(#arr-g)" opacity="0.8" stroke="#cc44ff" stroke-dasharray="3 2" stroke-width="1.2" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M303.17 835.92Q209.838 859.375 287.798 802.955" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer">
+  <g>
+    <path d="M600 540Q557.765 529.888 524.721 501.709" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M400 655Q480.755 593.321 524.721 501.709" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <circle cx="524.721" cy="501.709" fill="#ffffff" opacity="0.08" r="3.5" stroke="#22ee66" stroke-width="0.8" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M524.721 501.709L600 335" fill="none" marker-end="url(#arr-c)" opacity="0.08" stroke="#22ee66" stroke-width="1.2" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 540Q557.765 529.888 524.721 501.709" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M400 655Q480.755 593.321 524.721 501.709" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M524.721 501.709L600 335" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+  <g>
+    <path d="M400 220Q387.924 263.863 397.071 308.428" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M600 335Q501.724 297.363 397.071 308.428" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <circle cx="397.071" cy="308.428" fill="#ffffff" opacity="0.08" r="3.5" stroke="#22ee66" stroke-width="0.8" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M397.071 308.428L200 335" fill="none" marker-end="url(#arr-c)" opacity="0.08" stroke="#22ee66" stroke-width="1.2" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M400 220Q387.924 263.863 397.071 308.428" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M600 335Q501.724 297.363 397.071 308.428" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M397.071 308.428L200 335" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+  <g>
+    <path d="M200 540Q243.107 532.461 278.097 506.179" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 335Q218.507 429.961 278.097 506.179" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <circle cx="278.097" cy="506.179" fill="#ffffff" opacity="0.08" r="3.5" stroke="#22ee66" stroke-width="0.8" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M278.097 506.179L400 655" fill="none" marker-end="url(#arr-c)" opacity="0.08" stroke="#22ee66" stroke-width="1.2" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M200 540Q243.107 532.461 278.097 506.179" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M200 335Q218.507 429.961 278.097 506.179" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M278.097 506.179L400 655" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+  <g>
+    <path d="M305 60Q360.179 74.124 400 114.848" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M495 60Q463.954 115.924 400 114.848" fill="none" opacity="0.056" stroke="#22ee66" stroke-width="0.84" style="pointer-events:none;transition:opacity 0.15s">
+    <circle cx="400" cy="114.848" fill="#ffffff" opacity="0.08" r="3.5" stroke="#22ee66" stroke-width="0.8" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M400 114.848Q431.046 58.924 495 60" fill="none" marker-end="url(#arr-c)" opacity="0.08" stroke="#22ee66" stroke-width="1.2" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 60Q360.179 74.124 400 114.848" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M495 60Q463.954 115.924 400 114.848" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M400 114.848Q431.046 58.924 495 60" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+  <g>
+    <path d="M305 815Q360.179 800.876 400 760.152" fill="none" filter="url(#gl)" opacity="0.595" stroke="#22ee66" stroke-width="1.26" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M495 815Q463.954 759.076 400 760.152" fill="none" filter="url(#gl)" opacity="0.595" stroke="#22ee66" stroke-width="1.26" style="pointer-events:none;transition:opacity 0.15s">
+    <circle cx="400" cy="760.152" fill="#ffffff" opacity="0.85" r="5" stroke="#22ee66" stroke-width="0.8" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M400 760.152Q431.046 816.076 495 815" fill="none" filter="url(#gl)" marker-end="url(#arr-c)" opacity="0.85" stroke="#22ee66" stroke-width="1.8" style="pointer-events:none;transition:opacity 0.15s">
+    <path d="M305 815Q360.179 800.876 400 760.152" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M495 815Q463.954 759.076 400 760.152" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+    <path d="M400 760.152Q431.046 816.076 495 815" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer">
+  <g style="pointer-events:none">
+    <text fill="#22ee66" font-family="monospace" font-size="8" font-weight="bold" opacity="0.45" text-anchor="middle" x="541.126" y="506.117">
+      #text "Surge"
+    <text fill="#22ee66" font-family="monospace" font-size="6" opacity="0.3" text-anchor="middle" x="541.126" y="516.117">
+      #text "8−1=7"
+  <g style="pointer-events:none">
+    <text fill="#22ee66" font-family="monospace" font-size="8" font-weight="bold" opacity="0.45" text-anchor="middle" x="394.665" y="287.59">
+      #text "Hold"
+    <text fill="#22ee66" font-family="monospace" font-size="6" opacity="0.3" text-anchor="middle" x="394.665" y="297.59">
+      #text "7−2=5"
+  <g style="pointer-events:none">
+    <text fill="#22ee66" font-family="monospace" font-size="8" font-weight="bold" opacity="0.45" text-anchor="middle" x="264.172" y="514.586">
+      #text "Sink"
+    <text fill="#22ee66" font-family="monospace" font-size="6" opacity="0.3" text-anchor="middle" x="264.172" y="524.586">
+      #text "5−4=1"
+  <g style="pointer-events:none">
+    <text fill="#22ee66" font-family="monospace" font-size="8" font-weight="bold" opacity="0.45" text-anchor="middle" x="409" y="127.437">
+      #text "Warp"
+    <text fill="#22ee66" font-family="monospace" font-size="6" opacity="0.3" text-anchor="middle" x="409" y="137.437">
+      #text "6−3=3"
+  <g style="pointer-events:none">
+    <text fill="#22ee66" font-family="monospace" font-size="8" font-weight="bold" opacity="0.85" text-anchor="middle" x="391" y="772.74">
+      #text "Plex"
+    <text fill="#22ee66" font-family="monospace" font-size="6" opacity="0.6" text-anchor="middle" x="391" y="782.74">
+      #text "9−0=9"
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="200" x2="200" y1="540" y2="335">
+    <circle cx="200" cy="498.625" fill="#e8e8e8" opacity="0.1" r="1.188" style="transition:opacity 0.15s">
+    <circle cx="200" cy="478.25" fill="#e8e8e8" opacity="0.1" r="1.375" style="transition:opacity 0.15s">
+    <circle cx="200" cy="457.875" fill="#e8e8e8" opacity="0.1" r="1.563" style="transition:opacity 0.15s">
+    <circle cx="200" cy="437.5" fill="#e8e8e8" opacity="0.1" r="1.75" style="transition:opacity 0.15s">
+    <circle cx="200" cy="417.125" fill="#e8e8e8" opacity="0.1" r="1.938" style="transition:opacity 0.15s">
+    <circle cx="200" cy="396.75" fill="#e8e8e8" opacity="0.1" r="2.125" style="transition:opacity 0.15s">
+    <circle cx="200" cy="376.375" fill="#e8e8e8" opacity="0.1" r="2.313" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="495" x2="305" y1="60" y2="60">
+    <circle cx="452.857" cy="60" fill="#e8e8e8" opacity="0.1" r="1.214" style="transition:opacity 0.15s">
+    <circle cx="431.714" cy="60" fill="#e8e8e8" opacity="0.1" r="1.429" style="transition:opacity 0.15s">
+    <circle cx="410.571" cy="60" fill="#e8e8e8" opacity="0.1" r="1.643" style="transition:opacity 0.15s">
+    <circle cx="389.429" cy="60" fill="#e8e8e8" opacity="0.1" r="1.857" style="transition:opacity 0.15s">
+    <circle cx="368.286" cy="60" fill="#e8e8e8" opacity="0.1" r="2.071" style="transition:opacity 0.15s">
+    <circle cx="347.143" cy="60" fill="#e8e8e8" opacity="0.1" r="2.286" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="400" x2="600" y1="220" y2="335">
+    <circle cx="436.382" cy="240.919" fill="#e8e8e8" opacity="0.1" r="1.167" style="transition:opacity 0.15s">
+    <circle cx="454.558" cy="251.371" fill="#e8e8e8" opacity="0.1" r="1.333" style="transition:opacity 0.15s">
+    <circle cx="472.735" cy="261.823" fill="#e8e8e8" opacity="0.1" r="1.5" style="transition:opacity 0.15s">
+    <circle cx="490.912" cy="272.274" fill="#e8e8e8" opacity="0.1" r="1.667" style="transition:opacity 0.15s">
+    <circle cx="509.088" cy="282.726" fill="#e8e8e8" opacity="0.1" r="1.833" style="transition:opacity 0.15s">
+    <circle cx="527.265" cy="293.177" fill="#e8e8e8" opacity="0.1" r="2" style="transition:opacity 0.15s">
+    <circle cx="545.442" cy="303.629" fill="#e8e8e8" opacity="0.1" r="2.167" style="transition:opacity 0.15s">
+    <circle cx="563.618" cy="314.081" fill="#e8e8e8" opacity="0.1" r="2.333" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="400" x2="600" y1="655" y2="540">
+    <circle cx="436.382" cy="634.081" fill="#e8e8e8" opacity="0.1" r="1.167" style="transition:opacity 0.15s">
+    <circle cx="454.558" cy="623.629" fill="#e8e8e8" opacity="0.1" r="1.333" style="transition:opacity 0.15s">
+    <circle cx="472.735" cy="613.177" fill="#e8e8e8" opacity="0.1" r="1.5" style="transition:opacity 0.15s">
+    <circle cx="490.912" cy="602.726" fill="#e8e8e8" opacity="0.1" r="1.667" style="transition:opacity 0.15s">
+    <circle cx="509.088" cy="592.274" fill="#e8e8e8" opacity="0.1" r="1.833" style="transition:opacity 0.15s">
+    <circle cx="527.265" cy="581.823" fill="#e8e8e8" opacity="0.1" r="2" style="transition:opacity 0.15s">
+    <circle cx="545.442" cy="571.371" fill="#e8e8e8" opacity="0.1" r="2.167" style="transition:opacity 0.15s">
+    <circle cx="563.618" cy="560.919" fill="#e8e8e8" opacity="0.1" r="2.333" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="495" x2="305" y1="815" y2="815">
+    <circle cx="452.857" cy="815" fill="#e8e8e8" opacity="0.7" r="1.214" style="transition:opacity 0.15s">
+    <circle cx="431.714" cy="815" fill="#e8e8e8" opacity="0.7" r="1.429" style="transition:opacity 0.15s">
+    <circle cx="410.571" cy="815" fill="#e8e8e8" opacity="0.7" r="1.643" style="transition:opacity 0.15s">
+    <circle cx="389.429" cy="815" fill="#e8e8e8" opacity="0.7" r="1.857" style="transition:opacity 0.15s">
+    <circle cx="368.286" cy="815" fill="#e8e8e8" opacity="0.7" r="2.071" style="transition:opacity 0.15s">
+    <circle cx="347.143" cy="815" fill="#e8e8e8" opacity="0.7" r="2.286" style="transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#e8e8e8" font-family="monospace" font-size="7" font-style="italic" opacity="0.7" style="pointer-events:none" text-anchor="middle" x="400" y="801">
+      #text "Uttunul"
+  <g style="cursor:pointer">
+    <circle cx="305" cy="60" fill="#ddcc3318" r="21" stroke="#ddcc3344" stroke-width="0.7">
+    <polygon fill="#ddcc33" opacity="0.2" points="313,60 301.464,63.536 301.464,56.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ddcc33aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="305" y="61">
+      #text "6"
+    <text dominant-baseline="central" fill="#ddcc3366" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="305" y="90">
+      #text "Saturn"
+    <circle cx="305" cy="109" fill="#44cc77" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="495" cy="60" fill="#44cc7718" r="21" stroke="#44cc7744" stroke-width="0.7">
+    <polygon fill="#44cc77" opacity="0.2" points="487,60 498.536,56.464 498.536,63.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#44cc77aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="495" y="61">
+      #text "3"
+    <text dominant-baseline="central" fill="#44cc7766" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="495" y="90">
+      #text "Earth"
+    <circle cx="495" cy="109" fill="#44cc77" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="600" cy="540" fill="#9944ee18" r="21" stroke="#9944ee44" stroke-width="0.7">
+    <polygon fill="#9944ee" opacity="0.2" points="593.065,543.988 601.303,535.173 604.827,541.303" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#9944eeaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="600" y="541">
+      #text "8"
+    <text dominant-baseline="central" fill="#9944ee66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="600" y="570">
+      #text "Neptune"
+    <circle cx="600" cy="589" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="600" cy="335" fill="#7755cc18" r="21" stroke="#7755cc44" stroke-width="0.7">
+    <polygon fill="#7755cc" opacity="0.2" points="593.065,331.012 604.827,333.697 601.303,339.827" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#7755ccaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="600" y="336">
+      #text "7"
+    <text dominant-baseline="central" fill="#7755cc66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="600" y="365">
+      #text "Uranus"
+    <circle cx="600" cy="384" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="400" cy="655" fill="#ee44ee18" r="21" stroke="#ee44ee44" stroke-width="0.7">
+    <polygon fill="#ee44ee" opacity="0.2" points="406.935,651.012 398.697,659.827 395.173,653.697" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee44eeaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="400" y="656">
+      #text "1"
+    <text dominant-baseline="central" fill="#ee44ee66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="400" y="685">
+      #text "Mercury"
+    <circle cx="400" cy="704" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="400" cy="220" fill="#4488ff18" r="21" stroke="#4488ff44" stroke-width="0.7">
+    <polygon fill="#4488ff" opacity="0.2" points="406.935,223.988 395.173,221.303 398.697,215.173" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#4488ffaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="400" y="221">
+      #text "2"
+    <text dominant-baseline="central" fill="#4488ff66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="400" y="250">
+      #text "Venus"
+    <circle cx="400" cy="269" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="200" cy="540" fill="#ee444418" r="21" stroke="#ee444444" stroke-width="0.7">
+    <polygon fill="#ee4444" opacity="0.2" points="200,532 203.536,543.536 196.464,543.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee4444aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="200" y="541">
+      #text "4"
+    <text dominant-baseline="central" fill="#ee444466" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="200" y="570">
+      #text "Mars"
+    <circle cx="200" cy="589" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="200" cy="335" fill="#ee883318" r="21" stroke="#ee883344" stroke-width="0.7">
+    <polygon fill="#ee8833" opacity="0.2" points="200,343 196.464,331.464 203.536,331.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee8833aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="200" y="336">
+      #text "5"
+    <text dominant-baseline="central" fill="#ee883366" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="200" y="365">
+      #text "Jupiter"
+    <circle cx="200" cy="384" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="305" cy="815" fill="#66666618" r="21" stroke="#666666" stroke-width="1.2">
+    <polygon fill="#666666" opacity="0.5" points="313,815 301.464,818.536 301.464,811.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#666666" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="305" y="816">
+      #text "9"
+    <text dominant-baseline="central" fill="#666666" font-family="monospace" font-size="7" opacity="0.8" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="305" y="845">
+      #text "Pluto"
+    <circle cx="305" cy="864" fill="#aa6633" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="495" cy="815" fill="#aaaaaa18" r="21" stroke="#aaaaaa" stroke-width="1.2">
+    <polygon fill="#aaaaaa" opacity="0.5" points="487,815 498.536,811.464 498.536,818.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#aaaaaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="495" y="816">
+      #text "0"
+    <text dominant-baseline="central" fill="#aaaaaa" font-family="monospace" font-size="7" opacity="0.8" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="495" y="845">
+      #text "Sol"
+    <circle cx="495" cy="864" fill="#aa6633" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="568.417" cy="827.945" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <circle cx="568.417" cy="827.945" fill="none" opacity="0.8" r="12" stroke="#cc44ff66" stroke-width="0.7">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.92" text-anchor="middle" x="568.417" y="827.945">
+      #text "0"
+    <circle cx="568.417" cy="827.945" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="332.435" cy="686.506" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <circle cx="332.435" cy="686.506" fill="none" opacity="0.45" r="12" stroke="#cc44ff66" stroke-width="0.7">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.55" text-anchor="middle" x="332.435" y="686.506">
+      #text "1"
+    <circle cx="332.435" cy="686.506" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="434.201" cy="132.103" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.55" text-anchor="middle" x="434.201" y="132.103">
+      #text "2"
+    <circle cx="434.201" cy="132.103" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="400" cy="49.18" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.55" text-anchor="middle" x="400" y="49.18">
+      #text "3"
+    <circle cx="400" cy="49.18" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="292.78" cy="610.056" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.55" text-anchor="middle" x="292.78" y="610.056">
+      #text "4"
+    <circle cx="292.78" cy="610.056" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="233.617" cy="190.29" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.55" text-anchor="middle" x="233.617" y="190.29">
+      #text "5"
+    <circle cx="233.617" cy="190.29" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="400" cy="49.18" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.55" text-anchor="middle" x="400" y="49.18">
+      #text "6"
+    <circle cx="400" cy="49.18" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="523.475" cy="509.672" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.55" text-anchor="middle" x="523.475" y="509.672">
+      #text "7"
+    <circle cx="523.475" cy="509.672" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="474.673" cy="701.285" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.92" text-anchor="middle" x="474.673" y="701.285">
+      #text "8"
+    <circle cx="474.673" cy="701.285" fill="transparent" r="14">
+  <g style="cursor:pointer">
+    <circle cx="237.435" cy="846.506" fill="#060609" r="9" stroke="#cc44ff33" stroke-width="0.5">
+    <circle cx="237.435" cy="846.506" fill="none" opacity="0.8" r="12" stroke="#cc44ff66" stroke-width="0.7">
+    <text dominant-baseline="central" fill="#cc44ff" font-family="monospace" font-size="7" font-style="italic" opacity="0.92" text-anchor="middle" x="237.435" y="846.506">
+      #text "9"
+    <circle cx="237.435" cy="846.506" fill="transparent" r="14">

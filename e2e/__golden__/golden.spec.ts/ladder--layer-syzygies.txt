@@ -1,0 +1,175 @@
+<svg class="w-[580px] flex-shrink-0" style="overflow:visible" viewBox="0 0 800 870">
+  <defs>
+    <filter id="gl">
+      <feGaussianBlur stdDeviation="3">
+      <feMerge>
+        <feMergeNode>
+        <feMergeNode in="SourceGraphic">
+    <filter id="gl2">
+      <feGaussianBlur stdDeviation="5">
+      <feMerge>
+        <feMergeNode>
+        <feMergeNode in="SourceGraphic">
+    <marker id="arr-c" markerHeight="7" markerWidth="9" orient="auto" refX="7" refY="3" viewBox="0 0 8 6">
+      <path d="M0,0.5 L7,3 L0,5.5" fill="#22ee66">
+    <marker id="arr-g" markerHeight="6" markerWidth="8" orient="auto" refX="7" refY="3" viewBox="0 0 8 6">
+      <path d="M0,0.5 L7,3 L0,5.5" fill="#cc44ff">
+    <filter id="sunGlow">
+      <feGaussianBlur result="blur" stdDeviation="6">
+      <feMerge>
+        <feMergeNode in="blur">
+        <feMergeNode in="blur">
+        <feMergeNode in="SourceGraphic">
+    <radialGradient cx="42%" cy="42%" fx="38%" fy="38%" id="sphere-0" r="55%">
+      <stop offset="0%" stop-color="#ffffff">
+      <stop offset="10%" stop-color="#eeeeee">
+      <stop offset="28%" stop-color="#aaaaaa">
+      <stop offset="62%" stop-color="#aaaaaa" stop-opacity="0.6">
+      <stop offset="100%" stop-color="#2b2b2b">
+    <radialGradient cx="50%" cy="50%" id="sun-halo" r="50%">
+      <stop offset="0%" stop-color="#aaaaaa" stop-opacity="0.35">
+      <stop offset="40%" stop-color="#aaaaaa" stop-opacity="0.1">
+      <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0">
+    <radialGradient cx="50%" cy="50%" id="sun-corona" r="50%">
+      <stop offset="0%" stop-color="#aaaaaa" stop-opacity="0.45">
+      <stop offset="50%" stop-color="#aaaaaa" stop-opacity="0.12">
+      <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0">
+  <text fill="#44cc77" font-family="monospace" font-size="8" opacity="0.35" text-anchor="end" x="175" y="280">
+    #text "WARP"
+  <text fill="#aa6633" font-family="monospace" font-size="8" opacity="0.35" text-anchor="end" x="175" y="804">
+    #text "PLEX"
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="260" x2="540" y1="100" y2="100">
+    <circle cx="304.8" cy="100" fill="#e8e8e8" opacity="0.5" r="1.15" style="transition:opacity 0.15s">
+    <circle cx="328.6" cy="100" fill="#e8e8e8" opacity="0.5" r="1.3" style="transition:opacity 0.15s">
+    <circle cx="352.4" cy="100" fill="#e8e8e8" opacity="0.5" r="1.45" style="transition:opacity 0.15s">
+    <circle cx="376.2" cy="100" fill="#e8e8e8" opacity="0.5" r="1.6" style="transition:opacity 0.15s">
+    <circle cx="400" cy="100" fill="#e8e8e8" opacity="0.5" r="1.75" style="transition:opacity 0.15s">
+    <circle cx="423.8" cy="100" fill="#e8e8e8" opacity="0.5" r="1.9" style="transition:opacity 0.15s">
+    <circle cx="447.6" cy="100" fill="#e8e8e8" opacity="0.5" r="2.05" style="transition:opacity 0.15s">
+    <circle cx="471.4" cy="100" fill="#e8e8e8" opacity="0.5" r="2.2" style="transition:opacity 0.15s">
+    <circle cx="495.2" cy="100" fill="#e8e8e8" opacity="0.5" r="2.35" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="260" x2="540" y1="275" y2="275">
+    <circle cx="304.8" cy="275" fill="#e8e8e8" opacity="0.5" r="1.15" style="transition:opacity 0.15s">
+    <circle cx="328.6" cy="275" fill="#e8e8e8" opacity="0.5" r="1.3" style="transition:opacity 0.15s">
+    <circle cx="352.4" cy="275" fill="#e8e8e8" opacity="0.5" r="1.45" style="transition:opacity 0.15s">
+    <circle cx="376.2" cy="275" fill="#e8e8e8" opacity="0.5" r="1.6" style="transition:opacity 0.15s">
+    <circle cx="400" cy="275" fill="#e8e8e8" opacity="0.5" r="1.75" style="transition:opacity 0.15s">
+    <circle cx="423.8" cy="275" fill="#e8e8e8" opacity="0.5" r="1.9" style="transition:opacity 0.15s">
+    <circle cx="447.6" cy="275" fill="#e8e8e8" opacity="0.5" r="2.05" style="transition:opacity 0.15s">
+    <circle cx="471.4" cy="275" fill="#e8e8e8" opacity="0.5" r="2.2" style="transition:opacity 0.15s">
+    <circle cx="495.2" cy="275" fill="#e8e8e8" opacity="0.5" r="2.35" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="260" x2="540" y1="450" y2="450">
+    <circle cx="304.8" cy="450" fill="#e8e8e8" opacity="0.5" r="1.15" style="transition:opacity 0.15s">
+    <circle cx="328.6" cy="450" fill="#e8e8e8" opacity="0.5" r="1.3" style="transition:opacity 0.15s">
+    <circle cx="352.4" cy="450" fill="#e8e8e8" opacity="0.5" r="1.45" style="transition:opacity 0.15s">
+    <circle cx="376.2" cy="450" fill="#e8e8e8" opacity="0.5" r="1.6" style="transition:opacity 0.15s">
+    <circle cx="400" cy="450" fill="#e8e8e8" opacity="0.5" r="1.75" style="transition:opacity 0.15s">
+    <circle cx="423.8" cy="450" fill="#e8e8e8" opacity="0.5" r="1.9" style="transition:opacity 0.15s">
+    <circle cx="447.6" cy="450" fill="#e8e8e8" opacity="0.5" r="2.05" style="transition:opacity 0.15s">
+    <circle cx="471.4" cy="450" fill="#e8e8e8" opacity="0.5" r="2.2" style="transition:opacity 0.15s">
+    <circle cx="495.2" cy="450" fill="#e8e8e8" opacity="0.5" r="2.35" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="260" x2="540" y1="625" y2="625">
+    <circle cx="304.8" cy="625" fill="#e8e8e8" opacity="0.5" r="1.15" style="transition:opacity 0.15s">
+    <circle cx="328.6" cy="625" fill="#e8e8e8" opacity="0.5" r="1.3" style="transition:opacity 0.15s">
+    <circle cx="352.4" cy="625" fill="#e8e8e8" opacity="0.5" r="1.45" style="transition:opacity 0.15s">
+    <circle cx="376.2" cy="625" fill="#e8e8e8" opacity="0.5" r="1.6" style="transition:opacity 0.15s">
+    <circle cx="400" cy="625" fill="#e8e8e8" opacity="0.5" r="1.75" style="transition:opacity 0.15s">
+    <circle cx="423.8" cy="625" fill="#e8e8e8" opacity="0.5" r="1.9" style="transition:opacity 0.15s">
+    <circle cx="447.6" cy="625" fill="#e8e8e8" opacity="0.5" r="2.05" style="transition:opacity 0.15s">
+    <circle cx="471.4" cy="625" fill="#e8e8e8" opacity="0.5" r="2.2" style="transition:opacity 0.15s">
+    <circle cx="495.2" cy="625" fill="#e8e8e8" opacity="0.5" r="2.35" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <line stroke="transparent" stroke-width="14" x1="260" x2="540" y1="800" y2="800">
+    <circle cx="304.8" cy="800" fill="#e8e8e8" opacity="0.5" r="1.15" style="transition:opacity 0.15s">
+    <circle cx="328.6" cy="800" fill="#e8e8e8" opacity="0.5" r="1.3" style="transition:opacity 0.15s">
+    <circle cx="352.4" cy="800" fill="#e8e8e8" opacity="0.5" r="1.45" style="transition:opacity 0.15s">
+    <circle cx="376.2" cy="800" fill="#e8e8e8" opacity="0.5" r="1.6" style="transition:opacity 0.15s">
+    <circle cx="400" cy="800" fill="#e8e8e8" opacity="0.5" r="1.75" style="transition:opacity 0.15s">
+    <circle cx="423.8" cy="800" fill="#e8e8e8" opacity="0.5" r="1.9" style="transition:opacity 0.15s">
+    <circle cx="447.6" cy="800" fill="#e8e8e8" opacity="0.5" r="2.05" style="transition:opacity 0.15s">
+    <circle cx="471.4" cy="800" fill="#e8e8e8" opacity="0.5" r="2.2" style="transition:opacity 0.15s">
+    <circle cx="495.2" cy="800" fill="#e8e8e8" opacity="0.5" r="2.35" style="transition:opacity 0.15s">
+  <g style="cursor:pointer">
+    <circle cx="260" cy="100" fill="#ee444418" r="21" stroke="#ee444444" stroke-width="0.7">
+    <polygon fill="#ee4444" opacity="0.2" points="268,100 256.464,103.536 256.464,96.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee4444aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="260" y="101">
+      #text "4"
+    <text dominant-baseline="central" fill="#ee444466" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="260" y="130">
+      #text "Mars"
+    <circle cx="260" cy="149" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="540" cy="100" fill="#ee883318" r="21" stroke="#ee883344" stroke-width="0.7">
+    <polygon fill="#ee8833" opacity="0.2" points="532,100 543.536,96.464 543.536,103.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee8833aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="540" y="101">
+      #text "5"
+    <text dominant-baseline="central" fill="#ee883366" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="540" y="130">
+      #text "Jupiter"
+    <circle cx="540" cy="149" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="260" cy="275" fill="#44cc7718" r="21" stroke="#44cc7744" stroke-width="0.7">
+    <polygon fill="#44cc77" opacity="0.2" points="268,275 256.464,278.536 256.464,271.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#44cc77aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="260" y="276">
+      #text "3"
+    <text dominant-baseline="central" fill="#44cc7766" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="260" y="305">
+      #text "Earth"
+    <circle cx="260" cy="324" fill="#44cc77" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="540" cy="275" fill="#ddcc3318" r="21" stroke="#ddcc3344" stroke-width="0.7">
+    <polygon fill="#ddcc33" opacity="0.2" points="532,275 543.536,271.464 543.536,278.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ddcc33aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="540" y="276">
+      #text "6"
+    <text dominant-baseline="central" fill="#ddcc3366" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="540" y="305">
+      #text "Saturn"
+    <circle cx="540" cy="324" fill="#44cc77" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="260" cy="450" fill="#4488ff18" r="21" stroke="#4488ff44" stroke-width="0.7">
+    <polygon fill="#4488ff" opacity="0.2" points="268,450 256.464,453.536 256.464,446.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#4488ffaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="260" y="451">
+      #text "2"
+    <text dominant-baseline="central" fill="#4488ff66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="260" y="480">
+      #text "Venus"
+    <circle cx="260" cy="499" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="540" cy="450" fill="#7755cc18" r="21" stroke="#7755cc44" stroke-width="0.7">
+    <polygon fill="#7755cc" opacity="0.2" points="532,450 543.536,446.464 543.536,453.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#7755ccaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="540" y="451">
+      #text "7"
+    <text dominant-baseline="central" fill="#7755cc66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="540" y="480">
+      #text "Uranus"
+    <circle cx="540" cy="499" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="260" cy="625" fill="#ee44ee18" r="21" stroke="#ee44ee44" stroke-width="0.7">
+    <polygon fill="#ee44ee" opacity="0.2" points="268,625 256.464,628.536 256.464,621.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#ee44eeaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="260" y="626">
+      #text "1"
+    <text dominant-baseline="central" fill="#ee44ee66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="260" y="655">
+      #text "Mercury"
+    <circle cx="260" cy="674" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="540" cy="625" fill="#9944ee18" r="21" stroke="#9944ee44" stroke-width="0.7">
+    <polygon fill="#9944ee" opacity="0.2" points="532,625 543.536,621.464 543.536,628.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#9944eeaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="540" y="626">
+      #text "8"
+    <text dominant-baseline="central" fill="#9944ee66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="540" y="655">
+      #text "Neptune"
+    <circle cx="540" cy="674" fill="#00ccff" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="260" cy="800" fill="#aaaaaa18" r="21" stroke="#aaaaaa44" stroke-width="0.7">
+    <polygon fill="#aaaaaa" opacity="0.2" points="268,800 256.464,803.536 256.464,796.464" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#aaaaaaaa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="260" y="801">
+      #text "0"
+    <text dominant-baseline="central" fill="#aaaaaa66" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="260" y="830">
+      #text "Sol"
+    <circle cx="260" cy="849" fill="#aa6633" opacity="0.3" r="2">
+  <g style="cursor:pointer">
+    <circle cx="540" cy="800" fill="#66666618" r="21" stroke="#66666644" stroke-width="0.7">
+    <polygon fill="#666666" opacity="0.2" points="532,800 543.536,796.464 543.536,803.536" style="pointer-events:none;transition:opacity 0.15s">
+    <text dominant-baseline="central" fill="#666666aa" font-family="monospace" font-size="17" font-weight="bold" style="pointer-events:none" text-anchor="middle" x="540" y="801">
+      #text "9"
+    <text dominant-baseline="central" fill="#66666666" font-family="monospace" font-size="7" opacity="0.4" style="pointer-events:none;transition:opacity 0.15s" text-anchor="middle" x="540" y="830">
+      #text "Pluto"
+    <circle cx="540" cy="849" fill="#aa6633" opacity="0.3" r="2">

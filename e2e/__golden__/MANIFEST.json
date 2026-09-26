@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "strictDir": "e2e/__golden__",
+  "sets": [
+    {
+      "set": "2026-09-26-baseline",
+      "date": "2026-09-26",
+      "reason": "Pre-refactor DOM baseline (D-14): original, labyrinth, ladder x 10 states, captured from the untouched upstream viewer (next dev, original next.config.js, app/ identical to 7c38ad9) before any Phase 1 render-path change; stable across 3 runs and UTC/America-New_York",
+      "files": {
+        "e2e/__golden__/golden.spec.ts/labyrinth--default.txt": "e2eb9271464e33ccb34bec371c0a5e35b111cb68ae0d9ec149809cc94b62040d",
+        "e2e/__golden__/golden.spec.ts/labyrinth--layer-currents.txt": "f39f828eabe33d44be252b5670309b03485a5f80c20644e047b2b1603abcd180",
+        "e2e/__golden__/golden.spec.ts/labyrinth--layer-gates.txt": "d86ca8024251f5a9f6e6f5a6bb45def27192e1b71d5e7bba05beebf0378915bb",
+        "e2e/__golden__/golden.spec.ts/labyrinth--layer-pandemonium.txt": "b7bbdff7b87c860a7b169306d73b5f0748207a5b52adb4ddd2ad4c948f6f082d",
+        "e2e/__golden__/golden.spec.ts/labyrinth--layer-syzygies.txt": "748c2bcea024ae727e3d850e80adc48b9ea8155d86de345c8aee6d972ec4674c",
+        "e2e/__golden__/golden.spec.ts/labyrinth--region-plex.txt": "06bf6aacf29f7fe1df760031c30d4caa2f6979be9cc0e45cd3077b5b706ce8cc",
+        "e2e/__golden__/golden.spec.ts/labyrinth--region-torque.txt": "9ca047a01e80a0a2b1562c8b3c77de92d86774c1f7ba4b4018de302475677952",
+        "e2e/__golden__/golden.spec.ts/labyrinth--region-warp.txt": "9b792fb7f45ed180d435a1b7425c8ddc10280fe5e248efef4942a2ca312f0d65",
+        "e2e/__golden__/golden.spec.ts/labyrinth--time-circuit.txt": "40b4a6a912ba6c3d6a24259be108deded437390d93051da0f0018c08e47bd5d5",
+        "e2e/__golden__/golden.spec.ts/labyrinth--zone-5.txt": "e16a85a7d2cde000c43fee681800dcd86dd156506addc3f408b6a4d57cd0ce37",
+        "e2e/__golden__/golden.spec.ts/ladder--default.txt": "e815670a07f64c15aa38bf200052c978ed097889af50eb90d2f5fc22888173a0",
+        "e2e/__golden__/golden.spec.ts/ladder--layer-currents.txt": "899c9b31eae1bcb4dd5093df800e1f2f664fdfd5687674bc353c4ec2d43fce8f",
+        "e2e/__golden__/golden.spec.ts/ladder--layer-gates.txt": "5ffc454d121ca5ed2b0bb65aeda72f92fd79eda720cd2478d900e7352b54ed47",
+        "e2e/__golden__/golden.spec.ts/ladder--layer-pandemonium.txt": "60fc2105d841ec57e37bf6f4ea88545d1732648c0c7713985a95c9218238771c",
+        "e2e/__golden__/golden.spec.ts/ladder--layer-syzygies.txt": "d65f4e217d04d48dd180a4e0501598719ad75dae362249c05c8631bdfadabb25",
+        "e2e/__golden__/golden.spec.ts/ladder--region-plex.txt": "6c10383e801870c8716130cdc7c318d20cc29fd470d8be39ec75931df6046526",
+        "e2e/__golden__/golden.spec.ts/ladder--region-torque.txt": "e5a13bf66b7de5ebf5a90f4a5a3bd2671834cd887eb60ecc320973f8fe257fff",
+        "e2e/__golden__/golden.spec.ts/ladder--region-warp.txt": "58b408528a551e8e15abd3ba5a2e54adb704dbeec00a9119e1da47deed00b103",
+        "e2e/__golden__/golden.spec.ts/ladder--time-circuit.txt": "eb836aa6e90b33c54ee14eeb605ea28b3eda24ec19d2099596f5d37ae87d43d9",
+        "e2e/__golden__/golden.spec.ts/ladder--zone-5.txt": "8d99e5953b6362b4e0014319356f2d508b33a736f45668e79f9005ed7a610ec5",
+        "e2e/__golden__/golden.spec.ts/original--default.txt": "bd879540a8461217eb6d5e979901ac72d32d0a33f94aa742988764bb6fb112bf",
+        "e2e/__golden__/golden.spec.ts/original--layer-currents.txt": "e43f44af46bb831369701f4a16b3a250891c1bfe9995d57e5ffe7abeb4989407",
+        "e2e/__golden__/golden.spec.ts/original--layer-gates.txt": "263cd986220560bef659917d290f2297a8876d08ebd15b129298ea11c3530a31",
+        "e2e/__golden__/golden.spec.ts/original--layer-pandemonium.txt": "f27b134826197e8c328d596ab7bd65793dcb6977e4c10ba047886b38dfa8e93c",
+        "e2e/__golden__/golden.spec.ts/original--layer-syzygies.txt": "eae3594e460c9089b35b4b6642c190e4b26b1c306977ada267f79e3e0ea4bd3a",
+        "e2e/__golden__/golden.spec.ts/original--region-plex.txt": "33fc78f7e5e048a31e730d351ed71bf3891da145e69de0c59a26c8e1d1b65c13",
+        "e2e/__golden__/golden.spec.ts/original--region-torque.txt": "38346e7f99e4655951b723606be9262f22a7860db9e1a6d6c72695179240657a",
+        "e2e/__golden__/golden.spec.ts/original--region-warp.txt": "5b91437c87dc97317f2b7b5712cafab5cef3c57c85d060be399892f96e529c21",
+        "e2e/__golden__/golden.spec.ts/original--time-circuit.txt": "a0f4206c10efab936dbb2913eb0755af19df39382c084506eb1b8c87da400d58",
+        "e2e/__golden__/golden.spec.ts/original--zone-5.txt": "83338a2aa82cf1f581bcdbbb2b71c11eddf1e7803592bf0d02c401c5dadd7352"
+      }
+    }
+  ]
+}
