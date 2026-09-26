@@ -226,6 +226,69 @@ describe('base 2^26 (the safe ceiling)', () => {
       )
       console.info(`[ceiling] base 2^26 demons: arrayBuffers ${signedMiB(demonBytesGrowth)} MiB for the demon queries`)
 
+      // Unranking by type and subtype (ENG-03, T-02-25). Every selector except cyclic-chrono and cross-torque-chrono is
+      // O(log C(n, 2)) per at(k) from the four non-Torque zones alone, so none of the queries below may allocate an array:
+      // the per-cycle sorted copy of the 2^25 Torque pair ids (128 MiB) is built only by those two selectors, never here.
+      const unrankBytesBefore = process.memoryUsage().arrayBuffers
+      const netSpanText = (d: { readonly a: number; readonly b: number }): string => `${d.a}::${d.b}`
+      const chrono = space.group('chrono')
+      expect(chrono.count).toBe(chronoTotal)
+      expect(netSpanText(chrono.at(0))).toBe('2::1') // zones 1 and 2 are both Torque zones
+      expect(netSpanText(chrono.at(chrono.count - 1))).toBe('67108862::67108861') // pairs 1 and 2, high zones
+      const syzygeticChrono = space.subtype('syzygetic-chrono')
+      expect(syzygeticChrono.count).toBe(torquePairsTotal)
+      expect(netSpanText(syzygeticChrono.at(0))).toBe('33554432::33554431') // the Torque pair just below the middle
+      expect(netSpanText(syzygeticChrono.at(syzygeticChrono.count - 1))).toBe('67108862::1')
+      expect(netSpanText(space.subtype('plex-amphi').at(0))).toBe('1::0')
+      expect(netSpanText(space.subtype('warp-amphi').at(0))).toBe('22369621::1')
+      // the four non-Torque zones are 0, o, 2o and 2^26 - 1: their six pairs are the xenodemons, in mesh order
+      const xeno = space.group('xeno')
+      expect(xeno.count).toBe(6)
+      const nonTorqueZones = [0, o, 2 * o, CAP - 1]
+      const xenoByDefinition: string[] = []
+      for (let i = 1; i < nonTorqueZones.length; i++) {
+        for (let j = 0; j < i; j++) xenoByDefinition.push(`${nonTorqueZones[i]}::${nonTorqueZones[j]}`)
+      }
+      expect(xenoByDefinition[0]).toBe('22369621::0')
+      expect(Array.from({ length: xeno.count }, (_, k) => netSpanText(xeno.at(k)))).toEqual(xenoByDefinition)
+      expect(space.subtype('syzygetic-xeno').count + space.subtype('chaotic-xeno').count).toBe(xeno.count)
+
+      // 200 sampled chronodemon ranks ascend, belong to the group, and 20 sampled meshes split exactly between the three
+      // types: the ranks of a mesh number m in chrono, amphi and xeno sum to m (ranks are found with at() alone).
+      const rankBelow = (selection: { readonly count: number; at(k: number): { readonly mesh: number } }, m: number): number => {
+        let lo = 0
+        let hi = selection.count
+        while (lo < hi) {
+          const mid = Math.floor((lo + hi) / 2)
+          if (selection.at(mid).mesh < m) lo = mid + 1
+          else hi = mid
+        }
+        return lo
+      }
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: chrono.count - 2 }), k => {
+          const here = chrono.at(k)
+          const next = chrono.at(k + 1)
+          expect(here.type).toBe('chrono')
+          expect(here.mesh).toBeLessThan(next.mesh)
+        }),
+        { seed: 20261008, numRuns: 200 },
+      )
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: space.count - 1 }), m => {
+          const chronoRank = rankBelow(chrono, m)
+          const amphiRank = rankBelow(space.group('amphi'), m)
+          const xenoRank = rankBelow(xeno, m)
+          expect(chronoRank + amphiRank + xenoRank).toBe(m)
+          expect(rankBelow(space.subtype('plex-amphi'), m) + rankBelow(space.subtype('warp-amphi'), m)).toBe(amphiRank)
+          expect(rankBelow(space.subtype('chaotic-xeno'), m) + rankBelow(space.subtype('syzygetic-xeno'), m)).toBe(xenoRank)
+        }),
+        { seed: 20261009, numRuns: 20 },
+      )
+      const unrankBytesGrowth = process.memoryUsage().arrayBuffers - unrankBytesBefore
+      expect(unrankBytesGrowth).toBeLessThan(MIB)
+      console.info(`[ceiling] base 2^26 unranking: arrayBuffers ${signedMiB(unrankBytesGrowth)} MiB for the group/subtype queries`)
+
       clearNumogramCache()
     },
     120_000,
