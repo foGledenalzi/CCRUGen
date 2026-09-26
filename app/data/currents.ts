@@ -1,3 +1,4 @@
+// CCRU-derived lore. Not covered by the MIT license; see NOTICE.
 import type { CurrentData } from './types'
 
 export const CURRENTS: CurrentData[] = [

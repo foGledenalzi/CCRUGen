@@ -1,3 +1,4 @@
+// CCRU-derived lore. Not covered by the MIT license; see NOTICE.
 import type { GateData } from './types'
 
 export const GATE_LIST: GateData[] = [

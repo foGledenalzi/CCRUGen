@@ -1,3 +1,4 @@
+// CCRU-derived lore. Not covered by the MIT license; see NOTICE.
 import type { SyzygyData } from './types'
 
 export const SYZYGIES: SyzygyData[] = [

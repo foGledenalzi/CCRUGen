@@ -1,3 +1,4 @@
+// CCRU-derived lore. Not covered by the MIT license; see NOTICE.
 import type { Demon } from './types'
 
 export const DEMON_NAMES: Record<string, string> = {

@@ -1,0 +1,47 @@
+CCRUG - Arbitrary-Base Numogram Generator
+Copyright (c) 2026 foGledenalzi
+
+This NOTICE is authoritative on which terms apply to which files.
+
+1. Original CCRUG code - MIT License (see LICENSE)
+   Files created in this repository after the fork point (upstream commit
+   7c38ad9, 2026-02-27), including engine/, tests/, e2e/ (the spec and helper
+   code; see section 3 for the goldens), perf/, .github/, vitest.config.mts,
+   playwright.config.ts, .gitattributes, everything under scripts/,
+   app/lib/basePath.ts, app/components/navigation/LegacyQueryRedirect.tsx,
+   the CCRUG mark public/ccrug-mark.svg (also used as app/icon.svg), README.md,
+   and the layout, naming and export code added in later phases.
+
+2. Upstream-derived files - NOT relicensed
+   Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru).
+   Upstream ships no LICENSE file and no "license" field. Files inherited
+   from it are not relicensed by this repository and remain under their
+   original, unstated terms, including their later edits here. This covers
+   every file that was present at upstream commit 7c38ad9 and is still
+   present, notably:
+     app/** (everything except the new files and the mark listed in section 1)
+     component-library/
+     tsconfig.components.json
+   and the inherited configuration files next.config.js, tsconfig.json,
+   package.json, postcss.config.js, tailwind.config.ts, .eslintrc.json,
+   .gitignore and .claude/launch.json. The generated dist/ output, when
+   present, is compiled from component-library/ and app/ and follows their
+   terms.
+   If upstream later adopts a license, this section will be updated.
+
+3. CCRU-derived lore - excluded from the MIT license
+   The base-10 zone, syzygy, current, gate and demon names and descriptions
+   in the following files follow the writings of the Cybernetic Culture
+   Research Unit (CCRU). They are third-party lore, are not covered by the
+   MIT license, and are kept unchanged:
+     app/data/zones.ts
+     app/data/gates.ts
+     app/data/currents.ts
+     app/data/syzygies.ts
+     app/data/demons.ts
+   Frozen test fixtures derived from them (engine/test/fixtures/ and
+   e2e/__golden__/) carry the same status for any lore text they contain.
+
+4. reference/
+   reference/ is local, untracked research material (gitignored). It is
+   never committed or distributed with this repository.

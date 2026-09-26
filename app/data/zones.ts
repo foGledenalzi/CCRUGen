@@ -1,3 +1,4 @@
+// CCRU-derived lore. Not covered by the MIT license; see NOTICE.
 import type { Region, ZoneMeta } from './types'
 
 export const ZONE_CLR: Record<number, string> = {
