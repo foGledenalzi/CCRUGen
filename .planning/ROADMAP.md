@@ -57,7 +57,22 @@ Plans:
   3. Base 28 reports 378 demons of which 108 are cross-Torque chronodemons; any demon converts between mesh number and net-span `a::b` and back in O(1); per-type counts always sum to C(n,2); Numodemons number n/2 - 1
   4. Base 2^26 computes its zones, pairs and cycles without materializing any O(n^2) structure, and bases beyond the safe ceiling are refused
   5. The base-10 viewer's syzygies, currents, gates, demons and regions come from the engine joined with lore by id, and the DOM goldens are byte-identical, with layouts, hover, undo and share links behaving exactly as before
-**Plans**: TBD
+**Plans**: 13 plans in 10 waves
+
+Plans:
+- [ ] 02-01-PLAN.md - Engine contracts (types), base validation (RangeError + validateBase), in-base arithmetic and the own-base numeral formatter/parser incl. the beyond-36 scheme (wave 1)
+- [ ] 02-02-PLAN.md - Independent definitions-only reference in tests/bruteforce + frozen derived notable-bases fixture under its own manifest (wave 1)
+- [ ] 02-03-PLAN.md - Frozen behaviour and text baseline of the pre-swap viewer (D-15), manifest-protected and registered in check-repo, plus the test:swap gate (wave 1)
+- [ ] 02-04-PLAN.md - createNumogram: O(n) typed arrays, canonical Cycle[] regions, bounded cache; sweeps vs the reference for every even n <= 2000, base-10 oracle, 2^26 ceiling (wave 2)
+- [ ] 02-05-PLAN.md - Virtual demon space: mesh <-> net-span, subtypes incl. cross-Torque, closed-form counts; enumeration n <= 300 and counts n <= 2000 vs the reference (wave 3)
+- [ ] 02-06-PLAN.md - Demon unranking by type and subtype in mesh order, checked against the reference (wave 4)
+- [ ] 02-07-PLAN.md - Lore consolidation into app/presets/base10/lore.ts with NOTICE, header and check-repo updated together (D-06, D-07, D-16) (wave 4)
+- [ ] 02-08-PLAN.md - Swap 1: syzygies from engine + lore via the base-10 adapter seam; full gate, then delete hand data (wave 5)
+- [ ] 02-09-PLAN.md - Swap 2: currents (wave 6)
+- [ ] 02-10-PLAN.md - Swap 3: gates with own-base Gt-NN names (wave 7)
+- [ ] 02-11-PLAN.md - Swap 4: regions/zones (ZONE_REGION, TC, TC_*) from the engine cycles (wave 8)
+- [ ] 02-12-PLAN.md - Swap 5: demons from the demon space with the legacy kind mapping (wave 9)
+- [ ] 02-13-PLAN.md - Final phase gate (npm run verify) with per-criterion evidence, ROADMAP/STATE bookkeeping (wave 10)
 **Research**: Standard (math verified in research; strangler migration guarded by the frozen oracle).
 **Notes**: Sequencing: engine core with golden tests is complete before any base-10 data source is swapped; gate/current routing is extracted verbatim first, generalized later. Decisions frozen here because retrofitting is expensive: cross-Torque chronodemon subtype (ENG-03, decided; cyclic = same-Torque only), Gate 0->0 draw/omit policy (engine emits n gates, renderer decides once), Torque canonical order (length descending, then smallest zone id; rotate each cycle to its smallest pair), Torque identity is a numeric index with letters as display up to 26 then numbers, units always stated as pairs vs zones, mesh-number display base. Regions are modeled as `Cycle[]`, never "one Torque". Fixtures are derived from definitions, never from `reference/` and never with `vitest -u`; the guide's errors (47-vs-45 subtype sum, "only 3^N+1 bases have several Torques") are not inherited.
 
@@ -172,7 +187,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
-| 2. Engine Core and Base-10 Migration | 0/TBD | Not started | - |
+| 2. Engine Core and Base-10 Migration | 0/13 | Planned | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
