@@ -72,7 +72,6 @@ const DESKTOP_PANEL_RIGHT_X = 216
 const PANEL_WIDTH = 180
 const INFO_PANEL_WIDTH = 320
 const MAX_HISTORY_ENTRIES = 80
-const LAYOUT_GLITCH_DURATION_MS = 360
 
 type HistorySnapshot = {
   layout: Layout
@@ -132,8 +131,6 @@ export default function NumogramPage() {
   const infoPanelInitRef = useRef(false)
   const [viewport, setViewport] = useState({ w: 0, h: 0 })
   const [shareCopied, setShareCopied] = useState(false)
-  const [layoutGlitching, setLayoutGlitching] = useState(false)
-  const [layoutGlitchRun, setLayoutGlitchRun] = useState(0)
   const [urlSyncReady, setUrlSyncReady] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [undoStack, setUndoStack] = useState<HistorySnapshot[]>([])
@@ -176,7 +173,6 @@ export default function NumogramPage() {
   const historyReadyRef = useRef(false)
   const historyCurrentRef = useRef<HistorySnapshot | null>(null)
   const historyApplyingRef = useRef(false)
-  const layoutGlitchTimerRef = useRef<number | null>(null)
   const currentOrientationRef = useRef<Record<string, 1 | -1>>({})
   const planetaryDateInputRef = useRef<HTMLInputElement | null>(null)
   const dateFieldWasVisibleRef = useRef(false)
@@ -215,18 +211,6 @@ export default function NumogramPage() {
     return sortSearchParams(params)
   }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, sortSearchParams])
 
-  const triggerLayoutGlitch = useCallback(() => {
-    setLayoutGlitchRun(run => run + 1)
-    setLayoutGlitching(true)
-    if (layoutGlitchTimerRef.current !== null) {
-      window.clearTimeout(layoutGlitchTimerRef.current)
-    }
-    layoutGlitchTimerRef.current = window.setTimeout(() => {
-      setLayoutGlitching(false)
-      layoutGlitchTimerRef.current = null
-    }, LAYOUT_GLITCH_DURATION_MS)
-  }, [])
-
   const snapshotState = useCallback((): HistorySnapshot => ({
     layout,
     layers: Array.from(layers).sort((a, b) => a.localeCompare(b)),
@@ -250,7 +234,6 @@ export default function NumogramPage() {
 
   const applySnapshot = useCallback((snapshot: HistorySnapshot) => {
     if (layout !== snapshot.layout) {
-      triggerLayoutGlitch()
       switchLayout()
     }
     setLayout(snapshot.layout)
@@ -275,7 +258,7 @@ export default function NumogramPage() {
         setPlanetaryAngles(PLANETARY_DEFAULT_ANGLE)
       }
     }
-  }, [layout, switchLayout, setPlanetaryAngles, setOrbiting, triggerLayoutGlitch])
+  }, [layout, switchLayout, setPlanetaryAngles, setOrbiting])
 
   // Keep orbit start date in sync
   useEffect(() => {
@@ -306,14 +289,6 @@ export default function NumogramPage() {
     updateViewport()
     window.addEventListener('resize', updateViewport)
     return () => window.removeEventListener('resize', updateViewport)
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (layoutGlitchTimerRef.current !== null) {
-        window.clearTimeout(layoutGlitchTimerRef.current)
-      }
-    }
   }, [])
 
   useEffect(() => {
@@ -367,10 +342,9 @@ export default function NumogramPage() {
 
   const handleSwitchLayout = useCallback((newLayout: Layout) => {
     if (newLayout === layout) return
-    triggerLayoutGlitch()
     switchLayout()
     setLayout(newLayout)
-  }, [layout, switchLayout, triggerLayoutGlitch])
+  }, [layout, switchLayout])
 
   const onHoverInfo = useCallback((info: HoverInfo | null) => {
     setHoverInfo(info)
@@ -1502,16 +1476,9 @@ export default function NumogramPage() {
       {/* Pinned background */}
       <PinnedBackground pinnedInfo={pinnedInfo} hoverInfo={hoverInfo} introPhase={introPhase} />
 
-      {layoutGlitching && (
-        <div
-          key={`layout-glitch-${layoutGlitchRun}`}
-          className="layout-switch-glitch-overlay fixed inset-0 pointer-events-none z-[68]"
-        />
-      )}
-
       {/* Main content */}
       <div
-        className={`relative z-10 flex flex-col items-center w-full ${layoutGlitching ? 'layout-switch-glitch' : ''}`}
+        className="relative z-10 flex flex-col items-center w-full"
         style={{
           transition: 'opacity 1s ease',
           opacity: introPhase === 'title' ? 0 : introPhase === 'fading' ? 0.8 : 1,

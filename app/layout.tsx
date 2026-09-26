@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { CrtNavigationTransitionProvider } from './components/navigation/CrtNavigationTransition'
 
 export const metadata: Metadata = {
   title: 'CCRUG - Numogram Generator',
@@ -11,7 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <CrtNavigationTransitionProvider>{children}</CrtNavigationTransitionProvider>
+        {children}
       </body>
     </html>
   )
