@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "tolerance": {
+    "bytesPct": 5,
+    "bytesMin": 1024,
+    "nodesPct": 2,
+    "nodesMin": 2
+  },
+  "routes": {
+    "/": {
+      "htmlBytes": 4934,
+      "htmlGzip": 1843,
+      "jsBytes": 419127,
+      "jsGzip": 129167,
+      "cssBytes": 23230,
+      "cssGzip": 5570
+    },
+    "/numogram/": {
+      "htmlBytes": 76766,
+      "htmlGzip": 11484,
+      "jsBytes": 572056,
+      "jsGzip": 173091,
+      "cssBytes": 23230,
+      "cssGzip": 5570
+    }
+  },
+  "domNodes": {
+    "labyrinth--default": 272,
+    "labyrinth--layer-currents": 154,
+    "labyrinth--layer-gates": 172,
+    "labyrinth--layer-pandemonium": 219,
+    "labyrinth--layer-syzygies": 144,
+    "labyrinth--region-plex": 273,
+    "labyrinth--region-torque": 275,
+    "labyrinth--region-warp": 273,
+    "labyrinth--time-circuit": 192,
+    "labyrinth--zone-5": 291,
+    "ladder--default": 226,
+    "ladder--layer-currents": 141,
+    "ladder--layer-gates": 128,
+    "ladder--layer-pandemonium": 218,
+    "ladder--layer-syzygies": 153,
+    "ladder--region-plex": 227,
+    "ladder--region-torque": 229,
+    "ladder--region-warp": 227,
+    "ladder--time-circuit": 183,
+    "ladder--zone-5": 242,
+    "original--default": 258,
+    "original--layer-currents": 153,
+    "original--layer-gates": 171,
+    "original--layer-pandemonium": 218,
+    "original--layer-syzygies": 130,
+    "original--region-plex": 259,
+    "original--region-torque": 261,
+    "original--region-warp": 259,
+    "original--time-circuit": 180,
+    "original--zone-5": 277
+  },
+  "history": [
+    {
+      "date": "2026-09-26",
+      "reason": "Initial baseline: numogram-only static export after the Phase 1 static-export decoupling (plan 01-05), measured before any Phase 2 change",
+      "before": null,
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1843,
+            "jsGzip": 129167,
+            "cssGzip": 5570
+          },
+          "/numogram/": {
+            "htmlGzip": 11484,
+            "jsGzip": 173091,
+            "cssGzip": 5570
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    }
+  ]
+}
