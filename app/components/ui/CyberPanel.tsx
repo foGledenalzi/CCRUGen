@@ -108,13 +108,12 @@ export function CyberPanel({
       <div
         className="relative"
         style={{
-          border: '1px solid rgba(16,255,80,0.1)',
-          clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
+          border: '1px solid rgba(255,255,255,0.08)',
           background: scrollable
             ? undefined
             : isSideClosed
               ? 'transparent'
-              : 'linear-gradient(180deg, rgba(16,255,80,0.02) 0%, rgba(8,8,15,0.95) 40%)',
+              : 'rgba(8,8,15,0.94)',
           ...(scrollable
             ? {
                 backgroundColor: 'rgba(8,8,15,0.95)',
@@ -125,9 +124,6 @@ export function CyberPanel({
             : {}),
         }}
       >
-        <div className="absolute left-0 top-0 h-[1px] w-3 bg-[#10ff50]/40" />
-        <div className="absolute left-0 top-0 h-3 w-[1px] bg-[#10ff50]/40" />
-
         {showHeader && (
           <CyberPanelHeader
             title={title}
@@ -135,7 +131,6 @@ export function CyberPanel({
             titleClassName="text-[8px] uppercase tracking-[0.3em]"
             style={{
               color: '#10ff50',
-              textShadow: '0 0 6px rgba(16,255,80,0.3)',
               cursor: draggable ? 'grab' : 'default',
             }}
             onMouseDown={e => {

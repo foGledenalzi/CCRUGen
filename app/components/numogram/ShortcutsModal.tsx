@@ -21,12 +21,11 @@ export function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
       <div
         className="relative w-full max-w-[540px] px-4 py-4 font-mono"
         style={{
-          border: '1px solid rgba(16,255,80,0.28)',
-          background: 'linear-gradient(180deg, rgba(10,14,24,0.94) 0%, rgba(4,8,14,0.97) 100%)',
-          boxShadow: '0 0 28px rgba(16,255,80,0.08)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'rgba(8,8,15,0.97)',
         }}
       >
-        <div className="flex items-center justify-between pb-2" style={{ borderBottom: '1px solid rgba(16,255,80,0.14)' }}>
+        <div className="flex items-center justify-between pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <span className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#10ff50' }}>
             Shortcuts
           </span>

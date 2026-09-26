@@ -36,7 +36,6 @@ export function RegionsPanel({ hlRegion, tcActive, onSelectRegion, onToggleTC }:
           <span style={{
             color: REGION_CLR[r.id],
             opacity: active ? 1 : 0.6,
-            textShadow: active ? `0 0 6px ${REGION_CLR[r.id]}44` : 'none',
           }}
           >{r.label}</span>
         ),
@@ -51,12 +50,11 @@ export function RegionsPanel({ hlRegion, tcActive, onSelectRegion, onToggleTC }:
       onClick: onToggleTC,
       opacity: 1,
       className: 'mt-1 pt-1',
-      style: { borderTop: '1px solid rgba(16,255,80,0.06)' },
+      style: { borderTop: '1px solid rgba(255,255,255,0.04)' },
       label: (
         <span style={{
           color: '#00ccff',
           opacity: tcActive ? 1 : 0.6,
-          textShadow: tcActive ? '0 0 6px #00ccff44' : 'none',
         }}
         >Time Circuit</span>
       ),

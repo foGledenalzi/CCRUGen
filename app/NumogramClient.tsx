@@ -1374,7 +1374,7 @@ export default function NumogramPage() {
           <div className="h-4 flex items-center">
             {hoveredLayout && (
               <span className="text-[8px] tracking-[0.25em] uppercase font-mono"
-                style={{ color: '#10ff50', textShadow: '0 0 8px rgba(16,255,80,0.4)' }}
+                style={{ color: '#10ff50' }}
               >{hoveredLayout}</span>
             )}
           </div>
@@ -1383,13 +1383,13 @@ export default function NumogramPage() {
         {/* Planetary controls */}
         {layout === 'planetary' && (
           <div className="pointer-events-auto flex items-start gap-1.5">
-            <ButtonSet cornerSize={6}>
+            <ButtonSet>
               <Button active={orbiting} indicator shortcut="z" onClick={() => setOrbiting(o => !o)} className="py-1.5">
                 <OrbitIcon clr={orbiting ? '#10ff50' : '#555'} />
               </Button>
             </ButtonSet>
             <div className="flex flex-col items-stretch gap-1">
-              <ButtonSet cornerSize={6}>
+              <ButtonSet>
                 <Button shortcut="x" active={!!planetDate} onClick={() => {
                   setOrbiting(false)
                   const d = planetDate ? new Date(planetDate + 'T12:00:00') : new Date()
@@ -1429,7 +1429,6 @@ export default function NumogramPage() {
                     border: '1px solid rgba(16,255,80,0.12)',
                     color: '#10ff50',
                     caretColor: '#10ff50',
-                    clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)',
                   }}
                 />
               )}
@@ -1510,7 +1509,6 @@ export default function NumogramPage() {
             height: selectionRect.height,
             border: '1px solid rgba(16,255,80,0.85)',
             background: 'rgba(16,255,80,0.12)',
-            boxShadow: 'inset 0 0 10px rgba(16,255,80,0.18)',
           }}
         />
       )}
@@ -1676,11 +1674,11 @@ export default function NumogramPage() {
       >
         <div
           className="flex items-center gap-2 px-3 py-1.5"
-          style={{ borderBottom: '1px solid rgba(16,255,80,0.12)' }}
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
         >
           <span
             className="text-[8px] tracking-[0.25em] uppercase"
-            style={{ color: '#10ff50', textShadow: '0 0 8px rgba(16,255,80,0.25)' }}
+            style={{ color: '#10ff50' }}
           >
             {`Selected Elements${selectedInfos.length > 0 ? ` (${selectedInfos.length})` : ''}`}
           </span>

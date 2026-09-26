@@ -112,7 +112,6 @@ interface PanelColorBarProps {
   color: string
   active: boolean
   inactiveColor?: string
-  glow?: boolean
   className?: string
 }
 
@@ -120,7 +119,6 @@ export function PanelColorBar({
   color,
   active,
   inactiveColor,
-  glow = true,
   className = '',
 }: PanelColorBarProps) {
   return (
@@ -128,7 +126,6 @@ export function PanelColorBar({
       className={`w-1 h-3 flex-shrink-0 transition-all ${className}`}
       style={{
         background: active ? color : (inactiveColor || `${color}44`),
-        boxShadow: active && glow ? `0 0 4px ${color}66` : 'none',
       }}
     />
   )
@@ -184,9 +181,7 @@ export function SidePopover({
         transform: 'translateY(-50%)',
         color: `${card.color}cc`,
         border: `1px solid ${card.color}44`,
-        background: 'linear-gradient(180deg, rgba(8,12,20,0.95) 0%, rgba(4,7,13,0.96) 100%)',
-        boxShadow: `0 0 12px ${card.color}22`,
-        backdropFilter: 'blur(2px)',
+        background: 'rgba(8,8,15,0.97)',
       }}
     >
       {card.text}

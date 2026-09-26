@@ -16,9 +16,8 @@ export function SourcesFooter() {
         className="px-3 py-1 text-[8px] md:text-[9px] tracking-[0.14em] uppercase font-mono text-center"
         style={{
           color: 'rgba(107,114,128,0.92)',
-          background: 'linear-gradient(180deg, rgba(6,10,16,0.72) 0%, rgba(3,6,12,0.82) 100%)',
-          border: '1px solid rgba(107,114,128,0.22)',
-          boxShadow: '0 0 12px rgba(0,0,0,0.2)',
+          background: 'rgba(8,8,15,0.9)',
+          border: '1px solid rgba(255,255,255,0.08)',
           whiteSpace: 'normal',
           maxWidth: 'calc(100vw - 16px)',
         }}

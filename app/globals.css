@@ -8,10 +8,10 @@ body {
   min-height: 100%;
 }
 
-/* Cyberpunk scrollbar — thin neon track */
+/* Thin, neutral scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(16, 255, 80, 0.25) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -24,12 +24,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(16, 255, 80, 0.2);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 255, 80, 0.45);
+  background: rgba(148, 163, 184, 0.45);
 }
 
 ::-webkit-scrollbar-corner {
@@ -53,10 +53,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
 
-/* CP2077 status dot pulse */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+/* The only motion left in the shell is short hover/expand transitions; honour reduced-motion for all of it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 /* Terminal-like text fields */

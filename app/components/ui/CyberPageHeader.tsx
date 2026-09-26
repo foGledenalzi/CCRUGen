@@ -33,9 +33,8 @@ export function CyberPageHeader({
         <div
           className="flex shrink-0 items-center px-1.5"
           style={{
-            border: '1px solid rgba(16,255,80,0.16)',
-            background:
-              'linear-gradient(180deg, rgba(8,12,20,0.82) 0%, rgba(4,7,13,0.9) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(8,8,15,0.94)',
           }}
         >
           <HomeLink href={homeHref} label={homeLabel} boxed={false} />
@@ -44,20 +43,19 @@ export function CyberPageHeader({
       <div
         className="min-w-0 flex-1 px-2.5 py-1.5"
         style={{
-          border: '1px solid rgba(16,255,80,0.16)',
-          background:
-            'linear-gradient(180deg, rgba(8,12,20,0.82) 0%, rgba(4,7,13,0.9) 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(8,8,15,0.94)',
         }}
       >
         {titleHref ? (
           <Link href={titleHref} className="flex items-center gap-2 min-w-0">
             {icon && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={icon} alt="" className="w-4 h-4" style={{ filter: 'drop-shadow(0 0 3px rgba(16,255,80,0.4))' }} />
+              <img src={icon} alt="" className="w-4 h-4" />
             )}
             <span
               className="text-[9px] tracking-[0.28em] uppercase whitespace-nowrap"
-              style={{ color: '#10ff50', textShadow: '0 0 6px rgba(16,255,80,0.3)' }}
+              style={{ color: '#10ff50' }}
             >
               {title}
             </span>
@@ -71,11 +69,11 @@ export function CyberPageHeader({
           <div className="flex items-center gap-2 min-w-0">
             {icon && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={icon} alt="" className="w-4 h-4" style={{ filter: 'drop-shadow(0 0 3px rgba(16,255,80,0.4))' }} />
+              <img src={icon} alt="" className="w-4 h-4" />
             )}
             <span
               className="text-[9px] tracking-[0.28em] uppercase whitespace-nowrap"
-              style={{ color: '#10ff50', textShadow: '0 0 6px rgba(16,255,80,0.3)' }}
+              style={{ color: '#10ff50' }}
             >
               {title}
             </span>
@@ -91,9 +89,8 @@ export function CyberPageHeader({
         <div
           className="flex shrink-0 items-center px-1.5"
           style={{
-            border: '1px solid rgba(16,255,80,0.16)',
-            background:
-              'linear-gradient(180deg, rgba(8,12,20,0.82) 0%, rgba(4,7,13,0.9) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(8,8,15,0.94)',
           }}
         >
           {actions}

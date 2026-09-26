@@ -77,8 +77,7 @@ export function PanelGroup({
           type="button"
           className="w-full flex items-center gap-2 px-2 py-1.5 text-left"
           style={{
-            border: '1px solid rgba(16,255,80,0.14)',
-            background: 'linear-gradient(180deg, rgba(10,14,22,0.62) 0%, rgba(5,8,14,0.72) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
             color: 'rgba(16,255,80,0.78)',
           }}
           onClick={toggleGroupOpen}
@@ -106,22 +105,19 @@ export function PanelGroup({
             <div key={item.id}
               className="relative"
               style={{
-                border: '1px solid rgba(16,255,80,0.14)',
-                background: 'linear-gradient(180deg, rgba(10,14,22,0.62) 0%, rgba(5,8,14,0.72) 100%)',
+                border: '1px solid rgba(255,255,255,0.08)',
                 overflow: 'visible',
               }}
               onMouseEnter={() => item.onHoverStart?.()}
               onMouseLeave={() => item.onHoverEnd?.()}
             >
-              <div className="absolute top-0 left-0 w-2 h-[1px]" style={{ background: `${color}44` }} />
-              <div className="absolute top-0 left-0 w-[1px] h-2" style={{ background: `${color}44` }} />
               <div className="w-full flex items-center gap-2 px-2 py-1.5">
                 <button
                   className="min-w-0 flex-1 flex items-center gap-2 text-left"
                   onClick={() => setOpenId(prev => (prev === item.id ? null : item.id))}
                 >
                   <span className="inline-block w-[5px] h-[5px] rounded-full flex-shrink-0"
-                    style={{ background: color, boxShadow: `0 0 4px ${color}88` }} />
+                    style={{ background: color }} />
                   <span className="text-[8px] tracking-[0.13em] uppercase font-mono truncate"
                     style={{ color: `${color}cc` }}
                   >{item.title}</span>

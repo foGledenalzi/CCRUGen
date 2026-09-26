@@ -13,7 +13,6 @@ import type { PanelGroupItem } from '../panels/PanelGroup'
 import { GlitchText } from '../ui/GlitchText'
 import { StatusDot } from '../ui/StatusDot'
 import { DataRow } from '../ui/DataRow'
-import { NeonDivider } from '../ui/NeonDivider'
 import { SectionFrame } from '../ui/SectionFrame'
 
 // ── Zone Info ──────────────────────────────────────────────────
@@ -38,8 +37,6 @@ function ZoneInfo({ zone }: { zone: number }) {
       <div className="text-[9px] font-mono" style={{ color: `${clr}88` }}>{meta.planetFull}</div>
       <p className="text-[8px] text-gray-500 leading-relaxed italic">{meta.desc}</p>
 
-      <NeonDivider color={clr} />
-
       <SectionFrame color={clr}>
         {syz && <DataRow label="SYZ" value={`${syz.a}+${syz.b}=9 (${syz.demon})`} color={clr} />}
         <DataRow label="PARTICLE" value={ZONE_PARTICLE[zone]} color={clr} />
@@ -49,43 +46,33 @@ function ZoneInfo({ zone }: { zone: number }) {
       </SectionFrame>
 
       {meta.door && (
-        <>
-          <NeonDivider color={clr} />
-          <SectionFrame title="DOOR" color={clr}>
-            <div className="text-[8px] text-gray-400 italic">{meta.door}</div>
-          </SectionFrame>
-        </>
+        <SectionFrame title="DOOR" color={clr}>
+          <div className="text-[8px] text-gray-400 italic">{meta.door}</div>
+        </SectionFrame>
       )}
 
       {gate && (
-        <>
-          <NeonDivider color="#cc44ff" />
-          <SectionFrame title="GATE" color="#cc44ff">
-            <div className="text-[9px]">
-              <span style={{ color: '#cc44ff' }}>{gate.name}</span>
-              <span className="text-gray-600"> {'\u2192'} Zone {gate.to}</span>
-            </div>
-            <div className="text-[8px] text-gray-500 italic">{gate.desc}</div>
-          </SectionFrame>
-        </>
+        <SectionFrame title="GATE" color="#cc44ff">
+          <div className="text-[9px]">
+            <span style={{ color: '#cc44ff' }}>{gate.name}</span>
+            <span className="text-gray-600"> {'\u2192'} Zone {gate.to}</span>
+          </div>
+          <div className="text-[8px] text-gray-500 italic">{gate.desc}</div>
+        </SectionFrame>
       )}
 
-      <NeonDivider color={clr} />
       <SectionFrame title="LEMURIAN ETHNOGRAPHY" color={clr}>
         <p className="text-[8px] text-gray-600 leading-relaxed">{meta.lemurian}</p>
       </SectionFrame>
 
       {meta.lemurs.length > 0 && (
-        <>
-          <NeonDivider color={clr} />
-          <SectionFrame title={`PHASE-${zone} LEMURS (${meta.phaseCount})`} color={clr}>
-            <div className="space-y-0.5">
-              {meta.lemurs.map(l => (
-                <div key={l} className="text-[8px] italic" style={{ color: `${clr}77` }}>{l}</div>
-              ))}
-            </div>
-          </SectionFrame>
-        </>
+        <SectionFrame title={`PHASE-${zone} LEMURS (${meta.phaseCount})`} color={clr}>
+          <div className="space-y-0.5">
+            {meta.lemurs.map(l => (
+              <div key={l} className="text-[8px] italic" style={{ color: `${clr}77` }}>{l}</div>
+            ))}
+          </div>
+        </SectionFrame>
       )}
 
       <div className="text-[7px] text-gray-700 pt-1 tracking-[0.1em]">
@@ -107,9 +94,7 @@ function SyzygyInfo({ data }: { data: HoverInfo & { type: 'syzygy' } }) {
       </div>
       <DataRow label="TWINNING" value={`${s.a} + ${s.b} = 9`} color="#e8e8e8" />
       <DataRow label="DEMON" value={s.demon} color="#e8e8e8" />
-      <NeonDivider color="#e8e8e8" />
       <p className="text-[8px] text-gray-500 leading-relaxed italic">{s.desc}</p>
-      <NeonDivider color="#e8e8e8" />
       <SectionFrame color="#e8e8e8">
         <div className="text-[9px]">
           <span style={{ color: ZONE_CLR[s.a] }}>Zone {s.a}</span>
@@ -138,9 +123,7 @@ function CurrentInfo({ data }: { data: HoverInfo & { type: 'current' } }) {
         <StatusDot color="#22ee66" />
       </div>
       <DataRow label="FORMULA" value={c.label} color="#22ee66" />
-      <NeonDivider color="#22ee66" />
       <p className="text-[8px] text-gray-500 leading-relaxed italic">{c.desc}</p>
-      <NeonDivider color="#22ee66" />
       <SectionFrame color="#22ee66">
         <div className="text-[9px]">
           <span className="text-gray-600">FROM: </span>
@@ -181,9 +164,7 @@ function GateInfo({ data }: { data: HoverInfo & { type: 'gate' } }) {
         value={g.from === g.to ? `Z${g.from} \u2192 self` : `Z${g.from} \u2192 Z${g.to}`}
         color="#cc44ff"
       />
-      <NeonDivider color="#cc44ff" />
       <p className="text-[8px] text-gray-500 leading-relaxed italic">{g.detail}</p>
-      <NeonDivider color="#cc44ff" />
       <SectionFrame color="#cc44ff">
         <div className="text-[9px]">
           <span className="text-gray-600">FLOW: </span>
@@ -220,7 +201,6 @@ function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
         <span className="text-[8px] text-gray-600 ml-auto">{d.a}::{d.b}</span>
       </div>
       <div className="text-[7px] tracking-[0.12em]" style={{ color: `${kindClr}bb` }}>{kindDesc}</div>
-      <NeonDivider color={kindClr} />
       <SectionFrame color={kindClr}>
         <div className="text-[9px]">
           <span style={{ color: ZONE_CLR[d.a] }}>Zone {d.a}</span>
@@ -289,19 +269,16 @@ function NumogramIntro() {
           The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine,
           and pathways that map transitions through the system.
         </p>
-        <NeonDivider color="#10ff50" />
-        <p className="text-[8px] text-gray-500 leading-relaxed">
+        <p className="text-[8px] text-gray-500 leading-relaxed mt-1.5">
           Currents track differential flows across syzygetic pairs. Gates track culminations
           (triangular sums), then reduce multi-digit values by summation to determine the
           connecting source.
         </p>
-        <NeonDivider color="#10ff50" />
-        <p className="text-[8px] text-gray-600 leading-relaxed">
+        <p className="text-[8px] text-gray-600 leading-relaxed mt-1.5">
           Use hover and selection to inspect zones, currents, gates, and demons as a navigational
           map of recursive time and drift between torque, warp, and plex.
         </p>
-        <NeonDivider color="#10ff50" />
-        <p className="text-[8px] text-gray-500 leading-relaxed">
+        <p className="text-[8px] text-gray-500 leading-relaxed mt-1.5">
           Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle
           gates, ASDF to change view.
         </p>
