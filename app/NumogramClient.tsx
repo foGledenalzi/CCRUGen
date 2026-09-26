@@ -14,6 +14,7 @@ import { SYZYGIES } from './data/syzygies'
 import { midpoint, syzMidBiased, loopPath, curveAway, quadPath } from './lib/geometry'
 import { getAnglesForDate } from './lib/planetary'
 import { buildNumogramTitle } from './lib/shareTitle'
+import { withBasePath } from './lib/basePath'
 
 // Hooks
 import { useIntro } from './hooks/useIntro'
@@ -187,17 +188,6 @@ export default function NumogramPage() {
     }
     return zones
   }, [])
-
-  const getShareFocusZones = useCallback((selectedIds: number[]): number[] => {
-    const focus = new Set<number>(selectedIds)
-    if (hlRegion) {
-      zonesForRegion(hlRegion).forEach(z => focus.add(z))
-    }
-    if (tcActive) {
-      ;[1, 2, 4, 5, 7, 8].forEach(z => focus.add(z))
-    }
-    return Array.from(focus).sort((a, b) => a - b)
-  }, [hlRegion, tcActive, zonesForRegion])
 
   const sortSearchParams = useCallback((params: URLSearchParams): URLSearchParams => {
     return new URLSearchParams(Array.from(params.entries()).sort(([a], [b]) => a.localeCompare(b)))
@@ -942,90 +932,8 @@ export default function NumogramPage() {
     return infos
   }, [selZones, layers])
 
-  const captureShareDataUrl = useCallback(async (selectedIds: number[]): Promise<string | null> => {
-    const svgEl = svgWrapRef.current?.querySelector('svg') as SVGSVGElement | null
-    if (!svgEl) return null
-
-    const viewBox = svgEl.viewBox.baseVal
-    const sourceW = Math.max(1, Math.round(viewBox.width || 800))
-    const sourceH = Math.max(1, Math.round(viewBox.height || svgHeight))
-    const targetW = 1200
-    const targetH = 630
-
-    const clone = svgEl.cloneNode(true) as SVGSVGElement
-    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
-    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
-    clone.setAttribute('width', String(sourceW))
-    clone.setAttribute('height', String(sourceH))
-    clone.setAttribute('viewBox', `0 0 ${sourceW} ${sourceH}`)
-
-    const serialized = new XMLSerializer().serializeToString(clone)
-    const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' })
-    const objectUrl = URL.createObjectURL(blob)
-
-    try {
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const nextImg = new Image()
-        nextImg.onload = () => resolve(nextImg)
-        nextImg.onerror = () => reject(new Error('Failed to rasterize SVG snapshot.'))
-        nextImg.src = objectUrl
-      })
-
-      const canvas = document.createElement('canvas')
-      canvas.width = targetW
-      canvas.height = targetH
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return null
-
-      ctx.fillStyle = '#060609'
-      ctx.fillRect(0, 0, targetW, targetH)
-
-      const zoneRadius = (z: number) => (layout === 'planetary' ? PLANETARY_SIZE[z] : 22)
-      let cropX = 0
-      let cropY = 0
-      let cropW = sourceW
-      let cropH = sourceH
-
-      if (selectedIds.length > 0) {
-        const margin = 40
-        let minX = Number.POSITIVE_INFINITY
-        let minY = Number.POSITIVE_INFINITY
-        let maxX = Number.NEGATIVE_INFINITY
-        let maxY = Number.NEGATIVE_INFINITY
-
-        for (const z of selectedIds) {
-          const p = pos[z]
-          const r = zoneRadius(z) + margin
-          minX = Math.min(minX, p.x - r)
-          minY = Math.min(minY, p.y - r)
-          maxX = Math.max(maxX, p.x + r)
-          maxY = Math.max(maxY, p.y + r)
-        }
-
-        cropX = Math.max(0, Math.floor(minX))
-        cropY = Math.max(0, Math.floor(minY))
-        cropW = Math.max(1, Math.ceil(Math.min(sourceW, maxX) - cropX))
-        cropH = Math.max(1, Math.ceil(Math.min(sourceH, maxY) - cropY))
-      }
-
-      const scale = Math.min(targetW / cropW, targetH / cropH)
-      const drawW = cropW * scale
-      const drawH = cropH * scale
-      const dx = (targetW - drawW) / 2
-      const dy = (targetH - drawH) / 2
-      ctx.drawImage(img, cropX, cropY, cropW, cropH, dx, dy, drawW, drawH)
-
-      return canvas.toDataURL('image/png')
-    } catch {
-      return null
-    } finally {
-      URL.revokeObjectURL(objectUrl)
-    }
-  }, [svgHeight, layout, pos])
-
   const onShareExplanation = useCallback(async () => {
     const selectedIds = Array.from(selZones).sort((a, b) => a - b)
-    const focusZones = getShareFocusZones(selectedIds)
     const layerIds = Array.from(layers).sort()
     const defaultLayerIds = [...DEFAULT_LAYERS].sort()
     const shareTitle = buildNumogramTitle({
@@ -1055,55 +963,6 @@ export default function NumogramPage() {
     const baseParams = buildShareParams({ includeLayoutAlways: true })
 
     let finalParams = new URLSearchParams(baseParams)
-    try {
-      const checkResponse = await fetch('/api/share-image', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          params: Object.fromEntries(baseParams.entries()),
-        }),
-      })
-
-      if (checkResponse.ok) {
-        const data = await checkResponse.json() as {
-          imageUrl?: unknown
-          canonicalQuery?: unknown
-          missing?: unknown
-        }
-
-        if (typeof data.canonicalQuery === 'string' && data.canonicalQuery.length > 0) {
-          finalParams = new URLSearchParams(data.canonicalQuery)
-        }
-
-        const hasImage = typeof data.imageUrl === 'string' && data.imageUrl.length > 0
-        if (hasImage) {
-          finalParams.set('img', data.imageUrl as string)
-        } else if (data.missing === true) {
-          const shareDataUrl = await captureShareDataUrl(focusZones)
-          if (shareDataUrl) {
-            const uploadResponse = await fetch('/api/share-image', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({
-                params: Object.fromEntries(baseParams.entries()),
-                dataUrl: shareDataUrl,
-              }),
-            })
-            if (uploadResponse.ok) {
-              const uploaded = await uploadResponse.json() as { imageUrl?: unknown; canonicalQuery?: unknown }
-              if (typeof uploaded.canonicalQuery === 'string' && uploaded.canonicalQuery.length > 0) {
-                finalParams = new URLSearchParams(uploaded.canonicalQuery)
-              }
-              if (typeof uploaded.imageUrl === 'string' && uploaded.imageUrl.length > 0) {
-                finalParams.set('img', uploaded.imageUrl)
-              }
-            }
-          }
-        }
-      }
-    } catch {
-      // Non-fatal: share still works without an uploaded preview image.
-    }
 
     finalParams = sortSearchParams(finalParams)
     const query = finalParams.toString()
@@ -1120,7 +979,7 @@ export default function NumogramPage() {
     } catch {
       // User-cancelled share or unavailable clipboard permissions.
     }
-  }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, captureShareDataUrl, getShareFocusZones, buildShareParams, sortSearchParams])
+  }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, buildShareParams, sortSearchParams])
 
   const anyFocus = hlZones.size > 0
 
@@ -1618,7 +1477,7 @@ export default function NumogramPage() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/numogram-logo.svg"
+          src={withBasePath('/numogram-logo.svg')}
           alt=""
           className="mb-4 w-20 md:w-28"
           style={{
@@ -1735,7 +1594,8 @@ export default function NumogramPage() {
         style={{ left: panelHeaderLeft, top: 14, width: panelHeaderWidth }}
       >
         <CyberPageHeader
-          icon="/numogram-logo.svg"
+          icon={withBasePath('/numogram-logo.svg')}
+          showHomeLink={false}
           title="Numogram"
           titleHref="/numogram"
           description="Decimal Labyrinth"

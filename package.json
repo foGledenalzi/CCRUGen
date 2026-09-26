@@ -38,8 +38,6 @@
     "verify": "npm run check:repo && npm run typecheck && npm run test && npm run test:tz && npm run test:e2e:basepath && npm run build && npm run check:weight && npm run test:e2e && node scripts/check-repo.mjs --clean-tree --static-out"
   },
   "dependencies": {
-    "@vercel/analytics": "^1.6.1",
-    "@vercel/blob": "^2.0.0",
     "next": "14.2.35",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.0",
