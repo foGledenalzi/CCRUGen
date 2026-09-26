@@ -6,7 +6,7 @@ Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / W
 
 Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). The upstream repository ships no license, so the files inherited from it are not relicensed here, and the CCRU-derived base-10 lore text is a third-party pack (see [NOTICE](NOTICE) and [Licensing](#licensing-and-credits)).
 
-> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phase 1 is complete and independently verified, and Phase 2 (the engine and the base-10 migration) is planned in 13 plans and ready to execute.
+> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phase 1 is complete and independently verified, and Phase 2 (the engine and the base-10 migration) is in progress: the numogram engine is built and independently verified (6 of 13 plans), and moving the base-10 viewer onto it is next.
 
 ## The idea
 
@@ -50,7 +50,7 @@ Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`]
 | Phase | Goal | Status |
 |-------|------|--------|
 | 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Complete (verified) |
-| 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Planned (13 plans), ready to execute |
+| 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | In progress: engine core complete and verified (6 of 13 plans); base-10 migration next |
 | 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Not started |
 | 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Not started |
 | 5. Demons Layer | Browse, count and inspect every demon at any base | Not started |
@@ -86,9 +86,10 @@ The export is host-agnostic: it builds for the site root by default. To host it 
 | Command | What it does |
 |---------|--------------|
 | `npm run typecheck` | `tsc` for the app, the engine and its tests, and the component library, then ESLint (which enforces the engine boundary) |
-| `npm run test` | Vitest under `TZ=UTC`: base-10 numeric oracle, golden manifests, page-weight and guard tests |
+| `npm run test` | Vitest under `TZ=UTC`: the engine tests (including the independent brute-force cross-check and the 2^26 ceiling test), the base-10 numeric oracle, golden manifests, page-weight and guard tests |
 | `npm run test:tz` | the same suite under `America/New_York` |
-| `npm run test:e2e` | Playwright (Chromium only) against the static export in `out/`: the 30 DOM goldens under two time zones plus the static-export specs |
+| `npm run test:e2e` | Playwright (Chromium only) against the static export in `out/`: the 30 DOM goldens under two time zones, the static-export specs and the frozen behaviour baseline |
+| `npm run test:swap` | the gate run after each base-10 data-source swap: a fresh build, the 60 DOM-golden comparisons, the behaviour baseline, then Vitest (about 3 minutes) |
 | `npm run test:e2e:basepath` | builds with `NEXT_PUBLIC_BASE_PATH=/ccrug`, stages it and runs the static-export specs under that sub-path |
 | `npm run check:repo` | repository hygiene guards, for example that nothing under `reference/` is tracked |
 | `npm run check:weight` | the page-weight budget, against a fresh `npm run build` |
@@ -100,9 +101,20 @@ On a fresh machine, install the browser once before the first e2e run: `npx play
 
 The base-10 viewer's behaviour is frozen before anything is refactored. The numeric oracle `engine/test/fixtures/base10.golden.json` and the 30 DOM goldens under `e2e/__golden__/` (three layouts times ten states) are locked by sha256 manifests (`node scripts/golden-manifest.mjs verify ...`). Never run Vitest with `-u` or Playwright with `--update-snapshots` to make a test pass. An intentional visual change adds a new dated golden set with `node scripts/golden-manifest.mjs freeze ... --reason "..."`; the pre-refactor set is never overwritten.
 
+Two more frozen sets sit beside them. `engine/test/fixtures/derived/notable-bases.golden.json` holds the Torque structure and demon-subtype counts of notable bases (up to 1024), computed by the independent reference. `e2e/__behaviour__/` is a behaviour and text baseline of the base-10 viewer (panel text, hover popovers, Selection-panel detail text, URL state and undo/redo, in four layouts plus a phone-width view); it covers the lore text that the DOM goldens, which capture only the projection SVG, cannot see. Each has its own sha256 manifest and the same never-regenerate rule.
+
 ## Page-weight budget
 
 `perf/page-weight.baseline.json` records the static export's per-route HTML, JS and CSS sizes (raw and gzip) and the DOM node count of each golden state. `npm run check:weight` fails on growth beyond the baseline plus `max(1 KiB, 5%)` for bytes, or the baseline plus `max(2, 2%)` for DOM elements. Raise the budget only with `node scripts/page-weight.mjs update --reason "..."`, which keeps a written history.
+
+## The engine
+
+`engine/` (pure TypeScript, no dependencies) derives the numogram for any even base from 2 to 2^26 (67,108,864). Its public API is `createNumogram(base)`: a frozen, cached object with the zones, syzygy pairs, currents, gates, the Plex / Warp / Torque cycles in canonical order, and a virtual demon space (`demons`). Invalid bases (odd, zero, negative, non-integer, NaN, Infinity or above the ceiling) throw a `RangeError`; `validateBase(n)` reports the reason without throwing. Numerals are written in the numogram's own base by `formatNumeral`, `formatGateName` and `formatNetSpan`: in base 12 the gate for zone 11 is `Gt-56` and a net-span reads `b::3`.
+
+- **O(n) memory, never O(n^2).** Cycles live in typed arrays, so base 2^26 (1,290,872 cycles) builds in about 0.6 s and roughly 300 MB. Demons are never materialized: a mesh number converts to and from a net-span `a::b` in O(1), exactly up to the ceiling; per-type counts are closed-form; `group(type)` and `subtype(name)` unrank the k-th demon in mesh order.
+- **Cross-Torque chronodemons are an explicit subtype.** Base 28, for example, has 378 demons, 108 of them cross-Torque chronodemons; base 10 splits 12 + 3 chrono, 12 + 12 amphi and 4 + 2 xeno.
+- **Checked against an independent reference.** `tests/bruteforce/` is a slow module written straight from the definitions (it shares no code with the engine). The engine matches it for every even base up to 2000 structurally and for every demon of every even base up to 300, with fixed-seed samples beyond, and it reproduces the frozen base-10 oracle.
+- **Status:** the engine is complete and verified. The base-10 viewer is not yet re-derived from it; that is the rest of Phase 2.
 
 ## Engine boundary
 
@@ -116,9 +128,9 @@ The base-10 viewer's behaviour is frozen before anything is refactored. The nume
 
 - `app/` - the Next.js viewer (`app/numogram/`, `app/NumogramClient.tsx`, `app/components/`, `app/hooks/`, `app/lib/`).
 - `app/data/` - the hand-authored base-10 data and CCRU-derived lore. Phase 2 replaces the structure with engine output and moves the lore into one file under `app/presets/base10/`, leaving thin pass-through files here until Phase 4.
-- `engine/` - the pure TypeScript numogram engine (a scaffold with its boundary guard today; Phase 2 builds it, with an independent brute-force cross-check under `tests/bruteforce/`) and the frozen numeric oracle fixture.
-- `tests/` - Vitest suites (oracle, manifests, page-weight, e2e normalizer).
-- `e2e/` - Playwright specs, the visual-DOM normalizer and the 30 frozen DOM goldens.
+- `engine/` - the pure TypeScript numogram engine (`engine/core/`), its tests, and the frozen numeric oracle and derived fixtures.
+- `tests/` - Vitest suites (oracle, manifests, page-weight, e2e normalizer, repository guards) and the independent brute-force reference in `tests/bruteforce/`.
+- `e2e/` - Playwright specs, the visual-DOM normalizer, the 30 frozen DOM goldens and the frozen behaviour baseline (`e2e/__behaviour__/`).
 - `perf/` - the page-weight baseline.
 - `scripts/` - oracle capture, golden manifests, page-weight check, repository guards and the sub-path staging helper.
 - `component-library/` - inherited from upstream and out of scope for this project; kept on disk unchanged.
