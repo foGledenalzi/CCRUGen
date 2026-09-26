@@ -11,7 +11,8 @@
 
 import { digitalRoot, triangular } from './arith'
 import { assertBase, MAX_BASE } from './base'
-import type { Cycle, CurrentInfo, GateInfo, Numogram, PairInfo, RegionKind } from './types'
+import { createDemonSpace } from './demons'
+import type { Cycle, CurrentInfo, DemonSpace, GateInfo, Numogram, PairInfo, RegionKind } from './types'
 
 /** The cache keeps at most `entries` numograms holding at most `zones` zones in total (2^26 = 67108864). */
 export const NUMOGRAM_CACHE_LIMITS: Readonly<{ entries: 4; zones: 67108864 }> = Object.freeze({
@@ -210,6 +211,7 @@ class NumogramImpl implements Numogram {
   readonly #s: NumogramInternals
   #cycles: readonly Cycle[] | null = null // lazy caches live in private fields: they stay writable after the freeze
   #torques: readonly Cycle[] | null = null
+  #demons: DemonSpace | null = null
 
   constructor(base: number, s: NumogramInternals) {
     this.base = base
@@ -252,6 +254,11 @@ class NumogramImpl implements Numogram {
       this.#torques = list
     }
     return list
+  }
+
+  /** The virtual demon space (D-14), built on first use: it holds no per-demon data, so reading it costs O(1). */
+  get demons(): DemonSpace {
+    return (this.#demons ??= createDemonSpace(this, this.#s))
   }
 
   cycleAt(id: number): Cycle {

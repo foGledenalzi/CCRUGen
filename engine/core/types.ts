@@ -40,6 +40,7 @@ export interface Numogram {
   readonly plex: Cycle
   readonly warp: Cycle | null
   readonly storageBytes: number     // bytes held in typed arrays (the eager O(n) part)
+  readonly demons: DemonSpace       // lazy and virtual: created on first read, O(1) per query, no per-demon structure ever built
   cycleAt(id: number): Cycle
   partner(zone: number): number     // base - 1 - zone
   pairOf(zone: number): number      // pair id = min(zone, base - 1 - zone)
