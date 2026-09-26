@@ -42,7 +42,7 @@ Plans:
 - [x] 01-04-PLAN.md - DOM oracle: 30 visual-DOM goldens (3 layouts x 10 states) captured from the untouched viewer on next dev, frozen (wave 2)
 - [x] 01-05-PLAN.md - Static export change list, client redirect, @vercel removal; goldens proven 60/60 on serve out, root and /ccrug e2e (wave 3)
 - [x] 01-06-PLAN.md - Page-weight baseline + budget, dormant Windows/Ubuntu CI calling npm run verify (wave 4; its fflate plugin ZIP was superseded when the plugin was removed in the branding scrub)
-- [ ] 01-07-PLAN.md - LICENSE (MIT), NOTICE (upstream credit, lore exclusion), lore headers, CCRUG README, npm launch config (wave 4)
+- [x] 01-07-PLAN.md - LICENSE (MIT), NOTICE (upstream credit, lore exclusion), lore headers, CCRUG README, npm launch config (wave 4)
 - [ ] 01-08-PLAN.md - check-repo guard, user-approved git mutations (untrack dist/demo.mov, origin -> upstream + new origin foGledenalzi/CCRUGen (no push)), full verify gate, licensing confirmation (wave 5)
 **Research**: Standard (skip `/gsd-research-phase`), but verify empirically in the first export build: root `target: ES2022` vs class-field diagnostics, `redirect()` in `app/gematria/saved`, `sitemap.ts`/`robots.ts` under `force-static`, `searchParams` pages, `engine/package.json` without `type: module`, Vite 8 with Vitest 5 (fallback Vite 7.3.6), `process.env.TZ` behavior on Windows, fflate zip byte-identity across `TZ`, `npm ls next` resolving to 14.2.35.
 **Notes**: Hard sequencing inside the phase: `.gitattributes` lands before the first fixture; the numeric oracle and DOM goldens are captured from the untouched viewer (against `next dev`) before static-export decoupling and before any edit to `NumogramClient.tsx`; only then is the Playwright web server switched to `serve out`. Next.js stays pinned at 14.2.35 (UPG-01 is v2).
@@ -171,7 +171,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations and Safety Net | 6/8 | In Progress | - |
+| 1. Foundations and Safety Net | 7/8 | In Progress | - |
 | 2. Engine Core and Base-10 Migration | 0/TBD | Not started | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |

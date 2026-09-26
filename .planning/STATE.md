@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-06-PLAN.md
-last_updated: "2026-09-26T02:54:16.826Z"
+stopped_at: Completed 01-07-PLAN.md
+last_updated: "2026-09-26T04:16:21.514Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 1 (Foundations and Safety Net) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-09-26
 
-Progress: [████████░░] 75%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [████████░░] 75%
 | Phase 1 P04 | 14min | 2 tasks | 36 files |
 | Phase 1 P05 | 7min | 3 tasks | 24 files |
 | Phase 1 P06 | 8min | 3 tasks | 5 files |
+| Phase 1 P07 | 12min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ Recent decisions affecting current work:
 - [Phase 1 P06] Page-weight budget: baseline perf/page-weight.baseline.json from a root build (/ and /numogram/ bytes raw+gzip, 30 golden DOM counts 6405 total), tolerance max(1 KiB, 5%) bytes and max(2, 2%) nodes stored in the file; raising it only via update --reason (history ledger); check reads counts from the frozen goldens, no browser
 - [Phase 1] Branding scrub (user order, 2026-09-25): removed the "(c) qliphoth.systems / delight nexus" footer text, the upstream logo and Aleph0.svg (new original `public/ccrug-mark.svg`, also the favicon), the "Numogram" wordmarks (now "CCRUG"), and the whole inherited gematria plugin with its build:plugin/build:plugin-zip scripts, scripts/build-plugin-zip.mjs and the fflate dependency (this supersedes the plugin-ZIP part of 01-06). Attribution to lumpenspace/ccru in README + NOTICE is kept on purpose. Goldens unaffected (they capture only the projection svg): 60/60 + static-export 68/68 + sub-path 8/8 green.
 - [Phase 1 P06] Dormant CI ci.yml (ubuntu+windows, read-only token, calls npm run verify; verify needs scripts/check-repo.mjs from 01-08 to run end to end); plugin ZIP is fflate, sha256 e1370547... identical under UTC/Tokyo/New_York, written to gitignored artifacts/
+- [Phase 1 P07] LICENSE is canonical MIT (holder foGledenalzi); NOTICE is authoritative on scope: only post-fork files (plus the original CCRUG mark) are MIT, every file inherited from upstream 7c38ad9 is not relicensed, and the five app/data lore files are excluded as CCRU-derived (header comment only, oracle and manifests unchanged)
 
 ### Pending Todos
 
@@ -90,7 +92,7 @@ None yet.
 
 - [Phase 1]: RESOLVED in 01-05: the static export builds (`next build` exit 0) and the client redirect is proven at the root and under `/ccrug`
 - [Phase 1]: RESOLVED: Windows specifics verified (`process.env.TZ` runtime pin and canary in 01-01, Vite 8 with Vitest 5 runs green, fflate plugin ZIP sha256 identical under UTC / Asia/Tokyo / America/New_York in 01-06)
-- [Phase 1]: No LICENSE file and `origin` still points at `lumpenspace/ccru`; prose in `app/data/zones.ts` and `gates.ts` has unverified provenance
+- [Phase 1]: RESOLVED in 01-07: LICENSE and NOTICE exist and the five lore files are marked CCRU-derived (prose provenance recorded, text unchanged). Still open until 01-08: `origin` points at `lumpenspace/ccru`
 - [Phase 3]: Renderer thresholds are unmeasured (research figures conflict); Phases 4-6 wait on the spike's threshold table
 - [Phase 3]: Aesthetic choices need the user: flow direction, Plex placement, default label case
 - [Phase 4]: Label scheme beyond base 36 needs a decision plus font/glyph coverage tests
@@ -111,8 +113,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-26T02:54:16.820Z
-Stopped at: Completed 01-06-PLAN.md
+Last session: 2026-09-26T04:16:21.508Z
+Stopped at: Completed 01-07-PLAN.md
 Resume file: None
 
 **Planned Phase:** 1 (Foundations and Safety Net) — 8 plans — 2026-09-25T22:07:49.564Z
