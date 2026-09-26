@@ -9,11 +9,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Foundations
 
-- [ ] **FND-01**: The project builds and type-checks on Windows and Linux with a single `npm run build` (no `zip` binary needed, ES2022 root target, LF line endings enforced via `.gitattributes`)
-- [ ] **FND-02**: A frozen base-10 oracle (numeric golden JSON plus normalized SVG DOM goldens of the untouched viewer) exists before any refactor and stays green in every later phase
-- [ ] **FND-03**: The app builds as a fully static export (`output: 'export'`) with no server route, Vercel Blob or Vercel Analytics dependency
-- [ ] **FND-04**: `engine/` is enforced pure (no DOM or Node types, relative imports only) by `tsc -p engine` and ESLint restricted-imports, run via one `typecheck` script
-- [ ] **FND-05**: Licensing and upstream attribution are decided, `origin` is repointed away from `lumpenspace/ccru`, and a guard fails if anything under `reference/` is ever tracked
+- [x] **FND-01**: The project builds and type-checks on Windows and Linux with a single `npm run build` (no `zip` binary needed, ES2022 root target, LF line endings enforced via `.gitattributes`)
+- [x] **FND-02**: A frozen base-10 oracle (numeric golden JSON plus normalized SVG DOM goldens of the untouched viewer) exists before any refactor and stays green in every later phase
+- [x] **FND-03**: The app builds as a fully static export (`output: 'export'`) with no server route, Vercel Blob or Vercel Analytics dependency
+- [x] **FND-04**: `engine/` is enforced pure (no DOM or Node types, relative imports only) by `tsc -p engine` and ESLint restricted-imports, run via one `typecheck` script
+- [x] **FND-05**: Licensing and upstream attribution are decided, `origin` is repointed away from `lumpenspace/ccru`, and a guard fails if anything under `reference/` is ever tracked
 
 ### Engine
 
@@ -118,11 +118,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01 | Phase 1 | Pending |
-| FND-02 | Phase 1 | Pending |
-| FND-03 | Phase 1 | Pending |
-| FND-04 | Phase 1 | Pending |
-| FND-05 | Phase 1 | Pending |
+| FND-01 | Phase 1 | Complete |
+| FND-02 | Phase 1 | Complete |
+| FND-03 | Phase 1 | Complete |
+| FND-04 | Phase 1 | Complete |
+| FND-05 | Phase 1 | Complete |
 | ENG-01 | Phase 2 | Pending |
 | ENG-02 | Phase 2 | Pending |
 | ENG-03 | Phase 2 | Pending |
