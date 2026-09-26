@@ -1,6 +1,6 @@
 ---
 date: "2026-09-25 22:11"
-promoted: false
+promoted: true
 updated: "2026-09-25 (decisions recorded)"
 ---
 
@@ -34,9 +34,9 @@ Constraints:
 - Do not edit `app/` while another plan that touches it is mid-flight.
 - Whatever motion remains must honour `prefers-reduced-motion`.
 
-## Proposed sequencing (Claude's recommendation, not yet agreed)
+## Sequencing (agreed by the user, 2026-09-25: do the declutter after Phase 1 completes)
 
 - **All of the declutter as one task right after Phase 1 closes** (for example `/gsd-quick`): overlays, glitch effects, intro splash, and the visual clutter in the panels (glows, frames, scramble text, heavy chrome). Because it removes no functionality and restructures nothing, it is mechanical and verifiable by the goldens, the static-export specs and the before/after inventory. It also removes the always-on overlays before the Phase 3 ceiling measurement, so the ceiling is not confounded, and before Phase 2 starts editing the client.
 - **Structural panel changes** (merging, moving or redesigning panels for the base picker) stay in the Phase 4 discuss/plan, where they are decided separately.
 
-Promote with `/gsd-note promote <N>` to turn this into a todo.
+Tracked as todo `.planning/todos/pending/001-declutter-ui-after-phase-1.md`.
