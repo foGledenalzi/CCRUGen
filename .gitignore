@@ -21,3 +21,24 @@ public/downloads/
 
 # local reference material (copyrighted book PDF/text, scraped web sources, scratch SVGs) - never commit
 reference/
+
+# static export and generated artifacts (Phase 1)
+/out/
+/dist/
+/artifacts/
+/.e2e-basepath/
+*.tsbuildinfo
+
+# npm only (yarn.lock is removed in plan 01-08)
+yarn.lock
+
+# large demo video: untracked in plan 01-08, kept on disk
+demo.mov
+
+# OS junk
+.DS_Store
+
+# test output and local browser cache
+/test-results/
+/playwright-report/
+/.pw-browsers/

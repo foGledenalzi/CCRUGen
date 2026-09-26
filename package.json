@@ -1,7 +1,8 @@
 {
-  "name": "ccru",
+  "name": "ccrug",
   "version": "0.1.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "main": "dist/components/component-library/index.js",
   "types": "dist/components/component-library/index.d.ts",
   "exports": {
@@ -14,21 +15,32 @@
     "dist/components/**",
     "README.md"
   ],
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:plugin-zip && next build",
-    "start": "next start",
-    "lint": "next lint",
-    "test:share-image": "node scripts/share-image-self-check.mjs",
+    "build": "next build",
+    "start": "serve out",
+    "lint": "next lint --dir app --dir engine --dir workers",
+    "typecheck": "tsc --noEmit --incremental false && tsc -p engine/tsconfig.json --noEmit && tsc -p engine/tsconfig.test.json --noEmit && tsc -p tsconfig.components.json --noEmit && npm run lint",
+    "test": "cross-env CCRUG_TZ=UTC vitest run",
+    "test:tz": "cross-env CCRUG_TZ=America/New_York vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:basepath": "cross-env NEXT_PUBLIC_BASE_PATH=/ccrug next build && node scripts/stage-basepath.mjs /ccrug && cross-env E2E_BASE_PATH=/ccrug E2E_STATIC_DIR=.e2e-basepath E2E_PORT=3112 playwright test e2e/static-export.spec.ts",
+    "check:repo": "node scripts/check-repo.mjs",
+    "check:weight": "node scripts/page-weight.mjs check",
     "build:components": "tsc --project tsconfig.components.json",
     "build:plugin": "tsc --project gematria/plugin/tsconfig.json",
     "build:plugin-zip": "node scripts/build-plugin-zip.mjs",
-    "prepare": "npm run build:components"
+    "prepare": "npm run build:components",
+    "verify": "npm run check:repo && npm run typecheck && npm run test && npm run test:tz && npm run test:e2e:basepath && npm run build && npm run check:weight && npm run test:e2e && node scripts/check-repo.mjs --clean-tree --static-out"
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",
     "@vercel/blob": "^2.0.0",
-    "next": "^14.2.0",
+    "next": "14.2.35",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
@@ -36,14 +48,22 @@
     "react-resizable-panels": "^2.1.7"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.0",
+    "cross-env": "10.1.0",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.35",
+    "fast-check": "4.10.2",
+    "fflate": "0.8.3",
     "postcss": "^8.4.0",
+    "serve": "14.2.6",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.0.0"
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
   }
 }

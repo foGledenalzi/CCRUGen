@@ -1,0 +1,9 @@
+# LF everywhere (FND-01). Goldens and fixtures are sha256-frozen; CRLF would change the hashes.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.mov binary
+*.pdf binary
+*.zip binary
+*.svg text eol=lf
