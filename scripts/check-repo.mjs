@@ -13,8 +13,8 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { ROOT, verifyManifestFile } from './golden-manifest.mjs'
+import { isMain } from './is-main.mjs'
 
 export const LORE_FILES = ['app/data/zones.ts', 'app/data/gates.ts', 'app/data/currents.ts', 'app/data/syzygies.ts', 'app/data/demons.ts']
 export const LORE_HEADER = '// CCRU-derived lore. Not covered by the MIT license; see NOTICE.'
@@ -324,7 +324,7 @@ export function run(argv) {
   return 0
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (isMain(import.meta.url)) {
   process.chdir(ROOT)
   process.exitCode = run(process.argv.slice(2))
 }

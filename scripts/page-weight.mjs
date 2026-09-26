@@ -9,7 +9,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
+import { isMain } from './is-main.mjs'
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const OUT_DIR = path.join(ROOT, 'out')
@@ -205,7 +206,7 @@ function main(argv) {
   throw new Error('page-weight: usage: check | update --reason "<why>" | print')
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (isMain(import.meta.url)) {
   try {
     process.exitCode = main(process.argv.slice(2))
   } catch (e) {
