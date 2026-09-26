@@ -18,7 +18,8 @@ Static web app + pure TS engine that generates CCRU numograms for any even base 
 - **`engine/` is pure**: no DOM or Node types, relative imports only, no O(n²) materialization (demons are virtual via mesh-number index math).
 - **Static-first**: no server routes, Vercel Blob or Analytics. Stay on Next 14.2.35 (exact pin); no upgrade phase.
 - **Scope**: v1 = core diagram + demons + naming builder + export. No pitch/Decadence/rites/correspondences.
-- Do not edit `NumogramClient.tsx` before the Phase 1 oracle exists.
+- The Phase 1 oracle exists, so `NumogramClient.tsx` may now be edited, but the DOM goldens capture only the projection `<svg>`: keep it byte-identical until the engine migration proves parity.
+- **No upstream branding, ever.** The user ordered all old branding scrubbed (2026-09-25): no `qliphoth.systems` / "delight nexus" text or URLs, no upstream logo/wordmark, no gematria plugin. The identity is CCRUG (`public/ccrug-mark.svg`). The one deliberate exception is attribution: the README credit line and `NOTICE` for `lumpenspace/ccru` stay (the user kept it on purpose, since upstream has no license). Do not add new files that reintroduce the old names.
 
 ## Workflow
 

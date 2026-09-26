@@ -41,7 +41,7 @@ Plans:
 - [x] 01-03-PLAN.md - Numeric base-10 oracle from untouched app/data, frozen, with Gt-15/Gt-03 and definition-derived regressions (wave 2)
 - [x] 01-04-PLAN.md - DOM oracle: 30 visual-DOM goldens (3 layouts x 10 states) captured from the untouched viewer on next dev, frozen (wave 2)
 - [x] 01-05-PLAN.md - Static export change list, client redirect, @vercel removal; goldens proven 60/60 on serve out, root and /ccrug e2e (wave 3)
-- [x] 01-06-PLAN.md - Page-weight baseline + budget, dormant Windows/Ubuntu CI calling npm run verify, deterministic fflate plugin ZIP (wave 4)
+- [x] 01-06-PLAN.md - Page-weight baseline + budget, dormant Windows/Ubuntu CI calling npm run verify (wave 4; its fflate plugin ZIP was superseded when the plugin was removed in the branding scrub)
 - [ ] 01-07-PLAN.md - LICENSE (MIT), NOTICE (upstream credit, lore exclusion), lore headers, CCRUG README, npm launch config (wave 4)
 - [ ] 01-08-PLAN.md - check-repo guard, user-approved git mutations (untrack dist/demo.mov, origin -> upstream + new origin foGledenalzi/CCRUGen (no push)), full verify gate, licensing confirmation (wave 5)
 **Research**: Standard (skip `/gsd-research-phase`), but verify empirically in the first export build: root `target: ES2022` vs class-field diagnostics, `redirect()` in `app/gematria/saved`, `sitemap.ts`/`robots.ts` under `force-static`, `searchParams` pages, `engine/package.json` without `type: module`, Vite 8 with Vitest 5 (fallback Vite 7.3.6), `process.env.TZ` behavior on Windows, fflate zip byte-identity across `TZ`, `npm ls next` resolving to 14.2.35.

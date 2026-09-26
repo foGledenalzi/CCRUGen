@@ -28,7 +28,7 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - ✓ Generic SVG geometry for gates/currents (concave Bezier gate paths, Y-shaped current routing) that works for any zone coordinates — existing (`app/lib/geometry.ts`)
 - ✓ Xenotation (prime-factor notation) helper, base-agnostic — existing (`app/lib/xenotation.ts`)
 - ✓ Cyber-styled UI primitives, share-image export (Vercel Blob dependent) — existing (`app/components/ui/`, `app/api/share-image/route.ts`)
-- ✓ (Untouched by this project) Gematria cyphers page, Chrome gematria plugin, installable component library — existing
+- ✓ (Untouched by this project) Gematria cyphers helpers, installable component library — existing. The inherited Chrome gematria plugin and the /gematria, /cyphers and /components pages were removed in Phase 1 (out of scope; the plugin carried upstream branding).
 
 ### Active
 
@@ -49,7 +49,7 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 
 - Pitch (Ana/Cth), Decadence/Subdecadence card game, rites/omens, and other mythos layers — user decision ("don't bother with any mythos/card game stuff"); the guide itself says these are hand-tuned per base and rites blow up combinatorially at high bases
 - Correspondence packs (planets, zodiac, tarot, I Ching) for arbitrary bases — deferred; the existing base-10 planetary layout/lore stays only as the base-10 preset and is not generalized
-- Gematria plugin, cyphers page, installable component library — untouched, outside this project's scope
+- Gematria cyphers helpers and installable component library — untouched, outside this project's scope (the gematria plugin and the gematria/cyphers/components pages are removed)
 - Odd bases — no valid numogram (a self-paired zone, which the CCRU rejects); UI restricts to even bases and explains why
 - Server-side persistence, accounts, analytics — static-first
 - Rewriting git history to drop the 41 MB `demo.mov` — noted as debt, not addressed here

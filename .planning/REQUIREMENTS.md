@@ -104,7 +104,7 @@ Explicitly excluded. Documented to prevent scope creep.
 |---------|--------|
 | Pitch (Ana/Cth), Decadence/Subdecadence cards, rites/omens, other mythos layers | User decision; the guide says they are hand-tuned per base and rites blow up combinatorially at high bases |
 | Planet / zodiac / tarot / I Ching correspondence packs for arbitrary bases | Deferred by user; base-10 planetary layout and lore stay only as the base-10 preset |
-| Gematria plugin, cyphers page, installable component library | Untouched and outside this project's scope |
+| Gematria cyphers helpers, installable component library | Untouched and outside this project's scope (plugin and gematria/cyphers/components pages removed) |
 | Odd bases | No valid numogram (a self-paired zone, which the CCRU rejects); UI explains why |
 | Server-side share images, accounts, analytics, any backend | Static-first; per-share OG images cannot exist in a static export |
 | Manual drag layout, editing derived data (pairs, currents, gates) | Anti-features: derived structure must always match the math |
