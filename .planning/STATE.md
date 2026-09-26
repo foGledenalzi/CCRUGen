@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-09-26T19:10:01.050Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-09-26T19:24:32.714Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 21
-  completed_plans: 9
-  percent: 43
+  completed_plans: 10
+  percent: 48
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 2
-Plan: 1 of 13 executed
-Status: Executing Phase 2 (02-01 engine contracts, base validation and numerals done; next 02-02)
+Plan: 2 of 13 executed
+Status: Executing Phase 2 (02-02 independent reference and frozen notable-bases fixture done; next 02-03)
 Last activity: 2026-09-26
 
-Progress: [████░░░░░░] 43%
+Progress: [█████░░░░░] 48%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -45,7 +45,7 @@ Progress: [████░░░░░░] 43%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 8 | - | - |
-| 2 | 1 | 14min | 14min |
+| 2 | 2 | 25min | 12.5min |
 
 **Recent Trend:**
 
@@ -62,6 +62,7 @@ Progress: [████░░░░░░] 43%
 | Phase 1 P07 | 12min | 2 tasks | 8 files |
 | Phase 1 P08 | 9min | 2 tasks | 63 files |
 | Phase 2 P01 | 14min | 2 tasks | 8 files |
+| Phase 2 P02 | 11min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,7 @@ Recent decisions affecting current work:
 - [Phase 1 P08] check-repo guard (12 checks, --only, --clean-tree, --static-out) with failing-input tests; static-out forbids Vercel markers, api/share-image and the old upstream branding case-insensitively (user scrub order); pre-mutation run failed with 61 junk problems, post-mutation and npm run verify green (68 e2e, 60 goldens unchanged, 122 s); hygiene commit = 61 deletions (dist/ untracked and kept on disk, yarn.lock, 2 .DS_Store), remotes asserted already final, nothing pushed; Task 3 (LICENSE holder foGledenalzi and NOTICE scope) confirmed by the user on 2026-09-25
 - [Todo 001] UI declutter done (2026-09-26): CRT overlays, glitch effects, route-transition provider and intro splash removed, panel chrome flattened; no control, readout or behaviour changed (before/after inventory in .planning/notes/2026-09-25-ui-declutter-inventory.md); 60 goldens unchanged; WR-01 closed by a new sub-path click test; page-weight baseline lowered
 - [Phase 2 P01] Engine numeral scheme (D-05, Phase 4 contract): base 2..36 = one lowercase char per digit (0-9a-z), base 37..2^26 = decimal digit groups joined by '.' ('1.0.1' = 3601 in base 60), minDigits pads with zero digits, parseNumeral is the exact inverse (text 1..64 chars, value <= MAX_SAFE_INTEGER, linear loop); numerals take any integer base 2..2^26, numograms only even bases via validateBase/assertBase (RangeError, ceiling 2^26); torqueLabel = A..Z then i+1; engine/core/types.ts holds the contracts (02-05 adds Numogram.demons, 02-06 adds DemonSpace.group/subtype)
+- [Phase 2 P02] Independent oracle: the definitions-only reference lives in tests/bruteforce/ (never tests/reference/, which the unanchored reference/ ignore rule would hide), imports nothing from engine/, does no file access and uses none of the engine closed forms (running-sum cumulation, iterated in-base digit sums, enumeration-counter mesh, non-permutation-assuming cycle walk); exports refStructure/refDigits/refDigitSumRoot/refClassify/refDemons/refSubtypeCounts (refSubtypeCounts(2000) about 6.4 ms). New frozen fixture engine/test/fixtures/derived/notable-bases.golden.json (17 bases 2..100 in full, digests for 256/666/1000/1024) under its own strict manifest engine/test/fixtures/derived/MANIFEST.json (set 2026-09-26-notable-bases); the older manifests are untouched; check-repo registration of the new manifest waits for 02-07
 
 ### Pending Todos
 
@@ -119,8 +121,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-26T19:10:06Z
-Stopped at: Completed 02-01-PLAN.md
-Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-02-PLAN.md
+Last session: 2026-09-26T19:24:32.707Z
+Stopped at: Completed 02-02-PLAN.md
+Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-03-PLAN.md
 
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
