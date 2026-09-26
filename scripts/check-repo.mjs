@@ -18,8 +18,8 @@ import { isMain } from './is-main.mjs'
 
 export const LORE_FILES = ['app/data/zones.ts', 'app/data/gates.ts', 'app/data/currents.ts', 'app/data/syzygies.ts', 'app/data/demons.ts']
 export const LORE_HEADER = '// CCRU-derived lore. Not covered by the MIT license; see NOTICE.'
-export const MANIFESTS = ['e2e/__golden__/MANIFEST.json', 'engine/test/fixtures/MANIFEST.json']
-export const LF_DIRS = ['e2e/__golden__', 'engine/test/fixtures', 'perf']
+export const MANIFESTS = ['e2e/__golden__/MANIFEST.json', 'engine/test/fixtures/MANIFEST.json', 'e2e/__behaviour__/MANIFEST.json']
+export const LF_DIRS = ['e2e/__golden__', 'engine/test/fixtures', 'perf', 'e2e/__behaviour__']
 // Markers that must never appear in the static export: Vercel leftovers, the deleted share-image route and,
 // by user order (2026-09-25), the old upstream branding.
 export const FORBIDDEN_OUT = [

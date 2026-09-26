@@ -39,8 +39,9 @@ This NOTICE is authoritative on which terms apply to which files.
      app/data/currents.ts
      app/data/syzygies.ts
      app/data/demons.ts
-   Frozen test fixtures derived from them (engine/test/fixtures/ and
-   e2e/__golden__/) carry the same status for any lore text they contain.
+   Frozen test fixtures derived from them (engine/test/fixtures/,
+   e2e/__golden__/ and the behaviour baseline in e2e/__behaviour__/) carry
+   the same status for any lore text they contain.
 
 4. reference/
    reference/ is local, untracked research material (gitignored). It is

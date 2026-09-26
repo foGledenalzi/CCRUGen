@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "strictDir": "e2e/__behaviour__",
+  "sets": [
+    {
+      "set": "2026-09-26-behaviour-baseline",
+      "date": "2026-09-26",
+      "reason": "Behaviour and text baseline (D-15) of the viewer before any Phase 2 data-source swap or lore move: 4 layouts + 390x800, panel text, hover popovers, lore sweep, Selection panel, URL after each action, undo/redo, shortcuts, share (stubbed clipboard); text and attribute/computed-style facts only; captured from HEAD with app/ identical to f7d6689",
+      "files": {
+        "e2e/__behaviour__/labyrinth.json": "100fb3e4f44196a6245e3bcca94dcb5dd15b62f0fe14b39c686644188ec2bf1c",
+        "e2e/__behaviour__/ladder.json": "7aa1d37319df60a4bb7857fd1254b725d0c679c73b59fe2064152ab6d50527f5",
+        "e2e/__behaviour__/mobile.json": "7af4d1204523a7c91d43a7b799cae16c577467c759c7416d5249d3cc0e413589",
+        "e2e/__behaviour__/original.json": "b3f3f2961b83c95c6df74ea88ed3cb9b74bfa53fcd4be7f2c77adaecac4450b1",
+        "e2e/__behaviour__/planetary.json": "fb25713ae41c79fcc8b17adfc655329ed4bdc52b5a26075b70e34cee44a54255"
+      }
+    }
+  ]
+}

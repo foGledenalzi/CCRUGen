@@ -5,8 +5,10 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   FORBIDDEN_OUT,
+  LF_DIRS,
   LORE_FILES,
   LORE_HEADER,
+  MANIFESTS,
   findCarriageReturns,
   findTrackedJunk,
   findTrackedReference,
@@ -344,6 +346,16 @@ describe('parseDirtyStatus', () => {
   })
   it('tolerates CRLF line endings', () => {
     expect(parseDirtyStatus('M  a\r\nD  b\r\n')).toEqual(['M  a', 'D  b'])
+  })
+})
+
+describe('MANIFESTS and LF_DIRS', () => {
+  it('covers the behaviour baseline: its manifest is verified and its directory is a frozen LF oracle dir', () => {
+    expect(MANIFESTS).toContain('e2e/__behaviour__/MANIFEST.json')
+    expect(LF_DIRS).toContain('e2e/__behaviour__')
+    // the older frozen sets stay covered
+    expect(MANIFESTS).toEqual(expect.arrayContaining(['e2e/__golden__/MANIFEST.json', 'engine/test/fixtures/MANIFEST.json']))
+    expect(LF_DIRS).toEqual(expect.arrayContaining(['e2e/__golden__', 'engine/test/fixtures', 'perf']))
   })
 })
 

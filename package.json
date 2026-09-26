@@ -28,6 +28,7 @@
     "test": "cross-env CCRUG_TZ=UTC vitest run",
     "test:tz": "cross-env CCRUG_TZ=America/New_York vitest run",
     "test:e2e": "playwright test",
+    "test:swap": "npm run build && playwright test e2e/golden.spec.ts e2e/behaviour.spec.ts && npm run test",
     "test:e2e:basepath": "cross-env NEXT_PUBLIC_BASE_PATH=/ccrug next build && node scripts/stage-basepath.mjs /ccrug && cross-env E2E_BASE_PATH=/ccrug E2E_STATIC_DIR=.e2e-basepath E2E_PORT=3112 playwright test e2e/static-export.spec.ts",
     "check:repo": "node scripts/check-repo.mjs",
     "check:weight": "node scripts/page-weight.mjs check",
