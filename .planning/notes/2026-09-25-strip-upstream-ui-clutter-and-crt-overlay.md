@@ -1,36 +1,38 @@
 ---
 date: "2026-09-25 22:11"
 promoted: false
+updated: "2026-09-25 (decisions recorded)"
 ---
 
 See if we can strip away some of the upstream UI clutter and CRT overlay nonsense.
 
-## Context (scan of the inherited shell, 2026-09-25; not a decision)
+## Decisions (user, 2026-09-25)
 
-What is there today:
+1. **Remove the CRT overlays outright** (no opt-in "retro" toggle).
+2. **Drop the intro splash.**
+3. **Streamline the panels without removing critical information.**
 
-- `app/globals.css`: `body::after` is a full-viewport scanline overlay (z-index 9999) that runs `crt-flicker 0.08s infinite alternate` forever; `body::before` is a full-viewport "phosphor vignette" (z-index 9998). The `prefers-reduced-motion` block only covers the glitch classes, so the flicker is not motion-gated.
-- Glitch effects: `.layout-switch-glitch` + overlay (fired by `triggerLayoutGlitch` in `NumogramClient.tsx`), `.page-nav-crt-glitch-*`, `app/components/navigation/CrtNavigationTransition.tsx` (wraps the whole app in `app/layout.tsx`; the site is now a single route, so route transitions do nothing useful), `app/components/ui/GlitchText.tsx` (random-character scramble on info-panel headings), `GlitchTransition.tsx`, and the orphan hook `app/hooks/useGlitchNavigate.ts` (referenced nowhere). The `.ui-glitch-*` CSS comment says "used in /components showcase", a page that no longer exists.
-- Intro splash (`introPhase` in `NumogramClient.tsx`): logo + wordmark with blur and glow transitions, z-index 70.
-- Chrome: the `Cyber*` component family in `app/components/ui/` (about 1,970 lines including panels, header, popovers, neon dividers) plus the neon glow and drop-shadow styling throughout the shell.
+## What to remove (from a scan of the inherited shell, 2026-09-25)
 
-Why it may be worth stripping:
+- `app/globals.css`: `body::after` scanline overlay (z-index 9999, `crt-flicker 0.08s infinite alternate`) and `body::before` phosphor vignette (z-index 9998).
+- Glitch effects: `.layout-switch-glitch` + overlay and `triggerLayoutGlitch` in `NumogramClient.tsx`; `.page-nav-crt-glitch-*`; `app/components/navigation/CrtNavigationTransition.tsx` (wraps the whole app in `app/layout.tsx`; the site is a single route now); `app/components/ui/GlitchText.tsx` (random-character scramble on info headings) and `GlitchTransition.tsx`; the orphan hook `app/hooks/useGlitchNavigate.ts`; the `.ui-glitch-*` CSS ("used in /components showcase", a page that no longer exists). Remove the matching `@keyframes` and the `prefers-reduced-motion` block that only existed for them.
+- Intro splash: `useIntro()` / `introPhase` in `NumogramClient.tsx`, the splash block (logo + "CCRUG" wordmark, z-index 70) and the hook file. **Careful:** `introPhase` also gates the opacity of the projection wrapper (0 while the title shows, 0.8 while fading, then 1) and is passed to `PinnedBackground`. The steady state is opacity 1, so removal should render that immediately, but this is the one part that sits near the oracle: confirm with the goldens.
 
-- High-base rendering: fixed full-screen overlays with an infinite animation make the browser recomposite every frame, which can confound the Phase 3 ceiling measurement (base 64 / 666). Measure with overlays off, or the "ceiling" measures the overlays.
-- Accessibility and legibility: the flicker ignores reduced-motion, and text-dense views planned later (demon browser, naming builder) read worse under scanlines and vignette.
-- Dead weight: the route-transition provider, the orphan hook and the showcase CSS have no remaining callers.
+## Panels: streamline, but keep every datum and control
 
-Constraints to respect:
+Current shell: header (undo, redo, share, layout switcher), panels Layers (layer toggles + particles), Labels (label visibility), Zones (per-zone toggles + hover info), Regions (region select + time-circuit toggle), Syzygies (pair toggles + hover info), Currents, Gates (select gate + toggle all), Selection (`InfoDisplay`: zone, syzygy, current, gate and demon details), the shortcuts modal, and the sources footer.
 
-- The frozen DOM goldens capture only the projection `<svg>`. Shell, overlay and CSS-rule changes are outside the oracle and safe. Anything inside the `<svg>` (classes, inline styles, filters) is compared, so leave that subtree untouched until the Phase 2 migration proves parity.
-- The page-weight budget only fails on growth, so removals cannot trip it.
-- Do not edit while a plan that touches `app/` is mid-flight; run the goldens (60/60) and `npm run check:weight` after any strip.
+Rule for the streamlining work: write a before/after inventory first. Every value a panel shows today and every control it offers must still be readable or reachable afterwards, even if merged, reordered, collapsed by default or moved. What may go: neon glows and drop shadows, decorative frames and dividers, scramble text, heavy panel chrome, dead props and dead components. When unsure whether something is critical, keep it and flag it.
 
-Open questions for the discuss step (probably Phase 4, Base Picker and Generator UI, with a Phase 3 note to benchmark overlay-off):
+Constraints:
 
-1. Remove outright, or keep an opt-in "retro" toggle that defaults to off?
-2. Keep the intro splash, shorten it, or drop it?
-3. Keep the `Cyber*` panel look, or simplify to a plainer panel set?
-4. Whatever survives must honour `prefers-reduced-motion`.
+- The frozen DOM goldens capture only the projection `<svg>`. Shell, overlay and CSS-rule changes are outside the oracle. Anything inside the `<svg>` (classes, inline styles, filters) is compared, so leave that subtree untouched until the Phase 2 migration proves parity. Run the goldens (60/60) and `npm run check:weight` after each strip; removals cannot trip the size budget.
+- Do not edit `app/` while another plan that touches it is mid-flight.
+- Whatever motion remains must honour `prefers-reduced-motion`.
+
+## Proposed sequencing (Claude's recommendation, not yet agreed)
+
+- **Overlays and splash: right after Phase 1 closes**, as one small task (for example `/gsd-quick`). It is mechanical, verifiable by the goldens, and it removes the always-on overlays before the Phase 3 ceiling measurement so the ceiling is not confounded, and before Phase 2 starts editing the client.
+- **Panel streamlining: in the Phase 4 discuss/plan** (Base Picker and Generator UI), because that phase reshapes the panels for the base picker anyway; streamlining first would be redone.
 
 Promote with `/gsd-note promote <N>` to turn this into a todo.
