@@ -65,7 +65,7 @@ Not touched: everything under `app/components/projection/**` and the projection 
 | `npm run check:weight` | OK; baseline lowered (below) |
 | before/after inventory | zero lost, added, renamed, reordered, disabled or hidden controls; all 177 behaviour rows identical; only decorations differ (6 explained rows in the note) |
 
-The full gate `MSYS_NO_PATHCONV=1 npm run verify` requires a clean tracked tree (it runs `check-repo --clean-tree`), so it is run after this commit; its result is in the orchestrator report.
+Full gate `MSYS_NO_PATHCONV=1 npm run verify` (run right after the step-6 commit because it needs a clean tracked tree): exit 0 in 117 s. check-repo 12/12 OK (goldens manifests, lf, static-out included), typecheck and lint clean, vitest 236/236 in UTC and America/New_York, sub-path e2e 10/10, page-weight OK, e2e 70/70 (60 goldens + 10 static-export), `git status --porcelain -- e2e/__golden__ engine/test/fixtures` empty, working tree clean afterwards.
 
 ## WR-01
 
