@@ -6,7 +6,7 @@ Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / W
 
 Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). The upstream repository ships no license, so the files inherited from it are not relicensed here, and the CCRU-derived base-10 lore text is a third-party pack (see [NOTICE](NOTICE) and [Licensing](#licensing-and-credits)).
 
-> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)); Phase 1 is executed and awaiting verification.
+> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phase 1 is complete and independently verified, and Phase 2 (the engine and the base-10 migration) is planned in 13 plans and ready to execute.
 
 ## The idea
 
@@ -49,8 +49,8 @@ Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`]
 
 | Phase | Goal | Status |
 |-------|------|--------|
-| 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Executed (verification pending) |
-| 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Not started |
+| 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Complete (verified) |
+| 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Planned (13 plans), ready to execute |
 | 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Not started |
 | 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Not started |
 | 5. Demons Layer | Browse, count and inspect every demon at any base | Not started |
@@ -61,7 +61,7 @@ Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`]
 ## Requirements
 
 - Node >= 22.12
-- npm (this project does not use yarn)
+- npm 10 or 11 (this project does not use yarn). CI runs Node 22, which ships npm 10, so `package-lock.json` must stay valid for both versions: regenerate it with `npx npm@10.9.3 install --package-lock-only --ignore-scripts`.
 
 ## Running locally
 
@@ -115,14 +115,14 @@ The base-10 viewer's behaviour is frozen before anything is refactored. The nume
 ## Repository layout
 
 - `app/` - the Next.js viewer (`app/numogram/`, `app/NumogramClient.tsx`, `app/components/`, `app/hooks/`, `app/lib/`).
-- `app/data/` - the hand-authored base-10 data and CCRU-derived lore (to be replaced by engine output in Phase 2).
-- `engine/` - the pure TypeScript numogram engine (scaffold now, filled in from Phase 2) and the frozen numeric oracle fixture.
+- `app/data/` - the hand-authored base-10 data and CCRU-derived lore. Phase 2 replaces the structure with engine output and moves the lore into one file under `app/presets/base10/`, leaving thin pass-through files here until Phase 4.
+- `engine/` - the pure TypeScript numogram engine (a scaffold with its boundary guard today; Phase 2 builds it, with an independent brute-force cross-check under `tests/bruteforce/`) and the frozen numeric oracle fixture.
 - `tests/` - Vitest suites (oracle, manifests, page-weight, e2e normalizer).
 - `e2e/` - Playwright specs, the visual-DOM normalizer and the 30 frozen DOM goldens.
 - `perf/` - the page-weight baseline.
 - `scripts/` - oracle capture, golden manifests, page-weight check, repository guards and the sub-path staging helper.
 - `component-library/` - inherited from upstream and out of scope for this project; kept on disk unchanged.
-- `.planning/` - project, requirements, roadmap, research and per-phase plans.
+- `.planning/` - project, requirements, roadmap, research, per-phase plans, notes and the open follow-up todos in `.planning/todos/pending/`.
 - `CLAUDE.md` - notes for AI-assisted sessions (project rules and how to resume).
 - `reference/` - local-only reference material; gitignored and not part of the repository.
 
