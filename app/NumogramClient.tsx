@@ -17,7 +17,6 @@ import { buildNumogramTitle } from './lib/shareTitle'
 import { withBasePath } from './lib/basePath'
 
 // Hooks
-import { useIntro } from './hooks/useIntro'
 import { useOrbitalAnimation } from './hooks/useOrbitalAnimation'
 import { useTween } from './hooks/useTween'
 import { useParallax } from './hooks/useParallax'
@@ -143,7 +142,6 @@ export default function NumogramPage() {
   })
 
   // ── Hooks ──────────────────────────────────────────────────
-  const introPhase = useIntro()
   const { planetaryAngles, setPlanetaryAngles, orbiting, setOrbiting, onDateUpdateRef } = useOrbitalAnimation(layout, PLANETARY_DEFAULT_ANGLE)
   const { pos, ctr, svgHeight, planetaryPos, switchLayout } = useTween(layout, planetaryAngles)
   const parallax = useParallax()
@@ -1440,50 +1438,11 @@ export default function NumogramPage() {
         )}
       </div>
 
-      {/* Background title layer */}
-      <div
-        className="fixed inset-0 flex flex-col items-center justify-center pointer-events-none z-[70]"
-        style={{
-          transition: 'opacity 1.2s ease, filter 1.2s ease',
-          opacity: introPhase === 'title' ? 1 : introPhase === 'fading' ? 0.06 : 0.04,
-          filter: introPhase === 'title' ? 'blur(0px)' : 'blur(1px)',
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={withBasePath('/ccrug-mark.svg')}
-          alt=""
-          className="mb-4 w-20 md:w-28"
-          style={{
-            filter: introPhase === 'title'
-              ? 'drop-shadow(0 0 20px rgba(16,255,80,0.5)) drop-shadow(0 0 40px rgba(16,255,80,0.2))'
-              : 'drop-shadow(0 0 4px rgba(16,255,80,0.1))',
-            transition: 'filter 1.2s ease',
-          }}
-        />
-        <h1
-          className="text-4xl md:text-6xl tracking-[0.35em] text-gray-300 uppercase font-mono"
-          style={{
-            textShadow: introPhase === 'title'
-              ? '0 0 30px rgba(16,255,80,0.4), 0 0 60px rgba(16,255,80,0.15), 0 0 120px rgba(16,255,80,0.05)'
-              : '0 0 8px rgba(16,255,80,0.1)',
-            transition: 'text-shadow 1.2s ease, color 1.2s ease',
-            color: introPhase === 'title' ? '#d1d5db' : '#333',
-          }}
-        >CCRUG</h1>
-      </div>
-
       {/* Pinned background */}
-      <PinnedBackground pinnedInfo={pinnedInfo} hoverInfo={hoverInfo} introPhase={introPhase} />
+      <PinnedBackground pinnedInfo={pinnedInfo} hoverInfo={hoverInfo} />
 
       {/* Main content */}
-      <div
-        className="relative z-10 flex flex-col items-center w-full"
-        style={{
-          transition: 'opacity 1s ease',
-          opacity: introPhase === 'title' ? 0 : introPhase === 'fading' ? 0.8 : 1,
-        }}
-      >
+      <div className="relative z-10 flex flex-col items-center w-full">
         <div style={{ height: layout === 'planetary' ? 72 : 48 }} />
 
         <div className="flex justify-center w-full" style={{

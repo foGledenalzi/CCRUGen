@@ -7,11 +7,10 @@ import { ZONE_CLR, ZONE_META } from '../../data/zones'
 interface PinnedBackgroundProps {
   pinnedInfo: HoverInfo | null
   hoverInfo: HoverInfo | null
-  introPhase: 'title' | 'fading' | 'done'
 }
 
-export function PinnedBackground({ pinnedInfo, hoverInfo, introPhase }: PinnedBackgroundProps) {
-  if (!pinnedInfo || introPhase !== 'done') return null
+export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProps) {
+  if (!pinnedInfo) return null
 
   return (
     <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-[1] font-mono"
