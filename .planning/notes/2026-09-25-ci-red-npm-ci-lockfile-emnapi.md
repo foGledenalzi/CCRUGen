@@ -29,7 +29,7 @@ Alternatives, not preferred: (a) add `@emnapi/core` and `@emnapi/runtime` as exa
 
 ## To do
 
-- [ ] Regenerate `package-lock.json` as above, confirm `npm ci --dry-run` passes under npm 10.9.3 and npm 11, run `npm run verify`, commit.
+- [x] Regenerate `package-lock.json` as above, confirm `npm ci --dry-run` passes under npm 10.9.3 and npm 11, run `npm run verify`, commit. Done 2026-09-26: lock regenerated with npm 10.9.3 (adds hoisted `@emnapi/core` and `@emnapi/runtime` 1.11.3; npm 10 also drops the `peer` flag on 14 entries, metadata only); a clean `npm ci` under npm 10.9.3 in a scratch git copy of HEAD, followed by the full `npm run verify` there, passed (236 unit tests x2 timezones, 70 e2e including the 60 goldens, 10 sub-path, page weight, repo guard).
 - [ ] Prevent a repeat: run an npm-10 `npm ci --dry-run` in `check:repo` or as the first CI step's local twin, and state the supported npm range (README says npm 11; CI is on npm 10).
 - [ ] Push (needs the user's OK) and watch the Actions tab: this was only the first failure, later steps (Playwright browser install, the action versions flagged in review IN-06, the ubuntu run of the whole verify chain) have never executed either.
 - [ ] Timing: do it after the running UI declutter (todo 001) commits land, so the lockfile change does not collide with that executor, then push both together.
