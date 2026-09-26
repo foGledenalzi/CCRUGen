@@ -11,8 +11,10 @@
     "isolatedModules": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": true
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts", "**/*.js", "**/*.mjs", "**/*.cjs"],
   "exclude": ["test", "cli"]
 }

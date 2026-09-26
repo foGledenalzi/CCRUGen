@@ -1,6 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "types": ["node"] },
-  "include": ["test/**/*.ts", "cli/**/*.ts"],
+  "include": [
+    "test/**/*.ts", "test/**/*.tsx", "test/**/*.mts", "test/**/*.cts", "test/**/*.js", "test/**/*.mjs", "test/**/*.cjs",
+    "cli/**/*.ts", "cli/**/*.tsx", "cli/**/*.mts", "cli/**/*.cts", "cli/**/*.js", "cli/**/*.mjs", "cli/**/*.cjs"
+  ],
   "exclude": []
 }

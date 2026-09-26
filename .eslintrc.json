@@ -2,12 +2,11 @@
   "extends": ["next/core-web-vitals", "next/typescript"],
   "overrides": [
     {
-      "files": ["engine/**/*.ts"],
+      "files": ["engine/**/*.{ts,tsx,mts,cts,js,mjs,cjs}"],
       "excludedFiles": ["engine/test/**", "engine/cli/**"],
       "rules": {
         "import/no-restricted-paths": ["error", { "zones": [
-          { "target": "./engine", "from": "./app", "message": "engine/ must not import app/" },
-          { "target": "./engine", "from": "./workers", "message": "engine/ must not import workers/" }
+          { "target": "./engine", "from": "./", "except": ["./engine"], "message": "engine/ may only import from engine/" }
         ]}],
         "no-restricted-globals": ["error", "window", "document", "navigator", "localStorage", "sessionStorage", "process", "Buffer", "fetch"],
         "no-restricted-syntax": ["error",

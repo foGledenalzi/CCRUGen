@@ -56,6 +56,12 @@ describe('ESLint engine boundary', () => {
     ['named re-export from a bare module', "export { useState } from 'react'", 'no-restricted-syntax'],
     ['dynamic import of a bare module', "export const load = () => import('react')", 'no-restricted-syntax'],
     ['relative import of app/', "import { ZONE_REGION } from '../../app/data/zones'\nexport const a = ZONE_REGION", 'import/no-restricted-paths'],
+    // WR-04: any relative import that climbs out of engine/ is a violation, not only app/ and workers/.
+    // These three resolve to real files, which import/no-restricted-paths needs (it ignores unresolved paths).
+    ['relative import of tests/', "import { deriveBase10 } from '../../tests/oracle/deriveBase10'\nexport const a = deriveBase10", 'import/no-restricted-paths'],
+    ['relative import of scripts/', "import { ROOT } from '../../scripts/golden-manifest.mjs'\nexport const a = ROOT", 'import/no-restricted-paths'],
+    ['relative import of component-library/', "import * as lib from '../../component-library/index'\nexport const a = lib", 'import/no-restricted-paths'],
+    ['relative re-export of scripts/', "export { ROOT } from '../../scripts/golden-manifest.mjs'", 'import/no-restricted-paths'],
     ['DOM global (document)', 'export const a = document.title', 'no-restricted-globals'],
     ['Node global (process)', 'export const a = process.env.X', 'no-restricted-globals'],
     ['Math.random()', 'export const a = Math.random()', 'no-restricted-syntax'],
@@ -71,9 +77,66 @@ describe('ESLint engine boundary', () => {
     expect(await boundaryRules("import { x } from './other'\nexport const y = x + 1")).toEqual([])
   })
 
+  // The except path must really work: `../index` resolves to the existing engine/index.ts, so this fails
+  // if the zone rejected everything (the unresolved './other' and '../other' would pass either way).
+  it.each(['./other', '../other', '../index', '../core/sibling'])('accepts the import %s, which stays inside engine/', async spec => {
+    expect(await boundaryRules(`import * as x from '${spec}'\nexport const y = x`)).toEqual([])
+  })
+
+  // WR-04: the override used to match engine/**/*.ts only, so these files escaped every purity rule.
+  it.each(['tsx', 'mts', 'cts', 'js', 'mjs', 'cjs'])('applies the purity rules to engine/**/*.%s', async ext => {
+    const rules = await boundaryRules(
+      "import * as lib from '../../component-library/index'\nexport const a = [lib, document.title, Math.random()]",
+      `engine/core/__guard__.${ext}`,
+    )
+    expect(rules).toContain('import/no-restricted-paths')
+    expect(rules).toContain('no-restricted-globals')
+    expect(rules).toContain('no-restricted-syntax')
+  })
+
   it('does not apply the purity rules under engine/test/ (scope of the override)', async () => {
     const code = "import { it } from 'vitest'\nexport const a = process.env.X\nexport { it }"
     expect(await boundaryRules(code, 'engine/test/__guard__.test.ts')).toEqual([])
+  })
+})
+
+// WR-04: `include: ["**/*.ts"]` left .tsx, .mts, .cts, .js, .mjs and .cjs under engine/ outside tsc entirely.
+// The probe reuses the include patterns of each real engine tsconfig (and its inherited compiler options) in a
+// temp dir, so it fails if a pattern or allowJs/checkJs is dropped, without writing into engine/.
+const SOURCE_EXTENSIONS = ['ts', 'tsx', 'mts', 'cts', 'js', 'mjs', 'cjs']
+
+function tscOnProbes(extensions: string[]): { code: number; out: string } {
+  const real = JSON.parse(readFileSync(join(ROOT, 'engine', 'tsconfig.json'), 'utf8')) as { include: string[] }
+  const dir = mkdtempSync(join(tmpdir(), 'ccrug-engine-include-'))
+  try {
+    for (const ext of extensions) writeFileSync(join(dir, `probe-${ext}.${ext}`), 'export const t = document.title\n')
+    writeFileSync(
+      join(dir, 'tsconfig.json'),
+      JSON.stringify({ extends: join(ROOT, 'engine', 'tsconfig.json'), include: real.include, exclude: [] }),
+    )
+    try {
+      return { code: 0, out: execFileSync(process.execPath, [TSC, '-p', dir, '--noEmit'], { encoding: 'utf8', stdio: 'pipe' }) }
+    } catch (e) {
+      const err = e as { status?: number | null; stdout?: string }
+      return { code: err.status ?? 1, out: String(err.stdout ?? '') }
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+describe('tsc covers every source extension under engine/ (WR-04)', () => {
+  it('engine/tsconfig.json checks .ts, .tsx, .mts, .cts, .js, .mjs and .cjs', () => {
+    const { code, out } = tscOnProbes(SOURCE_EXTENSIONS)
+    expect(code).not.toBe(0)
+    for (const ext of SOURCE_EXTENSIONS) expect(out).toMatch(new RegExp(`probe-${ext}\\.${ext}\\(\\d+,\\d+\\): error TS2584`))
+  })
+
+  it('engine/tsconfig.test.json lists the same extensions for engine/test and engine/cli', () => {
+    const real = JSON.parse(readFileSync(join(ROOT, 'engine', 'tsconfig.test.json'), 'utf8')) as { include: string[] }
+    for (const dir of ['test', 'cli']) {
+      for (const ext of SOURCE_EXTENSIONS) expect(real.include).toContain(`${dir}/**/*.${ext}`)
+    }
   })
 })
 
