@@ -14,6 +14,7 @@ export {
   formatGateName,
   torqueLabel,
 } from './core/numerals'
+export { createNumogram, clearNumogramCache, NUMOGRAM_CACHE_LIMITS } from './core/numogram'
 export { DEMON_TYPES, DEMON_SUBTYPES } from './core/types'
 export type {
   RegionKind,
