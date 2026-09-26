@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-09-26T20:28:53.690Z"
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-09-26T20:53:18.000Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 21
-  completed_plans: 12
-  percent: 57
+  completed_plans: 13
+  percent: 62
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 2
-Plan: 4 of 13 executed
-Status: Executing Phase 2 (02-04 createNumogram and the 2^26 ceiling done; next 02-05)
+Plan: 5 of 13 executed
+Status: Executing Phase 2 (02-05 virtual demon space done; next 02-06)
 Last activity: 2026-09-26
 
-Progress: [██████░░░░] 57%
+Progress: [██████░░░░] 62%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -45,7 +45,7 @@ Progress: [██████░░░░] 57%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 8 | - | - |
-| 2 | 4 | 84min | 21min |
+| 2 | 5 | 108min | 22min |
 
 **Recent Trend:**
 
@@ -65,6 +65,7 @@ Progress: [██████░░░░] 57%
 | Phase 2 P02 | 11min | 2 tasks | 6 files |
 | Phase 2 P03 | 38min | 3 tasks | 15 files |
 | Phase 2 P04 | 21min | 3 tasks | 7 files |
+| Phase 2 P05 | 24min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,7 @@ Recent decisions affecting current work:
 - [Phase 2 P02] Independent oracle: the definitions-only reference lives in tests/bruteforce/ (never tests/reference/, which the unanchored reference/ ignore rule would hide), imports nothing from engine/, does no file access and uses none of the engine closed forms (running-sum cumulation, iterated in-base digit sums, enumeration-counter mesh, non-permutation-assuming cycle walk); exports refStructure/refDigits/refDigitSumRoot/refClassify/refDemons/refSubtypeCounts (refSubtypeCounts(2000) about 6.4 ms). New frozen fixture engine/test/fixtures/derived/notable-bases.golden.json (17 bases 2..100 in full, digests for 256/666/1000/1024) under its own strict manifest engine/test/fixtures/derived/MANIFEST.json (set 2026-09-26-notable-bases); the older manifests are untouched; check-repo registration of the new manifest waits for 02-07
 - [Phase 2 P03] Frozen behaviour and text baseline of the pre-swap viewer (D-15): e2e/__behaviour__/{original,labyrinth,ladder,planetary,mobile}.json captured once from the untouched viewer (app/ identical to f7d6689), sha256 in e2e/__behaviour__/MANIFEST.json (set 2026-09-26-behaviour-baseline, freeze commit b82f6a2), registered in check-repo MANIFESTS and LF_DIRS; text/attribute/computed-style facts only (cross-OS, remedy = new dated set from a checkout of the baseline commit, never -u); the lore sweep clicks each Zones/Syzygies/Currents/Gates row and records the opened Selection item because hovering shows no lore; npm run test:swap = build + 60 goldens + behaviour + vitest; not covered: demon names/kinds (DemonInfo needs a canvas hover or pin)
 - [Phase 2 P04] createNumogram(base) (engine/core/numogram.ts): frozen, cached (LRU 4 entries, 2^26 zones), five Int32Arrays (flow, pairCycle, first, length, offset) with per-cycle frozen views made on demand (compare by id; only Plex and Warp are shared objects), canonical order by a stable counting sort; numogramInternals is for engine siblings and not in the barrel; proven equal to the independent reference for every even n 2..2000 (0.63 s), the frozen base-10 oracle and the notable-bases fixture, five mutants killed; D-11: the 2^26 test stays in npm run verify (measured about 0.62 s, +302 MiB of array buffers, 1,290,872 cycles; no test:heavy); the fixture's current.from is viewer data (the pair's even member, the Plex drawn at 9), not engine data
+- [Phase 2 P05] Virtual demon space (engine/core/demons.ts, `g.demons`): mesh = a(a-1)/2 + b is inverted exactly up to 2^26 by a float square-root ESTIMATE (clamped to >= 1) plus two integer correction loops, no BigInt; on V8 the bare estimate is exact for every row, so a test that replaces Math.sqrt with a wrong one is what pins the loops; explicit cross-torque-chrono subtype (cyclic = same Torque cycle only), closed-form counts over the Torque cycles (base 28 = 378 with 108 cross-Torque), Numodemons n/2 - 1 with numodemons() in b-ascending (mesh-descending) order; frozen DemonRef values built per call, no per-demon storage (+0.0 MiB of array buffers for the 2^26 queries); proven against the reference for every demon of every even n <= 300 (2,261,225 demons), brute-force counts for every even n <= 2000, twelve sampled bases to 2^20, the frozen base-10 oracle (45 demons in mesh order, viewer kinds) and the notable-bases fixture; sweeps also tally the classifier itself because the viewer kinds and the fixture counts alone cannot see a cyclic/cross swap; group()/subtype() unranking is 02-06
 
 ### Pending Todos
 
@@ -125,8 +127,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-26T20:28:53.683Z
-Stopped at: Completed 02-04-PLAN.md
-Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-05-PLAN.md
+Last session: 2026-09-26T20:53:18.000Z
+Stopped at: Completed 02-05-PLAN.md
+Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-06-PLAN.md
 
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z

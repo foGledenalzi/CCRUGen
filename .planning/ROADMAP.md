@@ -64,7 +64,7 @@ Plans:
 - [x] 02-02-PLAN.md - Independent definitions-only reference in tests/bruteforce + frozen derived notable-bases fixture under its own manifest (wave 1)
 - [x] 02-03-PLAN.md - Frozen behaviour and text baseline of the pre-swap viewer (D-15), manifest-protected and registered in check-repo, plus the test:swap gate (wave 1)
 - [x] 02-04-PLAN.md - createNumogram: O(n) typed arrays, canonical Cycle[] regions, bounded cache; sweeps vs the reference for every even n <= 2000, base-10 oracle, 2^26 ceiling (wave 2)
-- [ ] 02-05-PLAN.md - Virtual demon space: mesh <-> net-span, subtypes incl. cross-Torque, closed-form counts; enumeration n <= 300 and counts n <= 2000 vs the reference (wave 3)
+- [x] 02-05-PLAN.md - Virtual demon space: mesh <-> net-span, subtypes incl. cross-Torque, closed-form counts; enumeration n <= 300 and counts n <= 2000 vs the reference (wave 3)
 - [ ] 02-06-PLAN.md - Demon unranking by type and subtype in mesh order, checked against the reference (wave 4)
 - [ ] 02-07-PLAN.md - Lore consolidation into app/presets/base10/lore.ts with NOTICE, header and check-repo updated together (D-06, D-07, D-16) (wave 4)
 - [ ] 02-08-PLAN.md - Swap 1: syzygies from engine + lore via the base-10 adapter seam; full gate, then delete hand data (wave 5)
@@ -187,7 +187,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
-| 2. Engine Core and Base-10 Migration | 4/13 | In Progress | - |
+| 2. Engine Core and Base-10 Migration | 5/13 | In Progress | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
