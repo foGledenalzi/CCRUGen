@@ -1,7 +1,7 @@
 ---
 date: "2026-09-25 22:11"
 promoted: true
-updated: "2026-09-25 (decisions recorded)"
+updated: "2026-09-26 (done: todo 001 completed; see 2026-09-25-ui-declutter-inventory.md)"
 ---
 
 See if we can strip away some of the upstream UI clutter and CRT overlay nonsense.
@@ -39,4 +39,4 @@ Constraints:
 - **All of the declutter as one task right after Phase 1 closes** (for example `/gsd-quick`): overlays, glitch effects, intro splash, and the visual clutter in the panels (glows, frames, scramble text, heavy chrome). Because it removes no functionality and restructures nothing, it is mechanical and verifiable by the goldens, the static-export specs and the before/after inventory. It also removes the always-on overlays before the Phase 3 ceiling measurement, so the ceiling is not confounded, and before Phase 2 starts editing the client.
 - **Structural panel changes** (merging, moving or redesigning panels for the base picker) stay in the Phase 4 discuss/plan, where they are decided separately.
 
-Tracked as todo `.planning/todos/pending/001-declutter-ui-after-phase-1.md`.
+Tracked as todo `.planning/todos/completed/001-declutter-ui-after-phase-1.md` (completed 2026-09-26).

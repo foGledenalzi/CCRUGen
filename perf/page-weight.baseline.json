@@ -8,20 +8,20 @@
   },
   "routes": {
     "/": {
-      "htmlBytes": 4934,
-      "htmlGzip": 1843,
-      "jsBytes": 419127,
-      "jsGzip": 129167,
-      "cssBytes": 23230,
-      "cssGzip": 5570
+      "htmlBytes": 4688,
+      "htmlGzip": 1769,
+      "jsBytes": 416830,
+      "jsGzip": 128120,
+      "cssBytes": 18377,
+      "cssGzip": 4603
     },
     "/numogram/": {
-      "htmlBytes": 76766,
-      "htmlGzip": 11484,
-      "jsBytes": 572056,
-      "jsGzip": 173091,
-      "cssBytes": 23230,
-      "cssGzip": 5570
+      "htmlBytes": 70662,
+      "htmlGzip": 10719,
+      "jsBytes": 563909,
+      "jsGzip": 170556,
+      "cssBytes": 18377,
+      "cssGzip": 4603
     }
   },
   "domNodes": {
@@ -72,6 +72,40 @@
             "htmlGzip": 11484,
             "jsGzip": 173091,
             "cssGzip": 5570
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-09-26",
+      "reason": "UI declutter removed overlay, glitch and splash code",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1843,
+            "jsGzip": 129167,
+            "cssGzip": 5570
+          },
+          "/numogram/": {
+            "htmlGzip": 11484,
+            "jsGzip": 173091,
+            "cssGzip": 5570
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128120,
+            "cssGzip": 4603
+          },
+          "/numogram/": {
+            "htmlGzip": 10719,
+            "jsGzip": 170556,
+            "cssGzip": 4603
           }
         },
         "domNodesTotal": 6405
