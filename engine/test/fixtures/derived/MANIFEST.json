@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "strictDir": "engine/test/fixtures/derived",
+  "sets": [
+    {
+      "set": "2026-09-26-notable-bases",
+      "date": "2026-09-26",
+      "reason": "Phase 2 derived facts for notable bases (D-09, D-10): captured from the independent definitions-only reference in tests/bruteforce, never from the engine or reference/",
+      "files": {
+        "engine/test/fixtures/derived/notable-bases.golden.json": "69500b9f93aca2ba3a4cfe9d75ae44270513da2672effd5742608192b278f7ea"
+      }
+    }
+  ]
+}

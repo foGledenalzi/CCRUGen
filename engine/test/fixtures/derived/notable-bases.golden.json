@@ -1,0 +1,1686 @@
+{
+  "schema": 1,
+  "source": "tests/bruteforce/numogramReference.ts (definitions only: syzygy sum n-1, current hi-lo, iterated in-base digit sums, walked cycles, enumerated demons); never engine/, never the gitignored root reference/ sources",
+  "bases": [
+    {
+      "base": 2,
+      "pairCount": 1,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [],
+      "gates": [
+        0,
+        1
+      ],
+      "demonCount": 1,
+      "numodemonCount": 0,
+      "subtypeCounts": {
+        "cyclic-chrono": 0,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 0,
+        "plex-amphi": 0,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 4,
+      "pairCount": 2,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            1
+          ]
+        }
+      ],
+      "torqueLengths": [],
+      "gates": [
+        0,
+        1,
+        3,
+        3
+      ],
+      "demonCount": 6,
+      "numodemonCount": 1,
+      "subtypeCounts": {
+        "cyclic-chrono": 0,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 0,
+        "plex-amphi": 0,
+        "warp-amphi": 0,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 6,
+      "pairCount": 3,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        2
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        1,
+        5,
+        5
+      ],
+      "demonCount": 15,
+      "numodemonCount": 2,
+      "subtypeCounts": {
+        "cyclic-chrono": 4,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 2,
+        "plex-amphi": 8,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 8,
+      "pairCount": 4,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        3
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        3,
+        1,
+        7,
+        7
+      ],
+      "demonCount": 28,
+      "numodemonCount": 3,
+      "subtypeCounts": {
+        "cyclic-chrono": 12,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 3,
+        "plex-amphi": 12,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 10,
+      "pairCount": 5,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            3
+          ]
+        }
+      ],
+      "torqueLengths": [
+        3
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        1,
+        6,
+        3,
+        1,
+        9,
+        9
+      ],
+      "demonCount": 45,
+      "numodemonCount": 4,
+      "subtypeCounts": {
+        "cyclic-chrono": 12,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 3,
+        "plex-amphi": 12,
+        "warp-amphi": 12,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 12,
+      "pairCount": 6,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            3,
+            5
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        5
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        4,
+        10,
+        6,
+        3,
+        1,
+        11,
+        11
+      ],
+      "demonCount": 66,
+      "numodemonCount": 5,
+      "subtypeCounts": {
+        "cyclic-chrono": 40,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 5,
+        "plex-amphi": 20,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 14,
+      "pairCount": 7,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            5,
+            3,
+            6
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        6
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        2,
+        8,
+        2,
+        10,
+        6,
+        3,
+        1,
+        13,
+        13
+      ],
+      "demonCount": 91,
+      "numodemonCount": 6,
+      "subtypeCounts": {
+        "cyclic-chrono": 60,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 6,
+        "plex-amphi": 24,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 16,
+      "pairCount": 8,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            7
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            5
+          ]
+        }
+      ],
+      "torqueLengths": [
+        4,
+        2
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        6,
+        13,
+        6,
+        15,
+        10,
+        6,
+        3,
+        1,
+        15,
+        15
+      ],
+      "demonCount": 120,
+      "numodemonCount": 7,
+      "subtypeCounts": {
+        "cyclic-chrono": 28,
+        "cross-torque-chrono": 32,
+        "syzygetic-chrono": 6,
+        "plex-amphi": 24,
+        "warp-amphi": 24,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 18,
+      "pairCount": 9,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6,
+            5,
+            7
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        4,
+        4
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        4,
+        11,
+        2,
+        11,
+        4,
+        15,
+        10,
+        6,
+        3,
+        1,
+        17,
+        17
+      ],
+      "demonCount": 153,
+      "numodemonCount": 8,
+      "subtypeCounts": {
+        "cyclic-chrono": 48,
+        "cross-torque-chrono": 64,
+        "syzygetic-chrono": 8,
+        "plex-amphi": 32,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 22,
+      "pairCount": 11,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            5,
+            10
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6,
+            9
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            7
+          ]
+        }
+      ],
+      "torqueLengths": [
+        6,
+        3
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        7,
+        15,
+        3,
+        13,
+        3,
+        15,
+        7,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        21,
+        21
+      ],
+      "demonCount": 231,
+      "numodemonCount": 10,
+      "subtypeCounts": {
+        "cyclic-chrono": 72,
+        "cross-torque-chrono": 72,
+        "syzygetic-chrono": 9,
+        "plex-amphi": 36,
+        "warp-amphi": 36,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 28,
+      "pairCount": 14,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            11,
+            5,
+            10,
+            7,
+            13
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6,
+            12
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            9
+          ]
+        }
+      ],
+      "torqueLengths": [
+        9,
+        3
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        1,
+        9,
+        18,
+        1,
+        12,
+        24,
+        10,
+        24,
+        12,
+        1,
+        18,
+        9,
+        1,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        27,
+        27
+      ],
+      "demonCount": 378,
+      "numodemonCount": 13,
+      "subtypeCounts": {
+        "cyclic-chrono": 156,
+        "cross-torque-chrono": 108,
+        "syzygetic-chrono": 12,
+        "plex-amphi": 48,
+        "warp-amphi": 48,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 32,
+      "pairCount": 16,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            15
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6,
+            12,
+            7,
+            14
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            5,
+            10,
+            11,
+            9,
+            13
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        5,
+        5,
+        5
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        28,
+        5,
+        14,
+        24,
+        4,
+        16,
+        29,
+        12,
+        27,
+        12,
+        29,
+        16,
+        4,
+        24,
+        14,
+        5,
+        28,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        31,
+        31
+      ],
+      "demonCount": 496,
+      "numodemonCount": 15,
+      "subtypeCounts": {
+        "cyclic-chrono": 120,
+        "cross-torque-chrono": 300,
+        "syzygetic-chrono": 15,
+        "plex-amphi": 60,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 36,
+      "pairCount": 18,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            3,
+            6,
+            12,
+            11,
+            13,
+            9,
+            17
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            5,
+            10,
+            15
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            7,
+            14
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        12,
+        3,
+        2
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        28,
+        1,
+        10,
+        20,
+        31,
+        8,
+        21,
+        35,
+        15,
+        31,
+        13,
+        31,
+        15,
+        35,
+        21,
+        8,
+        31,
+        20,
+        10,
+        1,
+        28,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        35,
+        35
+      ],
+      "demonCount": 630,
+      "numodemonCount": 17,
+      "subtypeCounts": {
+        "cyclic-chrono": 280,
+        "cross-torque-chrono": 264,
+        "syzygetic-chrono": 17,
+        "plex-amphi": 68,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 64,
+      "pairCount": 32,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            31
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6,
+            12,
+            24,
+            15,
+            30
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            5,
+            10,
+            20,
+            23,
+            17,
+            29
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            11,
+            22,
+            19,
+            25,
+            13,
+            26
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            7,
+            14,
+            28
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            9,
+            18,
+            27
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            21
+          ]
+        }
+      ],
+      "torqueLengths": [
+        6,
+        6,
+        6,
+        6,
+        3,
+        3
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        28,
+        36,
+        45,
+        55,
+        3,
+        15,
+        28,
+        42,
+        57,
+        10,
+        27,
+        45,
+        1,
+        21,
+        42,
+        1,
+        24,
+        48,
+        10,
+        36,
+        63,
+        28,
+        57,
+        24,
+        55,
+        24,
+        57,
+        28,
+        63,
+        36,
+        10,
+        48,
+        24,
+        1,
+        42,
+        21,
+        1,
+        45,
+        27,
+        10,
+        57,
+        42,
+        28,
+        15,
+        3,
+        55,
+        45,
+        36,
+        28,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        63,
+        63
+      ],
+      "demonCount": 2016,
+      "numodemonCount": 31,
+      "subtypeCounts": {
+        "cyclic-chrono": 264,
+        "cross-torque-chrono": 1476,
+        "syzygetic-chrono": 30,
+        "plex-amphi": 120,
+        "warp-amphi": 120,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 80,
+      "pairCount": 40,
+      "warp": false,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
+            15,
+            30,
+            19,
+            38,
+            3,
+            6,
+            12,
+            24,
+            31,
+            17,
+            34,
+            11,
+            22,
+            35,
+            9,
+            18,
+            36,
+            7,
+            14,
+            28,
+            23,
+            33,
+            13,
+            26,
+            27,
+            25,
+            29,
+            21,
+            37,
+            5,
+            10,
+            20,
+            39
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        }
+      ],
+      "torqueLengths": [
+        39
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        28,
+        36,
+        45,
+        55,
+        66,
+        78,
+        12,
+        26,
+        41,
+        57,
+        74,
+        13,
+        32,
+        52,
+        73,
+        16,
+        39,
+        63,
+        9,
+        35,
+        62,
+        11,
+        40,
+        70,
+        22,
+        54,
+        8,
+        42,
+        77,
+        34,
+        71,
+        30,
+        69,
+        30,
+        71,
+        34,
+        77,
+        42,
+        8,
+        54,
+        22,
+        70,
+        40,
+        11,
+        62,
+        35,
+        9,
+        63,
+        39,
+        16,
+        73,
+        52,
+        32,
+        13,
+        74,
+        57,
+        41,
+        26,
+        12,
+        78,
+        66,
+        55,
+        45,
+        36,
+        28,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        79,
+        79
+      ],
+      "demonCount": 3160,
+      "numodemonCount": 39,
+      "subtypeCounts": {
+        "cyclic-chrono": 2964,
+        "cross-torque-chrono": 0,
+        "syzygetic-chrono": 39,
+        "plex-amphi": 156,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 82,
+      "pairCount": 41,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
+            17,
+            34,
+            13,
+            26,
+            29,
+            23,
+            35,
+            11,
+            22,
+            37,
+            7,
+            14,
+            28,
+            25,
+            31,
+            19,
+            38,
+            5,
+            10,
+            20,
+            40
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6,
+            12,
+            24,
+            33,
+            15,
+            30,
+            21,
+            39
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            9,
+            18,
+            36
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            27
+          ]
+        }
+      ],
+      "torqueLengths": [
+        27,
+        9,
+        3
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        28,
+        36,
+        45,
+        55,
+        66,
+        78,
+        10,
+        24,
+        39,
+        55,
+        72,
+        9,
+        28,
+        48,
+        69,
+        10,
+        33,
+        57,
+        1,
+        27,
+        54,
+        1,
+        30,
+        60,
+        10,
+        42,
+        75,
+        28,
+        63,
+        18,
+        55,
+        12,
+        51,
+        10,
+        51,
+        12,
+        55,
+        18,
+        63,
+        28,
+        75,
+        42,
+        10,
+        60,
+        30,
+        1,
+        54,
+        27,
+        1,
+        57,
+        33,
+        10,
+        69,
+        48,
+        28,
+        9,
+        72,
+        55,
+        39,
+        24,
+        10,
+        78,
+        66,
+        55,
+        45,
+        36,
+        28,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        81,
+        81
+      ],
+      "demonCount": 3321,
+      "numodemonCount": 40,
+      "subtypeCounts": {
+        "cyclic-chrono": 1560,
+        "cross-torque-chrono": 1404,
+        "syzygetic-chrono": 39,
+        "plex-amphi": 156,
+        "warp-amphi": 156,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 100,
+      "pairCount": 50,
+      "warp": true,
+      "cycles": [
+        {
+          "kind": "torque",
+          "pairs": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
+            35,
+            29,
+            41,
+            17,
+            34,
+            31,
+            37,
+            25,
+            49
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            5,
+            10,
+            20,
+            40,
+            19,
+            38,
+            23,
+            46,
+            7,
+            14,
+            28,
+            43,
+            13,
+            26,
+            47
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            3,
+            6,
+            12,
+            24,
+            48
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            9,
+            18,
+            36,
+            27,
+            45
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            15,
+            30,
+            39,
+            21,
+            42
+          ]
+        },
+        {
+          "kind": "torque",
+          "pairs": [
+            11,
+            22,
+            44
+          ]
+        },
+        {
+          "kind": "plex",
+          "pairs": [
+            0
+          ]
+        },
+        {
+          "kind": "warp",
+          "pairs": [
+            33
+          ]
+        }
+      ],
+      "torqueLengths": [
+        15,
+        15,
+        5,
+        5,
+        5,
+        3
+      ],
+      "gates": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21,
+        28,
+        36,
+        45,
+        55,
+        66,
+        78,
+        91,
+        6,
+        21,
+        37,
+        54,
+        72,
+        91,
+        12,
+        33,
+        55,
+        78,
+        3,
+        28,
+        54,
+        81,
+        10,
+        39,
+        69,
+        1,
+        33,
+        66,
+        1,
+        36,
+        72,
+        10,
+        48,
+        87,
+        28,
+        69,
+        12,
+        55,
+        99,
+        45,
+        91,
+        39,
+        87,
+        37,
+        87,
+        39,
+        91,
+        45,
+        99,
+        55,
+        12,
+        69,
+        28,
+        87,
+        48,
+        10,
+        72,
+        36,
+        1,
+        66,
+        33,
+        1,
+        69,
+        39,
+        10,
+        81,
+        54,
+        28,
+        3,
+        78,
+        55,
+        33,
+        12,
+        91,
+        72,
+        54,
+        37,
+        21,
+        6,
+        91,
+        78,
+        66,
+        55,
+        45,
+        36,
+        28,
+        21,
+        15,
+        10,
+        6,
+        3,
+        1,
+        99,
+        99
+      ],
+      "demonCount": 4950,
+      "numodemonCount": 49,
+      "subtypeCounts": {
+        "cyclic-chrono": 972,
+        "cross-torque-chrono": 3540,
+        "syzygetic-chrono": 48,
+        "plex-amphi": 192,
+        "warp-amphi": 192,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    }
+  ],
+  "digests": [
+    {
+      "base": 256,
+      "warp": true,
+      "torqueLengths": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        4,
+        4,
+        4,
+        2
+      ],
+      "demonCount": 32640,
+      "numodemonCount": 127,
+      "subtypeCounts": {
+        "cyclic-chrono": 1644,
+        "cross-torque-chrono": 29856,
+        "syzygetic-chrono": 126,
+        "plex-amphi": 504,
+        "warp-amphi": 504,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 666,
+      "warp": false,
+      "torqueLengths": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        18,
+        18,
+        18,
+        12,
+        9,
+        3,
+        2
+      ],
+      "demonCount": 221445,
+      "numodemonCount": 332,
+      "subtypeCounts": {
+        "cyclic-chrono": 19900,
+        "cross-torque-chrono": 199884,
+        "syzygetic-chrono": 332,
+        "plex-amphi": 1328,
+        "warp-amphi": 0,
+        "chaotic-xeno": 0,
+        "syzygetic-xeno": 1
+      }
+    },
+    {
+      "base": 1000,
+      "warp": true,
+      "torqueLengths": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        18,
+        9,
+        3
+      ],
+      "demonCount": 499500,
+      "numodemonCount": 499,
+      "subtypeCounts": {
+        "cyclic-chrono": 33528,
+        "cross-torque-chrono": 461484,
+        "syzygetic-chrono": 498,
+        "plex-amphi": 1992,
+        "warp-amphi": 1992,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    },
+    {
+      "base": 1024,
+      "warp": true,
+      "torqueLengths": [
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5
+      ],
+      "demonCount": 523776,
+      "numodemonCount": 511,
+      "subtypeCounts": {
+        "cyclic-chrono": 8880,
+        "cross-torque-chrono": 510300,
+        "syzygetic-chrono": 510,
+        "plex-amphi": 2040,
+        "warp-amphi": 2040,
+        "chaotic-xeno": 4,
+        "syzygetic-xeno": 2
+      }
+    }
+  ]
+}
