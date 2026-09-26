@@ -128,6 +128,104 @@ describe('base 2^26 (the safe ceiling)', () => {
         { seed: 20261002, numRuns: 10_000 },
       )
 
+      // The demon space (ENG-03, T-02-21): virtual, so reading it allocates nothing that scales with n or n^2. The queries
+      // below include 1000 at() calls on a fixed LCG walk; an O(n) buffer per call would show even next to a collection.
+      const demonBytesBefore = process.memoryUsage().arrayBuffers
+      const space = g.demons
+      expect(space.base).toBe(CAP)
+      expect(space.count).toBe(2251799780130816)
+      expect(space.numodemonCount).toBe(33554431)
+      const last = space.at(space.count - 1)
+      expect([last.a, last.b, last.mesh]).toEqual([67108863, 67108862, 2251799780130815])
+      expect(last.subtype).toBe('plex-amphi') // zone 2^26 - 1 is in the Plex, zone 2^26 - 2 lies on a Torque cycle
+      expect(last.numodemon).toBe(false)
+      const counts = space.counts()
+      const types = space.typeCounts()
+      let lcg = 123456789
+      for (let i = 0; i < 1000; i++) {
+        lcg = (Math.imul(lcg, 1664525) + 1013904223) >>> 0
+        const m = lcg * 524288 + (lcg % 524288) // spreads over [0, 2^51) deterministically
+        expect(space.at(m % space.count).mesh).toBe(m % space.count)
+      }
+      const plexPair = space.ref(CAP - 1, 0)
+      expect(plexPair.subtype).toBe('syzygetic-xeno')
+      expect(plexPair.type).toBe('xeno')
+      expect(plexPair.syzygetic).toBe(true)
+      const demonBytesGrowth = process.memoryUsage().arrayBuffers - demonBytesBefore
+      expect(demonBytesGrowth).toBeLessThan(MIB)
+
+      // Counts from the histogram of cycle lengths computed above (an independent path to T and the L_c): every cycle
+      // except the Plex and the Warp is a Torque cycle of at least two pairs.
+      expect(walked.histogram.get(1)).toBe(2)
+      let torqueZones = 0
+      let sameCycleZonePairs = 0
+      let cyclic = 0
+      for (const [length, cycleCount] of walked.histogram) {
+        if (length < 2) continue
+        const zones = 2 * length
+        const zonePairs = (zones * (zones - 1)) / 2
+        torqueZones += cycleCount * zones
+        sameCycleZonePairs += cycleCount * zonePairs
+        cyclic += cycleCount * (zonePairs - length)
+      }
+      const torquePairsTotal = torqueZones / 2
+      expect(torqueZones).toBe(CAP - 4)
+      const chronoTotal = (torqueZones * (torqueZones - 1)) / 2
+      expect(counts['cyclic-chrono']).toBe(cyclic)
+      expect(counts['cross-torque-chrono']).toBe(chronoTotal - sameCycleZonePairs)
+      expect(counts['syzygetic-chrono']).toBe(torquePairsTotal)
+      expect(counts['plex-amphi']).toBe(2 * torqueZones)
+      expect(counts['warp-amphi']).toBe(2 * torqueZones)
+      expect(counts['chaotic-xeno']).toBe(4)
+      expect(counts['syzygetic-xeno']).toBe(2)
+      const subtypeTotal = Object.values(counts).reduce((sum, value) => sum + value, 0)
+      expect(subtypeTotal).toBe(space.count)
+      expect(types.chrono + types.amphi + types.xeno).toBe(space.count)
+      expect(types).toEqual({ chrono: chronoTotal, amphi: torqueZones * 4, xeno: 6 })
+
+      // Hand-picked demons around the Plex ({0, 2^26 - 1}) and the Warp ({o, 2o}, o = (2^26 - 1) / 3).
+      const o = (CAP - 1) / 3
+      expect(space.ref(2 * o, o).subtype).toBe('syzygetic-xeno')
+      expect(space.ref(o, 0).subtype).toBe('chaotic-xeno')
+      expect(space.ref(CAP - 1, o).subtype).toBe('chaotic-xeno')
+      expect(space.ref(o, 1).subtype).toBe('warp-amphi')
+      expect(space.ref(CAP - 1, 1).subtype).toBe('plex-amphi')
+      const firstNumodemon = space.numodemons()[Symbol.iterator]().next().value
+      expect(firstNumodemon).toMatchObject({ a: CAP - 1, b: 1, numodemon: true }) // lazy: only the first step is taken
+      expect(Array.from({ length: 3 }, (_, i) => space.at(i).b)).toEqual([0, 0, 1])
+
+      // 2000 sampled demons (fixed seed): mesh <-> net-span round trip and the subtype re-derived from the cycle views.
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: space.count - 1 }), m => {
+          const d = space.at(m)
+          expect(d.mesh).toBe(m)
+          expect(d.a).toBeGreaterThan(d.b)
+          expect(d.a).toBeLessThan(CAP)
+          expect(space.meshOf(d.b, d.a)).toBe(m)
+          const ca = g.cycleOfZone(d.a)
+          const cb = g.cycleOfZone(d.b)
+          expect([d.cycleA, d.cycleB]).toEqual([ca.id, cb.id])
+          const syzygy = d.a + d.b === CAP - 1
+          const expected =
+            ca.kind === 'torque' && cb.kind === 'torque'
+              ? syzygy
+                ? 'syzygetic-chrono'
+                : ca.id === cb.id
+                  ? 'cyclic-chrono'
+                  : 'cross-torque-chrono'
+              : ca.kind === 'torque' || cb.kind === 'torque'
+                ? (ca.kind === 'torque' ? cb.kind : ca.kind) === 'plex'
+                  ? 'plex-amphi'
+                  : 'warp-amphi'
+                : syzygy
+                  ? 'syzygetic-xeno'
+                  : 'chaotic-xeno'
+          expect(d.subtype).toBe(expected)
+        }),
+        { seed: 20261007, numRuns: 2000 },
+      )
+      console.info(`[ceiling] base 2^26 demons: arrayBuffers ${signedMiB(demonBytesGrowth)} MiB for the demon queries`)
+
       clearNumogramCache()
     },
     120_000,

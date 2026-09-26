@@ -3,8 +3,8 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { createNumogram, formatGateName } from '../index'
-import type { Cycle } from '../index'
+import { createNumogram, DEMON_SUBTYPES, formatGateName, formatNetSpan } from '../index'
+import type { Cycle, DemonSubtype } from '../index'
 
 interface Base10Golden {
   base: number
@@ -15,6 +15,11 @@ interface Base10Golden {
   zoneRegion: Record<string, string>
   regions: Record<string, number[]>
   tc: { zones: number[]; edges: number[][]; currents: string[]; syzygies: number[][] }
+  demons: { a: number; b: number; netSpan: string; kind: string; name: string }[]
+  demonCount: number
+  kinds: Record<string, number>
+  syzygeticBy: Record<string, number>
+  amphiBy: Record<string, number>
 }
 
 // Read the frozen file, never write it.
@@ -106,5 +111,72 @@ describe('engine base 10 vs the frozen numeric oracle', () => {
     const walk = Array.from(torque.zones())
     const edges = walk.map((zone, i) => [zone, walk[(i + 1) % walk.length] ?? -1])
     expect(edges).toEqual(golden.tc.edges)
+  })
+})
+
+// The viewer's own demon classification (a separate 'syzygy' kind next to chrono, amphi and xeno) reproduced from the
+// engine's subtypes: syzygetic chrono and syzygetic xeno are the 5 syzygy demons (a + b = 9).
+const VIEWER_KIND: Readonly<Record<DemonSubtype, string>> = {
+  'cyclic-chrono': 'chrono',
+  'cross-torque-chrono': 'chrono',
+  'syzygetic-chrono': 'syzygy',
+  'plex-amphi': 'amphi',
+  'warp-amphi': 'amphi',
+  'chaotic-xeno': 'xeno',
+  'syzygetic-xeno': 'syzygy',
+}
+
+describe('engine base-10 demons vs the frozen numeric oracle', () => {
+  const space = g.demons
+
+  it('has the fixture demon count 45 and the Numodemon count 4', () => {
+    expect(golden.demonCount).toBe(45)
+    expect(golden.demons).toHaveLength(45)
+    expect(space.count).toBe(golden.demonCount)
+    expect(space.numodemonCount).toBe(4)
+  })
+
+  it("lists the fixture's demons (a, b) in the engine's mesh order and formats each net-span as the fixture does", () => {
+    golden.demons.forEach((demon, mesh) => {
+      const engine = space.at(mesh)
+      expect([engine.a, engine.b], `mesh ${mesh}`).toEqual([demon.a, demon.b])
+      expect(formatNetSpan(engine.a, engine.b, 10), `mesh ${mesh} net-span`).toBe(demon.netSpan)
+      expect(space.meshOf(demon.a, demon.b), `mesh of ${demon.netSpan}`).toBe(mesh)
+    })
+  })
+
+  it("maps subtypes to the viewer's kinds and reproduces every fixture demon's kind", () => {
+    golden.demons.forEach((demon, mesh) => {
+      const engine = space.at(mesh)
+      expect(VIEWER_KIND[engine.subtype], `${demon.netSpan} is ${engine.subtype}`).toBe(demon.kind)
+    })
+  })
+
+  it('tallies the 45 enumerated demons per subtype as 12 cyclic, 0 cross-Torque, 3 + 12 + 12, 4 chaotic and 2 syzygetic xeno', () => {
+    const tally: Record<string, number> = {}
+    for (let mesh = 0; mesh < space.count; mesh++) {
+      const subtype = space.at(mesh).subtype
+      tally[subtype] = (tally[subtype] ?? 0) + 1
+    }
+    expect(DEMON_SUBTYPES.map(subtype => tally[subtype] ?? 0)).toEqual([12, 0, 3, 12, 12, 4, 2])
+    expect(space.counts()).toEqual(Object.fromEntries(DEMON_SUBTYPES.map(subtype => [subtype, tally[subtype] ?? 0])))
+  })
+
+  it('reproduces the fixture kinds { amphi 24, chrono 12, syzygy 5, xeno 4 }, syzygeticBy and amphiBy', () => {
+    const counts = space.counts()
+    const kinds: Record<string, number> = {}
+    for (const subtype of DEMON_SUBTYPES) {
+      const kind = VIEWER_KIND[subtype]
+      kinds[kind] = (kinds[kind] ?? 0) + counts[subtype]
+    }
+    expect(kinds).toEqual(golden.kinds)
+    expect(golden.kinds).toEqual({ amphi: 24, chrono: 12, syzygy: 5, xeno: 4 })
+    expect({ chrono: counts['syzygetic-chrono'], xeno: counts['syzygetic-xeno'] }).toEqual(golden.syzygeticBy)
+    expect({ plex: counts['plex-amphi'], warp: counts['warp-amphi'] }).toEqual(golden.amphiBy)
+    expect(golden.syzygeticBy).toEqual({ chrono: 3, xeno: 2 })
+    expect(golden.amphiBy).toEqual({ plex: 12, warp: 12 })
+    // The viewer's chrono kind is cyclic plus cross-Torque; base 10 has no cross-Torque demon.
+    expect(counts['cyclic-chrono'] + counts['cross-torque-chrono']).toBe(golden.kinds['chrono'])
+    expect(counts['cross-torque-chrono']).toBe(0)
   })
 })

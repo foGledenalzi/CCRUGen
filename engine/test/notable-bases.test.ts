@@ -1,10 +1,11 @@
 // The engine vs the frozen, definition-derived notable-bases fixture (engine/test/fixtures/derived/notable-bases.golden.json):
-// full entries (bases 2..100) and compact digests (256, 666, 1000, 1024). The demon fields of the fixture are asserted in
-// plan 02-05. If a test here fails, the ENGINE is wrong, not the fixture.
+// full entries (bases 2..100) and compact digests (256, 666, 1000, 1024), including their demon counts (plan 02-05).
+// If a test here fails, the ENGINE is wrong, not the fixture.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { createNumogram, formatGateName, formatNumeral } from '../index'
+import { createNumogram, DEMON_SUBTYPES, formatGateName, formatNumeral } from '../index'
+import type { DemonSubtype } from '../index'
 
 interface FullEntry {
   base: number
@@ -13,11 +14,17 @@ interface FullEntry {
   cycles: { kind: string; pairs: number[] }[]
   torqueLengths: number[]
   gates: number[]
+  demonCount: number
+  numodemonCount: number
+  subtypeCounts: Record<DemonSubtype, number>
 }
 interface DigestEntry {
   base: number
   warp: boolean
   torqueLengths: number[]
+  demonCount: number
+  numodemonCount: number
+  subtypeCounts: Record<DemonSubtype, number>
 }
 interface NotableFixture {
   bases: FullEntry[]
@@ -28,6 +35,26 @@ interface NotableFixture {
 const FIXTURE = fileURLToPath(new URL('./fixtures/derived/notable-bases.golden.json', import.meta.url))
 const fixture = JSON.parse(readFileSync(FIXTURE, 'utf8')) as NotableFixture
 
+/** The demon space of a base against the fixture's demonCount, numodemonCount and subtypeCounts (DEMON_SUBTYPES order). */
+function expectDemonFacts(entry: FullEntry | DigestEntry): void {
+  const space = createNumogram(entry.base).demons
+  expect(space.count, `base ${entry.base} demonCount`).toBe(entry.demonCount)
+  expect(space.numodemonCount, `base ${entry.base} numodemonCount`).toBe(entry.numodemonCount)
+  expect(Object.keys(entry.subtypeCounts)).toEqual([...DEMON_SUBTYPES])
+  expect(space.counts(), `base ${entry.base} subtypeCounts`).toEqual(entry.subtypeCounts)
+  const total = DEMON_SUBTYPES.reduce((sum, subtype) => sum + entry.subtypeCounts[subtype], 0)
+  expect(total, `base ${entry.base} fixture subtype total`).toBe(entry.demonCount)
+  // The classifier itself, not only the closed forms: tally every demon by walking the mesh numbers (at most 523,776).
+  const tally: Record<string, number> = {}
+  for (let mesh = 0; mesh < space.count; mesh++) {
+    const subtype = space.at(mesh).subtype
+    tally[subtype] = (tally[subtype] ?? 0) + 1
+  }
+  expect(DEMON_SUBTYPES.map(subtype => tally[subtype] ?? 0), `base ${entry.base} enumerated subtype tally`).toEqual(
+    DEMON_SUBTYPES.map(subtype => entry.subtypeCounts[subtype]),
+  )
+}
+
 describe('engine vs the notable-bases fixture (full entries)', () => {
   it('holds 17 full entries and 4 digests', () => {
     expect(fixture.bases.map(e => e.base)).toEqual([2, 4, 6, 8, 10, 12, 14, 16, 18, 22, 28, 32, 36, 64, 80, 82, 100])
@@ -35,6 +62,10 @@ describe('engine vs the notable-bases fixture (full entries)', () => {
   })
 
   for (const entry of fixture.bases) {
+    it(`base ${entry.base}: demon count, Numodemon count and subtype counts`, () => {
+      expectDemonFacts(entry)
+    })
+
     it(`base ${entry.base}: pairs, Warp, cycles, Torque lengths and gates`, () => {
       const g = createNumogram(entry.base)
       expect(g.pairCount).toBe(entry.pairCount)
@@ -44,6 +75,13 @@ describe('engine vs the notable-bases fixture (full entries)', () => {
       expect(Array.from({ length: entry.base }, (_, k) => g.gate(k).to)).toEqual(entry.gates)
     })
   }
+
+  it('pins base 28 (378 demons, 108 of them cross-Torque chronodemons) and base 82 (3321 demons, 1404 cross-Torque)', () => {
+    expect(createNumogram(28).demons.count).toBe(378)
+    expect(createNumogram(28).demons.counts()['cross-torque-chrono']).toBe(108)
+    expect(createNumogram(82).demons.count).toBe(3321)
+    expect(createNumogram(82).demons.counts()['cross-torque-chrono']).toBe(1404)
+  })
 
   it('pins the literals the guide names: 16 [4,2], 28 [9,3], 80 [39], 82 [27,9,3]', () => {
     expect(createNumogram(16).torques.map(c => c.lengthInPairs)).toEqual([4, 2])
@@ -55,6 +93,10 @@ describe('engine vs the notable-bases fixture (full entries)', () => {
 
 describe('engine vs the notable-bases fixture (digests)', () => {
   for (const entry of fixture.digests) {
+    it(`base ${entry.base}: demon count, Numodemon count and subtype counts`, () => {
+      expectDemonFacts(entry)
+    })
+
     it(`base ${entry.base}: Warp and Torque lengths`, () => {
       const g = createNumogram(entry.base)
       expect(g.warp !== null).toBe(entry.warp)
