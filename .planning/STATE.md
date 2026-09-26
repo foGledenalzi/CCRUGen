@@ -92,7 +92,7 @@ None yet.
 
 - [Phase 1]: RESOLVED in 01-05: the static export builds (`next build` exit 0) and the client redirect is proven at the root and under `/ccrug`
 - [Phase 1]: RESOLVED: Windows specifics verified (`process.env.TZ` runtime pin and canary in 01-01, Vite 8 with Vitest 5 runs green, fflate plugin ZIP sha256 identical under UTC / Asia/Tokyo / America/New_York in 01-06)
-- [Phase 1]: RESOLVED in 01-07: LICENSE and NOTICE exist and the five lore files are marked CCRU-derived (prose provenance recorded, text unchanged). Still open until 01-08: `origin` points at `lumpenspace/ccru`
+- [Phase 1]: RESOLVED in 01-07: LICENSE and NOTICE exist and the five lore files are marked CCRU-derived (prose provenance recorded, text unchanged). Still open: the user has NOT yet confirmed the LICENSE holder (`foGledenalzi`, a Claude default) or the NOTICE scope; that is the non-blocking 01-08 Task 3 checkpoint, handled by the orchestrator. The remotes are already set (origin = foGledenalzi/CCRUGen, upstream push disabled); 01-08 only verifies them.
 - [Phase 3]: Renderer thresholds are unmeasured (research figures conflict); Phases 4-6 wait on the spike's threshold table
 - [Phase 3]: Aesthetic choices need the user: flow direction, Plex placement, default label case
 - [Phase 4]: Label scheme beyond base 36 needs a decision plus font/glyph coverage tests
