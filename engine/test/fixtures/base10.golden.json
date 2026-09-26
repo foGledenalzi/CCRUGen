@@ -1,0 +1,782 @@
+{
+  "schema": 1,
+  "base": 10,
+  "source": "app/data/* and app/lib/{planetary,constants}.ts at upstream commit 7c38ad9 (untouched viewer)",
+  "zoneCount": 10,
+  "pairs": [
+    [
+      4,
+      5
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      1,
+      8
+    ],
+    [
+      0,
+      9
+    ]
+  ],
+  "currents": [
+    {
+      "name": "Surge",
+      "pair": [
+        1,
+        8
+      ],
+      "from": 8,
+      "to": 7
+    },
+    {
+      "name": "Hold",
+      "pair": [
+        2,
+        7
+      ],
+      "from": 2,
+      "to": 5
+    },
+    {
+      "name": "Sink",
+      "pair": [
+        4,
+        5
+      ],
+      "from": 4,
+      "to": 1
+    },
+    {
+      "name": "Warp",
+      "pair": [
+        3,
+        6
+      ],
+      "from": 6,
+      "to": 3
+    },
+    {
+      "name": "Plex",
+      "pair": [
+        0,
+        9
+      ],
+      "from": 9,
+      "to": 9
+    }
+  ],
+  "gates": [
+    {
+      "name": "Gt-00",
+      "from": 0,
+      "to": 0,
+      "cum": 0
+    },
+    {
+      "name": "Gt-01",
+      "from": 1,
+      "to": 1,
+      "cum": 1
+    },
+    {
+      "name": "Gt-03",
+      "from": 2,
+      "to": 3,
+      "cum": 3
+    },
+    {
+      "name": "Gt-06",
+      "from": 3,
+      "to": 6,
+      "cum": 6
+    },
+    {
+      "name": "Gt-10",
+      "from": 4,
+      "to": 1,
+      "cum": 10
+    },
+    {
+      "name": "Gt-15",
+      "from": 5,
+      "to": 6,
+      "cum": 15
+    },
+    {
+      "name": "Gt-21",
+      "from": 6,
+      "to": 3,
+      "cum": 21
+    },
+    {
+      "name": "Gt-28",
+      "from": 7,
+      "to": 1,
+      "cum": 28
+    },
+    {
+      "name": "Gt-36",
+      "from": 8,
+      "to": 9,
+      "cum": 36
+    },
+    {
+      "name": "Gt-45",
+      "from": 9,
+      "to": 9,
+      "cum": 45
+    }
+  ],
+  "zoneRegion": {
+    "0": "plex",
+    "1": "torque",
+    "2": "torque",
+    "3": "warp",
+    "4": "torque",
+    "5": "torque",
+    "6": "warp",
+    "7": "torque",
+    "8": "torque",
+    "9": "plex"
+  },
+  "regions": {
+    "plex": [
+      0,
+      9
+    ],
+    "torque": [
+      1,
+      2,
+      4,
+      5,
+      7,
+      8
+    ],
+    "warp": [
+      3,
+      6
+    ]
+  },
+  "tc": {
+    "zones": [
+      1,
+      2,
+      4,
+      5,
+      7,
+      8
+    ],
+    "edges": [
+      [
+        1,
+        8
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        1
+      ]
+    ],
+    "currents": [
+      "Hold",
+      "Sink",
+      "Surge"
+    ],
+    "syzygies": [
+      [
+        1,
+        8
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        4,
+        5
+      ]
+    ]
+  },
+  "demons": [
+    {
+      "a": 1,
+      "b": 0,
+      "netSpan": "1::0",
+      "kind": "amphi",
+      "name": "Lurgo"
+    },
+    {
+      "a": 2,
+      "b": 0,
+      "netSpan": "2::0",
+      "kind": "amphi",
+      "name": "Duoddod"
+    },
+    {
+      "a": 2,
+      "b": 1,
+      "netSpan": "2::1",
+      "kind": "chrono",
+      "name": "Doogu"
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "netSpan": "3::0",
+      "kind": "xeno",
+      "name": "Ixix"
+    },
+    {
+      "a": 3,
+      "b": 1,
+      "netSpan": "3::1",
+      "kind": "amphi",
+      "name": "Ixigool"
+    },
+    {
+      "a": 3,
+      "b": 2,
+      "netSpan": "3::2",
+      "kind": "amphi",
+      "name": "Ixidod"
+    },
+    {
+      "a": 4,
+      "b": 0,
+      "netSpan": "4::0",
+      "kind": "amphi",
+      "name": "Krako"
+    },
+    {
+      "a": 4,
+      "b": 1,
+      "netSpan": "4::1",
+      "kind": "chrono",
+      "name": "Sukugool"
+    },
+    {
+      "a": 4,
+      "b": 2,
+      "netSpan": "4::2",
+      "kind": "chrono",
+      "name": "Skoodu"
+    },
+    {
+      "a": 4,
+      "b": 3,
+      "netSpan": "4::3",
+      "kind": "amphi",
+      "name": "Skarkix"
+    },
+    {
+      "a": 5,
+      "b": 0,
+      "netSpan": "5::0",
+      "kind": "amphi",
+      "name": "Tokhatto"
+    },
+    {
+      "a": 5,
+      "b": 1,
+      "netSpan": "5::1",
+      "kind": "chrono",
+      "name": "Tukkamu"
+    },
+    {
+      "a": 5,
+      "b": 2,
+      "netSpan": "5::2",
+      "kind": "chrono",
+      "name": "Kuttadid"
+    },
+    {
+      "a": 5,
+      "b": 3,
+      "netSpan": "5::3",
+      "kind": "amphi",
+      "name": "Tikkitix"
+    },
+    {
+      "a": 5,
+      "b": 4,
+      "netSpan": "5::4",
+      "kind": "syzygy",
+      "name": "Katak"
+    },
+    {
+      "a": 6,
+      "b": 0,
+      "netSpan": "6::0",
+      "kind": "xeno",
+      "name": "Tchu"
+    },
+    {
+      "a": 6,
+      "b": 1,
+      "netSpan": "6::1",
+      "kind": "amphi",
+      "name": "Djungo"
+    },
+    {
+      "a": 6,
+      "b": 2,
+      "netSpan": "6::2",
+      "kind": "amphi",
+      "name": "Djuddha"
+    },
+    {
+      "a": 6,
+      "b": 3,
+      "netSpan": "6::3",
+      "kind": "syzygy",
+      "name": "Djynxx"
+    },
+    {
+      "a": 6,
+      "b": 4,
+      "netSpan": "6::4",
+      "kind": "amphi",
+      "name": "Tchakki"
+    },
+    {
+      "a": 6,
+      "b": 5,
+      "netSpan": "6::5",
+      "kind": "amphi",
+      "name": "Tchattuk"
+    },
+    {
+      "a": 7,
+      "b": 0,
+      "netSpan": "7::0",
+      "kind": "amphi",
+      "name": "Puppo"
+    },
+    {
+      "a": 7,
+      "b": 1,
+      "netSpan": "7::1",
+      "kind": "chrono",
+      "name": "Bubbamu"
+    },
+    {
+      "a": 7,
+      "b": 2,
+      "netSpan": "7::2",
+      "kind": "syzygy",
+      "name": "Oddubb"
+    },
+    {
+      "a": 7,
+      "b": 3,
+      "netSpan": "7::3",
+      "kind": "amphi",
+      "name": "Pabbakis"
+    },
+    {
+      "a": 7,
+      "b": 4,
+      "netSpan": "7::4",
+      "kind": "chrono",
+      "name": "Ababbatok"
+    },
+    {
+      "a": 7,
+      "b": 5,
+      "netSpan": "7::5",
+      "kind": "chrono",
+      "name": "Papatakoo"
+    },
+    {
+      "a": 7,
+      "b": 6,
+      "netSpan": "7::6",
+      "kind": "amphi",
+      "name": "Bobobja"
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "netSpan": "8::0",
+      "kind": "amphi",
+      "name": "Minommo"
+    },
+    {
+      "a": 8,
+      "b": 1,
+      "netSpan": "8::1",
+      "kind": "syzygy",
+      "name": "Murrumur"
+    },
+    {
+      "a": 8,
+      "b": 2,
+      "netSpan": "8::2",
+      "kind": "chrono",
+      "name": "Nammamad"
+    },
+    {
+      "a": 8,
+      "b": 3,
+      "netSpan": "8::3",
+      "kind": "amphi",
+      "name": "Mummumix"
+    },
+    {
+      "a": 8,
+      "b": 4,
+      "netSpan": "8::4",
+      "kind": "chrono",
+      "name": "Numko"
+    },
+    {
+      "a": 8,
+      "b": 5,
+      "netSpan": "8::5",
+      "kind": "chrono",
+      "name": "Muntuk"
+    },
+    {
+      "a": 8,
+      "b": 6,
+      "netSpan": "8::6",
+      "kind": "amphi",
+      "name": "Mommoljo"
+    },
+    {
+      "a": 8,
+      "b": 7,
+      "netSpan": "8::7",
+      "kind": "chrono",
+      "name": "Mombbo"
+    },
+    {
+      "a": 9,
+      "b": 0,
+      "netSpan": "9::0",
+      "kind": "syzygy",
+      "name": "Uttunul"
+    },
+    {
+      "a": 9,
+      "b": 1,
+      "netSpan": "9::1",
+      "kind": "amphi",
+      "name": "Tuttagool"
+    },
+    {
+      "a": 9,
+      "b": 2,
+      "netSpan": "9::2",
+      "kind": "amphi",
+      "name": "Unnunddo"
+    },
+    {
+      "a": 9,
+      "b": 3,
+      "netSpan": "9::3",
+      "kind": "xeno",
+      "name": "Ununuttix"
+    },
+    {
+      "a": 9,
+      "b": 4,
+      "netSpan": "9::4",
+      "kind": "amphi",
+      "name": "Unnunaka"
+    },
+    {
+      "a": 9,
+      "b": 5,
+      "netSpan": "9::5",
+      "kind": "amphi",
+      "name": "Tukutu"
+    },
+    {
+      "a": 9,
+      "b": 6,
+      "netSpan": "9::6",
+      "kind": "xeno",
+      "name": "Unnutchi"
+    },
+    {
+      "a": 9,
+      "b": 7,
+      "netSpan": "9::7",
+      "kind": "amphi",
+      "name": "Nuttubab"
+    },
+    {
+      "a": 9,
+      "b": 8,
+      "netSpan": "9::8",
+      "kind": "amphi",
+      "name": "Ummnu"
+    }
+  ],
+  "demonCount": 45,
+  "kinds": {
+    "amphi": 24,
+    "chrono": 12,
+    "syzygy": 5,
+    "xeno": 4
+  },
+  "syzygeticBy": {
+    "chrono": 3,
+    "xeno": 2
+  },
+  "amphiBy": {
+    "plex": 12,
+    "warp": 12
+  },
+  "layouts": {
+    "original": {
+      "0": {
+        "x": 400,
+        "y": 875
+      },
+      "1": {
+        "x": 400,
+        "y": 550
+      },
+      "2": {
+        "x": 560,
+        "y": 275
+      },
+      "3": {
+        "x": 420,
+        "y": 115
+      },
+      "4": {
+        "x": 178,
+        "y": 480
+      },
+      "5": {
+        "x": 250,
+        "y": 370
+      },
+      "6": {
+        "x": 250,
+        "y": 85
+      },
+      "7": {
+        "x": 580,
+        "y": 400
+      },
+      "8": {
+        "x": 400,
+        "y": 660
+      },
+      "9": {
+        "x": 400,
+        "y": 770
+      }
+    },
+    "labyrinth": {
+      "0": {
+        "x": 495,
+        "y": 815
+      },
+      "1": {
+        "x": 400,
+        "y": 655
+      },
+      "2": {
+        "x": 400,
+        "y": 220
+      },
+      "3": {
+        "x": 495,
+        "y": 60
+      },
+      "4": {
+        "x": 200,
+        "y": 540
+      },
+      "5": {
+        "x": 200,
+        "y": 335
+      },
+      "6": {
+        "x": 305,
+        "y": 60
+      },
+      "7": {
+        "x": 600,
+        "y": 335
+      },
+      "8": {
+        "x": 600,
+        "y": 540
+      },
+      "9": {
+        "x": 305,
+        "y": 815
+      }
+    },
+    "ladder": {
+      "0": {
+        "x": 260,
+        "y": 800
+      },
+      "1": {
+        "x": 260,
+        "y": 625
+      },
+      "2": {
+        "x": 260,
+        "y": 450
+      },
+      "3": {
+        "x": 260,
+        "y": 275
+      },
+      "4": {
+        "x": 260,
+        "y": 100
+      },
+      "5": {
+        "x": 540,
+        "y": 100
+      },
+      "6": {
+        "x": 540,
+        "y": 275
+      },
+      "7": {
+        "x": 540,
+        "y": 450
+      },
+      "8": {
+        "x": 540,
+        "y": 625
+      },
+      "9": {
+        "x": 540,
+        "y": 800
+      }
+    }
+  },
+  "center": {
+    "labyrinth": {
+      "x": 400,
+      "y": 438
+    },
+    "ladder": {
+      "x": 400,
+      "y": 450
+    },
+    "original": {
+      "x": 400,
+      "y": 460
+    },
+    "planetary": {
+      "x": 400,
+      "y": 400
+    }
+  },
+  "planetary": {
+    "cx": 400,
+    "cy": 400,
+    "radius": {
+      "0": 0,
+      "1": 55,
+      "2": 95,
+      "3": 130,
+      "4": 165,
+      "5": 210,
+      "6": 255,
+      "7": 295,
+      "8": 330,
+      "9": 360
+    },
+    "defaultAngle": {
+      "0": 0,
+      "1": 250,
+      "2": 210,
+      "3": 170,
+      "4": 130,
+      "5": 310,
+      "6": 350,
+      "7": 30,
+      "8": 70,
+      "9": 0
+    },
+    "size": {
+      "0": 30,
+      "1": 12,
+      "2": 16,
+      "3": 17,
+      "4": 14,
+      "5": 26,
+      "6": 24,
+      "7": 21,
+      "8": 20,
+      "9": 11
+    },
+    "positionsAtDefaultAngle": {
+      "0": {
+        "x": 400,
+        "y": 400
+      },
+      "1": {
+        "x": 348.31690585677507,
+        "y": 418.8111078829118
+      },
+      "2": {
+        "x": 352.5,
+        "y": 482.2724133595217
+      },
+      "3": {
+        "x": 422.574263096701,
+        "y": 528.025007891587
+      },
+      "4": {
+        "x": 526.3973331146314,
+        "y": 506.059955598279
+      },
+      "5": {
+        "x": 239.13066694501458,
+        "y": 265.0146019658267
+      },
+      "6": {
+        "x": 355.71971469493275,
+        "y": 148.87402298188695
+      },
+      "7": {
+        "x": 547.5,
+        "y": 144.5225058835906
+      },
+      "8": {
+        "x": 710.0985648593498,
+        "y": 287.13335270252935
+      },
+      "9": {
+        "x": 400,
+        "y": 40
+      }
+    }
+  }
+}

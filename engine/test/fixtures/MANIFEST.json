@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "strictDir": null,
+  "sets": [
+    {
+      "set": "2026-09-26-base10-numeric",
+      "date": "2026-09-26",
+      "reason": "Numeric base-10 oracle (D-13) captured with tsx from the untouched app/data/* at upstream 7c38ad9, before any Phase 1 render-path change",
+      "files": {
+        "engine/test/fixtures/base10.golden.json": "6c6c38612b87103d617a60de6f0d64b48b4a4716b8212407d23f4f878835d01d"
+      }
+    }
+  ]
+}
