@@ -21,7 +21,7 @@ export default defineConfig({
   use: { baseURL: `http://127.0.0.1:${PORT}`, locale: 'en-US', colorScheme: 'dark' },
   projects: [project('chromium-utc', 'UTC'), project('chromium-ny', 'America/New_York')],
   webServer: {
-    command: dev ? `npx next dev -p ${PORT}` : `npx serve ${STATIC_DIR} -l ${PORT} --no-clipboard`,
+    command: dev ? `npx next dev -p ${PORT}` : `npx serve ${STATIC_DIR} -l tcp://127.0.0.1:${PORT} --no-clipboard --no-port-switching`, // loopback only (IN-07); serve 14.2.6 parses --no-port-switching but ignores it, see tests/repo/static-server.test.ts
     url: `http://127.0.0.1:${PORT}${BASE}/numogram/`,
     reuseExistingServer: false,                             // never test a stale server by accident (deliberate deviation from the lab's `true`)
     timeout: 180_000,

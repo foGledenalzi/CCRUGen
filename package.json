@@ -22,7 +22,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "serve out",
+    "start": "serve -l tcp://127.0.0.1:3000 --no-port-switching out",
     "lint": "next lint --dir app --dir engine --dir workers",
     "typecheck": "tsc --noEmit --incremental false && tsc -p engine/tsconfig.json --noEmit && tsc -p engine/tsconfig.test.json --noEmit && tsc -p tsconfig.components.json --noEmit && npm run lint",
     "test": "cross-env CCRUG_TZ=UTC vitest run",
