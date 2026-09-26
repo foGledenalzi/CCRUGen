@@ -51,9 +51,11 @@ export function meshOf(a: number, b: number): number {
  * a(a-1)/2 <= m. Above m of about 2^50, 8m + 1 exceeds 2^53 and is not representable, so the float square root is only
  * an ESTIMATE (at most a step or two off); the two integer loops make it exact, because a stays at or below 2^26, so
  * a(a-1) and (a+1)a stay below 2^53 and every comparison with the integer m is exact. No BigInt, no exact isqrt.
+ * The estimate is clamped to at least 1: the first loop only terminates for a >= 0 (a(a-1)/2 grows again below 0), so a
+ * runtime whose Math.sqrt came out low can never send it into a runaway descent.
  */
 function rowOf(m: number): number {
-  let a = Math.floor((1 + Math.sqrt(8 * m + 1)) / 2)
+  let a = Math.max(1, Math.floor((1 + Math.sqrt(8 * m + 1)) / 2))
   while (a * (a - 1) / 2 > m) a--
   while ((a + 1) * a / 2 <= m) a++
   return a

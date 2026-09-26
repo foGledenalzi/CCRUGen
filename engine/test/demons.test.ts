@@ -3,7 +3,7 @@
 // iterators. The sweeps against the independent reference are in demons.sweep.test.ts; the ceiling checks are in
 // ceiling.test.ts. Fixed seeds throughout (D-10).
 import fc from 'fast-check'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as engine from '../index'
 import { clearNumogramCache, createNumogram, DEMON_SUBTYPES, DEMON_TYPES, meshOf, netSpanOf } from '../index'
 import type { DemonRef, DemonSubtype } from '../index'
@@ -115,6 +115,35 @@ describe('meshOf and netSpanOf (standalone)', () => {
       }
     }
     expect(crossed).toBe(rows.length * 13)
+  })
+
+  // On V8 the bare estimate floor((1 + sqrt(8m + 1)) / 2) happens to be exact for every row of every base up to 2^26
+  // (checked by brute force over all 2^26 - 1 rows at both ends of the row, and rounding is monotone), so the integer
+  // correction loops never fire there. They are what makes the result exact on ANY runtime whose square root is a step
+  // or two off, so this test forces that case: Math.sqrt is replaced by a wrong one and the answers must not change.
+  it('stays exact when the float square root is wrong by up to 40 rows (the integer loops, not the estimate, decide)', () => {
+    const rows = [1, 2, 3, 4, 5, 10, 100, 65_536, 2 ** 24, 47_453_132, 47_453_133, 47_453_134, 2 ** 25, CAP - 2, CAP - 1]
+    const meshes: number[] = []
+    for (const a of rows) {
+      const first = (a * (a - 1)) / 2
+      for (const m of [first - 1, first, first + 1, first + a - 2, first + a - 1, first + a]) {
+        if (m >= 0 && m < COUNT_AT_CAP) meshes.push(m)
+      }
+    }
+    const expected = meshes.map(exactNetSpan)
+    const realSqrt = Math.sqrt
+    const runs = new Map<number, (readonly [number, number])[]>()
+    for (const delta of [-80, -3, -1.5, -0.6, 0.6, 1.5, 3, 80]) {
+      const spy = vi.spyOn(Math, 'sqrt').mockImplementation(x => realSqrt(x) + delta)
+      try {
+        runs.set(delta, meshes.map(m => netSpanOf(m)))
+      } finally {
+        spy.mockRestore()
+      }
+    }
+    expect(Math.sqrt).toBe(realSqrt) // restored
+    expect(runs.size).toBe(8)
+    for (const [delta, got] of runs) expect(got, `sqrt off by ${delta}`).toEqual(expected)
   })
 
   it('round-trips netSpanOf(meshOf(a, b)) for a > b < 2^26 (fixed seed 20261003)', () => {
