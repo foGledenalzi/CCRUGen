@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 8 plans in 5 waves
 
 Plans:
-- [ ] 01-01-PLAN.md - Toolchain: .gitattributes, exact npm pins + lockfile, ES2022 target, engine scaffold, Vitest with TZ canary, golden-manifest freeze tool (wave 1)
+- [x] 01-01-PLAN.md - Toolchain: .gitattributes, exact npm pins + lockfile, ES2022 target, engine scaffold, Vitest with TZ canary, golden-manifest freeze tool (wave 1)
 - [ ] 01-02-PLAN.md - Engine boundary: ESLint override + guard test proving tsc/ESLint reject DOM/Node types and non-relative imports (wave 2)
 - [ ] 01-03-PLAN.md - Numeric base-10 oracle from untouched app/data, frozen, with Gt-15/Gt-03 and definition-derived regressions (wave 2)
 - [ ] 01-04-PLAN.md - DOM oracle: 30 visual-DOM goldens (3 layouts x 10 states) captured from the untouched viewer on next dev, frozen (wave 2)
@@ -171,7 +171,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations and Safety Net | 0/8 | Planned | - |
+| 1. Foundations and Safety Net | 1/8 | In Progress | - |
 | 2. Engine Core and Base-10 Migration | 0/TBD | Not started | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |

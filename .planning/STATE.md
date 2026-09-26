@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-09-25T22:07:49.569Z"
-last_activity: 2026-09-25 - Roadmap created (8 phases, 41/41 v1 requirements mapped)
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-09-26T02:12:25.669Z"
+last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 8
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 13
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 1: Foundations and Safety Net
+**Current focus:** Phase 1 — Foundations and Safety Net
 
 ## Current Position
 
-Phase: 1 of 8 (Foundations and Safety Net)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-09-25 - Roadmap created (8 phases, 41/41 v1 requirements mapped)
+Phase: 1 (Foundations and Safety Net) — EXECUTING
+Plan: 2 of 8
+Status: Ready to execute
+Last activity: 2026-09-26
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 13%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 1 P01 | 6min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [Roadmap]: Explicit cross-Torque chronodemon subtype (ENG-03); text view, region legend and pair-graph view are v1
 - [Roadmap]: Poster export is v2; EXP-01..04 are plain SVG/PNG/JSON plus CLI
 - [Roadmap]: Gate 0->0 draw/omit policy and Torque ordering/naming are frozen in Phase 2
+- [Phase 1 P01]: TZ pinned by runtime process.env.TZ assignment in vitest.config.mts from CCRUG_TZ (process-start TZ= is ignored by Node on Windows); tz.test.ts is the canary
+- [Phase 1 P01]: golden-manifest resolves paths against the repo root, stores repo-relative forward-slash paths, refuses CR files, and never overwrites a frozen file (new dated set with a written reason)
+- [Phase 1 P01]: until plan 01-08, every npm install must be followed by git checkout -- dist and git checkout -- yarn.lock (prepare and npm rewrite tracked files)
 
 ### Pending Todos
 
@@ -95,8 +99,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 1 context gathered
-Resume file: --resume-file
+Last session: 2026-09-26T02:12:25.661Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
 
 **Planned Phase:** 1 (Foundations and Safety Net) — 8 plans — 2026-09-25T22:07:49.564Z
