@@ -27,8 +27,12 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - ✓ Layer toggles, hover/selection detail panels, undo/redo, URL-shareable state — existing (`app/components/panels/`, `app/lib/shareParams.ts`)
 - ✓ Generic SVG geometry for gates/currents (concave Bezier gate paths, Y-shaped current routing) that works for any zone coordinates — existing (`app/lib/geometry.ts`)
 - ✓ Xenotation (prime-factor notation) helper, base-agnostic — existing (`app/lib/xenotation.ts`)
-- ✓ Cyber-styled UI primitives, share-image export (Vercel Blob dependent) — existing (`app/components/ui/`, `app/api/share-image/route.ts`)
+- ✓ Cyber-styled UI primitives — existing (`app/components/ui/`). The Vercel Blob share-image export was removed in Phase 1 (static export).
 - ✓ (Untouched by this project) Gematria cyphers helpers, installable component library — existing. The inherited Chrome gematria plugin and the /gematria, /cyphers and /components pages were removed in Phase 1 (out of scope; the plugin carried upstream branding).
+- ✓ Static/offline export: `next build` emits a fully static, numogram-only `out/`; no server route, Vercel Blob or Analytics; legacy `/?...` share links redirect to `/numogram/`; works under a sub-path — Validated in Phase 1: Foundations and Safety Net
+- ✓ Frozen base-10 oracle: numeric `base10.golden.json` (all four layouts, planetary numerically) plus 30 normalized-SVG DOM goldens (original/labyrinth/ladder x 10 states), captured from the untouched viewer and passing on the static build in two timezones — Validated in Phase 1
+- ✓ Enforced engine purity (`engine/`: no DOM/Node types, relative imports only, nothing may import from outside `engine/`), repo guard (`reference/` never tracked, origin not upstream, LF, licensing present) and the single `npm run verify` gate on Windows/Ubuntu CI (workflow written, not yet run) — Validated in Phase 1
+- ✓ Licensing and attribution decided: MIT for original code (holder foGledenalzi), upstream `lumpenspace/ccru` credited and its files not relicensed, CCRU lore excluded (NOTICE) — Validated in Phase 1
 
 ### Active
 
@@ -42,7 +46,6 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - [ ] **Legibility and access**: region legend table with stable Torque ids and isolate/mute, syzygy-collapsed pair-graph view (each Torque cycle a clean ring), and a text view with keyboard traversal, ARIA and non-colour cues
 - [ ] **Naming builder**: user assigns a sound/phoneme per zone (seeded auto-generator for any base; CCRU zone phonemes for base-10 preset), demon names derived from net-span sounds, editable, importable/exportable as JSON
 - [ ] **Export**: self-contained SVG file, PNG, and engine-data JSON for the current numogram
-- [ ] **Static/offline deployability**: decouple `@vercel/blob`, `@vercel/analytics`, and the `/api/share-image` route so the generator works as a static export with no server
 - [ ] **Ceiling spike**: benchmark zones/paths/demons vs frame time and memory per renderer tier; document the measured thresholds and degrade gracefully past them (no arbitrary hard cap)
 
 ### Out of Scope
@@ -98,6 +101,10 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 | Text view/a11y, region legend and pair-graph view are v1 | User choice; expensive to retrofit, and bases like 64 have 6+ Torque cycles that a flat legend cannot show | ✓ Good |
 | Stay on Next 14.2.35, no upgrade phase | User choice; static export removes the server exposure that makes an unsupported Next major risky; revisit only if something forces it (tracked as UPG-01 in v2) | ✓ Good |
 | Poster-quality SVG export deferred to v2 | User choice; plain SVG/PNG/JSON export is v1 | ✓ Good |
+| Own project crediting upstream; MIT for original code, upstream files not relicensed, lore excluded | Upstream has no license; lore derives from the CCRU writings (confirmed by the user 2026-09-25) | ✓ Good |
+| Frozen base-10 oracle before any refactor (numeric JSON + 30 DOM goldens, never regenerated with `-u`) | Safety net for the Phase 2 migration; the goldens capture only the projection svg | ✓ Good |
+| Scrub all upstream branding (footer credit, logo, wordmarks, gematria plugin); keep the attribution | User order 2026-09-25; original CCRUG mark replaces the logo | ✓ Good |
+| Remove the CRT overlay, glitch effects and intro splash; declutter panels with no functionality removed | User decision 2026-09-25; todo 001, scheduled right after Phase 1; structural panel changes stay in Phase 4 | — Pending |
 
 ## Evolution
 
@@ -117,4 +124,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-25 after requirements approval*
+*Last updated: 2026-09-25 after Phase 1 completion*
