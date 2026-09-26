@@ -3,6 +3,17 @@
 // no DOM or Node types, relative imports only, no O(n^2) materialization, no Math.random / Date.now / new Date().
 export { MAX_BASE, validateBase, assertBase } from './core/base'
 export type { BaseCheck, BaseProblem } from './core/base'
+export { triangular, digitalRoot } from './core/arith'
+export {
+  NUMERAL_DIGITS,
+  NUMERAL_SEPARATOR,
+  digitsOf,
+  formatNumeral,
+  parseNumeral,
+  formatNetSpan,
+  formatGateName,
+  torqueLabel,
+} from './core/numerals'
 export { DEMON_TYPES, DEMON_SUBTYPES } from './core/types'
 export type {
   RegionKind,
