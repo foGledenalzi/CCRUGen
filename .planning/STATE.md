@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_execute
-stopped_at: Phase 2 planned (13 plans, 10 waves, plan checker passed after 1 revision); next is /gsd-execute-phase 2
-last_updated: "2026-09-26T15:32:00.910Z"
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-09-26T19:10:01.050Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 21
-  completed_plans: 8
-  percent: 38
+  completed_plans: 9
+  percent: 43
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 1 — Foundations and Safety Net
+**Current focus:** Phase 2 — Engine Core and Base-10 Migration
 
 ## Current Position
 
 Phase: 2
-Plan: 0 of 13 executed
-Status: Ready to execute (Phase 2 planned; Phase 1 complete and pushed at 45a8662)
+Plan: 1 of 13 executed
+Status: Executing Phase 2 (02-01 engine contracts, base validation and numerals done; next 02-02)
 Last activity: 2026-09-26
 
-Progress: [██████████] 100%
+Progress: [████░░░░░░] 43%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -45,6 +45,7 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 8 | - | - |
+| 2 | 1 | 14min | 14min |
 
 **Recent Trend:**
 
@@ -60,6 +61,7 @@ Progress: [██████████] 100%
 | Phase 1 P06 | 8min | 3 tasks | 5 files |
 | Phase 1 P07 | 12min | 2 tasks | 8 files |
 | Phase 1 P08 | 9min | 2 tasks | 63 files |
+| Phase 2 P01 | 14min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -86,6 +88,7 @@ Recent decisions affecting current work:
 - [Phase 1 P07] LICENSE is canonical MIT (holder foGledenalzi); NOTICE is authoritative on scope: only post-fork files (plus the original CCRUG mark) are MIT, every file inherited from upstream 7c38ad9 is not relicensed, and the five app/data lore files are excluded as CCRU-derived (header comment only, oracle and manifests unchanged)
 - [Phase 1 P08] check-repo guard (12 checks, --only, --clean-tree, --static-out) with failing-input tests; static-out forbids Vercel markers, api/share-image and the old upstream branding case-insensitively (user scrub order); pre-mutation run failed with 61 junk problems, post-mutation and npm run verify green (68 e2e, 60 goldens unchanged, 122 s); hygiene commit = 61 deletions (dist/ untracked and kept on disk, yarn.lock, 2 .DS_Store), remotes asserted already final, nothing pushed; Task 3 (LICENSE holder foGledenalzi and NOTICE scope) confirmed by the user on 2026-09-25
 - [Todo 001] UI declutter done (2026-09-26): CRT overlays, glitch effects, route-transition provider and intro splash removed, panel chrome flattened; no control, readout or behaviour changed (before/after inventory in .planning/notes/2026-09-25-ui-declutter-inventory.md); 60 goldens unchanged; WR-01 closed by a new sub-path click test; page-weight baseline lowered
+- [Phase 2 P01] Engine numeral scheme (D-05, Phase 4 contract): base 2..36 = one lowercase char per digit (0-9a-z), base 37..2^26 = decimal digit groups joined by '.' ('1.0.1' = 3601 in base 60), minDigits pads with zero digits, parseNumeral is the exact inverse (text 1..64 chars, value <= MAX_SAFE_INTEGER, linear loop); numerals take any integer base 2..2^26, numograms only even bases via validateBase/assertBase (RangeError, ceiling 2^26); torqueLabel = A..Z then i+1; engine/core/types.ts holds the contracts (02-05 adds Numogram.demons, 02-06 adds DemonSpace.group/subtype)
 
 ### Pending Todos
 
@@ -116,8 +119,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-26
-Stopped at: Phase 2 planned (13 plans in 10 waves, D-01..D-16 covered, checker passed); execute next
-Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-01-PLAN.md
+Last session: 2026-09-26T19:10:06Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-02-PLAN.md
 
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
