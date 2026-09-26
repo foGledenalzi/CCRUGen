@@ -40,7 +40,7 @@ Plans:
 - [x] 01-02-PLAN.md - Engine boundary: ESLint override + guard test proving tsc/ESLint reject DOM/Node types and non-relative imports (wave 2)
 - [x] 01-03-PLAN.md - Numeric base-10 oracle from untouched app/data, frozen, with Gt-15/Gt-03 and definition-derived regressions (wave 2)
 - [x] 01-04-PLAN.md - DOM oracle: 30 visual-DOM goldens (3 layouts x 10 states) captured from the untouched viewer on next dev, frozen (wave 2)
-- [ ] 01-05-PLAN.md - Static export change list, client redirect, @vercel removal; goldens proven 60/60 on serve out, root and /ccrug e2e (wave 3)
+- [x] 01-05-PLAN.md - Static export change list, client redirect, @vercel removal; goldens proven 60/60 on serve out, root and /ccrug e2e (wave 3)
 - [ ] 01-06-PLAN.md - Page-weight baseline + budget, dormant Windows/Ubuntu CI calling npm run verify, deterministic fflate plugin ZIP (wave 4)
 - [ ] 01-07-PLAN.md - LICENSE (MIT), NOTICE (upstream credit, lore exclusion), lore headers, CCRUG README, npm launch config (wave 4)
 - [ ] 01-08-PLAN.md - check-repo guard, user-approved git mutations (untrack dist/demo.mov, origin -> upstream + new origin foGledenalzi/CCRUGen (no push)), full verify gate, licensing confirmation (wave 5)
@@ -171,7 +171,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundations and Safety Net | 4/8 | In Progress | - |
+| 1. Foundations and Safety Net | 5/8 | In Progress | - |
 | 2. Engine Core and Base-10 Migration | 0/TBD | Not started | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |

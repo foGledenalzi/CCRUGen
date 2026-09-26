@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-09-26T02:34:47.167Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-09-26T02:45:20.197Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 8
-  completed_plans: 4
-  percent: 50
+  completed_plans: 5
+  percent: 63
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 1 (Foundations and Safety Net) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-09-26
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████░░░░░] 50%
 | Phase 1 P02 | 3min | 2 tasks | 2 files |
 | Phase 1 P03 | 5min | 2 tasks | 5 files |
 | Phase 1 P04 | 14min | 2 tasks | 36 files |
+| Phase 1 P05 | 7min | 3 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,7 @@ Recent decisions affecting current work:
 - [Phase 1 P02]: engine boundary = tsc (lib ES2022, types []) plus ESLint no-restricted-syntax/globals/paths override; guard.test.ts uses lintText on a virtual engine/ path (no in-repo probe) and a temp tsconfig extending engine/tsconfig.json
 - [Phase 1 P03] Numeric base-10 oracle frozen as engine/test/fixtures/base10.golden.json (sha256 in MANIFEST.json, set 2026-09-26-base10-numeric); capture script refuses to overwrite; oracle test asserts definitions (T(k), base-n digital root, current cycles, 12+3/12+12/4+2 demon split) independently of the JSON
 - [Phase 1 P04] DOM oracle frozen: 30 visual-DOM goldens (original/labyrinth/ladder x 10 states) in e2e/__golden__ captured once from the untouched viewer on next dev, sha256 in e2e/__golden__/MANIFEST.json (set 2026-09-26-baseline, strictDir); capture only with GOLDEN_CAPTURE=1 (exits 1 by design), every other run is updateSnapshots none; settle signal = viewBox + __reactFiber$ + 2 rAF + 300 ms stable; aria/data/role/tabindex ignored, numbers rounded to 3 decimals
+- [Phase 1 P05] Static export live: output 'export' unconditional, NEXT_PUBLIC_BASE_PATH validated sub-path, / is a client location.replace redirect keeping query+hash; 30 frozen DOM goldens pass unchanged on serve out (60/60, no golden touched); capture page-weight baseline from a root build (basePath build reports different route sizes)
 
 ### Pending Todos
 
@@ -82,7 +84,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 1]: Next 14.2 static-export behavior for `redirect()` in `app/gematria/saved`, `sitemap.ts`, `robots.ts` and `searchParams` pages is from docs, not a build; confirm in the first export build
+- [Phase 1]: RESOLVED in 01-05: the static export builds (`next build` exit 0) and the client redirect is proven at the root and under `/ccrug`
 - [Phase 1]: Windows specifics unverified: `process.env.TZ` runtime behavior, fflate zip byte-identity across TZ, Vite 8 with Vitest 5 (fallback Vite 7.3.6)
 - [Phase 1]: No LICENSE file and `origin` still points at `lumpenspace/ccru`; prose in `app/data/zones.ts` and `gates.ts` has unverified provenance
 - [Phase 3]: Renderer thresholds are unmeasured (research figures conflict); Phases 4-6 wait on the spike's threshold table
@@ -105,8 +107,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-26T02:34:47.160Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-09-26T02:45:20.190Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None
 
 **Planned Phase:** 1 (Foundations and Safety Net) — 8 plans — 2026-09-25T22:07:49.564Z
