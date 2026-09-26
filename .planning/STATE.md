@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 01-08-PLAN.md Tasks 1-2 (Task 3 licensing confirmation pending user confirmation)
+stopped_at: Completed 01-08-PLAN.md Tasks 1-2 (Task 3 licensing confirmation: confirmed by the user on 2026-09-25 at the plan 01-08 Task 3 checkpoint (LICENSE holder `foGledenalzi`, NOTICE scope right as written))
 last_updated: "2026-09-26T04:29:39.593Z"
 last_activity: 2026-09-26
 progress:
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 
 Phase: 1 (Foundations and Safety Net) — EXECUTED, verification pending
 Plan: 8 of 8
-Status: Executed, verification pending (01-08 Task 3, the LICENSE holder / NOTICE scope confirmation, is pending user confirmation)
+Status: Executed, verification pending (01-08 Task 3 done: confirmed by the user on 2026-09-25 at the plan 01-08 Task 3 checkpoint (LICENSE holder `foGledenalzi`, NOTICE scope right as written))
 Last activity: 2026-09-26
 
 Progress: [██████████] 100%
@@ -84,7 +84,7 @@ Recent decisions affecting current work:
 - [Phase 1] Branding scrub (user order, 2026-09-25): removed the "(c) qliphoth.systems / delight nexus" footer text, the upstream logo and Aleph0.svg (new original `public/ccrug-mark.svg`, also the favicon), the "Numogram" wordmarks (now "CCRUG"), and the whole inherited gematria plugin with its build:plugin/build:plugin-zip scripts, scripts/build-plugin-zip.mjs and the fflate dependency (this supersedes the plugin-ZIP part of 01-06). Attribution to lumpenspace/ccru in README + NOTICE is kept on purpose. Goldens unaffected (they capture only the projection svg): 60/60 + static-export 68/68 + sub-path 8/8 green.
 - [Phase 1 P06] Dormant CI ci.yml (ubuntu+windows, read-only token, calls npm run verify; verify needs scripts/check-repo.mjs from 01-08 to run end to end); plugin ZIP is fflate, sha256 e1370547... identical under UTC/Tokyo/New_York, written to gitignored artifacts/
 - [Phase 1 P07] LICENSE is canonical MIT (holder foGledenalzi); NOTICE is authoritative on scope: only post-fork files (plus the original CCRUG mark) are MIT, every file inherited from upstream 7c38ad9 is not relicensed, and the five app/data lore files are excluded as CCRU-derived (header comment only, oracle and manifests unchanged)
-- [Phase 1 P08] check-repo guard (12 checks, --only, --clean-tree, --static-out) with failing-input tests; static-out forbids Vercel markers, api/share-image and the old upstream branding case-insensitively (user scrub order); pre-mutation run failed with 61 junk problems, post-mutation and npm run verify green (68 e2e, 60 goldens unchanged, 122 s); hygiene commit = 61 deletions (dist/ untracked and kept on disk, yarn.lock, 2 .DS_Store), remotes asserted already final, nothing pushed; Task 3 (LICENSE holder foGledenalzi and NOTICE scope) pending user confirmation
+- [Phase 1 P08] check-repo guard (12 checks, --only, --clean-tree, --static-out) with failing-input tests; static-out forbids Vercel markers, api/share-image and the old upstream branding case-insensitively (user scrub order); pre-mutation run failed with 61 junk problems, post-mutation and npm run verify green (68 e2e, 60 goldens unchanged, 122 s); hygiene commit = 61 deletions (dist/ untracked and kept on disk, yarn.lock, 2 .DS_Store), remotes asserted already final, nothing pushed; Task 3 (LICENSE holder foGledenalzi and NOTICE scope) confirmed by the user on 2026-09-25
 
 ### Pending Todos
 
@@ -94,7 +94,7 @@ None yet.
 
 - [Phase 1]: RESOLVED in 01-05: the static export builds (`next build` exit 0) and the client redirect is proven at the root and under `/ccrug`
 - [Phase 1]: RESOLVED: Windows specifics verified (`process.env.TZ` runtime pin and canary in 01-01, Vite 8 with Vitest 5 runs green, fflate plugin ZIP sha256 identical under UTC / Asia/Tokyo / America/New_York in 01-06)
-- [Phase 1]: RESOLVED in 01-07: LICENSE and NOTICE exist and the five lore files are marked CCRU-derived (prose provenance recorded, text unchanged). Still open: the user has NOT yet confirmed the LICENSE holder (`foGledenalzi`, a Claude default) or the NOTICE scope; that is the non-blocking 01-08 Task 3 checkpoint, handled by the orchestrator (pending user confirmation; 01-08 Tasks 1-2 are done and `npm run verify` is green). The remotes were already set (origin = foGledenalzi/CCRUGen, upstream push disabled); 01-08 only asserted them.
+- [Phase 1]: RESOLVED in 01-07: LICENSE and NOTICE exist and the five lore files are marked CCRU-derived (prose provenance recorded, text unchanged). Confirmed by the user on 2026-09-25 at the 01-08 Task 3 checkpoint: LICENSE holder `foGledenalzi` and the NOTICE scope as written. The remotes were already set (origin = foGledenalzi/CCRUGen, upstream push disabled); 01-08 only asserted them.
 - [Phase 3]: Renderer thresholds are unmeasured (research figures conflict); Phases 4-6 wait on the spike's threshold table
 - [Phase 3]: Aesthetic choices need the user: flow direction, Plex placement, default label case
 - [Phase 4]: Label scheme beyond base 36 needs a decision plus font/glyph coverage tests
@@ -116,7 +116,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-09-26T04:29:39.585Z
-Stopped at: Completed 01-08-PLAN.md Tasks 1-2 (Task 3 licensing confirmation pending user confirmation)
+Stopped at: Completed 01-08-PLAN.md Tasks 1-2 (Task 3 licensing confirmation: confirmed by the user on 2026-09-25 at the plan 01-08 Task 3 checkpoint (LICENSE holder `foGledenalzi`, NOTICE scope right as written))
 Resume file: None
 
 **Planned Phase:** 1 (Foundations and Safety Net) — 8 plans — 2026-09-25T22:07:49.564Z

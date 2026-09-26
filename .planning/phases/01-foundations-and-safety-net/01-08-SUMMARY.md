@@ -57,7 +57,7 @@ completed: 2026-09-26
 
 # Phase 1 Plan 08: Repository Guard, Git Hygiene and the Verify Gate Summary
 
-**A tested, dependency-free `check-repo` guard (reference/ never tracked, origin not upstream, junk untracked, LICENSE/NOTICE/lore headers, frozen goldens and LF, CI present, clean tree, clean static export), the dist/yarn.lock/.DS_Store hygiene commit, and a green `npm run verify` (68 e2e, 60 goldens unchanged) in 122 s. Task 3 (licensing confirmation) is pending user confirmation (Task 3 checkpoint).**
+**A tested, dependency-free `check-repo` guard (reference/ never tracked, origin not upstream, junk untracked, LICENSE/NOTICE/lore headers, frozen goldens and LF, CI present, clean tree, clean static export), the dist/yarn.lock/.DS_Store hygiene commit, and a green `npm run verify` (68 e2e, 60 goldens unchanged) in 122 s. Task 3 (licensing confirmation) was confirmed by the user on 2026-09-25 (LICENSE holder foGledenalzi, NOTICE scope as written).**
 
 ## Performance
 
@@ -81,7 +81,7 @@ completed: 2026-09-26
    - RED: `65009b7` (test) — `tests/repo/check-repo.test.ts`; run failed with "Cannot find module '../../scripts/check-repo.mjs'" (no tests ran)
    - GREEN: `3aba310` (feat) — `scripts/check-repo.mjs`; 85/85 in `tests/repo`, `npm run typecheck` exit 0
 2. **Task 2: user-approved git mutations, then the full verify gate** — `3fcac7a` (chore) — `git show --stat HEAD`: 61 files changed, 4819 deletions, all deletions (58 `dist/`, `yarn.lock`, 2 `.DS_Store`); nothing under `.planning` staged
-3. **Task 3: confirm licensing defaults** — NOT RUN, pending user confirmation (Task 3 checkpoint)
+3. **Task 3: confirm licensing defaults** — not run by the executor; run by the orchestrator: confirmed by the user on 2026-09-25 at the plan 01-08 Task 3 checkpoint (LICENSE holder `foGledenalzi`, NOTICE scope right as written)
 
 **Plan metadata:** the docs commit (SUMMARY, STATE, ROADMAP) follows this file.
 
@@ -179,7 +179,7 @@ None. Parallel user actions (not done by Claude): ask lumpenspace for a permissi
 
 ## Pending checkpoint (Task 3)
 
-Task 3 (`checkpoint:human-verify`) was intentionally NOT executed and NOT answered. The LICENSE holder (`foGledenalzi`, a Claude default under CONTEXT "Claude's Discretion") and the NOTICE scope are pending user confirmation (Task 3 checkpoint). Until then FND-05 must not be considered closed. `node scripts/check-repo.mjs --only license,notice` currently passes.
+Task 3 (`checkpoint:human-verify`) was intentionally NOT executed by the executor. The orchestrator put it to the user, who confirmed by the user on 2026-09-25 at the plan 01-08 Task 3 checkpoint (LICENSE holder `foGledenalzi`, NOTICE scope right as written). `node scripts/check-repo.mjs --only license,notice` passes.
 
 ## Known Stubs
 
@@ -196,7 +196,7 @@ None: the guard only reads local files and runs local read-only git commands; no
 
 ---
 *Phase: 01-foundations-and-safety-net*
-*Completed: 2026-09-26 (Tasks 1-2; Task 3 pending user confirmation)*
+*Completed: 2026-09-26 (Tasks 1-2 by the executor; Task 3 confirmed by the user 2026-09-25)*
 
 ## Self-Check: PASSED
 
