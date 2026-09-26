@@ -92,4 +92,17 @@ export interface DemonSpace {
   typeCounts(): Readonly<Record<DemonType, number>>
   incident(zone: number): Iterable<DemonRef>   // base - 1 demons, other zone ascending
   numodemons(): Iterable<DemonRef>             // b = 1 .. base/2 - 1, demon (base - b)::b
+  /**
+   * The demons of one type as a selection in ascending mesh order: count = typeCounts()[type], at(k) = the k-th of them
+   * (RangeError unless k is a whole number in [0, count)). Unranked by a binary search over mesh numbers with closed-form
+   * "how many members lie below mesh m" counts, so nothing is enumerated: O(log C(n, 2)) per at(k). RangeError for an
+   * unknown type. The same frozen selection is returned for the same name.
+   */
+  group(type: DemonType): DemonSelection
+  /**
+   * The demons of one subtype in ascending mesh order (same contract as group). O(log C(n, 2)) per at(k) for every subtype
+   * except 'cyclic-chrono' and 'cross-torque-chrono', which cost O(K log n log C(n, 2)) with K Torque cycles and build a
+   * sorted copy of the Torque pair ids lazily on first use (O(n) once per numogram). RangeError for an unknown subtype.
+   */
+  subtype(subtype: DemonSubtype): DemonSelection
 }

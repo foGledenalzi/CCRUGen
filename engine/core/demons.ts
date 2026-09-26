@@ -11,10 +11,15 @@
 //   exactly one Torque  -> amphi: plex-amphi if the other zone lies in the Plex, else warp-amphi
 //   neither Torque      -> xeno: syzygetic when a + b = n - 1, else chaotic
 // A Numodemon is a demon with a + b = n (there are n/2 - 1 of them).
+//
+// group(type) and subtype(subtype) serve "the k-th demon of this type or subtype in ascending mesh order" by a binary
+// search over mesh numbers (unrank.ts); this file only validates the name and memoizes the selection.
 
 import { MAX_BASE } from './base'
 import type { NumogramInternals } from './numogram' // type only: no runtime import cycle with numogram.ts
-import type { DemonRef, DemonSpace, DemonSubtype, DemonType, Numogram } from './types'
+import { DEMON_SUBTYPES, DEMON_TYPES } from './types'
+import type { DemonRef, DemonSelection, DemonSpace, DemonSubtype, DemonType, Numogram } from './types'
+import { createSelection } from './unrank' // unrank.ts talks to the space only through the DemonSpace interface
 
 /** Number of demons of the largest base: C(2^26, 2) = 2^25 * (2^26 - 1), below 2^52, so every mesh number is an exact double. */
 const MESH_LIMIT = (MAX_BASE * (MAX_BASE - 1)) / 2
@@ -166,12 +171,18 @@ function* numodemonRun(s: NumogramInternals, base: number): Generator<DemonRef, 
   for (let b = 1; b < base / 2; b++) yield buildDemon(s, base - 1, base - b, b)
 }
 
+/** A name as shown in an error message: quoted when it is a string, else its type. */
+function showName(x: unknown): string {
+  return typeof x === 'string' ? JSON.stringify(x) : `<${typeof x}>`
+}
+
 class DemonSpaceImpl implements DemonSpace {
   readonly base: number
   readonly count: number
   readonly numodemonCount: number
   readonly #s: NumogramInternals
   #forms: ReturnType<typeof closedForms> | null = null // memoized in a private field: it stays writable after the freeze
+  readonly #selections = new Map<string, DemonSelection>() // type and subtype names never collide, one map serves both
 
   constructor(base: number, s: NumogramInternals) {
     this.base = base
@@ -228,6 +239,30 @@ class DemonSpaceImpl implements DemonSpace {
     const s = this.#s
     const base = this.base
     return Object.freeze({ [Symbol.iterator]: () => numodemonRun(s, base) })
+  }
+
+  /** The memoized frozen selection of a name that has already been validated. */
+  #selection(name: DemonType | DemonSubtype): DemonSelection {
+    let selection = this.#selections.get(name)
+    if (selection === undefined) {
+      selection = createSelection(this, this.#s, name)
+      this.#selections.set(name, selection)
+    }
+    return selection
+  }
+
+  group(type: DemonType): DemonSelection {
+    if (!(DEMON_TYPES as readonly unknown[]).includes(type)) {
+      throw new RangeError(`Invalid demon type ${showName(type)}: expected one of ${DEMON_TYPES.join(', ')}`)
+    }
+    return this.#selection(type)
+  }
+
+  subtype(subtype: DemonSubtype): DemonSelection {
+    if (!(DEMON_SUBTYPES as readonly unknown[]).includes(subtype)) {
+      throw new RangeError(`Invalid demon subtype ${showName(subtype)}: expected one of ${DEMON_SUBTYPES.join(', ')}`)
+    }
+    return this.#selection(subtype)
   }
 }
 
