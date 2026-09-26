@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-09-26T02:45:20.197Z"
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-09-26T02:54:16.826Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 8
-  completed_plans: 5
-  percent: 63
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 1 (Foundations and Safety Net) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-09-26
 
-Progress: [██████░░░░] 63%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [██████░░░░] 63%
 | Phase 1 P03 | 5min | 2 tasks | 5 files |
 | Phase 1 P04 | 14min | 2 tasks | 36 files |
 | Phase 1 P05 | 7min | 3 tasks | 24 files |
+| Phase 1 P06 | 8min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase 1 P03] Numeric base-10 oracle frozen as engine/test/fixtures/base10.golden.json (sha256 in MANIFEST.json, set 2026-09-26-base10-numeric); capture script refuses to overwrite; oracle test asserts definitions (T(k), base-n digital root, current cycles, 12+3/12+12/4+2 demon split) independently of the JSON
 - [Phase 1 P04] DOM oracle frozen: 30 visual-DOM goldens (original/labyrinth/ladder x 10 states) in e2e/__golden__ captured once from the untouched viewer on next dev, sha256 in e2e/__golden__/MANIFEST.json (set 2026-09-26-baseline, strictDir); capture only with GOLDEN_CAPTURE=1 (exits 1 by design), every other run is updateSnapshots none; settle signal = viewBox + __reactFiber$ + 2 rAF + 300 ms stable; aria/data/role/tabindex ignored, numbers rounded to 3 decimals
 - [Phase 1 P05] Static export live: output 'export' unconditional, NEXT_PUBLIC_BASE_PATH validated sub-path, / is a client location.replace redirect keeping query+hash; 30 frozen DOM goldens pass unchanged on serve out (60/60, no golden touched); capture page-weight baseline from a root build (basePath build reports different route sizes)
+- [Phase 1 P06] Page-weight budget: baseline perf/page-weight.baseline.json from a root build (/ and /numogram/ bytes raw+gzip, 30 golden DOM counts 6405 total), tolerance max(1 KiB, 5%) bytes and max(2, 2%) nodes stored in the file; raising it only via update --reason (history ledger); check reads counts from the frozen goldens, no browser
+- [Phase 1 P06] Dormant CI ci.yml (ubuntu+windows, read-only token, calls npm run verify; verify needs scripts/check-repo.mjs from 01-08 to run end to end); plugin ZIP is fflate, sha256 e1370547... identical under UTC/Tokyo/New_York, written to gitignored artifacts/
 
 ### Pending Todos
 
@@ -85,7 +88,7 @@ None yet.
 ### Blockers/Concerns
 
 - [Phase 1]: RESOLVED in 01-05: the static export builds (`next build` exit 0) and the client redirect is proven at the root and under `/ccrug`
-- [Phase 1]: Windows specifics unverified: `process.env.TZ` runtime behavior, fflate zip byte-identity across TZ, Vite 8 with Vitest 5 (fallback Vite 7.3.6)
+- [Phase 1]: RESOLVED: Windows specifics verified (`process.env.TZ` runtime pin and canary in 01-01, Vite 8 with Vitest 5 runs green, fflate plugin ZIP sha256 identical under UTC / Asia/Tokyo / America/New_York in 01-06)
 - [Phase 1]: No LICENSE file and `origin` still points at `lumpenspace/ccru`; prose in `app/data/zones.ts` and `gates.ts` has unverified provenance
 - [Phase 3]: Renderer thresholds are unmeasured (research figures conflict); Phases 4-6 wait on the spike's threshold table
 - [Phase 3]: Aesthetic choices need the user: flow direction, Plex placement, default label case
@@ -107,8 +110,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-26T02:45:20.190Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-09-26T02:54:16.820Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None
 
 **Planned Phase:** 1 (Foundations and Safety Net) — 8 plans — 2026-09-25T22:07:49.564Z
