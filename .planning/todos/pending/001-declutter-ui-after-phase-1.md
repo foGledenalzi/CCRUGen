@@ -25,4 +25,5 @@ Promoted from the quick note captured on 2026-09-25 22:11. Suggested route: `/gs
 - [ ] After-inventory ticked off item by item against the before-inventory
 - [ ] The 60 DOM goldens still pass unchanged (no `-u`, no `GOLDEN_CAPTURE`), both manifests verify, the projection `<svg>` subtree is untouched
 - [ ] Static-export specs pass (default and `/ccrug` sub-path), `npm run check:weight` OK, `npm run typecheck`, `npm run test` and `npm run test:tz` pass
+- [ ] Review finding WR-01 closed: with `NEXT_PUBLIC_BASE_PATH=/ccrug`, clicking the "CCRUG" header title from `/ccrug/numogram/?selected=5` lands on `/ccrug/numogram/` (not `/ccrug/ccrug/numogram/`); add that click case to `e2e/static-export.spec.ts`
 - [ ] Looked at in a real browser at desktop width; nothing pushed
