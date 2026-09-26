@@ -1,37 +1,31 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="bg" cx="50%" cy="45%" r="70%">
-      <stop offset="0%" stop-color="#111826" />
-      <stop offset="100%" stop-color="#060609" />
+      <stop offset="0%" stop-color="#111826"/>
+      <stop offset="100%" stop-color="#060609"/>
     </radialGradient>
-    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="2.2" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
   </defs>
-
-  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg)" />
-
-  <g stroke="#10ff50" stroke-linecap="round" stroke-linejoin="round" filter="url(#softGlow)">
-    <path d="M72 52L184 52L168 102L88 102Z" fill="none" stroke-opacity="0.55" stroke-width="3" />
-    <path d="M88 102L52 144L92 196L164 196L204 144L168 102" fill="none" stroke-opacity="0.55" stroke-width="3" />
-    <path d="M72 52L52 144L92 196" fill="none" stroke-opacity="0.25" stroke-width="2" />
-    <path d="M184 52L204 144L164 196" fill="none" stroke-opacity="0.25" stroke-width="2" />
-  </g>
-
-  <g fill="#10ff50">
-    <circle cx="72" cy="52" r="6" />
-    <circle cx="128" cy="52" r="6" />
-    <circle cx="184" cy="52" r="6" />
-    <circle cx="88" cy="102" r="6" />
-    <circle cx="168" cy="102" r="6" />
-    <circle cx="52" cy="144" r="6" />
-    <circle cx="204" cy="144" r="6" />
-    <circle cx="92" cy="196" r="6" />
-    <circle cx="164" cy="196" r="6" />
-    <circle cx="128" cy="144" r="8" />
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg)"/>
+  <g transform="translate(28 28) scale(0.8)" fill="none" stroke="#10ff50">
+    <circle cx="125" cy="125" r="96" stroke-opacity="0.35" stroke-width="2"/>
+    <g stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round">
+      <line x1="125" y1="29" x2="68.57" y2="47.33"/>
+      <line x1="181.43" y1="47.33" x2="33.7" y2="95.33"/>
+      <line x1="216.3" y1="95.33" x2="33.7" y2="154.67"/>
+      <line x1="216.3" y1="154.67" x2="68.57" y2="202.67"/>
+      <line x1="181.43" y1="202.67" x2="125" y2="221"/>
+    </g>
+    <g fill="#10ff50" stroke="none">
+      <circle cx="125" cy="29" r="7"/>
+      <circle cx="181.43" cy="47.33" r="5"/>
+      <circle cx="216.3" cy="95.33" r="5"/>
+      <circle cx="216.3" cy="154.67" r="5"/>
+      <circle cx="181.43" cy="202.67" r="5"/>
+      <circle cx="125" cy="221" r="5"/>
+      <circle cx="68.57" cy="202.67" r="5"/>
+      <circle cx="33.7" cy="154.67" r="5"/>
+      <circle cx="33.7" cy="95.33" r="5"/>
+      <circle cx="68.57" cy="47.33" r="7"/>
+    </g>
   </g>
 </svg>

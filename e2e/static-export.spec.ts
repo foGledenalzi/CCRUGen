@@ -34,7 +34,7 @@ test('no foreign, Vercel or API requests and no failed requests', async ({ page 
 
 test('the logo URL goes through the basePath helper', async ({ page }) => {
   await page.goto(`${BASE}/numogram/`)
-  const srcs = await page.locator('img[src$="numogram-logo.svg"]').evaluateAll(els => els.map(e => e.getAttribute('src')))
+  const srcs = await page.locator('img[src$="ccrug-mark.svg"]').evaluateAll(els => els.map(e => e.getAttribute('src')))
   expect(srcs.length).toBeGreaterThan(0)
-  for (const s of srcs) expect(s).toBe(`${BASE}/numogram-logo.svg`)
+  for (const s of srcs) expect(s).toBe(`${BASE}/ccrug-mark.svg`)
 })

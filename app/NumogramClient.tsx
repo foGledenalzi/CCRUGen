@@ -1477,7 +1477,7 @@ export default function NumogramPage() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={withBasePath('/numogram-logo.svg')}
+          src={withBasePath('/ccrug-mark.svg')}
           alt=""
           className="mb-4 w-20 md:w-28"
           style={{
@@ -1496,7 +1496,7 @@ export default function NumogramPage() {
             transition: 'text-shadow 1.2s ease, color 1.2s ease',
             color: introPhase === 'title' ? '#d1d5db' : '#333',
           }}
-        >NUMOGRAM</h1>
+        >CCRUG</h1>
       </div>
 
       {/* Pinned background */}
@@ -1594,9 +1594,9 @@ export default function NumogramPage() {
         style={{ left: panelHeaderLeft, top: 14, width: panelHeaderWidth }}
       >
         <CyberPageHeader
-          icon={withBasePath('/numogram-logo.svg')}
+          icon={withBasePath('/ccrug-mark.svg')}
           showHomeLink={false}
-          title="Numogram"
+          title="CCRUG"
           titleHref="/numogram"
           description="Decimal Labyrinth"
           actions={(

@@ -73,7 +73,7 @@ Then open `http://localhost:3000/numogram`. The `--ignore-scripts` flag is tempo
 
 - `app/` - the Next.js viewer (`app/numogram/`, `app/NumogramClient.tsx`, `app/components/`, `app/hooks/`, `app/lib/`).
 - `app/data/` - the hand-authored base-10 data and CCRU-derived lore (to be replaced by engine output in Phase 2).
-- `component-library/`, `gematria/plugin/` - inherited from upstream and out of scope for this project; kept on disk unchanged.
+- `component-library/` - inherited from upstream and out of scope for this project; kept on disk unchanged.
 - `.planning/` - project, requirements, roadmap, research and per-phase plans.
 - `CLAUDE.md` - notes for AI-assisted sessions (project rules and how to resume).
 - `reference/` - local-only reference material; gitignored and not part of the repository.

@@ -32,8 +32,6 @@
     "check:repo": "node scripts/check-repo.mjs",
     "check:weight": "node scripts/page-weight.mjs check",
     "build:components": "tsc --project tsconfig.components.json",
-    "build:plugin": "tsc --project gematria/plugin/tsconfig.json",
-    "build:plugin-zip": "node scripts/build-plugin-zip.mjs",
     "prepare": "npm run build:components",
     "verify": "npm run check:repo && npm run typecheck && npm run test && npm run test:tz && npm run test:e2e:basepath && npm run build && npm run check:weight && npm run test:e2e && node scripts/check-repo.mjs --clean-tree --static-out"
   },
@@ -55,7 +53,6 @@
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.35",
     "fast-check": "4.10.2",
-    "fflate": "0.8.3",
     "postcss": "^8.4.0",
     "serve": "14.2.6",
     "tailwindcss": "^3.4.0",

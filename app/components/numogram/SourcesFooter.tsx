@@ -37,7 +37,6 @@ export function SourcesFooter() {
             [{link.label}]
           </a>
         ))}
-        <span style={{ color: '#6b7280' }}>(c) qliphoth.systems / delight nexus</span>
       </div>
     </div>
   )
