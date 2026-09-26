@@ -160,6 +160,70 @@ describe('workflowProblems', () => {
   it.each(['npm run verify', 'ubuntu-latest', 'windows-latest', 'contents: read'])('flags a workflow missing %j', (needle) => {
     expect(workflowProblems(WORKFLOW.replace(needle, 'x'))).not.toEqual([])
   })
+  it.each(['npm run verify', 'ubuntu-latest', 'windows-latest', 'contents: read'])(
+    'does not let a comment stand in for %j',
+    (needle) => {
+      expect(workflowProblems(WORKFLOW.replace(needle, `x # ${needle}`))).not.toEqual([])
+      expect(workflowProblems(`# ${needle}\n${WORKFLOW.replace(needle, 'x')}`)).not.toEqual([])
+    },
+  )
+  it('accepts a named step, CRLF line endings, extra permissions and trailing comments', () => {
+    const variant = WORKFLOW.replace('- run: npm run verify', '- name: Verify\n        run: npm run verify # the gate')
+      .replace('  contents: read', '  actions: read\n  contents: read # least privilege')
+    expect(workflowProblems(variant)).toEqual([])
+    expect(workflowProblems(WORKFLOW.replace(/\n/g, '\r\n'))).toEqual([])
+  })
+  it.each([
+    ['a step that only mentions the verify call', '- run: npm run verify-not', 'npm run verify'],
+    ['a verify call chained with another command', '- run: npm run verify && echo done', 'npm run verify'],
+    ['a write-all token', 'permissions: write-all', 'write'],
+  ])('flags %s', (_label, line, message) => {
+    const yml = line.startsWith('permissions:')
+      ? WORKFLOW.replace('permissions:\n  contents: read', line)
+      : WORKFLOW.replace('- run: npm run verify', line)
+    expect(workflowProblems(yml).join('\n')).toContain(message)
+  })
+  it.each([
+    ['a job-level write permission', '    steps:', '    permissions:\n      contents: write\n    steps:'],
+    ['a flow-style write permission', 'permissions:\n  contents: read', 'permissions: { contents: read, packages: write }'],
+    ['a write permission added after contents: read', '  contents: read', '  contents: read\n  id-token: write'],
+  ])('flags %s', (_label, from, to) => {
+    expect(workflowProblems(WORKFLOW.replace(from, to)).join('\n')).toContain('write')
+  })
+  it('does not flag pull_request_target that is only mentioned in a comment', () => {
+    expect(workflowProblems(`# never use pull_request_target here\n${WORKFLOW}`)).toEqual([])
+  })
+
+  // Review WR-03: line 1 of the real ci.yml is a comment that names `npm run verify`, so a substring match
+  // was satisfied by the comment even after the step itself was gone. Use the real file, not a fixture.
+  describe('the real .github/workflows/ci.yml', () => {
+    const real = readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8')
+    const swap = (from: string, to: string): string => {
+      expect(real).toContain(from) // the fixture edit must really change the file
+      return real.replace(from, to)
+    }
+
+    it('passes unmodified', () => {
+      expect(workflowProblems(real)).toEqual([])
+    })
+    it('still passes with CRLF line endings', () => {
+      expect(workflowProblems(real.replace(/\r?\n/g, '\r\n'))).toEqual([])
+    })
+    it('is flagged when the verify step is replaced by `- run: echo skipped`', () => {
+      expect(real).toMatch(/^#.*npm run verify/) // the comment that used to satisfy the guard
+      const problems = workflowProblems(swap('- run: npm run verify', '- run: echo skipped'))
+      expect(problems.join('\n')).toContain('npm run verify')
+    })
+    it('is flagged when the token is `contents: write # was contents: read`', () => {
+      const problems = workflowProblems(swap('contents: read', 'contents: write # was contents: read'))
+      expect(problems.join('\n')).toContain('contents: read')
+      expect(problems.join('\n')).toContain('write')
+    })
+    it('is flagged when a matrix OS is dropped or pull_request_target is added', () => {
+      expect(workflowProblems(swap('[ubuntu-latest, windows-latest]', '[ubuntu-latest]')).join('\n')).toContain('windows-latest')
+      expect(workflowProblems(swap('  pull_request:', '  pull_request_target:')).join('\n')).toContain('pull_request_target')
+    })
+  })
 })
 
 describe('gitattributesProblems', () => {

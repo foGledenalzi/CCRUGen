@@ -90,17 +90,51 @@ export function licenseProblems(text) {
 }
 
 /**
+ * Drop YAML comments (a `#` at the start of a line or after whitespace) and normalise CRLF, so a comment can
+ * never satisfy or trip a structural check. Over-stripping a `#` inside a quoted scalar is harmless here.
+ * @param {string} yml
+ * @returns {string[]} the comment-free lines
+ */
+function stripYamlComments(yml) {
+  return yml.split(/\r?\n/).map((line) => line.replace(/(^|\s)#.*$/, ''))
+}
+
+/**
  * The CI workflow must call the single verify entry point on both OSes with a read-only token (D-07).
+ * Matched structurally on the comment-free text (review WR-03): a `run: npm run verify` step, a top-level
+ * `permissions:` block that holds `contents: read`, no write permission anywhere, both runner OSes and no
+ * pull_request_target trigger.
  * @param {string} yml
  * @returns {string[]}
  */
 export function workflowProblems(yml) {
   /** @type {string[]} */
   const problems = []
-  for (const needle of ['npm run verify', 'ubuntu-latest', 'windows-latest', 'contents: read']) {
-    if (!yml.includes(needle)) problems.push(`workflow lacks "${needle}"`)
+  const lines = stripYamlComments(yml)
+  const body = lines.join('\n')
+
+  if (!/^[ \t]*(?:-[ \t]+)?run:[ \t]*["']?npm run verify["']?[ \t]*$/m.test(body)) {
+    problems.push('workflow has no "run: npm run verify" step')
   }
-  if (yml.includes('pull_request_target')) problems.push('workflow uses pull_request_target')
+
+  const start = lines.findIndex((line) => /^permissions:[ \t]*$/.test(line))
+  /** @type {string[]} */
+  const block = []
+  if (start !== -1) {
+    for (const line of lines.slice(start + 1)) {
+      if (line.trim() !== '' && !/^[ \t]/.test(line)) break // next top-level key
+      block.push(line)
+    }
+  }
+  if (!block.some((line) => /^[ \t]+contents:[ \t]*read[ \t]*$/.test(line))) {
+    problems.push('workflow lacks a top-level "permissions:" block with "contents: read"')
+  }
+  if (/\bwrite-all\b|:[ \t]*["']?write\b/.test(body)) problems.push('workflow requests write permissions')
+
+  for (const os of ['ubuntu-latest', 'windows-latest']) {
+    if (!new RegExp(`\\b${os}\\b`).test(body)) problems.push(`workflow lacks "${os}"`)
+  }
+  if (/\bpull_request_target\b/.test(body)) problems.push('workflow uses pull_request_target')
   return problems
 }
 
