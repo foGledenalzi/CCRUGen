@@ -1,6 +1,6 @@
 ---
 date: "2026-09-25"
-updated: "2026-09-25 (before-inventory)"
+updated: "2026-09-25 (before and after inventory)"
 ---
 
 # UI declutter inventory (todo 001)
@@ -9,7 +9,7 @@ Before-inventory of the shell at HEAD `52fc8df` (Phase 1 closed), captured mecha
 
 ## Findings that shape the task
 
-1. **The panels have no open/close toggle in the rendered app.** `CyberPanel` only shows its chevron when `collapseDirection !== 'none'`, and `NumogramClient.tsx` never passes it, so the `layersOpen`/`labelsOpen`/... state (and the mobile "start collapsed" effect) is dead. The Selection panel already sets `showToggle={false}`. The only collapsible things are the items inside the Selection panel (`PanelGroup`). Nothing to preserve or remove here; the dead toggle branches and the unused open state stay as they are (unused code is out of scope, Phase 4 decides the panels).
+1. **The panels have no open/close toggle in the rendered app.** `CyberPanel` only shows its chevron when `collapseDirection !== 'none'`, and `NumogramClient.tsx` never passes it, so the `layersOpen`/`labelsOpen`/... state (and the mobile "start collapsed" effect) is dead. The Selection panel already sets `showToggle={false}`. The only collapsible things are the items inside the Selection panel (`PanelGroup`). This is a pre-existing fact about the untouched app (the panels were never collapsible in the shipped shell), not something this declutter removed: there was no toggle to preserve, and the dead toggle branches and unused open state stay as they are (unused code is out of scope, Phase 4 decides the panels).
 2. **Real mouse clicks on the text of Zones, Syzygies, Currents and Gates rows are dropped by Chromium in the untouched app.** The cause, inferred from the code and consistent with the padding-click experiment: those lists build their row body with an inline component (`ItemDisplayComponent`), and `CyberPanel`'s `onMouseDownCapture` re-renders the page on every mousedown, so the row's child span is remounted between mousedown and mouseup and Chrome does not fire `click`. A click on the row's own padding, a DOM `click()`, and the keyboard/canvas paths all work; the Layers, Labels and Regions rows (which call `itemDisplay` directly) are fine. This is pre-existing and unrelated to the declutter; it is recorded (behaviour "real mouse click on Zones row 5 centre") so that the after-inventory proves it is unchanged, and it is flagged for the user rather than fixed here.
 3. **The intro splash leaves a residue.** After the fade the title layer (logo + "CCRUG" wordmark, `z-[70]`) stays mounted at opacity 0.04, blurred, over the whole page, i.e. it is a permanent full-viewport overlay.
 4. **At 390px the shell is already overlapping** (header over the layout buttons, all seven panels open and stacked on top of each other and the Selection panel). This is upstream behaviour; structural fixes are Phase 4. The declutter must not make it worse and must not add horizontal overflow.
@@ -316,3 +316,36 @@ Stages captured for every layout (only `original` and `planetary` are tabulated;
 ```
 
 Panel geometry at 1440x900 (x, y, w, h, z): Layers 12,64,180,146,z40; Labels 12,228,180,101,z41; Zones 12,347,180,270,z43; Regions 216,64,180,131,z42; Syzygies 12,635,180,143,z45; Currents 216,213,180,143,z44; Gates 216,374,180,270,z46; Selection 1022,64,320,318,z47; header 12,14,384,30,z46; topbar 0,0,1440,68,z40; footer 634,869,172,24,z62; shortcutsTrigger 1354,866,74,22,z74; splash 0,0,1440,900,z70.
+
+## After-inventory and diff (commits 006bb44, a8d4336 and c5aa256 applied)
+
+The same capture script ran against the rebuilt export (`npm run build`, `out/`, loopback) and was diffed against the before capture: 51 desktop snapshots (4 layouts, every stage above) plus the 390x800 snapshot, 3425 interactive-element lines, 682 region texts and 177 behaviour rows compared. Any difference is listed below; nothing else differs.
+
+**Result: zero lost, added, renamed, reordered, disabled or hidden controls in any snapshot, and all 177 behaviour rows identical** (hover labels and popovers, drag delta and z-index raise, undo/redo state, URL after every action, selection headings, keyboard shortcuts including the digit/Escape/Shift+/ paths, modal open/close via key, trigger, close button and backdrop, share clipboard text, header title link, layout viewBoxes, page errors, mobile horizontal overflow 0 px and no region off-screen). That includes the pre-existing dropped click on the centre of a Zones row (finding 2), which is unchanged.
+
+| # | difference (before -> after) | where | why it is intended |
+|---|------------------------------|-------|--------------------|
+| 1 | `splash` region text `CCRUG` -> absent; one full-viewport fixed overlay (`z-70`, opacity 0.04, logo mark + wordmark) -> none | all 52 snapshots | intro splash and its residual title layer removed (a8d4336) |
+| 2 | `body::before` and `body::after` `content: ""` (z 9998 / 9999) -> `none` | all 52 | vignette and scanline overlays removed (006bb44) |
+| 3 | running animations `crt-flicker` (always) and `pulse-dot` (whenever an info block is shown) -> none | all 52 | flicker animation removed (006bb44); status-dot pulse removed (c5aa256). No animation is running in the shell at rest any more |
+| 4 | shell style census (elements outside the `<svg>`): text-shadow 51 -> 0, filter 3 -> 0, clip-path 9 -> 0, gradient background 16 -> 1, box-shadow 8 -> 1 in the original layout (with a selection open 16 -> 1 and 22 -> 1) | all 52 | glows, drop shadows and text shadows removed (006bb44, c5aa256); cut corners and gradient surfaces removed (c5aa256). The one remaining gradient is the top-bar fade behind the layout buttons; the one remaining box-shadow is the active layout button's inset underline (state cue), both kept on purpose |
+| 5 | Selection panel text: `DataRow` used to render a 2 px coloured tick, the label, a `flex-1` span holding 30 middle-dot characters (`·` x 30, font-size 7, letter-spacing 0.15em, clipped) and then the value. The tick (no text) and the dot-leader span are gone; the value is now right-aligned with `ml-auto`. In the text dump this shows as one text node of 30 `·` characters disappearing after each row label, in the 21 of 51 desktop snapshots where an expanded detail item contains data rows (zone: SYZ, PARTICLE, MU_TANTRA, MESH_TAG, PHASE_CT; syzygy: TWINNING, DEMON, CURRENT_DIFF; current: FORMULA; gate: CUMULATION, PLEX, CHANNEL) | Selection panel | decorative leader and tick. Every label and every value text is unchanged: the word-diff of all 21 differences contains only the leader token and its separator |
+| 6 | Selection panel height 318 -> 297 px at 1440x900 (305 -> 284 at 390 px); the "Numogram" intro block lost its three neon dividers and its paragraphs got 6 px margins | Selection geometry | divider removal (c5aa256) |
+
+Every other region (Layers, Labels, Zones, Regions, Syzygies, Currents, Gates, header, top bar, footer, shortcuts trigger) has identical x, y, width, height and z-index.
+
+**Tick-off against the before-inventory (all identical after)**
+
+- [x] Top bar: layout buttons A S D F with hover label; planetary Z X C V and the date field (with its shortcut guard)
+- [x] Header: title link, Undo, Redo, Share (clipboard URL), disabled states
+- [x] Layers (4 layers + Particles) and Labels (3) toggles with ON/OFF text and hover popovers
+- [x] Zones: count toggle plus 10 rows with planet, xenotation, region, "one isn't real" hover card
+- [x] Regions (Torque, Warp, Plex, Time Circuit), Syzygies (5), Currents (5), Gates (count toggle plus 10)
+- [x] Selection panel: clear, accordion open/close, per-item remove, all zone/syzygy/current/gate/demon detail text, intro text and controls line
+- [x] Shortcuts trigger and modal (all six lines, Shift+/, Escape, close button, backdrop)
+- [x] Sources footer (4 links)
+- [x] Keyboard: A S D F, Z X C V, digits 0-9, Escape, Shift+/, Ctrl+Z, Ctrl+Y
+- [x] Panel drag (delta and z-index raise) and URL state (layout, layers, region, tc, particles, date, orbits, selected), both in the before/after capture
+- [x] Canvas marquee selection and node-click pinning: not in the before capture (their code is untouched, and they sit in the oracle-adjacent subtree); verified after the change with a scripted drag across the diagram (marquee box shown while dragging, then all 10 zones selected, `?selected=0,...,9`) and a click on the zone 5 node (Selection heading `(1)`, pinned background readout shows the Zone 5 text)
+- [x] Pinned background readout (renders as soon as an element is pinned; before, it waited for the intro to finish)
+- [ ] Panel open/close toggles: none existed before and none exist now (finding 1); nothing to preserve, so nothing to tick
