@@ -12,6 +12,7 @@ Not deprecations (those show as `npm warn deprecated` and never fail an install)
 - `.github/workflows/ci.yml` uses `node-version: 22`, and the runners' Node 22 ships **npm 10.x**. `package-lock.json` was written by **npm 11** (this machine has 11.6.2; the docs and README say npm 11).
 - Reproduced: `npx npm@10.9.3 ci --dry-run` fails with the identical two "Missing" lines; `npx npm@11 ci --dry-run` passes. That is why every local `npm run verify` and the verifier's `npm ci --dry-run` were green while CI is red.
 - The two packages are peer dependencies (`@emnapi/core`, `@emnapi/runtime`, range `^1.7.1 || ^2.0.0-alpha.4`) of the optional WASM fallback of `@unrs/resolver-binding-wasm32-wasi` (reached through eslint-config-next's import resolver). npm 10 wants them hoisted at the top level (resolving to 1.11.3); the npm 11 lock only has them nested at 1.10.0 under that binding, so npm 10 sees the lock as out of sync. Both the ubuntu and windows runners hit it at `npm ci`, before any project code runs.
+- The failed runs got as far as `npm ci`, so `actions/checkout@v7` and `actions/setup-node@v7` do exist (review IN-06 partly settled). `actions/cache@v6` and `actions/upload-artifact@v7` still have not executed.
 - Nothing in the project code is wrong. This was the "CI has never run" risk (verification note, review IN-06); the first run found it.
 
 ## Fix (validated in a scratch copy, repo untouched)
