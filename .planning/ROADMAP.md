@@ -93,7 +93,7 @@ Plans:
 - [x] 03-02-PLAN.md - Tier-table schema, selectTier and tier= override, boundary derivation, validator and the interim research table as data (wave 1)
 - [x] 03-03-PLAN.md - Procedural ladder (exact base-10 reduction), Barker spiral and the syzygy-collapsed pair graph (wave 2)
 - [x] 03-04-PLAN.md - Pure numeric-id gate and current routing (wave 2)
-- [ ] 03-05-PLAN.md - Base-10 layout presets as LayoutSpecs, positions.ts seam, NOTICE entry for the upstream layout tables, full gate (wave 2)
+- [x] 03-05-PLAN.md - Base-10 layout presets as LayoutSpecs, positions.ts seam, NOTICE entry for the upstream layout tables, full gate (wave 2)
 - [ ] 03-06-PLAN.md - Scene-to-SVG string emitter with XML escaping, degenerate bases 2/4/6 (wave 3)
 - [ ] 03-07-PLAN.md - Layout registry, tween helper, engine layout/scene exports, determinism and sizing tests, full gate with page-weight check (wave 4)
 - [ ] 03-08-PLAN.md - Layout contact sheet, user sign-off (D-10), signed-off digest pin (wave 5, checkpoint)

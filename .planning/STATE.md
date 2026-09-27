@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-04-PLAN.md (pure numeric-id gate and current routing); next is 03-05
-last_updated: "2026-09-27T20:45:00.000Z"
+stopped_at: Completed 03-05-PLAN.md (base-10 layout presets, positions.ts seam, NOTICE entry, full gate); next is 03-06
+last_updated: "2026-09-27T21:06:19.867Z"
 last_activity: 2026-09-27
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 31
-  completed_plans: 25
-  percent: 81
+  completed_plans: 26
+  percent: 84
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 3 — EXECUTING
-Plan: 03-05 of 10
-Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-04 complete, wave 2 continues with 03-05)
-Last activity: 2026-09-27 -- 03-04 complete (pure numeric-id gate and current routing; the plan's own executor was interrupted by a session rate limit right at the final metadata commit — code (both TDD RED/GREEN task commits) was already committed and verified green; the orchestrator finished the SUMMARY.md/STATE.md/ROADMAP.md bookkeeping)
+Plan: 03-06 of 10
+Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-05 complete, wave 3 begins with 03-06)
+Last activity: 2026-09-27 -- 03-05 complete (base-10 layout presets as LayoutSpecs, D-05/LAY-02; positions.ts flipped to a pass-through seam; full npm run verify green, page weight flat)
 
-Progress: [████████░░] 81%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [████████░░] 81%
 | Phase 03 P01 | 14min | 3 tasks | 9 files |
 | Phase 3 P02 | 5min | 2 tasks | 5 files |
 | Phase 03 P03 | 12min | 2 tasks | 6 files |
+| Phase 03 P05 | 21min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,7 @@ Recent decisions affecting current work:
 - [Phase 3 P01] Layout contracts fixed (engine/layout/types.ts) and ringLayout (D-01/D-02/D-03/D-06) verified for every even base 2..400 plus 666/1024/4096, both packers; packer default 'spiral' (D-03), 'shelf' selectable; composeTorques nesting pass order fixed vs the research prototype to guarantee the nest gap for k<=3
 - [Phase 3 P02] Renderer threshold table (REN-01): engine/scene/tiers.ts has the TierTable schema, pure selectTier/parseTierOverride/tweenAllowed/labelsVisible/gateLayerMode, deriveBoundaries ('longest passing prefix' of shipped-profile rows against budgets, profile-independent chords, area from ok probes) and validateTierTable (~35 schema/invariant rules, the validateBase idiom, D-14d conservative-shippedProfile enforcement, measured-status-only equality against deriveBoundaries); engine/scene/tier-table.json is the interim placeholder table transcribed from the 03-RESEARCH.md four-profile spike (22 sw-6x rows, gpu/sw/sw-4x/sw-6x environments, 9 chord rows, 9 canvas probes, 4 headless rows), shippedProfile sw-6x, canvasMaxN null and layoutTweenMaxN a stated placeholder (only svgRichMaxN=100, svgLeanMaxN=1000, allChordsMaxN=60 and canvasAreaLimitPx=268435456 are required to equal deriveBoundaries for a placeholder table); webglDecision.adopt false with a dated reason (D-12), tierOverrideParam enabled for tier=svg|canvas|headless (D-13); engine/scene/tierTable.ts exports the typed TIER_TABLE. 33/33 unit tests green in both timezones, full npm run typecheck (4x tsc + lint) clean; REN-01 stays in-progress (also covered by 03-09, 03-10).
 - [Phase 3 P03] ladderLayout skips fitFrame's minimum-frame clamp (unlike ring/spiral/pairGraph) so it reduces EXACTLY to the frozen base-10 ladder (800 x 870, centre 400,450); pairGraphLayout reuses ring.ts's torqueGlyphs/composeTorques/ringNodes with unitsPerPair=1 so pair-graph rings are indexed by pair id (base 64: six rings, base 28: rings of 9 and 3); routePairGraph's current arcs (SVG flags 0 0 0) and self loops (flags 0 1 0) verified against g.nextPair for every even base 2..400 (T-03-08)
+- [Phase 3 P05] Base-10 layout presets (D-05, LAY-02): app/presets/base10/layout-tables.ts holds the nine upstream tables plus DRAW_ORDER/FRAME_HEIGHT/REGION_LABELS (not relicensed, NOTICE section 2); app/presets/base10/layouts.ts exposes BASE10_LAYOUT_SPECS (original, labyrinth, ladder, planetary) as LayoutSpecs importing engine layout TYPES only; app/data/positions.ts is now a two-line pass-through seam; proven against the frozen numeric oracle and a local DOM-golden parser (zone labels distinguished from the pandemonium layer's digits by font-size=17 vs 7); full npm run verify green, page weight flat (-2 bytes raw)
 
 ### Pending Todos
 
@@ -151,8 +153,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T20:10:09.795Z
-Stopped at: Completed 03-03-PLAN.md (procedural ladder, Barker spiral and pair-graph view); next is 03-04
+Last session: 2026-09-27T21:06:19.859Z
+Stopped at: Completed 03-05-PLAN.md (base-10 layout presets, positions.ts seam, NOTICE entry, full gate); next is 03-06
 Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
