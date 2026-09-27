@@ -68,7 +68,7 @@ Plans:
 - [x] 02-06-PLAN.md - Demon unranking by type and subtype in mesh order, checked against the reference (wave 4)
 - [x] 02-07-PLAN.md - Lore consolidation into app/presets/base10/lore.ts with NOTICE, header and check-repo updated together (D-06, D-07, D-16) (wave 4)
 - [x] 02-08-PLAN.md - Swap 1: syzygies from engine + lore via the base-10 adapter seam; full gate, then delete hand data (wave 5)
-- [ ] 02-09-PLAN.md - Swap 2: currents (wave 6)
+- [x] 02-09-PLAN.md - Swap 2: currents (wave 6)
 - [ ] 02-10-PLAN.md - Swap 3: gates with own-base Gt-NN names (wave 7)
 - [ ] 02-11-PLAN.md - Swap 4: regions/zones (ZONE_REGION, TC, TC_*) from the engine cycles (wave 8)
 - [ ] 02-12-PLAN.md - Swap 5: demons from the demon space with the legacy kind mapping (wave 9)
@@ -187,7 +187,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
-| 2. Engine Core and Base-10 Migration | 8/13 | In Progress | - |
+| 2. Engine Core and Base-10 Migration | 9/13 | In Progress | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
