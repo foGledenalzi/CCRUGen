@@ -33,11 +33,12 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - ✓ Frozen base-10 oracle: numeric `base10.golden.json` (all four layouts, planetary numerically) plus 30 normalized-SVG DOM goldens (original/labyrinth/ladder x 10 states), captured from the untouched viewer and passing on the static build in two timezones — Validated in Phase 1
 - ✓ Enforced engine purity (`engine/`: no DOM/Node types, relative imports only, nothing may import from outside `engine/`), repo guard (`reference/` never tracked, origin not upstream, LF, licensing present) and the single `npm run verify` gate on Windows/Ubuntu CI (workflow written, not yet run) — Validated in Phase 1
 - ✓ Licensing and attribution decided: MIT for original code (holder foGledenalzi), upstream `lumpenspace/ccru` credited and its files not relicensed, CCRU lore excluded (NOTICE) — Validated in Phase 1
+- ✓ Engine: pure, dependency-free TypeScript (`engine/`) that derives, for any even base from 2 to 2^26, the zones, syzygy pairs, currents, gates, Plex / Warp / Torque cycles (`Cycle[]`, canonical order) and a virtual demon space (O(1) mesh <-> net-span exact up to the ceiling, explicit cross-Torque chronodemon subtype, closed-form counts, unranking, Numodemons n/2 - 1), with own-base numerals, `RangeError` on invalid bases and O(n) typed-array memory (base 2^26 in about 0.6 s and 300 MB) — Validated in Phase 2: Engine Core and Base-10 Migration
+- ✓ Golden tests: the engine equals the frozen base-10 oracle and the guide's facts (bases 12, 16, 28, 80, 82), checked against an independent brute-force reference (every even base to 2000 structurally, every demon to 300) with fixed seeds — Validated in Phase 2
+- ✓ Base-10 viewer runs on the engine: syzygies, currents, gates, demons and regions come from the engine joined with the CCRU lore by id (adapters in `app/presets/base10/`), with the 60 DOM goldens and a frozen behaviour and text baseline unchanged — Validated in Phase 2 (component-level 10-zone constants remain until Phase 4, MIG-02)
 
 ### Active
 
-- [ ] **Engine**: pure, dependency-free, typed TS module that, for even base n >= 2, computes zones, syzygy pairs (hi::lo, sum n-1), currents, gates, regions (Plex / Warp / one-or-more Torque cycles), demons (net-span a::b, mesh number, chrono/amphi/xeno type and subtypes, Numodemons) — all arithmetic done in-base
-- [ ] **Golden tests**: base-10 engine output equals the existing hand-authored data (`app/data/{syzygies,currents,gates,demons}.ts`); engine reproduces the source guide's facts (base-12 example, base-28 torques [9,3], base-82 [27,9,3], base-80 [39], warp exists iff n = 3o+1 with o odd, demon count T(n-1)); property tests over all even bases 2..N. No test framework exists today — add one.
 - [ ] **Procedural layout** for arbitrary n (no hand-placed coordinates): deterministic, legible layouts that expose syzygy pairing and Torque cycles; base-10 keeps its authored layouts as a preset
 - [ ] **Renderer generalization**: replace the 10-zone assumptions in Projection/NumogramClient with engine-driven rendering; tiered by size (rich interactive SVG for small bases, Canvas/LOD for large, headless SVG/JSON for huge), thresholds set by measurement
 - [ ] **Base picker + generator UI**: choose an even base, see summary (zones, regions, torque cycle lengths, demon count), live diagram, URL-shareable `?base=`
@@ -89,8 +90,8 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Engine is a separate pure TS module with golden tests | Math is instant at any base; correctness is the core value and the repo has no tests | — Pending |
-| Base-10 becomes a preset of the new engine | User choice; hand-authored data replaced by derived data proven equal by tests, hand layouts kept as base-10 preset | — Pending |
+| Engine is a separate pure TS module with golden tests | Math is instant at any base; correctness is the core value and the repo has no tests | ✓ Good |
+| Base-10 becomes a preset of the new engine | User choice; hand-authored data replaced by derived data proven equal by tests, hand layouts kept as base-10 preset | ✓ Good (viewer data now derived; hand layouts stay the preset until Phase 3) |
 | v1 covers core diagram + demons + naming builder only | User choice: no mythos/card-game layers (pitch, Decadence, rites, correspondences) | ✓ Good |
 | Ceiling is measured, not assumed; tiered renderers | User choice; math is O(n) but demons O(n^2) and SVG node count limit interactivity | — Pending |
 | Static web app + engine lib as the deliverable | User choice; keeps engine usable from tests/CLI and the app hostable anywhere | — Pending |
@@ -105,6 +106,9 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 | Frozen base-10 oracle before any refactor (numeric JSON + 30 DOM goldens, never regenerated with `-u`) | Safety net for the Phase 2 migration; the goldens capture only the projection svg | ✓ Good |
 | Scrub all upstream branding (footer credit, logo, wordmarks, gematria plugin); keep the attribution | User order 2026-09-25; original CCRUG mark replaces the logo | ✓ Good |
 | Remove the CRT overlay, glitch effects and intro splash; declutter panels with no functionality removed | User decision 2026-09-25; todo 001, scheduled right after Phase 1; structural panel changes stay in Phase 4 | — Pending |
+| Migrate the base-10 viewer through thin adapters and seams (components untouched), one data source at a time with the full gate green before the old data is deleted | User choice 2026-09-26; keeps the render path and the DOM goldens byte-identical | ✓ Good |
+| Write gate names, mesh numbers and net-spans in the numogram's own base; numeral formatter built in the engine (0-9a-z to base 36, dotted decimal groups above) | User choice 2026-09-26; `Gt-56` at base 12; identical at base 10 | ✓ Good |
+| Verify the engine with an independent brute-force reference, fixed seeds, and the 2^26 test inside `npm run verify` | User choice 2026-09-26; correctness is the core value | ✓ Good |
 
 ## Evolution
 
@@ -124,4 +128,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-25 after Phase 1 completion*
+*Last updated: 2026-09-27 after Phase 2 completion*
