@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { LEGACY_SYZYGIES, SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
+import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import { DEMON_NAMES, SYZYGY_LORE } from '../../app/presets/base10/lore'
 import { BASE10 } from '../../app/presets/base10/numogram'
 import { SYZYGIES } from '../../app/presets/base10/syzygies'
@@ -58,10 +58,6 @@ describe('syzygies', () => {
     expect(SEAM_SYZYGIES).toBe(SYZYGIES)
   })
 
-  it('equals the hand-authored data until it is deleted (plan 02-08 Task 2)', () => {
-    expect(SYZYGIES).toEqual(LEGACY_SYZYGIES)
-    expect(SYZYGIES.map((s) => Object.keys(s))).toEqual(LEGACY_SYZYGIES.map((s) => Object.keys(s)))
-  })
 })
 
 describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore text', () => {
