@@ -86,7 +86,19 @@ Plans:
   3. On a generated review sheet for bases 2, 4, 6, 8, 12, 16, 28, 64, 82 and 100, nodes, labels, strokes and loops scale with n so nothing overlaps or clips, and the user signs off on the result
   4. A syzygy-collapsed pair-graph view exists in which every Torque cycle is a clean ring, including base 64's six or more cycles
   5. A threshold table stored as data (not hard-coded) records measured frame time and memory per render tier against n, the all-chords density limit, and explicit yes/no decisions on the WebGL contingency and on a `tier=` override
-**Plans**: TBD
+**Plans**: 10 plans in 7 waves
+
+Plans:
+- [ ] 03-01-PLAN.md - Layout contracts, glyph packers (golden-angle spiral default per D-03, shelf selectable), frame fit and the ring layout with nesting and bottom capsules (wave 1)
+- [ ] 03-02-PLAN.md - Tier-table schema, selectTier and tier= override, boundary derivation, validator and the interim research table as data (wave 1)
+- [ ] 03-03-PLAN.md - Procedural ladder (exact base-10 reduction), Barker spiral and the syzygy-collapsed pair graph (wave 2)
+- [ ] 03-04-PLAN.md - Pure numeric-id gate and current routing (wave 2)
+- [ ] 03-05-PLAN.md - Base-10 layout presets as LayoutSpecs, positions.ts seam, NOTICE entry for the upstream layout tables, full gate (wave 2)
+- [ ] 03-06-PLAN.md - Scene-to-SVG string emitter with XML escaping, degenerate bases 2/4/6 (wave 3)
+- [ ] 03-07-PLAN.md - Layout registry, tween helper, engine layout/scene exports, determinism and sizing tests, full gate with page-weight check (wave 4)
+- [ ] 03-08-PLAN.md - Layout contact sheet, user sign-off (D-10), signed-off digest pin (wave 5, checkpoint)
+- [ ] 03-09-PLAN.md - Ceiling-spike harness: Playwright driver in four device profiles running the real engine in the page (wave 6)
+- [ ] 03-10-PLAN.md - Four-profile spike run, measured threshold table, user review, phase gate (wave 7, checkpoint)
 **UI hint**: yes
 **Research**: YES, run `/gsd-research-phase`. Layout legibility at 10-60 cycles (multi-ring vs spiral vs Fermat-spiral glyph packing), label collision, Y-junction routing, edge bundling for gates at n >= 100; the spike itself is measurement on real hardware (Safari canvas-area probe if a device is available), not literature.
 **Notes**: Layout plans come first; spike plans come last because the harness needs real routes. The spike table is the exit gate for Phases 4, 5 and 6 (SVG-tier limit, matrix resolution, Canvas/worker scope); ship the conservative research placeholders in the tier table until measurements replace them. A dev-only review harness (scene-to-SVG string emitter plus a minimal tsx script) is built here so layouts can be judged before the UI exists; it is promoted to the deliverables EXP-01 and EXP-04 in Phase 8. User taste is needed on flow direction (anticlockwise per existing lore) and Plex placement (center vs bottom).
@@ -188,7 +200,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 |-------|----------------|--------|-----------|
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
-| 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
+| 3. Procedural Layout and Ceiling Spike | 0/10 | Planned | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
