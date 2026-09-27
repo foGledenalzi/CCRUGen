@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "status": "placeholder",
+  "shippedProfile": "sw-6x",
+  "budgets": {
+    "mountMs": 500,
+    "interactionMs": 100,
+    "panMs": 32,
+    "tweenMs": 32,
+    "oneTimePaintMs": 500,
+    "chordsOverlapMax": 0.3,
+    "canvasTargetN": 4000,
+    "source": "RAIL-derived budgets (research assumption A6): 500 ms base switch, 100 ms response, two dropped 60 fps frames for pan and tween"
+  },
+  "environments": {
+    "gpu": {
+      "cpu": "AMD Ryzen 9 3900X 12-Core Processor",
+      "physicalCores": 12,
+      "logicalThreads": 24,
+      "ramBytes": 68664356864,
+      "os": "Windows 10 Home 10.0.19045",
+      "browser": "Chromium 153.0.8010.12 (Playwright 1.63.0)",
+      "raster": "gpu",
+      "gpu": "AMD Radeon RX 6700 XT (ANGLE Direct3D11)",
+      "cpuThrottleNominal": 1,
+      "cpuThrottleMeasured": 1,
+      "date": "2026-09-27",
+      "placeholder": true
+    },
+    "sw": {
+      "cpu": "AMD Ryzen 9 3900X 12-Core Processor",
+      "physicalCores": 12,
+      "logicalThreads": 24,
+      "ramBytes": 68664356864,
+      "os": "Windows 10 Home 10.0.19045",
+      "browser": "Chromium 153.0.8010.12 (Playwright 1.63.0)",
+      "raster": "software",
+      "gpu": "SwiftShader",
+      "cpuThrottleNominal": 1,
+      "cpuThrottleMeasured": 1,
+      "date": "2026-09-27",
+      "placeholder": true
+    },
+    "sw-4x": {
+      "cpu": "AMD Ryzen 9 3900X 12-Core Processor",
+      "physicalCores": 12,
+      "logicalThreads": 24,
+      "ramBytes": 68664356864,
+      "os": "Windows 10 Home 10.0.19045",
+      "browser": "Chromium 153.0.8010.12 (Playwright 1.63.0)",
+      "raster": "software",
+      "gpu": "SwiftShader",
+      "cpuThrottleNominal": 4,
+      "cpuThrottleMeasured": 4.14,
+      "date": "2026-09-27",
+      "placeholder": true
+    },
+    "sw-6x": {
+      "cpu": "AMD Ryzen 9 3900X 12-Core Processor",
+      "physicalCores": 12,
+      "logicalThreads": 24,
+      "ramBytes": 68664356864,
+      "os": "Windows 10 Home 10.0.19045",
+      "browser": "Chromium 153.0.8010.12 (Playwright 1.63.0)",
+      "raster": "software",
+      "gpu": "SwiftShader",
+      "cpuThrottleNominal": 6,
+      "cpuThrottleMeasured": 6.35,
+      "date": "2026-09-27",
+      "placeholder": true
+    }
+  },
+  "measurements": [
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 10, "mountMs": { "median": 135, "p95": null }, "interactionMs": { "median": 13.4, "p95": null }, "panMs": { "median": 3.3, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 218, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 28, "mountMs": { "median": 209, "p95": null }, "interactionMs": { "median": 23.6, "p95": null }, "panMs": { "median": 6.1, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 578, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 64, "mountMs": { "median": 249, "p95": null }, "interactionMs": { "median": 38.1, "p95": null }, "panMs": { "median": 7.9, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 1298, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 100, "mountMs": { "median": 330, "p95": null }, "interactionMs": { "median": 61.0, "p95": null }, "panMs": { "median": 16.1, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 2018, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 150, "mountMs": { "median": 450, "p95": null }, "interactionMs": { "median": 79.6, "p95": null }, "panMs": { "median": 63.0, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 3018, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 200, "mountMs": { "median": 565, "p95": null }, "interactionMs": { "median": 101.1, "p95": null }, "panMs": { "median": 80.3, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 4018, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 300, "mountMs": { "median": 822, "p95": null }, "interactionMs": { "median": 149.8, "p95": null }, "panMs": { "median": 106.2, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 6095, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 500, "mountMs": { "median": 1121, "p95": null }, "interactionMs": { "median": 248.4, "p95": null }, "panMs": { "median": 208.8, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 10018, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 800, "mountMs": { "median": 1680, "p95": null }, "interactionMs": { "median": 322.7, "p95": null }, "panMs": { "median": 184.8, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 16018, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 1000, "mountMs": { "median": 2246, "p95": null }, "interactionMs": { "median": 490.2, "p95": null }, "panMs": { "median": 303.0, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 20018, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-rich", "n": 2000, "mountMs": { "median": 4304, "p95": null }, "interactionMs": { "median": 862.5, "p95": null }, "panMs": { "median": 828.5, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 40018, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-lean", "n": 100, "mountMs": { "median": 73, "p95": null }, "interactionMs": { "median": 10.6, "p95": null }, "panMs": { "median": 6.1, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 408, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-lean", "n": 300, "mountMs": { "median": 130, "p95": null }, "interactionMs": { "median": 26.6, "p95": null }, "panMs": { "median": 10.3, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 1208, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-lean", "n": 800, "mountMs": { "median": 264, "p95": null }, "interactionMs": { "median": 58.4, "p95": null }, "panMs": { "median": 10.2, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 3208, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-lean", "n": 1000, "mountMs": { "median": 356, "p95": null }, "interactionMs": { "median": 80.5, "p95": null }, "panMs": { "median": 20.6, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 4008, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-lean", "n": 2000, "mountMs": { "median": 665, "p95": null }, "interactionMs": { "median": 152.9, "p95": null }, "panMs": { "median": 29.9, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 8008, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "svg-lean", "n": 4000, "mountMs": { "median": 1180, "p95": null }, "interactionMs": { "median": 306.7, "p95": null }, "panMs": { "median": 74.2, "p95": null }, "tweenMs": null, "computeMs": null, "domNodes": 16008, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "canvas", "n": 100, "mountMs": { "median": 21.5, "p95": null }, "interactionMs": null, "panMs": { "median": 21.8, "p95": null }, "tweenMs": { "median": 22.6, "p95": null }, "computeMs": null, "domNodes": null, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "canvas", "n": 500, "mountMs": { "median": 47.6, "p95": null }, "interactionMs": null, "panMs": null, "tweenMs": null, "computeMs": null, "domNodes": null, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "canvas", "n": 1000, "mountMs": { "median": 72.9, "p95": null }, "interactionMs": null, "panMs": { "median": 21.6, "p95": null }, "tweenMs": { "median": 93.3, "p95": null }, "computeMs": null, "domNodes": null, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "canvas", "n": 2000, "mountMs": { "median": 146.3, "p95": null }, "interactionMs": null, "panMs": null, "tweenMs": null, "computeMs": null, "domNodes": null, "domBytes": null, "jsHeapBytes": null },
+    { "profile": "sw-6x", "suite": "canvas", "n": 4000, "mountMs": { "median": 185.5, "p95": null }, "interactionMs": null, "panMs": { "median": 22.0, "p95": null }, "tweenMs": { "median": 301.2, "p95": null }, "computeMs": null, "domNodes": null, "domBytes": null, "jsHeapBytes": null }
+  ],
+  "chords": [
+    { "n": 10, "chords": 45, "paintMs": 84.5, "overlapShare": 0.0 },
+    { "n": 30, "chords": 435, "paintMs": 2.3, "overlapShare": 0.008 },
+    { "n": 50, "chords": 1225, "paintMs": 3.1, "overlapShare": 0.117 },
+    { "n": 60, "chords": 1770, "paintMs": 3.4, "overlapShare": 0.296 },
+    { "n": 80, "chords": 3160, "paintMs": 4.2, "overlapShare": 0.742 },
+    { "n": 100, "chords": 4950, "paintMs": 5.4, "overlapShare": 0.953 },
+    { "n": 120, "chords": 7140, "paintMs": 7.2, "overlapShare": 0.997 },
+    { "n": 300, "chords": 44850, "paintMs": 32.1, "overlapShare": 1.0 },
+    { "n": 1000, "chords": 499500, "paintMs": 184.3, "overlapShare": 1.0 }
+  ],
+  "canvasProbes": [
+    { "width": 16384, "height": 16384, "ok": true },
+    { "width": 32767, "height": 8192, "ok": true },
+    { "width": 11585, "height": 23170, "ok": true },
+    { "width": 32768, "height": 1, "ok": true },
+    { "width": 65535, "height": 1, "ok": true },
+    { "width": 16385, "height": 16384, "ok": false },
+    { "width": 32767, "height": 8193, "ok": false },
+    { "width": 23171, "height": 11586, "ok": false },
+    { "width": 32767, "height": 32767, "ok": false }
+  ],
+  "headless": [
+    { "n": 100, "layoutMs": 2, "routeMs": 2, "emitMs": 1, "svgBytes": 60000, "rssDeltaBytes": 1048576 },
+    { "n": 1000, "layoutMs": 1, "routeMs": 5, "emitMs": 5, "svgBytes": 580000, "rssDeltaBytes": 8388608 },
+    { "n": 10000, "layoutMs": 5, "routeMs": 52, "emitMs": 50, "svgBytes": 5720000, "rssDeltaBytes": 74448896 },
+    { "n": 100000, "layoutMs": 24, "routeMs": 356, "emitMs": 660, "svgBytes": 56300000, "rssDeltaBytes": 527433728 }
+  ],
+  "memory": {
+    "svgRichDomBytesPerZone": 5970,
+    "svgRichJsHeapBytesPerZone": 3150,
+    "canvasFixedBytes": 3200000,
+    "basedOn": "gpu",
+    "note": "research prototype, measureUserAgentSpecificMemory under cross-origin isolation; memory is flat across CPU-throttle profiles (throttling does not change memory)"
+  },
+  "boundaries": {
+    "svgRichMaxN": { "n": 100, "basedOn": "sw-6x", "rule": "highest n of the longest passing prefix of sw-6x svg-rich rows with mount <= 500 ms, interaction <= 100 ms and pan <= 32 ms (medians)" },
+    "svgLeanMaxN": { "n": 1000, "basedOn": "sw-6x", "rule": "same rule over sw-6x svg-lean rows" },
+    "canvasMaxN": null,
+    "layoutTweenMaxN": { "n": 500, "basedOn": "sw-6x", "rule": "placeholder (research assumption A7): not measured yet; plan 03-10 derives it from measured tween frames" },
+    "allChordsMaxN": { "n": 60, "rule": "last n of the longest prefix where under 30% of inked pixels are crossed by 4 or more chords (legibility, not speed)" },
+    "labelVisibleMinRadiusPx": 7,
+    "gatesFullMaxN": 40,
+    "gatesThinMaxN": 150,
+    "canvasAreaLimitPx": 268435456,
+    "canvasDimensionNote": "no standalone per-dimension cap reproduced up to 65535 px; clamp on area"
+  },
+  "webglDecision": {
+    "adopt": false,
+    "reason": "Research prototype (2026-09-27): the cached-bitmap Canvas tier panned at a flat ~22 ms per frame up to n = 4000 on sw-6x and painted its static layer in 185.5 ms, and the all-chords layer is legibility-limited near n = 60-100, so no workload needs a GPU renderer. Re-decided from the measured spike in plan 03-10.",
+    "reviewedAt": "2026-09-27"
+  },
+  "tierOverrideParam": {
+    "enabled": true,
+    "name": "tier",
+    "values": ["svg", "canvas", "headless"]
+  }
+}
