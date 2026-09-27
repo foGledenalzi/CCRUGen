@@ -96,7 +96,7 @@ Plans:
 - [x] 03-05-PLAN.md - Base-10 layout presets as LayoutSpecs, positions.ts seam, NOTICE entry for the upstream layout tables, full gate (wave 2)
 - [x] 03-06-PLAN.md - Scene-to-SVG string emitter with XML escaping, degenerate bases 2/4/6 (wave 3)
 - [x] 03-07-PLAN.md - Layout registry, tween helper, engine layout/scene exports, determinism and sizing tests, full gate with page-weight check (wave 4)
-- [ ] 03-08-PLAN.md - Layout contact sheet, user sign-off (D-10), signed-off digest pin (wave 5, checkpoint)
+- [x] 03-08-PLAN.md - Layout contact sheet, user sign-off (D-10), signed-off digest pin (wave 5, checkpoint)
 - [ ] 03-09-PLAN.md - Ceiling-spike harness: Playwright driver in four device profiles running the real engine in the page (wave 6)
 - [ ] 03-10-PLAN.md - Four-profile spike run, measured threshold table, user review, phase gate (wave 7, checkpoint)
 **UI hint**: yes

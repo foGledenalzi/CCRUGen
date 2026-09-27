@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-07-PLAN.md (layout registry/tween helper, layout+scene engine barrel exports, determinism and sizing coverage, full gate); next is 03-08
-last_updated: "2026-09-27T21:51:37.097Z"
-last_activity: "2026-09-27 -- 03-07 complete (resolveLayout/layoutIdsFor registry, lerpPositions tween helper, engine/index.ts layout+scene barrels with sideEffects:false, determinism and LAY-03 sizing test coverage; full npm run verify green, page weight flat)"
+stopped_at: Completed 03-08-PLAN.md
+last_updated: "2026-09-27T22:33:27.350Z"
+last_activity: "2026-09-27 -- 03-08 complete (layout contact sheet built and user-approved, packer default changed to shelf, Warp-beside-Plex and no gate bundling confirmed unchanged; signed-off layouts pinned by digest across both timezones; LAY-01, LAY-03, LAY-04 marked Complete; full npm run verify green)"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 31
-  completed_plans: 28
-  percent: 90
+  completed_plans: 29
+  percent: 94
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 3 — EXECUTING
-Plan: 03-08 of 10
-Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-07 complete, wave 4 continues with 03-08 — a checkpoint plan: human contact-sheet sign-off, D-10)
-Last activity: 2026-09-27 -- 03-07 complete (layout registry, tween helper, engine layout/scene barrel exports, determinism and sizing coverage; full npm run verify green)
+Plan: 03-09 of 10
+Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-08 complete, wave 6 continues with 03-09 — an autonomous plan: the ceiling-spike Playwright harness, not a checkpoint)
+Last activity: 2026-09-27 -- 03-08 complete (contact-sheet sign-off: packer default -> shelf, Warp beside Plex and no gate bundling confirmed unchanged, signed-off layouts pinned by digest; LAY-01/LAY-03/LAY-04 Complete)
 
-Progress: [█████████░] 90%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [█████████░] 90%
 | Phase 03 P05 | 21min | 2 tasks | 5 files |
 | Phase 03 P06 | 35min | 2 tasks | 3 files |
 | Phase 03 P07 | 19min | 2 tasks | 10 files |
+| Phase 03 P08 | 19min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -127,10 +128,14 @@ Recent decisions affecting current work:
 - [Phase 3 P05] Base-10 layout presets (D-05, LAY-02): app/presets/base10/layout-tables.ts holds the nine upstream tables plus DRAW_ORDER/FRAME_HEIGHT/REGION_LABELS (not relicensed, NOTICE section 2); app/presets/base10/layouts.ts exposes BASE10_LAYOUT_SPECS (original, labyrinth, ladder, planetary) as LayoutSpecs importing engine layout TYPES only; app/data/positions.ts is now a two-line pass-through seam; proven against the frozen numeric oracle and a local DOM-golden parser (zone labels distinguished from the pandemonium layer's digits by font-size=17 vs 7); full npm run verify green, page weight flat (-2 bytes raw)
 - [Phase 3 P06] engine/scene/svgString.ts (research Pattern 8): layoutToSvg (any zone layout) and pairGraphToSvg (the pair-graph view) as pure string-array + join('\n') emitters with named layer groups (regions, gates, currents, syzygies, one 'zone' group per node, gate-labels), rounded coordinates via fmt, an explicit viewBox, and escapeXml applied at every free-text interpolation point (title, region-label text, pair-graph hi::lo labels) as the phase's XSS control (T-03-16, concretely tested with a </title><script> payload and an edited <b> region label); background is hex-regex-validated or thrown as RangeError (T-03-17); the emitter never reads g.demons (T-03-18), proven with a guard Proxy that rebinds every forwarded method to the real target (NumogramImpl carries a private class field, so naive receiver-forwarding breaks on any method call, not just .demons). engine/test/layout.degenerate.test.ts covers Pitfall 10 (bases 2/4/6 across all four layouts: finite coordinates, node discs inside the frame, no bad numbers in any route or SVG string) plus a NaN sweep over every even base 2..128 and the review-set bases 28/64/82/100; all green on first run, no production module needed a fix. Full npm run verify green (75 e2e + 5 expected-skipped, 60 goldens and behaviour baseline unchanged, page-weight OK, check-repo 12/12). LAY-01/LAY-03/LAY-04 remain in progress (03-07/03-08 still pending for LAY-01/LAY-03, 03-08 for LAY-04); none marked complete in REQUIREMENTS.md by this plan.
 - [Phase 3 P07] lerpPositions copies t=0/t=1 exactly via Float64Array.set() rather than the lerp formula (fx + (tx-fx) is not always bit-identical to tx under IEEE 754); resolveLayout resolves preset -> procedural LAYOUT_IDS id -> first supporting preset else ring (T-03-19: an id is only ever compared, never evaluated); engine/index.ts now re-exports layout/index and scene/index with sideEffects:false, page weight flat (+0 bytes raw); LAY-01/LAY-03 traceability rows hand-edited to add 03-07 (still in progress, 03-08 pending)
+- [Phase 3 P08] User sign-off (D-10, D-02, D-03) on the layout contact sheet: default packer changed to shelf (spiral stays selectable, lore-neutral per confirmation); Warp capsule placement kept beside Plex (base-10 convention, unchanged); gate edge-bundling at 64/100 not requested (left optional/unimplemented). Signed-off coordinates for the 10 review bases x 4 layouts (40 entries) pinned by sha256 in engine/test/layout.digest.test.ts (sheet sha 0d9cd5c0cb3a); a digest changes only with a new sign-off, never to make a test pass. LAY-01, LAY-03 and LAY-04 marked Complete (this was their final covering plan).
 
 ### Pending Todos
 
-None yet.
+- 002 (P3): Phase 1 code review findings deferred, not fixed in Phase 1
+- 003 (P2): Dropped real mouse clicks on Zones/Syzygies/Currents/Gates rows; mobile panel overlap noted
+- 004 (P3): Phase 2 code review findings deferred, not fixed in Phase 2 (IN-02, IN-03, IN-05, IN-07, MIG-02)
+- 005 (P3): Expose packer choice (shelf vs. spiral) in the Phase 4 generator UI — user's Phase 3 sign-off request (2026-09-27)
 
 ### Blockers/Concerns
 
@@ -157,8 +162,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T21:51:37.090Z
-Stopped at: Completed 03-07-PLAN.md
+Last session: 2026-09-27T22:33:27.342Z
+Stopped at: Completed 03-08-PLAN.md
 Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
