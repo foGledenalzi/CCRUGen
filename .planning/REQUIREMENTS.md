@@ -30,9 +30,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Layout
 
-- [x] **LAY-01**: Any even base gets a deterministic procedural layout in which syzygy pairs are adjacent and each Torque cycle is drawn as a legible ring
+- [ ] **LAY-01**: Any even base gets a deterministic procedural layout in which syzygy pairs are adjacent and each Torque cycle is drawn as a legible ring
 - [ ] **LAY-02**: Base 10 keeps its four authored layouts (original, labyrinth, ladder, planetary) as presets
-- [x] **LAY-03**: Node size, fonts, strokes and loop sizes scale with n so the diagram stays legible across the supported range
+- [ ] **LAY-03**: Node size, fonts, strokes and loop sizes scale with n so the diagram stays legible across the supported range
 - [ ] **LAY-04**: A syzygy-collapsed pair-graph view is available in which every Torque cycle is a clean ring
 
 ### UI
@@ -129,9 +129,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ENG-04 | Phase 2 | Complete |
 | ENG-05 | Phase 2 | Complete |
 | MIG-01 | Phase 2 | Complete |
-| LAY-01 | Phase 3 | Complete |
+| LAY-01 | Phase 3 | In progress (03-01 of 6 covering plans done) |
 | LAY-02 | Phase 3 | Pending |
-| LAY-03 | Phase 3 | Complete |
+| LAY-03 | Phase 3 | In progress (03-01 of 6 covering plans done) |
 | LAY-04 | Phase 3 | Pending |
 | REN-01 | Phase 3 | Pending |
 | UI-01 | Phase 4 | Pending |
