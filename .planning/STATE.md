@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-09-26T21:20:45.851Z"
+stopped_at: Completed 02-07-PLAN.md
+last_updated: "2026-09-27T00:12:00.000Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 21
-  completed_plans: 14
-  percent: 67
+  completed_plans: 15
+  percent: 71
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 2
-Plan: 6 of 13 executed
-Status: Executing Phase 2 (02-06 demon unranking done; next 02-07)
+Plan: 7 of 13 executed
+Status: Executing Phase 2 (02-07 lore consolidation done; next 02-08)
 Last activity: 2026-09-26
 
-Progress: [███████░░░] 67%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -45,7 +45,7 @@ Progress: [███████░░░] 67%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 8 | - | - |
-| 2 | 6 | 132min | 22min |
+| 2 | 7 | 162min | 23min |
 
 **Recent Trend:**
 
@@ -67,6 +67,7 @@ Progress: [███████░░░] 67%
 | Phase 2 P04 | 21min | 3 tasks | 7 files |
 | Phase 2 P05 | 24min | 2 tasks | 9 files |
 | Phase 2 P06 | 24min | 2 tasks | 5 files |
+| Phase 2 P07 | 30min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,7 @@ Recent decisions affecting current work:
 - [Phase 2 P04] createNumogram(base) (engine/core/numogram.ts): frozen, cached (LRU 4 entries, 2^26 zones), five Int32Arrays (flow, pairCycle, first, length, offset) with per-cycle frozen views made on demand (compare by id; only Plex and Warp are shared objects), canonical order by a stable counting sort; numogramInternals is for engine siblings and not in the barrel; proven equal to the independent reference for every even n 2..2000 (0.63 s), the frozen base-10 oracle and the notable-bases fixture, five mutants killed; D-11: the 2^26 test stays in npm run verify (measured about 0.62 s, +302 MiB of array buffers, 1,290,872 cycles; no test:heavy); the fixture's current.from is viewer data (the pair's even member, the Plex drawn at 9), not engine data
 - [Phase 2 P05] Virtual demon space (engine/core/demons.ts, `g.demons`): mesh = a(a-1)/2 + b is inverted exactly up to 2^26 by a float square-root ESTIMATE (clamped to >= 1) plus two integer correction loops, no BigInt; on V8 the bare estimate is exact for every row, so a test that replaces Math.sqrt with a wrong one is what pins the loops; explicit cross-torque-chrono subtype (cyclic = same Torque cycle only), closed-form counts over the Torque cycles (base 28 = 378 with 108 cross-Torque), Numodemons n/2 - 1 with numodemons() in b-ascending (mesh-descending) order; frozen DemonRef values built per call, no per-demon storage (+0.0 MiB of array buffers for the 2^26 queries); proven against the reference for every demon of every even n <= 300 (2,261,225 demons), brute-force counts for every even n <= 2000, twelve sampled bases to 2^20, the frozen base-10 oracle (45 demons in mesh order, viewer kinds) and the notable-bases fixture; sweeps also tally the classifier itself because the viewer kinds and the fixture counts alone cannot see a cyclic/cross swap; group()/subtype() unranking is 02-06
 - [Phase 2 P06] Demon unranking (engine/core/unrank.ts): `g.demons.group(type)` / `subtype(subtype)` return frozen memoized `{ count, at(k) }` in ascending mesh order; at(k) is a binary search over mesh numbers (about 51 steps) with a closed-form countBelow(m) = demons in the rows below a plus the partial row, from the at most 4 non-Torque zones (plex/warp/torque zone counts), exact through netSpanOf, no BigInt; only cyclic-chrono and cross-torque-chrono use per-cycle binary searches (O(K log n) per step) over a lazily built sorted copy of the Torque pair ids (WeakMap keyed by the numogram's internals, about 0.2 s and 128 MiB at 2^26, never built by any other selector); measured 0.01-0.03 ms per rank for every other selector at any base to 2^26, cyclic/cross about 0.1 ms at n=1024, 2 ms at 65,536, 30 ms at 2^20, 2 s at 2^26; proven against the reference for every rank of every even n <= 64, fixed-seed samples to 300, 666 (14 Torque cycles) and 1024 (54), rank/partition identities (type ranks and subtype ranks of a mesh sum to the mesh) to about 10^6, the exact 2^26 end points (2::1 .. 67108862::67108861, 33554432::33554431, xeno 22369621::0, +0.0 MiB), 13 mutants killed
+- [Phase 2 P07] Lore consolidation (D-06, D-07, D-16): all CCRU-derived base-10 lore lives in app/presets/base10/lore.ts (typed, licence header on line 1, keyed by zone, pair id = low zone, gate origin zone and mesh number: ZONE_CLR, ZONE_PARTICLE, PLANET_SYMBOL, ZONE_META, SYZYGY_LORE, CURRENT_LORE, GATE_LORE, DEMON_NAMES), text moved mechanically and proven identical (757 fields deep-equal, 240 of 241 raw string literals equal with every unicode escape kept, 0 differences); app/data/{zones,syzygies,currents,gates,demons}.ts are structure seams that read text by id (same exports and order; the unimported string-keyed DEMON_NAMES is gone from demons.ts; current labels stay literal); NOTICE section 3, LORE_FILES, the derived manifest in MANIFESTS and the check-repo tests changed in one commit; coverage test against the createNumogram(10) ids (no missing or orphaned key); 60 goldens, behaviour baseline and numeric oracle unchanged, npm run verify exit 0 in 251 s; gotcha for the swaps: the file-write tool decodes typed unicode escapes into raw characters, so never type them, use a script and check the bytes
 
 ### Pending Todos
 
@@ -129,8 +131,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-26T21:20:45.843Z
-Stopped at: Completed 02-06-PLAN.md
-Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-07-PLAN.md
+Last session: 2026-09-27T00:12:00.000Z
+Stopped at: Completed 02-07-PLAN.md
+Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-08-PLAN.md
 
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
