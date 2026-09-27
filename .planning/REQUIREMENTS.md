@@ -129,10 +129,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ENG-04 | Phase 2 | Complete |
 | ENG-05 | Phase 2 | Complete |
 | MIG-01 | Phase 2 | Complete |
-| LAY-01 | Phase 3 | In progress (03-01, 03-03, 03-04 of 6 covering plans done) |
+| LAY-01 | Phase 3 | In progress (03-01, 03-03, 03-04, 03-06 of 6 covering plans done) |
 | LAY-02 | Phase 3 | Complete |
-| LAY-03 | Phase 3 | In progress (03-01, 03-03, 03-04 of 6 covering plans done) |
-| LAY-04 | Phase 3 | In progress (03-03 of 3 covering plans done: 03-03, 03-06, 03-08) |
+| LAY-03 | Phase 3 | In progress (03-01, 03-03, 03-04, 03-06 of 6 covering plans done) |
+| LAY-04 | Phase 3 | In progress (03-03, 03-06 of 3 covering plans done: 03-03, 03-06, 03-08) |
 | REN-01 | Phase 3 | Pending |
 | UI-01 | Phase 4 | Pending |
 | UI-02 | Phase 4 | Pending |

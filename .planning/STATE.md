@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-05-PLAN.md (base-10 layout presets, positions.ts seam, NOTICE entry, full gate); next is 03-06
-last_updated: "2026-09-27T21:06:19.867Z"
-last_activity: 2026-09-27
+stopped_at: Completed 03-06-PLAN.md (scene-to-SVG string emitter with XML escaping, degenerate-base and NaN-sweep coverage, full gate); next is 03-07
+last_updated: "2026-09-27T21:28:25.373Z"
+last_activity: "2026-09-27 -- 03-06 complete (scene-to-SVG string emitter: layoutToSvg/pairGraphToSvg, escapeXml XSS control, degenerate-base and NaN-sweep coverage; full npm run verify green)"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 31
-  completed_plans: 26
-  percent: 84
+  completed_plans: 27
+  percent: 87
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 3 — EXECUTING
-Plan: 03-06 of 10
-Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-05 complete, wave 3 begins with 03-06)
-Last activity: 2026-09-27 -- 03-05 complete (base-10 layout presets as LayoutSpecs, D-05/LAY-02; positions.ts flipped to a pass-through seam; full npm run verify green, page weight flat)
+Plan: 03-07 of 10
+Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-06 complete, wave 4 begins with 03-07)
+Last activity: 2026-09-27 -- 03-06 complete (scene-to-SVG string emitter: layoutToSvg/pairGraphToSvg, escapeXml XSS control, degenerate-base and NaN-sweep coverage; full npm run verify green)
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [████████░░] 84%
 | Phase 3 P02 | 5min | 2 tasks | 5 files |
 | Phase 03 P03 | 12min | 2 tasks | 6 files |
 | Phase 03 P05 | 21min | 2 tasks | 5 files |
+| Phase 03 P06 | 35min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,7 @@ Recent decisions affecting current work:
 - [Phase 3 P02] Renderer threshold table (REN-01): engine/scene/tiers.ts has the TierTable schema, pure selectTier/parseTierOverride/tweenAllowed/labelsVisible/gateLayerMode, deriveBoundaries ('longest passing prefix' of shipped-profile rows against budgets, profile-independent chords, area from ok probes) and validateTierTable (~35 schema/invariant rules, the validateBase idiom, D-14d conservative-shippedProfile enforcement, measured-status-only equality against deriveBoundaries); engine/scene/tier-table.json is the interim placeholder table transcribed from the 03-RESEARCH.md four-profile spike (22 sw-6x rows, gpu/sw/sw-4x/sw-6x environments, 9 chord rows, 9 canvas probes, 4 headless rows), shippedProfile sw-6x, canvasMaxN null and layoutTweenMaxN a stated placeholder (only svgRichMaxN=100, svgLeanMaxN=1000, allChordsMaxN=60 and canvasAreaLimitPx=268435456 are required to equal deriveBoundaries for a placeholder table); webglDecision.adopt false with a dated reason (D-12), tierOverrideParam enabled for tier=svg|canvas|headless (D-13); engine/scene/tierTable.ts exports the typed TIER_TABLE. 33/33 unit tests green in both timezones, full npm run typecheck (4x tsc + lint) clean; REN-01 stays in-progress (also covered by 03-09, 03-10).
 - [Phase 3 P03] ladderLayout skips fitFrame's minimum-frame clamp (unlike ring/spiral/pairGraph) so it reduces EXACTLY to the frozen base-10 ladder (800 x 870, centre 400,450); pairGraphLayout reuses ring.ts's torqueGlyphs/composeTorques/ringNodes with unitsPerPair=1 so pair-graph rings are indexed by pair id (base 64: six rings, base 28: rings of 9 and 3); routePairGraph's current arcs (SVG flags 0 0 0) and self loops (flags 0 1 0) verified against g.nextPair for every even base 2..400 (T-03-08)
 - [Phase 3 P05] Base-10 layout presets (D-05, LAY-02): app/presets/base10/layout-tables.ts holds the nine upstream tables plus DRAW_ORDER/FRAME_HEIGHT/REGION_LABELS (not relicensed, NOTICE section 2); app/presets/base10/layouts.ts exposes BASE10_LAYOUT_SPECS (original, labyrinth, ladder, planetary) as LayoutSpecs importing engine layout TYPES only; app/data/positions.ts is now a two-line pass-through seam; proven against the frozen numeric oracle and a local DOM-golden parser (zone labels distinguished from the pandemonium layer's digits by font-size=17 vs 7); full npm run verify green, page weight flat (-2 bytes raw)
+- [Phase 3 P06] engine/scene/svgString.ts (research Pattern 8): layoutToSvg (any zone layout) and pairGraphToSvg (the pair-graph view) as pure string-array + join('\n') emitters with named layer groups (regions, gates, currents, syzygies, one 'zone' group per node, gate-labels), rounded coordinates via fmt, an explicit viewBox, and escapeXml applied at every free-text interpolation point (title, region-label text, pair-graph hi::lo labels) as the phase's XSS control (T-03-16, concretely tested with a </title><script> payload and an edited <b> region label); background is hex-regex-validated or thrown as RangeError (T-03-17); the emitter never reads g.demons (T-03-18), proven with a guard Proxy that rebinds every forwarded method to the real target (NumogramImpl carries a private class field, so naive receiver-forwarding breaks on any method call, not just .demons). engine/test/layout.degenerate.test.ts covers Pitfall 10 (bases 2/4/6 across all four layouts: finite coordinates, node discs inside the frame, no bad numbers in any route or SVG string) plus a NaN sweep over every even base 2..128 and the review-set bases 28/64/82/100; all green on first run, no production module needed a fix. Full npm run verify green (75 e2e + 5 expected-skipped, 60 goldens and behaviour baseline unchanged, page-weight OK, check-repo 12/12). LAY-01/LAY-03/LAY-04 remain in progress (03-07/03-08 still pending for LAY-01/LAY-03, 03-08 for LAY-04); none marked complete in REQUIREMENTS.md by this plan.
 
 ### Pending Todos
 
@@ -153,8 +155,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T21:06:19.859Z
-Stopped at: Completed 03-05-PLAN.md (base-10 layout presets, positions.ts seam, NOTICE entry, full gate); next is 03-06
+Last session: 2026-09-27T21:28:25.366Z
+Stopped at: Completed 03-06-PLAN.md
 Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
