@@ -243,13 +243,29 @@ async function setupRouting(context: BrowserContext): Promise<void> {
 // Pages, CDP and metrics
 // -------------------------------------------------------------------------------------------------------------
 
-/** The shape of `window.__spike`, extended task by task as the harness grows. */
+interface StatPair {
+  readonly median: number
+  readonly p95: number
+}
+type Detail = 'rich' | 'lean'
+
+/** The shape of `window.__spike`. */
 interface SpikeApi {
   ready: boolean
   calib(): number
   rendererInfo(): string | null
   probeCanvas(list: readonly (readonly [number, number])[]): ReadonlyArray<{ width: number; height: number; ok: boolean }>
   memory(): Promise<{ total: number; dom: number } | null>
+  build(n: number): { computeMs: number }
+  mountSvg(detail: Detail): Promise<{ commitMs: number; toSecondFrameMs: number; domNodes: number }>
+  hoverSvg(detail: Detail, count: number): Promise<{ commit: StatPair | null; toFrame: StatPair | null }>
+  panCss(frames: number): Promise<StatPair | null>
+  tweenSvg(detail: Detail, frames: number): Promise<StatPair | null>
+  canvasStatic(): StatPair | null
+  canvasPan(frames: number): Promise<StatPair | null>
+  canvasHover(count: number): StatPair | null
+  canvasTween(frames: number): Promise<StatPair | null>
+  chords(n: number): { chords: number; paintMs: number; overlapShare: number }
 }
 type SpikeWindow = typeof globalThis & { __spike: SpikeApi }
 
@@ -412,23 +428,154 @@ async function runHeadless(profile: Profile, ns: readonly number[]): Promise<voi
 }
 
 // -------------------------------------------------------------------------------------------------------------
-// Suites added in plan 03-09 Task 2: svg-rich, svg-lean, canvas, chords. Not yet implemented in Task 1.
+// Suites added in plan 03-09 Task 2: svg-rich, svg-lean, canvas, chords (real engine layouts and routes,
+// research-derived adaptive frame/hover/tween counts, early stop above 20 s mount or 3 s hover-to-frame median)
 // -------------------------------------------------------------------------------------------------------------
 
+const MOUNT_STOP_MS = 20_000
+const HOVER_STOP_MS = 3_000
+
+function panFramesFor(mountMs: number): number {
+  if (mountMs < 250) return 90
+  if (mountMs < 1000) return 30
+  if (mountMs < 4000) return 16
+  return 8
+}
+function tweenFramesForSvg(mountMs: number): number {
+  if (mountMs < 250) return 30
+  if (mountMs < 1000) return 12
+  if (mountMs < 4000) return 6
+  return 3
+}
+function tweenFramesForCanvas(paintMs: number): number {
+  if (paintMs < 250) return 30
+  if (paintMs < 1000) return 12
+  return 6
+}
+
 async function runSvgTier(
-  _browser: Browser,
-  _cfg: ProfileConfig,
-  _profile: Profile,
-  _suite: 'svg-rich' | 'svg-lean',
-  _ns: readonly number[],
+  browser: Browser,
+  cfg: ProfileConfig,
+  profile: Profile,
+  suite: 'svg-rich' | 'svg-lean',
+  ns: readonly number[],
 ): Promise<void> {
-  throw new Error('spike: suite not yet implemented (03-09 Task 2)')
+  const detail: Detail = suite === 'svg-rich' ? 'rich' : 'lean'
+  const file = rawFile(profile, suite)
+  let stop = false
+  for (const n of ns) {
+    if (stop) {
+      appendRecord(file, { suite, profile, n, skipped: 'previous n too slow' })
+      continue
+    }
+    const { context, page, cdp } = await freshPage(browser, cfg)
+    try {
+      const built = await page.evaluate(nn => (window as unknown as SpikeWindow).__spike.build(nn), n)
+      const memBefore = await page.evaluate(() => (window as unknown as SpikeWindow).__spike.memory())
+      const heapBefore = (await metrics(cdp)).JSHeapUsedSize ?? 0
+      const mount = await page.evaluate(d => (window as unknown as SpikeWindow).__spike.mountSvg(d), detail)
+      const memAfter = await page.evaluate(() => (window as unknown as SpikeWindow).__spike.memory())
+      const heapAfter = (await metrics(cdp)).JSHeapUsedSize ?? 0
+
+      const m = mount.toSecondFrameMs
+      const hoverCount = m > 6000 ? 6 : 20
+      const hover = await page.evaluate(
+        ([d, c]) => (window as unknown as SpikeWindow).__spike.hoverSvg(d, c),
+        [detail, hoverCount] as const,
+      )
+      const pan = await page.evaluate(f => (window as unknown as SpikeWindow).__spike.panCss(f), panFramesFor(m))
+      const tween =
+        m > 8000
+          ? null
+          : await page.evaluate(
+              ([d, f]) => (window as unknown as SpikeWindow).__spike.tweenSvg(d, f),
+              [detail, tweenFramesForSvg(m)] as const,
+            )
+
+      appendRecord(file, {
+        suite,
+        profile,
+        n,
+        computeMs: { median: built.computeMs, p95: null },
+        mountMs: { median: m, p95: null },
+        interactionMs: hover.toFrame,
+        panMs: pan,
+        tweenMs: tween,
+        domNodes: mount.domNodes,
+        domBytes: memAfter && memBefore ? round3(memAfter.dom - memBefore.dom) : null,
+        jsHeapBytes: heapAfter - heapBefore,
+      })
+
+      if (m > MOUNT_STOP_MS || (hover.toFrame && hover.toFrame.median > HOVER_STOP_MS)) stop = true
+    } catch (e) {
+      appendRecord(file, { suite, profile, n, error: String(e).slice(0, 200) })
+    } finally {
+      await context.close()
+    }
+  }
 }
-async function runCanvas(_browser: Browser, _cfg: ProfileConfig, _profile: Profile, _ns: readonly number[]): Promise<void> {
-  throw new Error('spike: suite not yet implemented (03-09 Task 2)')
+
+async function runCanvas(browser: Browser, cfg: ProfileConfig, profile: Profile, ns: readonly number[]): Promise<void> {
+  const file = rawFile(profile, 'canvas')
+  let stop = false
+  for (const n of ns) {
+    if (stop) {
+      appendRecord(file, { suite: 'canvas', profile, n, skipped: 'previous n too slow' })
+      continue
+    }
+    const { context, page, cdp } = await freshPage(browser, cfg)
+    try {
+      const built = await page.evaluate(nn => (window as unknown as SpikeWindow).__spike.build(nn), n)
+      const memBefore = await page.evaluate(() => (window as unknown as SpikeWindow).__spike.memory())
+      const heapBefore = (await metrics(cdp)).JSHeapUsedSize ?? 0
+      const mount = await page.evaluate(() => (window as unknown as SpikeWindow).__spike.canvasStatic())
+      const memAfter = await page.evaluate(() => (window as unknown as SpikeWindow).__spike.memory())
+      const heapAfter = (await metrics(cdp)).JSHeapUsedSize ?? 0
+
+      const paintMs = mount?.median ?? 0
+      const hover = await page.evaluate(() => (window as unknown as SpikeWindow).__spike.canvasHover(20))
+      const pan = await page.evaluate(() => (window as unknown as SpikeWindow).__spike.canvasPan(60))
+      const tween =
+        paintMs > 8000
+          ? null
+          : await page.evaluate(f => (window as unknown as SpikeWindow).__spike.canvasTween(f), tweenFramesForCanvas(paintMs))
+
+      appendRecord(file, {
+        suite: 'canvas',
+        profile,
+        n,
+        computeMs: { median: built.computeMs, p95: null },
+        mountMs: mount,
+        interactionMs: hover,
+        panMs: pan,
+        tweenMs: tween,
+        domNodes: null,
+        domBytes: memAfter && memBefore ? round3(memAfter.dom - memBefore.dom) : null,
+        jsHeapBytes: heapAfter - heapBefore,
+      })
+
+      if (paintMs > MOUNT_STOP_MS || (hover && hover.median > HOVER_STOP_MS)) stop = true
+    } catch (e) {
+      appendRecord(file, { suite: 'canvas', profile, n, error: String(e).slice(0, 200) })
+    } finally {
+      await context.close()
+    }
+  }
 }
-async function runChords(_browser: Browser, _cfg: ProfileConfig, _profile: Profile, _ns: readonly number[]): Promise<void> {
-  throw new Error('spike: suite not yet implemented (03-09 Task 2)')
+
+async function runChords(browser: Browser, cfg: ProfileConfig, profile: Profile, ns: readonly number[]): Promise<void> {
+  const file = rawFile(profile, 'chords')
+  for (const n of ns) {
+    const { context, page } = await freshPage(browser, cfg)
+    try {
+      const result = await page.evaluate(nn => (window as unknown as SpikeWindow).__spike.chords(nn), n)
+      appendRecord(file, { suite: 'chords', profile, n, ...result })
+    } catch (e) {
+      appendRecord(file, { suite: 'chords', profile, n, error: String(e).slice(0, 200) })
+    } finally {
+      await context.close()
+    }
+  }
 }
 
 // -------------------------------------------------------------------------------------------------------------
