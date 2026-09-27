@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_execute
-stopped_at: Phase 3 planned (10 plans in 7 waves; plan-checker passed with no blockers); next is /gsd-execute-phase 3
-last_updated: "2026-09-27T06:00:00.000Z"
+status: executing
+stopped_at: Completed 03-01-PLAN.md (layout contracts + ringLayout); next is 03-02
+last_updated: "2026-09-27T19:32:50.128Z"
 last_activity: 2026-09-27
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 31
-  completed_plans: 21
-  percent: 25
+  completed_plans: 22
+  percent: 71
 ---
 
 # Project State
@@ -25,18 +25,18 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 
 ## Current Position
 
-Phase: 3
-Plan: 03-01 of 10, not started
-Status: Planned — 10 plans in 7 waves, plan-checker passed with no blockers (Phase 1 and Phase 2 are complete and pushed to 1afb1b6)
-Last activity: 2026-09-27
+Phase: 3 — EXECUTING
+Plan: 03-02 of 10
+Status: Executing Phase 3 (10 plans, 7 waves; 03-01 complete, wave 1 continues with 03-02)
+Last activity: 2026-09-27 -- 03-01 complete (layout contracts + ringLayout)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 2 P11 | 32min | 2 tasks | 5 files |
 | Phase 2 P12 | 28min | 2 tasks | 3 files |
 | Phase 2 P13 | 20min | 2 tasks | 3 files |
+| Phase 03 P01 | 14min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,7 @@ Recent decisions affecting current work:
 - [Phase 2 P13] Final phase gate (verification only: no source, test, golden, baseline or fixture file changed): `MSYS_NO_PATHCONV=1 npm run verify` exit 0 on bf49729 in 275 s (958 unit tests in 26 files in both timezones, sub-path e2e 10 passed, build, page-weight OK, e2e 75 passed and 5 skipped = 60 goldens + 10 static-export + 5 behaviour, clean-tree and static-out OK); the numeric oracle and the 60 DOM goldens are byte-identical to f7d6689 and all four manifests verify; per-criterion and per-requirement (ENG-01..ENG-05, MIG-01) evidence is in 02-13-SUMMARY.md, the requirement checkboxes and the Phase 2 phase-list tick are left to the orchestrator. Phase-wide decisions: numeral scheme = 0-9a-z to base 36 and dot-separated decimal digit groups beyond ('1.0.1' = 3601 in base 60), gate names `Gt-NN` in the numogram's own base via formatGateName; canonical cycle order = Torque cycles by length descending then smallest zone id, then Plex, then Warp, each cycle rotated to its smallest pair; seam approach = five thin pass-through files `app/data/{zones,syzygies,currents,gates,demons}.ts` (2-3 lines each, no structure, no lore) REMAIN until Phase 4 (MIG-02) so the consumers stay untouched, and `app/lib/constants.ts` is a deliberate extra seam re-exporting TC_EDGES, TC_CURRENTS and TC_SYZYGIES from `app/presets/base10/regions.ts` (so `git diff --name-only f7d6689 -- app` lists those six files plus `app/presets/base10/*`, and `-- app/lib` lists `app/lib/constants.ts` only); D-11 = the 2^26 test stays inside `npm run verify` (648 ms, +271 MiB of typed arrays, 1,290,872 cycles, no `test:heavy`); the behaviour baseline lives in `e2e/__behaviour__` (5 JSON files, strict manifest, freeze commit b82f6a2, replayed by `npm run test:swap` and `verify`); no page-weight baseline raise anywhere in Phase 2 (`/numogram/` +17,113 raw, +3.03%, and +4,890 gzip, +2.87%, headroom about 11.1 KB raw and 3.6 KB gzip); next step `/gsd-verify-work 2`
 - [Phase 3 Discuss+Research] D-01..D-14 locked (03-CONTEXT.md): anticlockwise flow; Plex/Warp bottom outside the rings; ring glyphs (nested <=3, packed beyond) default with a Barker-spiral option; ring+ladder selectable, ladder reduces exactly to the authored P_LADDER; growing viewBox with a cap, node/label size gated by on-screen size (~7 px); one HTML contact sheet for bases 2,4,6,8,12,16,28,64,82,100 as the sign-off; spike on this PC/Chromium; WebGL decided from measurements; `tier=` diagnostic override yes; pair-graph one node per pair (hi::lo); layout-switch animation with a size cutoff; D-14 (user's high-end hardware caveat) = the spike records env metadata and runs four device profiles (`gpu` native, `sw` software-raster, `sw-4x`/`sw-6x` CPU-throttle emulation of mid/low-tier hardware), shipped/default tier boundaries come from the conservative `sw-6x` row while native rows stay in the table, tests never depend on this PC's speed. Research (background agent, ~2.5 h) verified every ring/ladder/spiral/pair-graph formula against the Phase 2 engine for 1000+ layouts and proved the base-10 preset-equality method against the frozen oracle/DOM goldens; the four-profile ceiling spike produced 183 real measurement rows (not literature): SVG-rich tier is bounded by interaction latency (CSS-transform `scale` forces an element-proportional repaint); a Canvas tier with a cached static bitmap is ~O(1) per frame to n=4000 on every profile; naive per-frame culling is not free past n~1000; all-chords legibility dies at n=60-100, long before render time does; this Chromium's canvas limit is a 268,435,456-px area cap (2^28), not a 32,767-per-dimension limit; WebGL contingency = No (measured).
 - [Phase 3 Plan] 10 plans in 7 waves (03-01..03-10), committed cd41ac8; plan-checker passed with no blockers (all of LAY-01..04, REN-01 and D-01..D-14 covered, every plan has a threat_model, no plan touches `reference/` or regenerates a frozen oracle). UI-SPEC.md gate explicitly skipped by user choice (this phase ships no interactive screens — that is Phase 4 — and the generative-diagram visual contract is already locked in 03-CONTEXT.md). Notable planner choices: default packer is `spiral` (D-03's golden-angle spiral) with the tighter/cheaper shelf packer from research kept selectable, decided at the 03-08 contact-sheet checkpoint; the upstream-authored base-10 coordinates/draw-order/frame-heights move into a new NOT-relicensed `app/presets/base10/layout-tables.ts` (NOTICE section 2 gains this file, section 1 exclusion unaffected) while `layouts.ts` itself is new MIT code; 03-08 (contact-sheet sign-off, D-10) and 03-10 (measured threshold-table review, D-11/D-12/D-14) are `autonomous: false` checkpoints; the ceiling-spike driver is explicitly excluded from `npm run verify` (grepped in both plans' acceptance criteria). Next step `/gsd-execute-phase 3`.
+- [Phase 3 P01] Layout contracts fixed (engine/layout/types.ts) and ringLayout (D-01/D-02/D-03/D-06) verified for every even base 2..400 plus 666/1024/4096, both packers; packer default 'spiral' (D-03), 'shelf' selectable; composeTorques nesting pass order fixed vs the research prototype to guarantee the nest gap for k<=3
 
 ### Pending Todos
 
@@ -145,9 +147,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27
-Stopped at: Phase 3 planned (03-RESEARCH.md, 03-VALIDATION.md, 03-PATTERNS.md, 10 PLAN.md files in 7 waves); plan-checker passed with no blockers; next is /gsd-execute-phase 3
-Resume file: .planning/phases/03-procedural-layout-and-ceiling-spike/03-01-PLAN.md
+Last session: 2026-09-27T19:32:50.121Z
+Stopped at: Completed 03-01-PLAN.md (layout contracts + ringLayout); next is 03-02
+Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
