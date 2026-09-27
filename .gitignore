@@ -30,6 +30,10 @@ reference/
 # dev-only layout contact sheet (Phase 3 plan 03-08, D-10): never committed, regenerated on every review round
 /.review/
 
+# dev-only ceiling-spike raw output (Phase 3 plan 03-09, D-11): never committed; plan 03-10 shapes it into
+# engine/scene/tier-table.json
+/.spike/
+
 # npm only (yarn.lock is removed in plan 01-08)
 yarn.lock
 
