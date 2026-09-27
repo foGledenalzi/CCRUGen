@@ -3,7 +3,7 @@
 
 import type { Numogram } from '../core/types'
 import { fmt } from './format'
-import type { GateRoutes, Layout, LayoutGroup, RouteOptions } from './types'
+import type { CurrentRoutes, GateRoutes, Layout, LayoutGroup, RouteOptions } from './types'
 
 /** A discrete sign of a dot product: near-collinear (|dot| <= 1e-9) resolves the same way on every engine (+1). */
 function sideOf(dot: number): 1 | -1 {
@@ -14,6 +14,49 @@ function sideOf(dot: number): 1 | -1 {
 
 function pt(x: number, y: number): string {
   return fmt(x) + ' ' + fmt(y)
+}
+
+/** A straight line ('L') below the |bulge| < 0.5 threshold, else a quadratic bend ('Q') by `bulge` along the normal. */
+function quad(fx: number, fy: number, tx: number, ty: number, bulge: number): string {
+  if (Math.abs(bulge) < 0.5) return 'M' + pt(fx, fy) + 'L' + pt(tx, ty)
+  const mx = (fx + tx) / 2
+  const my = (fy + ty) / 2
+  const dx = tx - fx
+  const dy = ty - fy
+  const len = Math.sqrt(dx * dx + dy * dy) || 1
+  const nx = -dy / len
+  const ny = dx / len
+  const cx = mx + nx * bulge
+  const cy = my + ny * bulge
+  return 'M' + pt(fx, fy) + 'Q' + pt(cx, cy) + ' ' + pt(tx, ty)
+}
+
+interface Curved {
+  readonly d: string
+  readonly sign: 1 | -1
+}
+
+/** A quadratic curve from (fx, fy) to (tx, ty) that bends away from (cx, cy), or by a forced sign (a tween reuse). */
+function curveAway(
+  fx: number,
+  fy: number,
+  tx: number,
+  ty: number,
+  cx: number,
+  cy: number,
+  factor: number,
+  forced?: 1 | -1,
+): Curved {
+  const dx = tx - fx
+  const dy = ty - fy
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1
+  const mx = (fx + tx) / 2
+  const my = (fy + ty) / 2
+  const nx = -dy / dist
+  const ny = dx / dist
+  const dot = nx * (cx - mx) + ny * (cy - my)
+  const sign = forced ?? (dot > 1e-9 ? -1 : 1)
+  return { d: quad(fx, fy, tx, ty, sign * dist * factor), sign }
 }
 
 function groupOf(layout: Layout, z: number): LayoutGroup | undefined {
@@ -151,4 +194,115 @@ export function routeGates(g: Numogram, layout: Layout, opts: RouteOptions = {})
   }
 
   return { d, labelX, labelY, loop, to, orientation, maxInDegree }
+}
+
+/**
+ * Every pair's current: a Y whose stem lands `nodeRadius` short of the destination for a Torque pair, or a
+ * fixed-pair triangle (junction, two legs, a stem back to the destination member) for Plex and Warp, detected only by
+ * "the destination is a member of the pair" (never by name). Pure function of (g, layout); an optional
+ * `opts.orientation` lets a tween reuse a prior junction side.
+ */
+export function routeCurrents(g: Numogram, layout: Layout, opts: RouteOptions = {}): CurrentRoutes {
+  const P = g.pairCount
+  const r = layout.nodeRadius
+
+  const kind = new Uint8Array(P)
+  const legA = new Array<string>(P)
+  const legB = new Array<string>(P)
+  const stem = new Array<string>(P)
+  const junctionX = new Float64Array(P)
+  const junctionY = new Float64Array(P)
+  const orientation = new Int8Array(P)
+
+  for (let q = 0; q < P; q++) {
+    const info = g.pair(q)
+    const A = info.odd
+    const B = info.even
+    const D = g.current(q).to
+    const centre = centreOf(layout, A)
+
+    const Ax = layout.x[A] ?? 0
+    const Ay = layout.y[A] ?? 0
+    const Bx = layout.x[B] ?? 0
+    const By = layout.y[B] ?? 0
+    const Mx = (Ax + Bx) / 2
+    const My = (Ay + By) / 2
+    const ov = opts.orientation?.[q] ?? 0
+
+    if (D === A || D === B) {
+      kind[q] = 1
+      const isA = D === A
+      const Dx = isA ? Ax : Bx
+      const Dy = isA ? Ay : By
+      const Ox = isA ? Bx : Ax
+      const Oy = isA ? By : Ay
+
+      const odx = Ox - Dx
+      const ody = Oy - Dy
+      const dist = Math.sqrt(odx * odx + ody * ody) || 1
+      const nx = -ody / dist
+      const ny = odx / dist
+      const dotSide = nx * (centre.x - Mx) + ny * (centre.y - My)
+      let side = sideOf(dotSide)
+      if (ov === 1 || ov === -1) side = ov
+      const off = (Math.sqrt(3) / 6) * dist
+      const Jx = Mx + nx * side * off
+      const Jy = My + ny * side * off
+
+      const legOther = curveAway(Ox, Oy, Jx, Jy, centre.x, centre.y, 0.14)
+
+      const jdx = Jx - Dx
+      const jdy = Jy - Dy
+      const dd = Math.sqrt(jdx * jdx + jdy * jdy) || 1
+      const n2x = -jdy / dd
+      const n2y = jdx / dd
+      const midx = (Dx + Jx) / 2
+      const midy = (Dy + Jy) / 2
+      const dot2 = n2x * (centre.x - midx) + n2y * (centre.y - midy)
+      const s2 = sideOf(dot2)
+
+      const leg1 = quad(Dx, Dy, Jx, Jy, s2 * dd * 0.3)
+      const stemD = quad(Jx, Jy, Dx, Dy, s2 * dd * 0.3)
+
+      legA[q] = isA ? leg1 : legOther.d
+      legB[q] = isA ? legOther.d : leg1
+      stem[q] = stemD
+      junctionX[q] = Jx
+      junctionY[q] = Jy
+      orientation[q] = side
+      continue
+    }
+
+    kind[q] = 0
+    const Dx = layout.x[D] ?? 0
+    const Dy = layout.y[D] ?? 0
+    const dx = Dx - Mx
+    const dy = Dy - My
+    const len = Math.hypot(dx, dy) || 1
+    const nx = -dy / len
+    const ny = dx / len
+    const dotSide = nx * (centre.x - Mx) + ny * (centre.y - My)
+    let side = sideOf(dotSide)
+    if (ov === 1 || ov === -1) side = ov
+    const Jx = Mx + 0.35 * dx + nx * side * 0.52 * r
+    const Jy = My + 0.35 * dy + ny * side * 0.52 * r
+
+    const legAObj = curveAway(Ax, Ay, Jx, Jy, centre.x, centre.y, 0.12)
+    const legBObj = curveAway(Bx, By, Jx, Jy, centre.x, centre.y, 0.12)
+
+    const sdx = Dx - Jx
+    const sdy = Dy - Jy
+    const sd = Math.sqrt(sdx * sdx + sdy * sdy) || 1
+    const endx = Dx - (sdx / sd) * r
+    const endy = Dy - (sdy / sd) * r
+
+    legA[q] = legAObj.d
+    legB[q] = legBObj.d
+    stem[q] = 'M' + pt(Jx, Jy) + 'L' + pt(endx, endy)
+    junctionX[q] = Jx
+    junctionY[q] = Jy
+    orientation[q] = side
+  }
+
+  return { kind, legA, legB, stem, junctionX, junctionY, orientation }
 }
