@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-06-PLAN.md (scene-to-SVG string emitter with XML escaping, degenerate-base and NaN-sweep coverage, full gate); next is 03-07
-last_updated: "2026-09-27T21:28:25.373Z"
-last_activity: "2026-09-27 -- 03-06 complete (scene-to-SVG string emitter: layoutToSvg/pairGraphToSvg, escapeXml XSS control, degenerate-base and NaN-sweep coverage; full npm run verify green)"
+stopped_at: Completed 03-07-PLAN.md (layout registry/tween helper, layout+scene engine barrel exports, determinism and sizing coverage, full gate); next is 03-08
+last_updated: "2026-09-27T21:51:37.097Z"
+last_activity: "2026-09-27 -- 03-07 complete (resolveLayout/layoutIdsFor registry, lerpPositions tween helper, engine/index.ts layout+scene barrels with sideEffects:false, determinism and LAY-03 sizing test coverage; full npm run verify green, page weight flat)"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 31
-  completed_plans: 27
-  percent: 87
+  completed_plans: 28
+  percent: 90
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 3 — EXECUTING
-Plan: 03-07 of 10
-Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-06 complete, wave 4 begins with 03-07)
-Last activity: 2026-09-27 -- 03-06 complete (scene-to-SVG string emitter: layoutToSvg/pairGraphToSvg, escapeXml XSS control, degenerate-base and NaN-sweep coverage; full npm run verify green)
+Plan: 03-08 of 10
+Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-07 complete, wave 4 continues with 03-08 — a checkpoint plan: human contact-sheet sign-off, D-10)
+Last activity: 2026-09-27 -- 03-07 complete (layout registry, tween helper, engine layout/scene barrel exports, determinism and sizing coverage; full npm run verify green)
 
-Progress: [█████████░] 87%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [█████████░] 87%
 | Phase 03 P03 | 12min | 2 tasks | 6 files |
 | Phase 03 P05 | 21min | 2 tasks | 5 files |
 | Phase 03 P06 | 35min | 2 tasks | 3 files |
+| Phase 03 P07 | 19min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,7 @@ Recent decisions affecting current work:
 - [Phase 3 P03] ladderLayout skips fitFrame's minimum-frame clamp (unlike ring/spiral/pairGraph) so it reduces EXACTLY to the frozen base-10 ladder (800 x 870, centre 400,450); pairGraphLayout reuses ring.ts's torqueGlyphs/composeTorques/ringNodes with unitsPerPair=1 so pair-graph rings are indexed by pair id (base 64: six rings, base 28: rings of 9 and 3); routePairGraph's current arcs (SVG flags 0 0 0) and self loops (flags 0 1 0) verified against g.nextPair for every even base 2..400 (T-03-08)
 - [Phase 3 P05] Base-10 layout presets (D-05, LAY-02): app/presets/base10/layout-tables.ts holds the nine upstream tables plus DRAW_ORDER/FRAME_HEIGHT/REGION_LABELS (not relicensed, NOTICE section 2); app/presets/base10/layouts.ts exposes BASE10_LAYOUT_SPECS (original, labyrinth, ladder, planetary) as LayoutSpecs importing engine layout TYPES only; app/data/positions.ts is now a two-line pass-through seam; proven against the frozen numeric oracle and a local DOM-golden parser (zone labels distinguished from the pandemonium layer's digits by font-size=17 vs 7); full npm run verify green, page weight flat (-2 bytes raw)
 - [Phase 3 P06] engine/scene/svgString.ts (research Pattern 8): layoutToSvg (any zone layout) and pairGraphToSvg (the pair-graph view) as pure string-array + join('\n') emitters with named layer groups (regions, gates, currents, syzygies, one 'zone' group per node, gate-labels), rounded coordinates via fmt, an explicit viewBox, and escapeXml applied at every free-text interpolation point (title, region-label text, pair-graph hi::lo labels) as the phase's XSS control (T-03-16, concretely tested with a </title><script> payload and an edited <b> region label); background is hex-regex-validated or thrown as RangeError (T-03-17); the emitter never reads g.demons (T-03-18), proven with a guard Proxy that rebinds every forwarded method to the real target (NumogramImpl carries a private class field, so naive receiver-forwarding breaks on any method call, not just .demons). engine/test/layout.degenerate.test.ts covers Pitfall 10 (bases 2/4/6 across all four layouts: finite coordinates, node discs inside the frame, no bad numbers in any route or SVG string) plus a NaN sweep over every even base 2..128 and the review-set bases 28/64/82/100; all green on first run, no production module needed a fix. Full npm run verify green (75 e2e + 5 expected-skipped, 60 goldens and behaviour baseline unchanged, page-weight OK, check-repo 12/12). LAY-01/LAY-03/LAY-04 remain in progress (03-07/03-08 still pending for LAY-01/LAY-03, 03-08 for LAY-04); none marked complete in REQUIREMENTS.md by this plan.
+- [Phase 3 P07] lerpPositions copies t=0/t=1 exactly via Float64Array.set() rather than the lerp formula (fx + (tx-fx) is not always bit-identical to tx under IEEE 754); resolveLayout resolves preset -> procedural LAYOUT_IDS id -> first supporting preset else ring (T-03-19: an id is only ever compared, never evaluated); engine/index.ts now re-exports layout/index and scene/index with sideEffects:false, page weight flat (+0 bytes raw); LAY-01/LAY-03 traceability rows hand-edited to add 03-07 (still in progress, 03-08 pending)
 
 ### Pending Todos
 
@@ -155,8 +157,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T21:28:25.366Z
-Stopped at: Completed 03-06-PLAN.md
+Last session: 2026-09-27T21:51:37.090Z
+Stopped at: Completed 03-07-PLAN.md
 Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
