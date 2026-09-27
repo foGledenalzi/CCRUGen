@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-09-PLAN.md
-last_updated: "2026-09-27T01:20:00.000Z"
+stopped_at: Completed 02-10-PLAN.md
+last_updated: "2026-09-27T01:45:00.000Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 21
-  completed_plans: 17
-  percent: 81
+  completed_plans: 18
+  percent: 86
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 2
-Plan: 9 of 13 executed
-Status: Executing Phase 2 (02-09 currents swap done; next 02-10, gates)
+Plan: 10 of 13 executed
+Status: Executing Phase 2 (02-10 gates swap done; next 02-11, regions/zones)
 Last activity: 2026-09-26
 
-Progress: [████████░░] 81%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -45,7 +45,7 @@ Progress: [████████░░] 81%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 8 | - | - |
-| 2 | 9 | 229min | 25min |
+| 2 | 10 | 254min | 25min |
 
 **Recent Trend:**
 
@@ -70,6 +70,7 @@ Progress: [████████░░] 81%
 | Phase 2 P07 | 30min | 2 tasks | 11 files |
 | Phase 2 P08 | 35min | 2 tasks | 4 files |
 | Phase 2 P09 | 32min | 2 tasks | 3 files |
+| Phase 2 P10 | 25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Recent decisions affecting current work:
 - [Phase 2 P07] Lore consolidation (D-06, D-07, D-16): all CCRU-derived base-10 lore lives in app/presets/base10/lore.ts (typed, licence header on line 1, keyed by zone, pair id = low zone, gate origin zone and mesh number: ZONE_CLR, ZONE_PARTICLE, PLANET_SYMBOL, ZONE_META, SYZYGY_LORE, CURRENT_LORE, GATE_LORE, DEMON_NAMES), text moved mechanically and proven identical (757 fields deep-equal, 240 of 241 raw string literals equal with every unicode escape kept, 0 differences); app/data/{zones,syzygies,currents,gates,demons}.ts are structure seams that read text by id (same exports and order; the unimported string-keyed DEMON_NAMES is gone from demons.ts; current labels stay literal); NOTICE section 3, LORE_FILES, the derived manifest in MANIFESTS and the check-repo tests changed in one commit; coverage test against the createNumogram(10) ids (no missing or orphaned key); 60 goldens, behaviour baseline and numeric oracle unchanged, npm run verify exit 0 in 251 s; gotcha for the swaps: the file-write tool decodes typed unicode escapes into raw characters, so never type them, use a script and check the bytes
 - [Phase 2 P08] Swap 1 (syzygies, D-02): app/presets/base10/numogram.ts exports BASE10 = createNumogram(10) (one Torque cycle and a Warp checked at load, the only file that imports the engine) and app/presets/base10/syzygies.ts builds SYZYGIES from BASE10.pair(id) (ids descending, a = lo, b = hi) joined with SYZYGY_LORE by pair id; app/data/syzygies.ts is now a two-line seam (comment and re-export, same array object) and the hand structure is deleted (D-08) in a separate commit after the full gate was green on the committed swap; strict deep-equality against git show f7d6689:app/data/syzygies.ts: 26 nodes, 20 primitive fields, 0 differences, key order a, b, demon, desc; adapter test also asserts no lore text in any adapter file; pre-flight, post-swap and final npm run verify all exit 0 (250 s, 249 s, 249 s), 60 goldens, behaviour baseline and numeric oracle unchanged; page-weight not updated: /numogram/ grew +16,059 bytes raw and +4,666 gzip (inside the max(1 KiB, 5%) tolerance), about 12.1 KB raw and 3.9 KB gzip of headroom left for swaps 02-09..02-12
 - [Phase 2 P09] Swap 2 (currents, D-02): app/presets/base10/currents.ts builds CURRENTS from BASE10 (Torque pairs in flow order, then the Warp pair, then the Plex pair = pair ids 1, 2, 4, 3, 0; to = BASE10.current(p).to; label = in-base numerals of hi, the minus sign U+2212, lo, =, to via the engine's formatNumeral) joined with CURRENT_LORE by pair id; legacyCurrentFrom(p) (the pair's even member, the Plex pair drawn at 9) is upstream's drawing convention kept for byte-identical rendering until Phase 4; the label's minus sign is one MINUS constant in the same escape source form the old file used; currents.ts is the second app file importing the engine (formatNumeral, per the plan's key link); app/data/currents.ts is a two-line seam and the hand structure is deleted (D-08) in a separate commit after the full gate was green on the committed swap; strict deep-equality against git show f7d6689:app/data/currents.ts: 31 nodes, 25 primitive fields, 0 differences, key order name, from, to, label, desc, the five labels equal as runtime strings and by code point; pre-flight, post-swap and final npm run verify all exit 0 (about 250 s, 252 s, 250 s), 60 goldens, behaviour baseline and numeric oracle unchanged; page-weight not updated: /numogram/ is +16,966 bytes raw (+3.0%) and +4,926 gzip over the stored baseline (this swap +907 and +260), about 11.2 KB raw and 3.6 KB gzip of headroom left for swaps 02-10..02-12
+- [Phase 2 P10] Swap 3 (gates, D-02): app/presets/base10/gates.ts builds GATE_LIST from BASE10.gate(zone) for all ten origin zones in order (Gt-00 included; from/to/cum = the engine gate, to = in-base digital root of T(zone), T(0) to 0) with name = formatGateName(cumulation, BASE10.base) from the engine barrel (own-base Gt-NN names exercised from day one, D-04, identical to the old literals at base 10) and desc/detail joined from GATE_LORE by origin zone; gates.ts is the third app file importing the engine; app/data/gates.ts is a two-line seam and the hand structure is deleted (D-08) in a separate commit after the full gate was green on the committed swap; strict deep-equality against git show f7d6689:app/data/gates.ts: 71 nodes, 60 primitive fields, 0 differences, key order name, from, to, cum, desc, detail, name/desc/detail equal as runtime strings and by code point; named regressions Gt-15 is 5 -> 6 and Gt-03 is 2 -> 3 in the adapter test; `to` is also checked against the independent reference (refDigitSumRoot); four adapter mutants killed; pre-flight, post-swap and final npm run verify all exit 0 (251 s, 252 s, 248 s), 60 goldens, behaviour baseline and numeric oracle unchanged; page-weight not updated: /numogram/ is +16,550 bytes raw (+2.9%) and +4,804 gzip over the stored baseline (this swap -416 and -122), about 11.6 KB raw and 3.7 KB gzip of headroom left for swaps 02-11 and 02-12; 02-11 edits app/lib/constants.ts by plan, so the f7d6689 app/lib diff acceptance changes from that plan on
 
 ### Pending Todos
 
@@ -135,8 +137,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T01:20:00.000Z
-Stopped at: Completed 02-09-PLAN.md
-Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-10-PLAN.md
+Last session: 2026-09-27T01:45:00.000Z
+Stopped at: Completed 02-10-PLAN.md
+Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-11-PLAN.md
 
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
