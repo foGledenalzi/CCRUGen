@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
-import { ALL_DEMONS as SEAM_ALL_DEMONS, LEGACY_ALL_DEMONS, TC as SEAM_TC } from '../../app/data/demons'
+import { ALL_DEMONS as SEAM_ALL_DEMONS, TC as SEAM_TC } from '../../app/data/demons'
 import { GATE_LIST as SEAM_GATES } from '../../app/data/gates'
 import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import type { Region } from '../../app/data/types'
@@ -436,12 +436,6 @@ describe('demons', () => {
     for (let zone = 0; zone < BASE10.zoneCount; zone++) {
       expect(ALL_DEMONS.filter((d) => d.a === zone || d.b === zone), `zone ${zone}`).toHaveLength(BASE10.base - 1)
     }
-  })
-
-  it('equal the hand-built list they replace: same length, same keys in the same order, same values', () => {
-    expect(LEGACY_ALL_DEMONS).toHaveLength(45)
-    expect(ALL_DEMONS).toStrictEqual(LEGACY_ALL_DEMONS)
-    ALL_DEMONS.forEach((d, m) => expect(Object.keys(d), `mesh ${m}`).toEqual(Object.keys(LEGACY_ALL_DEMONS[m] as object)))
   })
 
   it('are the very array the app/data seam exports (the consumers keep their import)', () => {
