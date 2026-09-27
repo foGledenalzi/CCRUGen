@@ -2,7 +2,10 @@
 import { GATE_LORE } from '../presets/base10/lore'
 import type { GateData } from './types'
 
-export const GATE_LIST: GateData[] = [
+export { GATE_LIST } from '../presets/base10/gates'
+
+// The hand-authored list, kept only until the deletion commit (D-02, D-08); nothing imports it but the swap's equality test.
+export const LEGACY_GATE_LIST: GateData[] = [
   { name: 'Gt-00', from: 0, to: 0, cum: 0, desc: GATE_LORE[0].desc, detail: GATE_LORE[0].detail },
   { name: 'Gt-01', from: 1, to: 1, cum: 1, desc: GATE_LORE[1].desc, detail: GATE_LORE[1].detail },
   { name: 'Gt-03', from: 2, to: 3, cum: 3, desc: GATE_LORE[2].desc, detail: GATE_LORE[2].detail },

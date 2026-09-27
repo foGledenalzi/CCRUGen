@@ -2,19 +2,28 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
+import { GATE_LIST as SEAM_GATES, LEGACY_GATE_LIST } from '../../app/data/gates'
 import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import { CURRENTS, legacyCurrentFrom } from '../../app/presets/base10/currents'
-import { CURRENT_LORE, DEMON_NAMES, SYZYGY_LORE } from '../../app/presets/base10/lore'
+import { GATE_LIST } from '../../app/presets/base10/gates'
+import { CURRENT_LORE, DEMON_NAMES, GATE_LORE, SYZYGY_LORE } from '../../app/presets/base10/lore'
 import { BASE10 } from '../../app/presets/base10/numogram'
 import { SYZYGIES } from '../../app/presets/base10/syzygies'
+import { formatGateName } from '../../engine/index'
+import { refDigitSumRoot } from '../bruteforce/numogramReference'
 
 // MIG-01 / D-01 / D-02: the base-10 adapter derives the viewer's data shapes from the engine (createNumogram(10))
-// joined with the lore by id. Swap 1 (plan 02-08): syzygies. Swap 2 (plan 02-09): currents. The frozen numeric oracle
-// (base10.golden.json, never regenerated) and the definitions below, not the adapter, say what the values must be.
+// joined with the lore by id. Swap 1 (plan 02-08): syzygies. Swap 2 (plan 02-09): currents. Swap 3 (plan 02-10): gates.
+// The frozen numeric oracle (base10.golden.json, never regenerated) and the definitions below, not the adapter, say what
+// the values must be.
 
 const golden = JSON.parse(
   readFileSync(fileURLToPath(new URL('../../engine/test/fixtures/base10.golden.json', import.meta.url)), 'utf8'),
-) as { pairs: [number, number][]; currents: { name: string; pair: [number, number]; from: number; to: number }[] }
+) as {
+  pairs: [number, number][]
+  currents: { name: string; pair: [number, number]; from: number; to: number }[]
+  gates: { name: string; from: number; to: number; cum: number }[]
+}
 
 // U+2212 MINUS SIGN, built from its code point so this file holds no escape sequence.
 const MINUS = String.fromCharCode(0x2212)
@@ -132,12 +141,81 @@ describe('currents', () => {
   })
 })
 
+describe('gates', () => {
+  it('are the ten gates of the frozen oracle (name, from, to, cum), in the same order', () => {
+    expect(golden.gates).toHaveLength(10)
+    expect(GATE_LIST.map((g) => ({ name: g.name, from: g.from, to: g.to, cum: g.cum }))).toEqual(golden.gates)
+  })
+
+  it('emit all n gates in origin-zone order, Gt-00 (0 -> 0) included', () => {
+    expect(GATE_LIST).toHaveLength(BASE10.zoneCount)
+    expect(GATE_LIST).toHaveLength(10)
+    expect(GATE_LIST[0]?.name).toBe('Gt-00')
+    expect(GATE_LIST.map((g) => g.name)).toEqual([
+      'Gt-00', 'Gt-01', 'Gt-03', 'Gt-06', 'Gt-10', 'Gt-15', 'Gt-21', 'Gt-28', 'Gt-36', 'Gt-45',
+    ])
+    GATE_LIST.forEach((g, zone) => expect(g.from, g.name).toBe(zone))
+  })
+
+  it('Gt-15 is 5 -> 6 in the viewer data (never the 16 the diagram once drew)', () => {
+    const gate = GATE_LIST.find((g) => g.name === 'Gt-15')
+    expect({ from: gate?.from, to: gate?.to, cum: gate?.cum }).toEqual({ from: 5, to: 6, cum: 15 })
+  })
+
+  it('Gt-03 is 2 -> 3 in the viewer data (never the 8 the diagram once drew)', () => {
+    const gate = GATE_LIST.find((g) => g.name === 'Gt-03')
+    expect({ from: gate?.from, to: gate?.to, cum: gate?.cum }).toEqual({ from: 2, to: 3, cum: 3 })
+  })
+
+  it('come from the engine gates: to = the in-base digital root of T(k) (T(0) -> 0), cum = T(k), names in own-base numerals', () => {
+    let triangular = 0
+    GATE_LIST.forEach((g, k) => {
+      triangular += k // running sum 0, 1, 3, 6, ..., 45 = T(k), not the engine formula
+      const engine = BASE10.gate(k)
+      expect(g.from, g.name).toBe(engine.from)
+      expect(g.to, g.name).toBe(engine.to)
+      expect(g.cum, g.name).toBe(engine.cumulation)
+      expect(g.cum, g.name).toBe(triangular)
+      expect(g.to, g.name).toBe(refDigitSumRoot(triangular, BASE10.base))
+      expect(g.name, g.name).toBe(formatGateName(engine.cumulation, 10))
+    })
+  })
+
+  it('write every name with the engine formatter: Gt- and the cumulation as two in-base digits', () => {
+    for (const g of GATE_LIST) expect(g.name).toMatch(/^Gt-\d\d$/)
+    expect(GATE_LIST.map((g) => g.name)).toEqual(GATE_LIST.map((g) => 'Gt-' + String(g.cum).padStart(2, '0')))
+  })
+
+  it('keep the exact key order name, from, to, cum, desc, detail that the consumers were written against', () => {
+    for (const g of GATE_LIST) expect(Object.keys(g)).toEqual(['name', 'from', 'to', 'cum', 'desc', 'detail'])
+  })
+
+  it('carry the lore of their own origin zone (desc and detail joined by origin zone)', () => {
+    GATE_LIST.forEach((g, zone) => {
+      const lore = GATE_LORE[zone]
+      expect(g.desc, g.name).toBe(lore?.desc)
+      expect(g.detail, g.name).toBe(lore?.detail)
+      expect(g.desc.length, g.name).toBeGreaterThan(0)
+      expect(g.detail.length, g.name).toBeGreaterThan(0)
+    })
+  })
+
+  it('equal the hand-authored list they replace, entry by entry (kept until the deletion commit)', () => {
+    expect(GATE_LIST).toEqual(LEGACY_GATE_LIST)
+  })
+
+  it('are the very array the app/data seam exports (the consumers keep their import)', () => {
+    expect(SEAM_GATES).toBe(GATE_LIST)
+  })
+})
+
 describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore text', () => {
-  it('no file in app/presets/base10 other than lore.ts contains a syzygy or current name, demon name or description', () => {
+  it('no file in app/presets/base10 other than lore.ts contains a syzygy, current or gate name, demon name or description', () => {
     const dir = fileURLToPath(new URL('../../app/presets/base10/', import.meta.url))
     const files = readdirSync(dir).filter((f) => f.endsWith('.ts') && f !== 'lore.ts')
     expect(files).toContain('syzygies.ts')
     expect(files).toContain('currents.ts')
+    expect(files).toContain('gates.ts')
     expect(files).toContain('numogram.ts')
     const lore = Object.values(SYZYGY_LORE).flatMap((l) => [l.demon, l.desc])
     expect(lore.length).toBe(10)
@@ -145,9 +223,13 @@ describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore 
     // counts as hard-coded lore; the descriptions are prose and must not appear at all.
     const currentLore = Object.values(CURRENT_LORE)
     expect(currentLore.length).toBe(5)
+    // Gate lore is prose (a short title in desc, a sentence or two in detail): none of it may appear in an adapter file.
+    const gateLore = Object.values(GATE_LORE).flatMap((l) => [l.desc, l.detail])
+    expect(gateLore.length).toBe(20)
     for (const f of files) {
       const text = readFileSync(dir + f, 'utf8')
       for (const s of lore) expect(text, `${f} contains lore text`).not.toContain(s)
+      for (const s of gateLore) expect(text, `${f} contains gate lore text`).not.toContain(s)
       for (const l of currentLore) {
         expect(text, `${f} contains a current description`).not.toContain(l.desc)
         expect(text, `${f} hard-codes the current name ${l.name}`).not.toContain(`'${l.name}'`)
