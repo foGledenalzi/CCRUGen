@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 3 context gathered (03-CONTEXT.md, decisions D-01..D-13); next is /gsd-plan-phase 3 (research on)
-last_updated: "2026-09-27T03:10:00.000Z"
-last_activity: 2026-09-26
+status: ready_to_execute
+stopped_at: Phase 3 planned (10 plans in 7 waves; plan-checker passed with no blockers); next is /gsd-execute-phase 3
+last_updated: "2026-09-27T06:00:00.000Z"
+last_activity: 2026-09-27
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 21
+  total_plans: 31
   completed_plans: 21
   percent: 25
 ---
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 3
-Plan: Not started
-Status: Context gathered, ready to plan (Phase 1 and Phase 2 are complete and pushed to 1afb1b6)
+Plan: 03-01 of 10, not started
+Status: Planned — 10 plans in 7 waves, plan-checker passed with no blockers (Phase 1 and Phase 2 are complete and pushed to 1afb1b6)
 Last activity: 2026-09-27
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -113,6 +113,8 @@ Recent decisions affecting current work:
 - [Phase 2 P11] Swap 4 (regions and zones, D-02): app/presets/base10/regions.ts builds ZONE_REGION (BASE10.cycleOfZone(z).kind for zones 0..9), TC (zones of all Torque cycles, ascending: 1, 2, 4, 5, 7, 8), TC_EDGES (the closed walk of BASE10.torques[0].zones(): 1-8-7-2-5-4-1), TC_SYZYGIES (the Torque pairs as [lo, hi] in flow order) and TC_CURRENTS (CURRENT_LORE names of those pairs by pair id: Surge, Hold, Sink) once at load, relying on the base-10 invariant of exactly one Torque cycle (asserted in numogram.ts; the engine itself never assumes one); app/data/zones.ts, app/data/demons.ts and app/lib/constants.ts re-export the adapter objects (same names and shapes, identity checked with toBe) and the hand region data is deleted (D-08) in a separate commit after the full gate was green on the committed swap; DELIBERATE SEAM EXTENSION: app/lib/constants.ts is now the one file under app/lib that differs from f7d6689, so the acceptance for later plans is `git diff --name-only f7d6689 -- app/lib` = app/lib/constants.ts only (the old --quiet form exits 1); components, hooks, NumogramClient.tsx and app/components/projection stay byte-identical; strict deep-equality against git show f7d6689 of every export of the old zones.ts, the old demons.ts TC/ALL_DEMONS and the old constants.ts: 471 nodes, 386 primitive fields, 0 differences; the adapter test also checks against the independent reference and nine adapter mutants were killed; pre-flight, post-swap and final npm run verify all exit 0 (250 s each), 60 goldens, behaviour baseline and numeric oracle unchanged; page-weight not updated: /numogram/ is +16,805 bytes raw (+3.0%) and +4,804 gzip over the stored baseline (this swap +255 and 0), about 11.4 KB raw and 3.7 KB gzip of headroom left for swap 02-12; demons.ts still holds the hand ALL_DEMONS builder (kind: i + j = 9 syzygy, both in TC chrono, neither xeno, else amphi) that 02-12 replaces
 - [Phase 2 P12] Swap 5 (demons, D-02, the last one): app/presets/base10/demons.ts builds ALL_DEMONS once at load from BASE10.demons.at(m) for mesh m = 0..44 ascending (entry m is the demon of mesh m), named by DEMON_NAMES[m] (a missing name throws, the old fallback name is gone), with the viewer's own kind from legacyKind(subtype), an exhaustive switch over the seven engine subtypes: syzygetic-chrono and syzygetic-xeno -> syzygy (the five nine-sum demons 5::4, 6::3, 7::2, 8::1, 9::0), cyclic-chrono and cross-torque-chrono -> chrono, plex-amphi and warp-amphi -> amphi, chaotic-xeno -> xeno (base 10: amphi 24, chrono 12, syzygy 5, xeno 4); a base-10 compatibility list of 45 computed from the virtual demon space, never an n^2 builder; app/data/demons.ts is now a three-line seam (ALL_DEMONS from the demons adapter, TC from the regions adapter) and the hand double loop is deleted (D-08) in a separate commit after the full gate was green on the committed swap; strict deep-equality against git show f7d6689:app/data/demons.ts (whose names come from its own a:b-keyed table): ALL_DEMONS and TC 233 nodes, 186 primitive fields, 0 differences, key order a, b, name, kind; because no golden or baseline reads demon names or kinds the adapter test pins all 45 names and kinds against the frozen oracle, checks the kind demon by demon against the independent reference (rule from the definitions and reference subtype), checks the join through a second path (the lore module's per-zone lemur lists) and eleven adapter mutants were killed; pre-flight, post-swap and final npm run verify all exit 0 (about 260 s, 257 s, 252 s), 60 goldens, behaviour baseline and numeric oracle unchanged, 958 unit tests in both timezones; page-weight not updated in all of Phase 2: /numogram/ is +17,113 bytes raw (+3.03%) and +4,890 gzip (+2.87%) over the stored baseline (this swap +308 and +86), 11,083 raw and 3,638 gzip of headroom left; all five base-10 data sources are now engine-derived and lore-joined by id, the app/data seams (zones, syzygies, currents, gates, demons) plus app/lib/constants.ts are thin pass-throughs until Phase 4
 - [Phase 2 P13] Final phase gate (verification only: no source, test, golden, baseline or fixture file changed): `MSYS_NO_PATHCONV=1 npm run verify` exit 0 on bf49729 in 275 s (958 unit tests in 26 files in both timezones, sub-path e2e 10 passed, build, page-weight OK, e2e 75 passed and 5 skipped = 60 goldens + 10 static-export + 5 behaviour, clean-tree and static-out OK); the numeric oracle and the 60 DOM goldens are byte-identical to f7d6689 and all four manifests verify; per-criterion and per-requirement (ENG-01..ENG-05, MIG-01) evidence is in 02-13-SUMMARY.md, the requirement checkboxes and the Phase 2 phase-list tick are left to the orchestrator. Phase-wide decisions: numeral scheme = 0-9a-z to base 36 and dot-separated decimal digit groups beyond ('1.0.1' = 3601 in base 60), gate names `Gt-NN` in the numogram's own base via formatGateName; canonical cycle order = Torque cycles by length descending then smallest zone id, then Plex, then Warp, each cycle rotated to its smallest pair; seam approach = five thin pass-through files `app/data/{zones,syzygies,currents,gates,demons}.ts` (2-3 lines each, no structure, no lore) REMAIN until Phase 4 (MIG-02) so the consumers stay untouched, and `app/lib/constants.ts` is a deliberate extra seam re-exporting TC_EDGES, TC_CURRENTS and TC_SYZYGIES from `app/presets/base10/regions.ts` (so `git diff --name-only f7d6689 -- app` lists those six files plus `app/presets/base10/*`, and `-- app/lib` lists `app/lib/constants.ts` only); D-11 = the 2^26 test stays inside `npm run verify` (648 ms, +271 MiB of typed arrays, 1,290,872 cycles, no `test:heavy`); the behaviour baseline lives in `e2e/__behaviour__` (5 JSON files, strict manifest, freeze commit b82f6a2, replayed by `npm run test:swap` and `verify`); no page-weight baseline raise anywhere in Phase 2 (`/numogram/` +17,113 raw, +3.03%, and +4,890 gzip, +2.87%, headroom about 11.1 KB raw and 3.6 KB gzip); next step `/gsd-verify-work 2`
+- [Phase 3 Discuss+Research] D-01..D-14 locked (03-CONTEXT.md): anticlockwise flow; Plex/Warp bottom outside the rings; ring glyphs (nested <=3, packed beyond) default with a Barker-spiral option; ring+ladder selectable, ladder reduces exactly to the authored P_LADDER; growing viewBox with a cap, node/label size gated by on-screen size (~7 px); one HTML contact sheet for bases 2,4,6,8,12,16,28,64,82,100 as the sign-off; spike on this PC/Chromium; WebGL decided from measurements; `tier=` diagnostic override yes; pair-graph one node per pair (hi::lo); layout-switch animation with a size cutoff; D-14 (user's high-end hardware caveat) = the spike records env metadata and runs four device profiles (`gpu` native, `sw` software-raster, `sw-4x`/`sw-6x` CPU-throttle emulation of mid/low-tier hardware), shipped/default tier boundaries come from the conservative `sw-6x` row while native rows stay in the table, tests never depend on this PC's speed. Research (background agent, ~2.5 h) verified every ring/ladder/spiral/pair-graph formula against the Phase 2 engine for 1000+ layouts and proved the base-10 preset-equality method against the frozen oracle/DOM goldens; the four-profile ceiling spike produced 183 real measurement rows (not literature): SVG-rich tier is bounded by interaction latency (CSS-transform `scale` forces an element-proportional repaint); a Canvas tier with a cached static bitmap is ~O(1) per frame to n=4000 on every profile; naive per-frame culling is not free past n~1000; all-chords legibility dies at n=60-100, long before render time does; this Chromium's canvas limit is a 268,435,456-px area cap (2^28), not a 32,767-per-dimension limit; WebGL contingency = No (measured).
+- [Phase 3 Plan] 10 plans in 7 waves (03-01..03-10), committed cd41ac8; plan-checker passed with no blockers (all of LAY-01..04, REN-01 and D-01..D-14 covered, every plan has a threat_model, no plan touches `reference/` or regenerates a frozen oracle). UI-SPEC.md gate explicitly skipped by user choice (this phase ships no interactive screens — that is Phase 4 — and the generative-diagram visual contract is already locked in 03-CONTEXT.md). Notable planner choices: default packer is `spiral` (D-03's golden-angle spiral) with the tighter/cheaper shelf packer from research kept selectable, decided at the 03-08 contact-sheet checkpoint; the upstream-authored base-10 coordinates/draw-order/frame-heights move into a new NOT-relicensed `app/presets/base10/layout-tables.ts` (NOTICE section 2 gains this file, section 1 exclusion unaffected) while `layouts.ts` itself is new MIT code; 03-08 (contact-sheet sign-off, D-10) and 03-10 (measured threshold-table review, D-11/D-12/D-14) are `autonomous: false` checkpoints; the ceiling-spike driver is explicitly excluded from `npm run verify` (grepped in both plans' acceptance criteria). Next step `/gsd-execute-phase 3`.
 
 ### Pending Todos
 
@@ -123,8 +125,8 @@ None yet.
 - [Phase 1]: RESOLVED in 01-05: the static export builds (`next build` exit 0) and the client redirect is proven at the root and under `/ccrug`
 - [Phase 1]: RESOLVED: Windows specifics verified (`process.env.TZ` runtime pin and canary in 01-01, Vite 8 with Vitest 5 runs green, fflate plugin ZIP sha256 identical under UTC / Asia/Tokyo / America/New_York in 01-06)
 - [Phase 1]: RESOLVED in 01-07: LICENSE and NOTICE exist and the five lore files are marked CCRU-derived (prose provenance recorded, text unchanged). Confirmed by the user on 2026-09-25 at the 01-08 Task 3 checkpoint: LICENSE holder `foGledenalzi` and the NOTICE scope as written. The remotes were already set (origin = foGledenalzi/CCRUGen, upstream push disabled); 01-08 only asserted them.
-- [Phase 3]: Renderer thresholds are unmeasured (research figures conflict); Phases 4-6 wait on the spike's threshold table
-- [Phase 3]: Aesthetic choices need the user: flow direction, Plex placement, default label case
+- [Phase 3]: RESOLVED by research: renderer thresholds now have real four-profile measurements (183 rows) with conservative placeholder boundaries in `engine/scene/tiers.ts`; the real `sw-6x`/`gpu`/etc. spike run is plan 03-10, still pending execution — Phases 4-6 wait on that final table, not on research placeholders
+- [Phase 3]: RESOLVED in 03-CONTEXT.md (2026-09-27): flow direction anticlockwise (D-01), Plex/Warp bottom outside the rings (D-02); default label case left to Claude's discretion, unresolved by name but not blocking (no requirement pins case)
 - [Phase 4]: Label scheme beyond base 36 needs a decision plus font/glyph coverage tests
 - [Phase 6]: Worker chunk loading in an exported site with `trailingSlash` and `basePath` is unverified
 - [Phase 7]: Naming generator quality and demon-name collisions at scale need prototyping
@@ -144,7 +146,8 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-09-27
-Stopped at: Phase 3 context gathered (03-CONTEXT.md, 03-DISCUSSION-LOG.md); decisions D-01..D-13 locked
-Resume file: .planning/phases/03-procedural-layout-and-ceiling-spike/03-CONTEXT.md
+Stopped at: Phase 3 planned (03-RESEARCH.md, 03-VALIDATION.md, 03-PATTERNS.md, 10 PLAN.md files in 7 waves); plan-checker passed with no blockers; next is /gsd-execute-phase 3
+Resume file: .planning/phases/03-procedural-layout-and-ceiling-spike/03-01-PLAN.md
 
+**Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z

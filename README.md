@@ -6,7 +6,7 @@ Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / W
 
 Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). The upstream repository ships no license, so the files inherited from it are not relicensed here, and the CCRU-derived base-10 lore text is a third-party pack (see [NOTICE](NOTICE) and [Licensing](#licensing-and-credits)).
 
-> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phases 1 and 2 are complete and independently verified: the numogram engine is built, and the base-10 viewer now runs on it. Phase 3 (procedural layout and the ceiling spike) is being planned: the layout decisions are captured (anticlockwise rings, Plex and Warp at the bottom, ring / ladder / Barker-spiral layouts for every base, base 10 keeping its four authored layouts).
+> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phases 1 and 2 are complete and independently verified: the numogram engine is built, and the base-10 viewer now runs on it. Phase 3 (procedural layout and the ceiling spike) is planned and ready to execute: layout decisions are locked (anticlockwise rings, Plex and Warp at the bottom, ring / ladder / Barker-spiral layouts for every base, base 10 keeping its four authored layouts), research has verified the layout math against the engine and run a four-device-profile ceiling spike on real hardware, and 10 plans across 7 waves are checked and ready.
 
 ## The idea
 
@@ -51,7 +51,7 @@ Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`]
 |-------|------|--------|
 | 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Complete (verified) |
 | 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Complete (verified) |
-| 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | In planning (decisions captured) |
+| 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Planned, ready to execute (10 plans, 7 waves) |
 | 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Not started |
 | 5. Demons Layer | Browse, count and inspect every demon at any base | Not started |
 | 6. Canvas Tier and Worker | Large bases stay interactive; graceful degradation | Not started |
