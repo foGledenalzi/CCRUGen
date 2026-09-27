@@ -17,6 +17,11 @@ const CEILING_HEAP_BYTES = 128 * 2 ** 20
 const CAP = 2 ** 26
 const MIB = 2 ** 20
 
+// The demon and unranking blocks below read the process-wide arrayBuffers counter, which also moves with allocations that
+// have nothing to do with them (the collector, another pool worker, async work added later). 16 MiB sits far above that
+// noise and far below the regressions they guard against: the 128 MiB sorted Torque copy or a 256 MiB per-call O(n) buffer.
+const DEMON_QUERY_ARRAYBUFFER_BYTES = 16 * MIB
+
 /** A byte delta as a signed MiB figure for the report line (a delta can be negative when the collector frees earlier buffers). */
 const signedMiB = (bytes: number): string => `${bytes < 0 ? '-' : '+'}${(Math.abs(bytes) / MIB).toFixed(1)}`
 
@@ -129,7 +134,7 @@ describe('base 2^26 (the safe ceiling)', () => {
       )
 
       // The demon space (ENG-03, T-02-21): virtual, so reading it allocates nothing that scales with n or n^2. The queries
-      // below include 1000 at() calls on a fixed LCG walk; an O(n) buffer per call would show even next to a collection.
+      // below include 1000 at() calls on a fixed LCG walk; an O(n) buffer per call (256 MiB at once) would blow the 16 MiB bound.
       const demonBytesBefore = process.memoryUsage().arrayBuffers
       const space = g.demons
       expect(space.base).toBe(CAP)
@@ -152,7 +157,7 @@ describe('base 2^26 (the safe ceiling)', () => {
       expect(plexPair.type).toBe('xeno')
       expect(plexPair.syzygetic).toBe(true)
       const demonBytesGrowth = process.memoryUsage().arrayBuffers - demonBytesBefore
-      expect(demonBytesGrowth).toBeLessThan(MIB)
+      expect(demonBytesGrowth).toBeLessThan(DEMON_QUERY_ARRAYBUFFER_BYTES)
 
       // Counts from the histogram of cycle lengths computed above (an independent path to T and the L_c): every cycle
       // except the Plex and the Warp is a Torque cycle of at least two pairs.
@@ -286,7 +291,7 @@ describe('base 2^26 (the safe ceiling)', () => {
         { seed: 20261009, numRuns: 20 },
       )
       const unrankBytesGrowth = process.memoryUsage().arrayBuffers - unrankBytesBefore
-      expect(unrankBytesGrowth).toBeLessThan(MIB)
+      expect(unrankBytesGrowth).toBeLessThan(DEMON_QUERY_ARRAYBUFFER_BYTES)
       console.info(`[ceiling] base 2^26 unranking: arrayBuffers ${signedMiB(unrankBytesGrowth)} MiB for the group/subtype queries`)
 
       clearNumogramCache()
