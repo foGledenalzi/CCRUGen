@@ -30,3 +30,5 @@ export type {
   DemonSelection,
   DemonSpace,
 } from './core/types'
+export * from './layout/index'
+export * from './scene/index'
