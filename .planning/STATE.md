@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-12-PLAN.md
-last_updated: "2026-09-27T02:47:00.000Z"
+status: verifying
+stopped_at: Phase 2 executed (13/13 plans); next /gsd-verify-work 2
+last_updated: "2026-09-27T03:10:00.000Z"
 last_activity: 2026-09-26
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 21
-  completed_plans: 20
-  percent: 95
+  completed_plans: 21
+  percent: 100
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 2
-Plan: 12 of 13 executed
-Status: Executing Phase 2 (02-12 demons swap done, all five data sources engine-derived; next 02-13, final phase gate)
+Plan: 13 of 13
+Status: Executed, awaiting /gsd-verify-work 2 (final gate npm run verify green on bf49729; the orchestrator completes the phase after code review and independent verification)
 Last activity: 2026-09-26
 
-Progress: [█████████░] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 20
+- Total plans completed: 21
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -45,7 +45,7 @@ Progress: [█████████░] 95%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 8 | - | - |
-| 2 | 12 | 314min | 26min |
+| 2 | 13 | 334min | 26min |
 
 **Recent Trend:**
 
@@ -73,6 +73,7 @@ Progress: [█████████░] 95%
 | Phase 2 P10 | 25min | 2 tasks | 3 files |
 | Phase 2 P11 | 32min | 2 tasks | 5 files |
 | Phase 2 P12 | 28min | 2 tasks | 3 files |
+| Phase 2 P13 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,7 @@ Recent decisions affecting current work:
 - [Phase 2 P10] Swap 3 (gates, D-02): app/presets/base10/gates.ts builds GATE_LIST from BASE10.gate(zone) for all ten origin zones in order (Gt-00 included; from/to/cum = the engine gate, to = in-base digital root of T(zone), T(0) to 0) with name = formatGateName(cumulation, BASE10.base) from the engine barrel (own-base Gt-NN names exercised from day one, D-04, identical to the old literals at base 10) and desc/detail joined from GATE_LORE by origin zone; gates.ts is the third app file importing the engine; app/data/gates.ts is a two-line seam and the hand structure is deleted (D-08) in a separate commit after the full gate was green on the committed swap; strict deep-equality against git show f7d6689:app/data/gates.ts: 71 nodes, 60 primitive fields, 0 differences, key order name, from, to, cum, desc, detail, name/desc/detail equal as runtime strings and by code point; named regressions Gt-15 is 5 -> 6 and Gt-03 is 2 -> 3 in the adapter test; `to` is also checked against the independent reference (refDigitSumRoot); four adapter mutants killed; pre-flight, post-swap and final npm run verify all exit 0 (251 s, 252 s, 248 s), 60 goldens, behaviour baseline and numeric oracle unchanged; page-weight not updated: /numogram/ is +16,550 bytes raw (+2.9%) and +4,804 gzip over the stored baseline (this swap -416 and -122), about 11.6 KB raw and 3.7 KB gzip of headroom left for swaps 02-11 and 02-12; 02-11 edits app/lib/constants.ts by plan, so the f7d6689 app/lib diff acceptance changes from that plan on
 - [Phase 2 P11] Swap 4 (regions and zones, D-02): app/presets/base10/regions.ts builds ZONE_REGION (BASE10.cycleOfZone(z).kind for zones 0..9), TC (zones of all Torque cycles, ascending: 1, 2, 4, 5, 7, 8), TC_EDGES (the closed walk of BASE10.torques[0].zones(): 1-8-7-2-5-4-1), TC_SYZYGIES (the Torque pairs as [lo, hi] in flow order) and TC_CURRENTS (CURRENT_LORE names of those pairs by pair id: Surge, Hold, Sink) once at load, relying on the base-10 invariant of exactly one Torque cycle (asserted in numogram.ts; the engine itself never assumes one); app/data/zones.ts, app/data/demons.ts and app/lib/constants.ts re-export the adapter objects (same names and shapes, identity checked with toBe) and the hand region data is deleted (D-08) in a separate commit after the full gate was green on the committed swap; DELIBERATE SEAM EXTENSION: app/lib/constants.ts is now the one file under app/lib that differs from f7d6689, so the acceptance for later plans is `git diff --name-only f7d6689 -- app/lib` = app/lib/constants.ts only (the old --quiet form exits 1); components, hooks, NumogramClient.tsx and app/components/projection stay byte-identical; strict deep-equality against git show f7d6689 of every export of the old zones.ts, the old demons.ts TC/ALL_DEMONS and the old constants.ts: 471 nodes, 386 primitive fields, 0 differences; the adapter test also checks against the independent reference and nine adapter mutants were killed; pre-flight, post-swap and final npm run verify all exit 0 (250 s each), 60 goldens, behaviour baseline and numeric oracle unchanged; page-weight not updated: /numogram/ is +16,805 bytes raw (+3.0%) and +4,804 gzip over the stored baseline (this swap +255 and 0), about 11.4 KB raw and 3.7 KB gzip of headroom left for swap 02-12; demons.ts still holds the hand ALL_DEMONS builder (kind: i + j = 9 syzygy, both in TC chrono, neither xeno, else amphi) that 02-12 replaces
 - [Phase 2 P12] Swap 5 (demons, D-02, the last one): app/presets/base10/demons.ts builds ALL_DEMONS once at load from BASE10.demons.at(m) for mesh m = 0..44 ascending (entry m is the demon of mesh m), named by DEMON_NAMES[m] (a missing name throws, the old fallback name is gone), with the viewer's own kind from legacyKind(subtype), an exhaustive switch over the seven engine subtypes: syzygetic-chrono and syzygetic-xeno -> syzygy (the five nine-sum demons 5::4, 6::3, 7::2, 8::1, 9::0), cyclic-chrono and cross-torque-chrono -> chrono, plex-amphi and warp-amphi -> amphi, chaotic-xeno -> xeno (base 10: amphi 24, chrono 12, syzygy 5, xeno 4); a base-10 compatibility list of 45 computed from the virtual demon space, never an n^2 builder; app/data/demons.ts is now a three-line seam (ALL_DEMONS from the demons adapter, TC from the regions adapter) and the hand double loop is deleted (D-08) in a separate commit after the full gate was green on the committed swap; strict deep-equality against git show f7d6689:app/data/demons.ts (whose names come from its own a:b-keyed table): ALL_DEMONS and TC 233 nodes, 186 primitive fields, 0 differences, key order a, b, name, kind; because no golden or baseline reads demon names or kinds the adapter test pins all 45 names and kinds against the frozen oracle, checks the kind demon by demon against the independent reference (rule from the definitions and reference subtype), checks the join through a second path (the lore module's per-zone lemur lists) and eleven adapter mutants were killed; pre-flight, post-swap and final npm run verify all exit 0 (about 260 s, 257 s, 252 s), 60 goldens, behaviour baseline and numeric oracle unchanged, 958 unit tests in both timezones; page-weight not updated in all of Phase 2: /numogram/ is +17,113 bytes raw (+3.03%) and +4,890 gzip (+2.87%) over the stored baseline (this swap +308 and +86), 11,083 raw and 3,638 gzip of headroom left; all five base-10 data sources are now engine-derived and lore-joined by id, the app/data seams (zones, syzygies, currents, gates, demons) plus app/lib/constants.ts are thin pass-throughs until Phase 4
+- [Phase 2 P13] Final phase gate (verification only: no source, test, golden, baseline or fixture file changed): `MSYS_NO_PATHCONV=1 npm run verify` exit 0 on bf49729 in 275 s (958 unit tests in 26 files in both timezones, sub-path e2e 10 passed, build, page-weight OK, e2e 75 passed and 5 skipped = 60 goldens + 10 static-export + 5 behaviour, clean-tree and static-out OK); the numeric oracle and the 60 DOM goldens are byte-identical to f7d6689 and all four manifests verify; per-criterion and per-requirement (ENG-01..ENG-05, MIG-01) evidence is in 02-13-SUMMARY.md, the requirement checkboxes and the Phase 2 phase-list tick are left to the orchestrator. Phase-wide decisions: numeral scheme = 0-9a-z to base 36 and dot-separated decimal digit groups beyond ('1.0.1' = 3601 in base 60), gate names `Gt-NN` in the numogram's own base via formatGateName; canonical cycle order = Torque cycles by length descending then smallest zone id, then Plex, then Warp, each cycle rotated to its smallest pair; seam approach = five thin pass-through files `app/data/{zones,syzygies,currents,gates,demons}.ts` (2-3 lines each, no structure, no lore) REMAIN until Phase 4 (MIG-02) so the consumers stay untouched, and `app/lib/constants.ts` is a deliberate extra seam re-exporting TC_EDGES, TC_CURRENTS and TC_SYZYGIES from `app/presets/base10/regions.ts` (so `git diff --name-only f7d6689 -- app` lists those six files plus `app/presets/base10/*`, and `-- app/lib` lists `app/lib/constants.ts` only); D-11 = the 2^26 test stays inside `npm run verify` (648 ms, +271 MiB of typed arrays, 1,290,872 cycles, no `test:heavy`); the behaviour baseline lives in `e2e/__behaviour__` (5 JSON files, strict manifest, freeze commit b82f6a2, replayed by `npm run test:swap` and `verify`); no page-weight baseline raise anywhere in Phase 2 (`/numogram/` +17,113 raw, +3.03%, and +4,890 gzip, +2.87%, headroom about 11.1 KB raw and 3.6 KB gzip); next step `/gsd-verify-work 2`
 
 ### Pending Todos
 
@@ -141,8 +143,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T02:47:00.000Z
-Stopped at: Completed 02-12-PLAN.md
-Resume file: .planning/phases/02-engine-core-and-base-10-migration/02-13-PLAN.md
+Last session: 2026-09-27T03:10:00.000Z
+Stopped at: Phase 2 executed (13/13 plans); next /gsd-verify-work 2
+Resume file: None. Resume with /gsd-verify-work 2 (after the orchestrator's code review); evidence in .planning/phases/02-engine-core-and-base-10-migration/02-13-SUMMARY.md
 
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
