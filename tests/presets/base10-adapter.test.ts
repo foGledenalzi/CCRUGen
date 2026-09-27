@@ -443,41 +443,103 @@ describe('demons', () => {
   })
 })
 
-describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore text', () => {
-  it('no file in app/presets/base10 other than lore.ts contains a syzygy, current or gate name, demon name or description', () => {
-    const dir = fileURLToPath(new URL('../../app/presets/base10/', import.meta.url))
-    const files = readdirSync(dir).filter((f) => f.endsWith('.ts') && f !== 'lore.ts')
-    expect(files).toContain('syzygies.ts')
-    expect(files).toContain('currents.ts')
-    expect(files).toContain('gates.ts')
-    expect(files).toContain('numogram.ts')
-    expect(files).toContain('regions.ts')
-    expect(files).toContain('demons.ts')
-    const lore =Object.values(SYZYGY_LORE).flatMap((l) => [l.demon, l.desc])
-    expect(lore.length).toBe(10)
-    // Current names are one short word each (comments may legitimately say Warp or Plex), so a quoted literal is what
-    // counts as hard-coded lore; the descriptions are prose and must not appear at all.
-    const currentLore = Object.values(CURRENT_LORE)
-    expect(currentLore.length).toBe(5)
-    // Gate lore is prose (a short title in desc, a sentence or two in detail): none of it may appear in an adapter file.
-    const gateLore = Object.values(GATE_LORE).flatMap((l) => [l.desc, l.detail])
-    expect(gateLore.length).toBe(20)
-    // Demon names are lore too (one short word each): a quoted literal of any of the 45 is hard-coded lore.
-    const demonNames = Object.values(DEMON_NAMES)
-    expect(demonNames.length).toBe(45)
-    for (const f of files) {
-      const text = readFileSync(dir + f, 'utf8')
-      for (const name of demonNames) {
-        expect(text, `${f} hard-codes the demon name ${name}`).not.toContain(`'${name}'`)
-        expect(text, `${f} hard-codes the demon name ${name}`).not.toContain(`"${name}"`)
-      }
-      for (const s of lore) expect(text, `${f} contains lore text`).not.toContain(s)
-      for (const s of gateLore) expect(text, `${f} contains gate lore text`).not.toContain(s)
-      for (const l of currentLore) {
-        expect(text, `${f} contains a current description`).not.toContain(l.desc)
-        expect(text, `${f} hard-codes the current name ${l.name}`).not.toContain(`'${l.name}'`)
-        expect(text, `${f} hard-codes the current name ${l.name}`).not.toContain(`"${l.name}"`)
-      }
+// IN-08: app/data/*.ts and app/lib/constants.ts no longer need the CCRU header (only lore.ts carries it), so they are
+// scanned like the adapter files: CCRU text pasted into any of them would make NOTICE wrong about which files are MIT.
+describe('adapter and seam files (NOTICE section 1: original MIT code) hold no CCRU lore text', () => {
+  const APP_DIR = fileURLToPath(new URL('../../app/', import.meta.url))
+  const tsFilesIn = (dir: string, except?: string): string[] =>
+    readdirSync(APP_DIR + dir)
+      .filter((f) => f.endsWith('.ts') && f !== except)
+      .map((f) => dir + f)
+
+  // lore.ts is the only allowed home of the lore, so it is the one file that is not scanned.
+  const ADAPTER_FILES = tsFilesIn('presets/base10/', 'lore.ts')
+  const SEAM_FILES = [...tsFilesIn('data/'), 'lib/constants.ts']
+
+  const lore = Object.values(SYZYGY_LORE).flatMap((l) => [l.demon, l.desc])
+  // Current names are one short word each (comments may legitimately say Warp or Plex), so a quoted literal is what
+  // counts as hard-coded lore; the descriptions are prose and must not appear at all.
+  const currentLore = Object.values(CURRENT_LORE)
+  // Gate lore is prose (a short title in desc, a sentence or two in detail): none of it may appear in a scanned file.
+  const gateLore = Object.values(GATE_LORE).flatMap((l) => [l.desc, l.detail])
+  // Demon names are lore too (one short word each): a quoted literal of any of the 45 is hard-coded lore.
+  const demonNames = Object.values(DEMON_NAMES)
+  // Zone prose (app/data/zones.ts is the seam that exports it); short fields like a planet name are not searched for.
+  const zoneLore = Object.values(ZONE_META)
+    .flatMap((z) => [z.desc, z.lemurian, z.centauri])
+    .filter((s) => s.length >= 20)
+
+  // lore.ts spells its strings as TypeScript literals: non-ASCII characters as unicode escapes and apostrophes escaped.
+  // Text pasted from that source matches this form, not the runtime string, so both forms are searched for.
+  const BACKSLASH = String.fromCharCode(92)
+  const asSourceLiteral = (s: string): string =>
+    s
+      .split('')
+      .map((ch) => {
+        const code = ch.charCodeAt(0)
+        if (ch === "'") return BACKSLASH + ch
+        return code > 126 ? `${BACKSLASH}u${code.toString(16).padStart(4, '0')}` : ch
+      })
+      .join('')
+
+  /** Every kind of CCRU lore that `text` contains, named; empty when the text is clean. */
+  function loreHits(text: string): string[] {
+    const hits: string[] = []
+    const contains = (s: string): boolean => text.includes(s) || text.includes(asSourceLiteral(s))
+    for (const name of demonNames) {
+      if (text.includes(`'${name}'`) || text.includes(`"${name}"`)) hits.push(`the demon name ${name}`)
     }
+    for (const s of lore) if (contains(s)) hits.push(`syzygy lore text ${JSON.stringify(s.slice(0, 30))}`)
+    for (const s of gateLore) if (contains(s)) hits.push(`gate lore text ${JSON.stringify(s.slice(0, 30))}`)
+    for (const s of zoneLore) if (contains(s)) hits.push(`zone lore text ${JSON.stringify(s.slice(0, 30))}`)
+    for (const l of currentLore) {
+      if (contains(l.desc)) hits.push(`the description of the current ${l.name}`)
+      if (text.includes(`'${l.name}'`) || text.includes(`"${l.name}"`)) hits.push(`the current name ${l.name}`)
+    }
+    return hits
+  }
+
+  it('scans every adapter file and every data seam (only lore.ts is exempt)', () => {
+    for (const f of ['syzygies.ts', 'currents.ts', 'gates.ts', 'numogram.ts', 'regions.ts', 'demons.ts']) {
+      expect(ADAPTER_FILES).toContain(`presets/base10/${f}`)
+    }
+    expect(ADAPTER_FILES).not.toContain('presets/base10/lore.ts')
+    for (const f of ['currents.ts', 'demons.ts', 'gates.ts', 'syzygies.ts', 'zones.ts']) {
+      expect(SEAM_FILES).toContain(`data/${f}`)
+    }
+    expect(SEAM_FILES).toContain('lib/constants.ts')
+    expect(lore.length).toBe(10)
+    expect(currentLore.length).toBe(5)
+    expect(gateLore.length).toBe(20)
+    expect(demonNames.length).toBe(45)
+    expect(zoneLore.length).toBeGreaterThan(0)
+  })
+
+  it('no adapter file and no data seam contains a syzygy, current, gate or zone text, or a demon or current name', () => {
+    for (const f of [...ADAPTER_FILES, ...SEAM_FILES]) {
+      expect(loreHits(readFileSync(APP_DIR + f, 'utf8')), `app/${f} contains CCRU lore`).toEqual([])
+    }
+  })
+
+  it('the scan does catch lore pasted into a file, as runtime text or as lore.ts spells it (negative control)', () => {
+    const clean = "export { ZONE_META } from '../presets/base10/lore'\nexport const TWEEN_DURATION = 600\n"
+    expect(loreHits(clean)).toEqual([])
+    const pasted = (s: string): string => `${clean}export const X = '${s}'\n`
+    for (const s of [lore[1], gateLore[1], gateLore[0], zoneLore[0], currentLore[2]?.desc] as string[]) {
+      expect(loreHits(pasted(s)), s.slice(0, 30)).not.toEqual([])
+      expect(loreHits(pasted(asSourceLiteral(s))), `source form of ${s.slice(0, 30)}`).not.toEqual([])
+    }
+    expect(loreHits(`${clean}const n = '${demonNames[0]}'`)).not.toEqual([])
+    expect(loreHits(`${clean}const n = "${demonNames[44]}"`)).not.toEqual([])
+    expect(loreHits(`${clean}const c = '${currentLore[3]?.name}'`)).not.toEqual([])
+    // The lore module itself is what the scan is for: it must find every prose string in it, in the form it is spelled there.
+    const inLore = loreHits(readFileSync(APP_DIR + 'presets/base10/lore.ts', 'utf8'))
+    const count = (kind: string): number => inLore.filter((h) => h.startsWith(kind)).length
+    expect(count('syzygy lore text')).toBe(lore.length)
+    expect(count('gate lore text')).toBe(gateLore.length)
+    expect(count('zone lore text')).toBe(zoneLore.length)
+    expect(count('the description of the current')).toBe(currentLore.length)
+    expect(count('the current name')).toBe(currentLore.length)
+    expect(count('the demon name')).toBe(demonNames.length)
   })
 })
