@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
-import { GATE_LIST as SEAM_GATES, LEGACY_GATE_LIST } from '../../app/data/gates'
+import { GATE_LIST as SEAM_GATES } from '../../app/data/gates'
 import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import { CURRENTS, legacyCurrentFrom } from '../../app/presets/base10/currents'
 import { GATE_LIST } from '../../app/presets/base10/gates'
@@ -198,10 +198,6 @@ describe('gates', () => {
       expect(g.desc.length, g.name).toBeGreaterThan(0)
       expect(g.detail.length, g.name).toBeGreaterThan(0)
     })
-  })
-
-  it('equal the hand-authored list they replace, entry by entry (kept until the deletion commit)', () => {
-    expect(GATE_LIST).toEqual(LEGACY_GATE_LIST)
   })
 
   it('are the very array the app/data seam exports (the consumers keep their import)', () => {
