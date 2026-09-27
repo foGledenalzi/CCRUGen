@@ -71,7 +71,7 @@ Plans:
 - [x] 02-09-PLAN.md - Swap 2: currents (wave 6)
 - [x] 02-10-PLAN.md - Swap 3: gates with own-base Gt-NN names (wave 7)
 - [x] 02-11-PLAN.md - Swap 4: regions/zones (ZONE_REGION, TC, TC_*) from the engine cycles (wave 8)
-- [ ] 02-12-PLAN.md - Swap 5: demons from the demon space with the legacy kind mapping (wave 9)
+- [x] 02-12-PLAN.md - Swap 5: demons from the demon space with the legacy kind mapping (wave 9)
 - [ ] 02-13-PLAN.md - Final phase gate (npm run verify) with per-criterion evidence, ROADMAP/STATE bookkeeping (wave 10)
 **Research**: Standard (math verified in research; strangler migration guarded by the frozen oracle).
 **Notes**: Sequencing: engine core with golden tests is complete before any base-10 data source is swapped; gate/current routing is extracted verbatim first, generalized later. Decisions frozen here because retrofitting is expensive: cross-Torque chronodemon subtype (ENG-03, decided; cyclic = same-Torque only), Gate 0->0 draw/omit policy (engine emits n gates, renderer decides once), Torque canonical order (length descending, then smallest zone id; rotate each cycle to its smallest pair), Torque identity is a numeric index with letters as display up to 26 then numbers, units always stated as pairs vs zones, mesh-number display base. Regions are modeled as `Cycle[]`, never "one Torque". Fixtures are derived from definitions, never from `reference/` and never with `vitest -u`; the guide's errors (47-vs-45 subtype sum, "only 3^N+1 bases have several Torques") are not inherited.
@@ -187,7 +187,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
-| 2. Engine Core and Base-10 Migration | 11/13 | In Progress | - |
+| 2. Engine Core and Base-10 Migration | 12/13 | In Progress | - |
 | 3. Procedural Layout and Ceiling Spike | 0/TBD | Not started | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
