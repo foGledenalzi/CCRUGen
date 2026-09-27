@@ -252,7 +252,12 @@ const isType = (selector: Selector): selector is DemonType => (DEMON_TYPES as re
 /** The k-th (0-based) member of the selection in ascending mesh order: the smallest mesh M with countBelow(M + 1) > k. */
 function unrank(q: Query, k: number): DemonRef {
   if (typeof k !== 'number' || !Number.isInteger(k) || k < 0 || k >= q.total) {
-    throw new RangeError(`Invalid demon rank ${show(k)} for ${q.selector}: expected a whole number from 0 to ${q.total - 1}`)
+    // An empty selection has no valid rank at all: say so, rather than the impossible range "0 to -1".
+    const why =
+      q.total === 0
+        ? `the selection is empty (base ${q.space.base} has no ${q.selector} demons)`
+        : `expected a whole number from 0 to ${q.total - 1}`
+    throw new RangeError(`Invalid demon rank ${show(k)} for ${q.selector}: ${why}`)
   }
   let lo = 0
   let hi = q.space.count - 1 // countBelow(count) = total > k, so the answer is at most the last mesh number

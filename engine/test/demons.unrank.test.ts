@@ -69,6 +69,7 @@ function checkSelection(
       note('an empty selection returned a demon for at(0)')
     } catch (error) {
       if (!(error instanceof RangeError)) note(`an empty selection threw ${String(error)} for at(0), not a RangeError`)
+      else if (!/the selection is empty/.test(error.message)) note(`an empty selection reported "${error.message}" for at(0)`)
     }
   }
   const list = ranks ?? Array.from({ length: members.length }, (_, k) => k)
@@ -117,6 +118,18 @@ describe('unranking by type and subtype: hand-checked bases', () => {
     const cross = s10.subtype('cross-torque-chrono')
     expect(cross.count).toBe(0)
     expect(() => cross.at(0)).toThrow(RangeError)
+    // IN-06: an empty selection says so, instead of reporting the impossible range 0 to -1
+    expect(() => cross.at(0)).toThrow('Invalid demon rank 0 for cross-torque-chrono: the selection is empty (base 10 has no cross-torque-chrono demons)')
+    expect(() => cross.at(-1)).toThrow(/the selection is empty/)
+    expect(() => cross.at(0)).not.toThrow(/to -1/)
+  })
+
+  it('a non-empty selection still names its valid range, and an empty one in another base says it is empty', () => {
+    expect(() => s10.subtype('syzygetic-chrono').at(3)).toThrow('Invalid demon rank 3 for syzygetic-chrono: expected a whole number from 0 to 2')
+    expect(() => s10.subtype('syzygetic-chrono').at(-1)).toThrow(/expected a whole number from 0 to 2/)
+    const chrono4 = createNumogram(4).demons.group('chrono') // base 4 has no Torque cycle, so no chronodemon
+    expect(chrono4.count).toBe(0)
+    expect(() => chrono4.at(0)).toThrow('Invalid demon rank 0 for chrono: the selection is empty (base 4 has no chrono demons)')
   })
 
   it('base 28: cross-torque-chrono has 108 members and they are the reference cross-Torque demons in mesh order', () => {
