@@ -19,6 +19,11 @@ describe('triangular', () => {
     expect(triangular(k)).toBe(expected)
   })
 
+  it('never returns a negative zero: T(-0) is +0', () => {
+    expect(Object.is(triangular(-0), 0)).toBe(true)
+    expect(Object.is(triangular(0), 0)).toBe(true)
+  })
+
   it('equals k(k+1)/2 computed in BigInt for a fixed-seed sample across the whole range', () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 94906264 }), k => {

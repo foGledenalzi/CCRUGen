@@ -188,6 +188,47 @@ describe('argument validation (RangeError)', () => {
   })
 })
 
+// IN-01: an index argument of -0 is a valid index 0, and no returned field may ever be a negative zero: `===` cannot
+// tell -0 from +0, but Object.is and toEqual can. demons.test.ts pins the same for the demon space.
+describe('never returns a negative zero', () => {
+  const isPlusZero = (x: unknown): boolean => Object.is(x, 0)
+
+  for (const base of [2, 10, 12]) {
+    it(`base ${base}: pair, current, gate, cycleAt, pairOf and the cycle walks take -0 as +0`, () => {
+      const g = createNumogram(base)
+      const pair = g.pair(-0)
+      expect(isPlusZero(pair.id)).toBe(true)
+      expect(isPlusZero(pair.lo)).toBe(true)
+      expect(isPlusZero(pair.even)).toBe(true) // pair 0 is even, so its even member is the zone 0 itself
+      expect(pair).toEqual({ id: 0, lo: 0, hi: base - 1, odd: base - 1, even: 0 })
+      const current = g.current(-0)
+      expect(isPlusZero(current.pair)).toBe(true)
+      expect(isPlusZero(current.lo)).toBe(true)
+      const gate = g.gate(-0)
+      expect(isPlusZero(gate.from)).toBe(true)
+      expect(isPlusZero(gate.to)).toBe(true)
+      expect(isPlusZero(gate.cumulation)).toBe(true)
+      expect(isPlusZero(g.pairOf(-0))).toBe(true)
+      expect(g.partner(-0)).toBe(base - 1)
+      expect(isPlusZero(g.nextPair(-0))).toBe(true) // the pair 0 flows to itself
+      expect(isPlusZero(g.cycleAt(-0).id)).toBe(true)
+      expect(isPlusZero(g.cycleOfPair(-0).firstPair)).toBe(true)
+      expect(isPlusZero(g.cycleOfZone(-0).firstPair)).toBe(true)
+      for (const cycle of g.cycles) {
+        expect(Object.is(cycle.pairAt(-0), cycle.pairAt(0))).toBe(true)
+        expect(Object.is(cycle.zoneAt(-0), cycle.zoneAt(0))).toBe(true)
+      }
+    })
+  }
+
+  it('base 10: the reported reproductions', () => {
+    const g = createNumogram(10)
+    expect(Object.is(g.pair(-0).id, 0)).toBe(true)
+    expect(Object.is(g.gate(-0).cumulation, 0)).toBe(true)
+    expect(Object.is(g.cycleAt(-0).id, 0)).toBe(true)
+  })
+})
+
 describe('immutability', () => {
   it('freezes the numogram, its cycle list and each cycle', () => {
     const g = createNumogram(10)

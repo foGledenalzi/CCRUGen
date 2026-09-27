@@ -16,6 +16,7 @@
 // search over mesh numbers (unrank.ts); this file only validates the name and memoizes the selection.
 
 import { MAX_BASE } from './base'
+import { checkIndex } from './index-check' // the shared check: it also turns a caller's -0 into +0, so no field is ever -0
 import type { NumogramInternals } from './numogram' // type only: no runtime import cycle with numogram.ts
 import { DEMON_SUBTYPES, DEMON_TYPES } from './types'
 import type { DemonRef, DemonSelection, DemonSpace, DemonSubtype, DemonType, Numogram } from './types'
@@ -23,18 +24,6 @@ import { createSelection } from './unrank' // unrank.ts talks to the space only 
 
 /** Number of demons of the largest base: C(2^26, 2) = 2^25 * (2^26 - 1), below 2^52, so every mesh number is an exact double. */
 const MESH_LIMIT = (MAX_BASE * (MAX_BASE - 1)) / 2
-
-function show(x: unknown): string {
-  return typeof x === 'number' ? String(x) : `<${typeof x}>`
-}
-
-/** Returns value when it is a whole number in [0, limit); otherwise a RangeError that names the argument and the range. */
-function checkIndex(name: string, value: unknown, limit: number): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value >= limit) {
-    throw new RangeError(`Invalid ${name} ${show(value)}: expected a whole number from 0 to ${limit - 1}`)
-  }
-  return value === 0 ? 0 : value // -0 becomes +0, so no returned field is ever -0
-}
 
 function checkDistinct(a: number, b: number): void {
   if (a === b) throw new RangeError(`Invalid net-span ${a}::${b}: a demon needs two distinct zones`)

@@ -1,6 +1,8 @@
 // In-base arithmetic primitives (ENG-01). Pitfall 1: the digital root is taken in the numogram's own base, never as a
 // decimal digit sum, and never as a bare modulus (which maps a multiple of base - 1 to 0 instead of base - 1).
 
+import { checkIndex } from './index-check'
+
 // k(k+1) <= Number.MAX_SAFE_INTEGER holds for every k up to this bound, so T(k) is computed exactly.
 // (It is a conservative ceiling, far above the 2^26 zone limit of any numogram.)
 const MAX_TRIANGULAR_INDEX = 94906264
@@ -11,10 +13,8 @@ function show(x: unknown): string {
 
 /** The k-th triangular number T(k) = k(k+1)/2 (a gate's cumulation), exact. RangeError unless 0 <= k <= 94906264. */
 export function triangular(k: number): number {
-  if (!Number.isSafeInteger(k) || k < 0 || k > MAX_TRIANGULAR_INDEX) {
-    throw new RangeError(`Invalid index ${show(k)}: T(k) needs a whole number from 0 to ${MAX_TRIANGULAR_INDEX}`)
-  }
-  return (k * (k + 1)) / 2
+  const index = checkIndex('triangular index', k, MAX_TRIANGULAR_INDEX + 1) // -0 comes back as +0, so T(-0) is +0 too
+  return (index * (index + 1)) / 2
 }
 
 /**

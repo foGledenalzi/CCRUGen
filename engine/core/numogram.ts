@@ -12,6 +12,7 @@
 import { digitalRoot, triangular } from './arith'
 import { assertBase, MAX_BASE } from './base'
 import { createDemonSpace } from './demons'
+import { checkIndex } from './index-check'
 import type { Cycle, CurrentInfo, DemonSpace, GateInfo, Numogram, PairInfo, RegionKind } from './types'
 
 /** The cache keeps at most `entries` numograms holding at most `zones` zones in total (2^26 = 67108864). */
@@ -45,18 +46,6 @@ export function numogramInternals(g: Numogram): NumogramInternals {
   const found = internalsOf.get(g)
   if (found === undefined) throw new Error('numogramInternals: the argument was not built by createNumogram')
   return found
-}
-
-function show(x: unknown): string {
-  return typeof x === 'number' ? String(x) : `<${typeof x}>`
-}
-
-/** Returns value when it is a whole number in [0, limit); otherwise a RangeError that names the argument and the range. */
-function checkIndex(name: string, value: unknown, limit: number): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value >= limit) {
-    throw new RangeError(`Invalid ${name} ${show(value)}: expected a whole number from 0 to ${limit - 1}`)
-  }
-  return value
 }
 
 /** The zone at side 0 (the odd member of the pair) or side 1 (the even member) of the pair `pair`. */
@@ -93,14 +82,14 @@ class CycleView implements Cycle {
   }
 
   pairAt(i: number): number {
-    checkIndex('pair position', i, this.lengthInPairs)
-    return this.#flow[this.#offset + i] ?? 0
+    const at = checkIndex('pair position', i, this.lengthInPairs)
+    return this.#flow[this.#offset + at] ?? 0
   }
 
   zoneAt(i: number): number {
-    checkIndex('zone position', i, this.zoneCount)
-    const pair = this.#flow[this.#offset + Math.floor(i / 2)] ?? 0
-    return memberOf(pair, this.#n1, i % 2)
+    const at = checkIndex('zone position', i, this.zoneCount)
+    const pair = this.#flow[this.#offset + Math.floor(at / 2)] ?? 0
+    return memberOf(pair, this.#n1, at % 2)
   }
 
   pairs(): Int32Array {
@@ -262,59 +251,60 @@ class NumogramImpl implements Numogram {
   }
 
   cycleAt(id: number): Cycle {
-    checkIndex('cycle id', id, this.cycleCount)
+    const cycleId = checkIndex('cycle id', id, this.cycleCount)
     const list = this.#cycles
     if (list !== null) {
-      const view = list[id]
+      const view = list[cycleId]
       if (view === undefined) throw new Error('internal: cycle list is shorter than cycleCount')
       return view
     }
-    return this.#viewOf(id)
+    return this.#viewOf(cycleId)
   }
 
   partner(zone: number): number {
-    checkIndex('zone', zone, this.zoneCount)
-    return this.base - 1 - zone
+    const z = checkIndex('zone', zone, this.zoneCount)
+    return this.base - 1 - z
   }
 
   pairOf(zone: number): number {
-    checkIndex('zone', zone, this.zoneCount)
-    return Math.min(zone, this.base - 1 - zone)
+    const z = checkIndex('zone', zone, this.zoneCount)
+    return Math.min(z, this.base - 1 - z)
   }
 
   pair(id: number): PairInfo {
-    checkIndex('pair id', id, this.pairCount)
-    const hi = this.base - 1 - id
-    const idIsOdd = id % 2 === 1
-    return { id, lo: id, hi, odd: idIsOdd ? id : hi, even: idIsOdd ? hi : id }
+    const p = checkIndex('pair id', id, this.pairCount)
+    const hi = this.base - 1 - p
+    const idIsOdd = p % 2 === 1
+    return { id: p, lo: p, hi, odd: idIsOdd ? p : hi, even: idIsOdd ? hi : p }
   }
 
   current(pairId: number): CurrentInfo {
-    checkIndex('pair id', pairId, this.pairCount)
+    const p = checkIndex('pair id', pairId, this.pairCount)
     const n1 = this.base - 1
-    return { pair: pairId, lo: pairId, hi: n1 - pairId, to: n1 - 2 * pairId }
+    return { pair: p, lo: p, hi: n1 - p, to: n1 - 2 * p }
   }
 
   nextPair(pairId: number): number {
-    checkIndex('pair id', pairId, this.pairCount)
+    const p = checkIndex('pair id', pairId, this.pairCount)
     const n1 = this.base - 1
-    const d = n1 - 2 * pairId
+    const d = n1 - 2 * p
     return d < this.pairCount ? d : n1 - d
   }
 
   gate(zone: number): GateInfo {
-    checkIndex('zone', zone, this.zoneCount)
-    return { from: zone, to: digitalRoot(triangular(zone), this.base), cumulation: triangular(zone) }
+    const z = checkIndex('zone', zone, this.zoneCount)
+    const cumulation = triangular(z)
+    return { from: z, to: digitalRoot(cumulation, this.base), cumulation }
   }
 
   cycleOfPair(pairId: number): Cycle {
-    checkIndex('pair id', pairId, this.pairCount)
-    return this.cycleAt(this.#s.pairCycle[pairId] ?? 0)
+    const p = checkIndex('pair id', pairId, this.pairCount)
+    return this.cycleAt(this.#s.pairCycle[p] ?? 0)
   }
 
   cycleOfZone(zone: number): Cycle {
-    checkIndex('zone', zone, this.zoneCount)
-    return this.cycleOfPair(Math.min(zone, this.base - 1 - zone))
+    const z = checkIndex('zone', zone, this.zoneCount)
+    return this.cycleOfPair(Math.min(z, this.base - 1 - z))
   }
 }
 
