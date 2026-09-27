@@ -175,16 +175,16 @@ describe('numeric oracle', () => {
     }
   })
 
-  it('the nine table exports of layout-tables.ts deep-equal the nine exports of app/data/positions.ts', () => {
-    expect(P_ORIGINAL).toEqual(SEAM_P_ORIGINAL)
-    expect(P_LABYRINTH).toEqual(SEAM_P_LABYRINTH)
-    expect(P_LADDER).toEqual(SEAM_P_LADDER)
-    expect(PLANETARY_CX).toEqual(SEAM_PLANETARY_CX)
-    expect(PLANETARY_CY).toEqual(SEAM_PLANETARY_CY)
-    expect(PLANETARY_RADIUS).toEqual(SEAM_PLANETARY_RADIUS)
-    expect(PLANETARY_DEFAULT_ANGLE).toEqual(SEAM_PLANETARY_DEFAULT_ANGLE)
-    expect(PLANETARY_SIZE).toEqual(SEAM_PLANETARY_SIZE)
-    expect(CENTER).toEqual(SEAM_CENTER)
+  it('the nine names imported from app/data/positions.ts are the same objects/numbers as layout-tables.ts (seam identity)', () => {
+    expect(SEAM_P_ORIGINAL).toBe(P_ORIGINAL)
+    expect(SEAM_P_LABYRINTH).toBe(P_LABYRINTH)
+    expect(SEAM_P_LADDER).toBe(P_LADDER)
+    expect(SEAM_PLANETARY_CX).toBe(PLANETARY_CX)
+    expect(SEAM_PLANETARY_CY).toBe(PLANETARY_CY)
+    expect(SEAM_PLANETARY_RADIUS).toBe(PLANETARY_RADIUS)
+    expect(SEAM_PLANETARY_DEFAULT_ANGLE).toBe(PLANETARY_DEFAULT_ANGLE)
+    expect(SEAM_PLANETARY_SIZE).toBe(PLANETARY_SIZE)
+    expect(SEAM_CENTER).toBe(CENTER)
   })
 })
 
