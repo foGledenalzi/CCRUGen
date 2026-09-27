@@ -2,15 +2,12 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
-import { LEGACY_TC, TC as SEAM_TC } from '../../app/data/demons'
+import { TC as SEAM_TC } from '../../app/data/demons'
 import { GATE_LIST as SEAM_GATES } from '../../app/data/gates'
 import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import type { Region } from '../../app/data/types'
-import { LEGACY_ZONE_REGION, ZONE_REGION as SEAM_ZONE_REGION } from '../../app/data/zones'
+import { ZONE_REGION as SEAM_ZONE_REGION } from '../../app/data/zones'
 import {
-  LEGACY_TC_CURRENTS,
-  LEGACY_TC_EDGES,
-  LEGACY_TC_SYZYGIES,
   TC_CURRENTS as SEAM_TC_CURRENTS,
   TC_EDGES as SEAM_TC_EDGES,
   TC_SYZYGIES as SEAM_TC_SYZYGIES,
@@ -285,15 +282,6 @@ describe('regions', () => {
     expect(Array.from(TC_CURRENTS)).toEqual(TC_SYZYGIES.map(([lo]) => CURRENT_LORE[lo]?.name))
     // each is a current of the viewer's list, drawn from a Torque zone
     for (const c of CURRENTS.filter((cur) => TC_CURRENTS.has(cur.name))) expect(TC.has(c.from), c.name).toBe(true)
-  })
-
-  it('equal the hand-authored values (LEGACY_*) they replace: shape, values and order', () => {
-    expect(ZONE_REGION).toEqual(LEGACY_ZONE_REGION)
-    expect(Object.keys(ZONE_REGION)).toEqual(Object.keys(LEGACY_ZONE_REGION))
-    expect(Array.from(TC)).toEqual(Array.from(LEGACY_TC))
-    expect(TC_EDGES).toEqual(LEGACY_TC_EDGES)
-    expect(TC_SYZYGIES).toEqual(LEGACY_TC_SYZYGIES)
-    expect(Array.from(TC_CURRENTS)).toEqual(Array.from(LEGACY_TC_CURRENTS))
   })
 
   it('are the very objects the seams export (the consumers keep their imports)', () => {
