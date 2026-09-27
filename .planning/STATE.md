@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-02-PLAN.md (renderer threshold table, REN-01); next is 03-03
-last_updated: "2026-09-27T19:51:33.834Z"
+stopped_at: Completed 03-03-PLAN.md (procedural ladder, Barker spiral and pair-graph view); next is 03-04
+last_updated: "2026-09-27T20:10:09.802Z"
 last_activity: 2026-09-27
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 31
-  completed_plans: 23
-  percent: 74
+  completed_plans: 24
+  percent: 77
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 3 — EXECUTING
-Plan: 03-03 of 10
-Status: Executing Phase 3 (10 plans, 7 waves; 03-01 and 03-02 complete, wave continues with 03-03)
-Last activity: 2026-09-27 -- 03-02 complete (renderer threshold table, REN-01)
+Plan: 03-04 of 10
+Status: Executing Phase 3 (10 plans, 7 waves; 03-01, 03-02 and 03-03 complete, wave continues with 03-04)
+Last activity: 2026-09-27 -- 03-03 complete (procedural ladder, Barker spiral and pair-graph view, LAY-04)
 
-Progress: [███████░░░] 74%
+Progress: [████████░░] 77%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -76,6 +76,7 @@ Progress: [███████░░░] 74%
 | Phase 2 P13 | 20min | 2 tasks | 3 files |
 | Phase 03 P01 | 14min | 3 tasks | 9 files |
 | Phase 3 P02 | 5min | 2 tasks | 5 files |
+| Phase 03 P03 | 12min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,7 @@ Recent decisions affecting current work:
 - [Phase 3 Plan] 10 plans in 7 waves (03-01..03-10), committed cd41ac8; plan-checker passed with no blockers (all of LAY-01..04, REN-01 and D-01..D-14 covered, every plan has a threat_model, no plan touches `reference/` or regenerates a frozen oracle). UI-SPEC.md gate explicitly skipped by user choice (this phase ships no interactive screens — that is Phase 4 — and the generative-diagram visual contract is already locked in 03-CONTEXT.md). Notable planner choices: default packer is `spiral` (D-03's golden-angle spiral) with the tighter/cheaper shelf packer from research kept selectable, decided at the 03-08 contact-sheet checkpoint; the upstream-authored base-10 coordinates/draw-order/frame-heights move into a new NOT-relicensed `app/presets/base10/layout-tables.ts` (NOTICE section 2 gains this file, section 1 exclusion unaffected) while `layouts.ts` itself is new MIT code; 03-08 (contact-sheet sign-off, D-10) and 03-10 (measured threshold-table review, D-11/D-12/D-14) are `autonomous: false` checkpoints; the ceiling-spike driver is explicitly excluded from `npm run verify` (grepped in both plans' acceptance criteria). Next step `/gsd-execute-phase 3`.
 - [Phase 3 P01] Layout contracts fixed (engine/layout/types.ts) and ringLayout (D-01/D-02/D-03/D-06) verified for every even base 2..400 plus 666/1024/4096, both packers; packer default 'spiral' (D-03), 'shelf' selectable; composeTorques nesting pass order fixed vs the research prototype to guarantee the nest gap for k<=3
 - [Phase 3 P02] Renderer threshold table (REN-01): engine/scene/tiers.ts has the TierTable schema, pure selectTier/parseTierOverride/tweenAllowed/labelsVisible/gateLayerMode, deriveBoundaries ('longest passing prefix' of shipped-profile rows against budgets, profile-independent chords, area from ok probes) and validateTierTable (~35 schema/invariant rules, the validateBase idiom, D-14d conservative-shippedProfile enforcement, measured-status-only equality against deriveBoundaries); engine/scene/tier-table.json is the interim placeholder table transcribed from the 03-RESEARCH.md four-profile spike (22 sw-6x rows, gpu/sw/sw-4x/sw-6x environments, 9 chord rows, 9 canvas probes, 4 headless rows), shippedProfile sw-6x, canvasMaxN null and layoutTweenMaxN a stated placeholder (only svgRichMaxN=100, svgLeanMaxN=1000, allChordsMaxN=60 and canvasAreaLimitPx=268435456 are required to equal deriveBoundaries for a placeholder table); webglDecision.adopt false with a dated reason (D-12), tierOverrideParam enabled for tier=svg|canvas|headless (D-13); engine/scene/tierTable.ts exports the typed TIER_TABLE. 33/33 unit tests green in both timezones, full npm run typecheck (4x tsc + lint) clean; REN-01 stays in-progress (also covered by 03-09, 03-10).
+- [Phase 3 P03] ladderLayout skips fitFrame's minimum-frame clamp (unlike ring/spiral/pairGraph) so it reduces EXACTLY to the frozen base-10 ladder (800 x 870, centre 400,450); pairGraphLayout reuses ring.ts's torqueGlyphs/composeTorques/ringNodes with unitsPerPair=1 so pair-graph rings are indexed by pair id (base 64: six rings, base 28: rings of 9 and 3); routePairGraph's current arcs (SVG flags 0 0 0) and self loops (flags 0 1 0) verified against g.nextPair for every even base 2..400 (T-03-08)
 
 ### Pending Todos
 
@@ -149,8 +151,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T19:51:33.827Z
-Stopped at: Completed 03-02-PLAN.md (renderer threshold table, REN-01); next is 03-03
+Last session: 2026-09-27T20:10:09.795Z
+Stopped at: Completed 03-03-PLAN.md (procedural ladder, Barker spiral and pair-graph view); next is 03-04
 Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z

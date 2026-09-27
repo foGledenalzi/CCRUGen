@@ -91,7 +91,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md - Layout contracts, glyph packers (golden-angle spiral default per D-03, shelf selectable), frame fit and the ring layout with nesting and bottom capsules (wave 1)
 - [x] 03-02-PLAN.md - Tier-table schema, selectTier and tier= override, boundary derivation, validator and the interim research table as data (wave 1)
-- [ ] 03-03-PLAN.md - Procedural ladder (exact base-10 reduction), Barker spiral and the syzygy-collapsed pair graph (wave 2)
+- [x] 03-03-PLAN.md - Procedural ladder (exact base-10 reduction), Barker spiral and the syzygy-collapsed pair graph (wave 2)
 - [ ] 03-04-PLAN.md - Pure numeric-id gate and current routing (wave 2)
 - [ ] 03-05-PLAN.md - Base-10 layout presets as LayoutSpecs, positions.ts seam, NOTICE entry for the upstream layout tables, full gate (wave 2)
 - [ ] 03-06-PLAN.md - Scene-to-SVG string emitter with XML escaping, degenerate bases 2/4/6 (wave 3)
