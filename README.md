@@ -6,7 +6,7 @@ Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / W
 
 Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). The upstream repository ships no license, so the files inherited from it are not relicensed here, and the CCRU-derived base-10 lore text is a third-party pack (see [NOTICE](NOTICE) and [Licensing](#licensing-and-credits)).
 
-> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phase 1 is complete and independently verified, and Phase 2 (the engine and the base-10 migration) is in progress: the numogram engine is built and independently verified (6 of 13 plans), and moving the base-10 viewer onto it is next.
+> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phases 1 and 2 are complete and independently verified: the numogram engine is built, and the base-10 viewer now runs on it. Phase 3 (procedural layout and the ceiling spike) is next.
 
 ## The idea
 
@@ -50,7 +50,7 @@ Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`]
 | Phase | Goal | Status |
 |-------|------|--------|
 | 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Complete (verified) |
-| 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | In progress: engine core complete and verified (6 of 13 plans); base-10 migration next |
+| 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Complete (verified) |
 | 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Not started |
 | 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Not started |
 | 5. Demons Layer | Browse, count and inspect every demon at any base | Not started |
@@ -114,7 +114,7 @@ Two more frozen sets sit beside them. `engine/test/fixtures/derived/notable-base
 - **O(n) memory, never O(n^2).** Cycles live in typed arrays, so base 2^26 (1,290,872 cycles) builds in about 0.6 s and roughly 300 MB. Demons are never materialized: a mesh number converts to and from a net-span `a::b` in O(1), exactly up to the ceiling; per-type counts are closed-form; `group(type)` and `subtype(name)` unrank the k-th demon in mesh order.
 - **Cross-Torque chronodemons are an explicit subtype.** Base 28, for example, has 378 demons, 108 of them cross-Torque chronodemons; base 10 splits 12 + 3 chrono, 12 + 12 amphi and 4 + 2 xeno.
 - **Checked against an independent reference.** `tests/bruteforce/` is a slow module written straight from the definitions (it shares no code with the engine). The engine matches it for every even base up to 2000 structurally and for every demon of every even base up to 300, with fixed-seed samples beyond, and it reproduces the frozen base-10 oracle.
-- **Status:** the engine is complete and verified. The base-10 viewer is not yet re-derived from it; that is the rest of Phase 2.
+- **Status:** complete and verified. The base-10 viewer's syzygies, currents, gates, demons and regions are derived from the engine and joined with the CCRU lore by id (adapters in `app/presets/base10/`), with the DOM goldens and the frozen behaviour baseline unchanged.
 
 ## Engine boundary
 
@@ -127,7 +127,8 @@ Two more frozen sets sit beside them. `engine/test/fixtures/derived/notable-base
 ## Repository layout
 
 - `app/` - the Next.js viewer (`app/numogram/`, `app/NumogramClient.tsx`, `app/components/`, `app/hooks/`, `app/lib/`).
-- `app/data/` - the hand-authored base-10 data and CCRU-derived lore. Phase 2 replaces the structure with engine output and moves the lore into one file under `app/presets/base10/`, leaving thin pass-through files here until Phase 4.
+- `app/data/` - thin pass-through seams (the base-10 structure now comes from the engine); they and one seam in `app/lib/constants.ts` go away in Phase 4.
+- `app/presets/base10/` - the base-10 adapters (engine output joined with lore by id) and `lore.ts`, the single CCRU-lore module (third-party text, see `NOTICE`).
 - `engine/` - the pure TypeScript numogram engine (`engine/core/`), its tests, and the frozen numeric oracle and derived fixtures.
 - `tests/` - Vitest suites (oracle, manifests, page-weight, e2e normalizer, repository guards) and the independent brute-force reference in `tests/bruteforce/`.
 - `e2e/` - Playwright specs, the visual-DOM normalizer, the 30 frozen DOM goldens and the frozen behaviour baseline (`e2e/__behaviour__/`).
@@ -141,4 +142,4 @@ Two more frozen sets sit beside them. `engine/test/fixtures/derived/notable-base
 ## Licensing and credits
 
 - New original code (the engine, layout, naming, export, tests and scripts written for this project) is **MIT**: see [`LICENSE`](LICENSE). [`NOTICE`](NOTICE) is authoritative on which files fall under which terms.
-- The viewer inherited from **lumpenspace/ccru** is not relicensed by this project (upstream ships no license), and the base-10 lore text (zone and gate names and descriptions in `app/data/`) is third-party material derived from the CCRU writings and is excluded from the MIT grant; both are listed in `NOTICE`.
+- The viewer inherited from **lumpenspace/ccru** is not relicensed by this project (upstream ships no license), and the base-10 lore text (zone, syzygy, current, gate and demon names and descriptions in `app/presets/base10/lore.ts`) is third-party material derived from the CCRU writings and is excluded from the MIT grant; both are listed in `NOTICE`.
