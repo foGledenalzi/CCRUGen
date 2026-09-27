@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { clearNumogramCache, createNumogram } from '../index'
 import { ringLayout } from '../layout/ring'
-import { routeGates } from '../layout/routing'
+import { routeCurrents, routeGates } from '../layout/routing'
 import type { RouteOptions } from '../layout/types'
 
 const MAX_MISMATCHES = 200
@@ -134,6 +134,81 @@ function checkGates(n: number, mismatches: string[]): void {
   if (JSON.stringify(second.d) !== JSON.stringify(d)) push('second call produced different d strings')
 }
 
+/** Checks every 03-04-PLAN.md current-routing truth for one base; appends short strings to `mismatches`. */
+function checkCurrents(n: number, mismatches: string[]): void {
+  const tag = `currents n=${n}`
+  const push = (msg: string): void => {
+    if (mismatches.length < MAX_MISMATCHES) mismatches.push(`${tag} ${msg}`)
+  }
+  const g = createNumogram(n)
+  const layout = ringLayout(g)
+  const routes = routeCurrents(g, layout)
+  const { kind, legA, legB, stem, junctionX, junctionY } = routes
+  const P = g.pairCount
+  const r = layout.nodeRadius
+
+  if (kind.length !== P) push(`kind.length ${kind.length} != ${P}`)
+  if (legA.length !== P) push(`legA.length ${legA.length} != ${P}`)
+
+  for (let q = 0; q < P; q++) {
+    const info = g.pair(q)
+    const A = info.odd
+    const B = info.even
+    const D = g.current(q).to
+    const expectedKind = g.pairOf(D) === q ? 1 : 0
+    if ((kind[q] ?? -1) !== expectedKind) push(`pair ${q} kind ${kind[q]} != ${expectedKind}`)
+
+    const legAStr = legA[q] ?? ''
+    const legBStr = legB[q] ?? ''
+    const stemStr = stem[q] ?? ''
+    if (hasBadNumber(legAStr) || hasBadNumber(legBStr) || hasBadNumber(stemStr)) push(`pair ${q} has a bad number`)
+
+    const Ax = layout.x[A] ?? 0
+    const Ay = layout.y[A] ?? 0
+    const Bx = layout.x[B] ?? 0
+    const By = layout.y[B] ?? 0
+    const aStart = endpoints(legAStr)
+    const bStart = endpoints(legBStr)
+    if (Math.hypot(aStart.sx - Ax, aStart.sy - Ay) > 0.02) push(`pair ${q} legA does not start at the odd member`)
+    if (Math.hypot(bStart.sx - Bx, bStart.sy - By) > 0.02) push(`pair ${q} legB does not start at the even member`)
+
+    const jx = junctionX[q] ?? 0
+    const jy = junctionY[q] ?? 0
+    const stemPts = endpoints(stemStr)
+    const Dx = layout.x[D] ?? 0
+    const Dy = layout.y[D] ?? 0
+
+    if (expectedKind === 1) {
+      if (Math.hypot(stemPts.ex - Dx, stemPts.ey - Dy) > 0.02) push(`pair ${q} fixed stem does not end at the destination`)
+    } else {
+      const nextOdd = g.pair(g.nextPair(q)).odd
+      if (nextOdd !== D) push(`pair ${q} current.to ${D} != next pair's odd zone ${nextOdd}`)
+
+      if (Math.hypot(stemPts.sx - jx, stemPts.sy - jy) > 0.02) push(`pair ${q} stem does not start at the junction`)
+      const endDist = Math.hypot(stemPts.ex - Dx, stemPts.ey - Dy)
+      if (Math.abs(endDist - r) > 0.02) push(`pair ${q} stem end distance ${endDist} != ${r}`)
+
+      const Mx = (Ax + Bx) / 2
+      const My = (Ay + By) / 2
+      const dx = Dx - Mx
+      const dy = Dy - My
+      const len = Math.hypot(dx, dy) || 1
+      const ux = dx / len
+      const uy = dy / len
+      const jvx = jx - Mx
+      const jvy = jy - My
+      const along = jvx * ux + jvy * uy
+      const perpx = jvx - along * ux
+      const perpy = jvy - along * uy
+      const perpDist = Math.hypot(perpx, perpy)
+      if (Math.abs(perpDist - 0.52 * r) > 0.02) push(`pair ${q} junction perpendicular offset ${perpDist} != ${0.52 * r}`)
+    }
+  }
+
+  const second = routeCurrents(g, layout)
+  if (JSON.stringify(second.legA) !== JSON.stringify(legA)) push('second call produced different legA strings')
+}
+
 describe('routeGates satisfies every 03-04-PLAN.md gate truth across every even base', () => {
   it('sweep even bases 2..200', () => {
     clearNumogramCache()
@@ -184,8 +259,68 @@ describe('routeGates: orientation override flips the bulge side of a non-self, s
   })
 })
 
-describe('routeGates determinism', () => {
-  it('gives identical arrays on a second call', () => {
+describe('routeCurrents satisfies every 03-04-PLAN.md current truth across every even base', () => {
+  it('sweep even bases 2..200', () => {
+    clearNumogramCache()
+    const mismatches: string[] = []
+    let covered = 0
+    for (let n = 2; n <= 200; n += 2) {
+      checkCurrents(n, mismatches)
+      covered++
+    }
+    expect(covered).toBe(100)
+    expect(mismatches.slice(0, 20)).toEqual([])
+  })
+})
+
+describe('routeCurrents: the Plex fixed-pair stem lands on zone n - 1 (the engine convention, not zone 0)', () => {
+  it.each([10, 28, 64])('base %i', n => {
+    clearNumogramCache()
+    const g = createNumogram(n)
+    const layout = ringLayout(g)
+    const routes = routeCurrents(g, layout)
+    const plexPairId = g.plex.pairAt(0)
+    expect(g.current(plexPairId).to).toBe(n - 1)
+    expect(routes.kind[plexPairId]).toBe(1)
+    const { ex, ey } = endpoints(routes.stem[plexPairId] ?? '')
+    const nx = layout.x[n - 1] ?? 0
+    const ny = layout.y[n - 1] ?? 0
+    expect(Math.hypot(ex - nx, ey - ny)).toBeLessThan(0.02)
+  })
+})
+
+describe('routeCurrents: orientation override flips the junction side of a Torque pair', () => {
+  it('base 28', () => {
+    clearNumogramCache()
+    const g = createNumogram(28)
+    const layout = ringLayout(g)
+    const base = routeCurrents(g, layout)
+
+    let q0 = -1
+    for (let q = 0; q < g.pairCount; q++) {
+      if (g.pairOf(g.current(q).to) !== q) {
+        q0 = q
+        break
+      }
+    }
+    expect(q0).toBeGreaterThanOrEqual(0)
+
+    const flip = new Int8Array(g.pairCount)
+    flip[q0] = base.orientation[q0] === 1 ? -1 : 1
+    const opts: RouteOptions = { orientation: flip }
+    const flipped = routeCurrents(g, layout, opts)
+
+    expect(flipped.orientation[q0]).toBe(flip[q0])
+    const bx = base.junctionX[q0] ?? 0
+    const fx = flipped.junctionX[q0] ?? 0
+    const by = base.junctionY[q0] ?? 0
+    const fy = flipped.junctionY[q0] ?? 0
+    expect(Math.hypot(fx - bx, fy - by)).toBeGreaterThan(0.02)
+  })
+})
+
+describe('routing determinism', () => {
+  it('routeGates gives identical arrays on a second call', () => {
     clearNumogramCache()
     const g = createNumogram(28)
     const layout = ringLayout(g)
@@ -194,5 +329,16 @@ describe('routeGates determinism', () => {
     expect(a.d).toEqual(b.d)
     expect(a.labelX).toEqual(b.labelX)
     expect(a.orientation).toEqual(b.orientation)
+  })
+
+  it('routeCurrents gives identical arrays on a second call', () => {
+    clearNumogramCache()
+    const g = createNumogram(28)
+    const layout = ringLayout(g)
+    const a = routeCurrents(g, layout)
+    const b = routeCurrents(g, layout)
+    expect(a.legA).toEqual(b.legA)
+    expect(a.stem).toEqual(b.stem)
+    expect(a.junctionX).toEqual(b.junctionX)
   })
 })
