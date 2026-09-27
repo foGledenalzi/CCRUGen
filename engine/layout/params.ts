@@ -3,9 +3,9 @@
 
 import type { LayoutParams } from './types'
 
-// packer 'spiral' per D-03 (the user's locked wording: golden-angle spiral candidates); research measured 'shelf' as
-// tighter and cheaper, so it stays selectable and is shown on the contact sheet (plan 03-08) for the user to choose.
-// cap 4096 is a datum (research A1).
+// packer 'shelf' (research's tidy rows, tighter and cheaper) per the user's sign-off at the 03-08 contact-sheet
+// checkpoint: D-03's golden-angle 'spiral' stays selectable and is still shown as the alternative on the sheet for
+// every base with 4 or more Torque cycles, but is no longer the shipped default. cap 4096 is a datum (research A1).
 export const DEFAULT_LAYOUT_PARAMS: LayoutParams = Object.freeze({
   r: 21,
   s: 84,
@@ -13,7 +13,7 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = Object.freeze({
   glyphGap: 84,
   nestDelta: 1.5,
   nestMode: 'even',
-  packer: 'spiral',
+  packer: 'shelf',
   capsuleGap: 84,
   capsulePlacement: 'beside',
   margin: 70,

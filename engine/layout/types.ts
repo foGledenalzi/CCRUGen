@@ -9,7 +9,7 @@ import type { Numogram, RegionKind } from '../core/types'
 
 export const LAYOUT_IDS = ['ring', 'ladder', 'spiral'] as const          // procedural zone layouts offered for every even base (D-04)
 export type LayoutId = (typeof LAYOUT_IDS)[number]
-export const PACKERS = ['spiral', 'shelf'] as const                        // 'spiral' = golden-angle first fit (D-03, default); 'shelf' = rows
+export const PACKERS = ['spiral', 'shelf'] as const                        // 'spiral' = golden-angle first fit (D-03); 'shelf' = rows (default, 03-08 sign-off)
 export type Packer = (typeof PACKERS)[number]
 export const CAPSULE_PLACEMENTS = ['beside', 'above'] as const            // D-02: Warp capsule beside (left of) or above the Plex capsule
 export type CapsulePlacement = (typeof CAPSULE_PLACEMENTS)[number]

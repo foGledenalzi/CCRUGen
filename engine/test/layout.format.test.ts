@@ -45,7 +45,7 @@ describe('ceilQ / roundQ', () => {
 })
 
 describe('DEFAULT_LAYOUT_PARAMS', () => {
-  it('is frozen and matches the locked literal values', () => {
+  it('is frozen and matches the locked literal values (packer: shelf per the 03-08 contact-sheet sign-off)', () => {
     expect(Object.isFrozen(DEFAULT_LAYOUT_PARAMS)).toBe(true)
     expect(DEFAULT_LAYOUT_PARAMS).toEqual({
       r: 21,
@@ -54,7 +54,7 @@ describe('DEFAULT_LAYOUT_PARAMS', () => {
       glyphGap: 84,
       nestDelta: 1.5,
       nestMode: 'even',
-      packer: 'spiral',
+      packer: 'shelf',
       capsuleGap: 84,
       capsulePlacement: 'beside',
       margin: 70,
