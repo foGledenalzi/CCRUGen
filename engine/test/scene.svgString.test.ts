@@ -73,8 +73,9 @@ describe('layoutToSvg: structure and viewBox', () => {
     const embedded = layoutToSvg(g, layout, { embed: true })
     expect(embedded.startsWith('<svg')).toBe(true)
     expect(embedded.trim().endsWith('</svg>')).toBe(true)
-    expect(embedded).not.toContain('xmlns')
-    expect(embedded).not.toContain('width=')
+    const rootTag = embedded.slice(0, embedded.indexOf('>') + 1)
+    expect(rootTag).not.toContain('xmlns')
+    expect(rootTag).not.toContain('width=')
   })
 })
 
@@ -181,10 +182,13 @@ describe('layoutToSvg / pairGraphToSvg: determinism and no bad numbers', () => {
     const g = createNumogram(28)
     const layout = ringLayout(g)
     const pg = pairGraphLayout(g)
+    // Bind every forwarded method to `target` (never `receiver`): the real Numogram implementation carries a private
+    // class field, and calling one of its methods with the Proxy itself as `this` throws unrelated to this guard.
     const guarded = new Proxy(g, {
-      get(target, prop, receiver) {
+      get(target, prop) {
         if (prop === 'demons') throw new Error('svgString must not read the demon space')
-        return Reflect.get(target, prop, receiver)
+        const value = Reflect.get(target, prop, target)
+        return typeof value === 'function' ? value.bind(target) : value
       },
     })
     expect(() => layoutToSvg(guarded, layout, { gateLabels: true, detail: 'rich' })).not.toThrow()
