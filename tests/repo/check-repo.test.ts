@@ -121,18 +121,21 @@ describe('findTrackedJunk', () => {
 
 describe('missingNoticeEntries', () => {
   const ALL = [...LORE_FILES, 'lumpenspace/ccru'].join('\n')
-  it('lists all five lore files and the upstream credit for an empty NOTICE', () => {
+  it('lists the lore file and the upstream credit for an empty NOTICE', () => {
     const missing = missingNoticeEntries('')
-    expect(missing).toHaveLength(6)
+    expect(missing).toHaveLength(LORE_FILES.length + 1)
     expect(missing).toContain('lumpenspace/ccru')
     for (const file of LORE_FILES) expect(missing).toContain(file)
   })
-  it('returns nothing when all six entries are present', () => {
+  it('returns nothing when every entry is present', () => {
     expect(missingNoticeEntries(ALL)).toEqual([])
   })
   it('names exactly the entry that was dropped', () => {
-    expect(missingNoticeEntries(ALL.replace('app/data/gates.ts', ''))).toEqual(['app/data/gates.ts'])
+    expect(missingNoticeEntries(ALL.replace('app/presets/base10/lore.ts', ''))).toEqual(['app/presets/base10/lore.ts'])
     expect(missingNoticeEntries(ALL.replace('lumpenspace/ccru', 'upstream'))).toEqual(['lumpenspace/ccru'])
+  })
+  it('is satisfied by the real NOTICE (guard and NOTICE change together, D-16)', () => {
+    expect(missingNoticeEntries(readFileSync(path.join(ROOT, 'NOTICE'), 'utf8'))).toEqual([])
   })
 })
 
@@ -241,22 +244,26 @@ describe('gitattributesProblems', () => {
 
 describe('loreProblems', () => {
   const good = () => `${LORE_HEADER}\nexport const x = 1\n`
-  it('passes when every lore file starts with the header', () => {
+  const LORE = 'app/presets/base10/lore.ts'
+  it('passes when the lore file starts with the header', () => {
     expect(loreProblems(good)).toEqual([])
   })
-  it('names a lore file whose header is missing, misplaced or absent', () => {
-    const files: Record<string, string> = {}
-    for (const f of LORE_FILES) files[f] = good()
-    files['app/data/zones.ts'] = 'export const x = 1\n'
-    files['app/data/gates.ts'] = `\n${LORE_HEADER}\n`
-    const problems = loreProblems((f) => {
-      if (f === 'app/data/demons.ts') throw new Error('ENOENT')
-      return files[f]
-    })
-    expect(problems).toHaveLength(3)
-    expect(problems.join('\n')).toContain('app/data/zones.ts')
-    expect(problems.join('\n')).toContain('app/data/gates.ts')
-    expect(problems.join('\n')).toContain('app/data/demons.ts')
+  it.each([
+    ['missing', () => 'export const x = 1\n'],
+    ['on line 2 instead of line 1', () => `\n${LORE_HEADER}\n`],
+    [
+      'unreadable',
+      () => {
+        throw new Error('ENOENT')
+      },
+    ],
+  ])('reports exactly one problem naming the lore file when the header is %s', (_label, read) => {
+    const problems = loreProblems(read)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain(LORE)
+  })
+  it('is satisfied by the real lore file (header on line 1)', () => {
+    expect(loreProblems((rel) => readFileSync(path.join(ROOT, ...rel.split('/')), 'utf8'))).toEqual([])
   })
 })
 
@@ -349,7 +356,21 @@ describe('parseDirtyStatus', () => {
   })
 })
 
+describe('LORE_FILES (D-06, D-16)', () => {
+  it('is exactly the single CCRU-derived lore module', () => {
+    expect(LORE_FILES).toEqual(['app/presets/base10/lore.ts'])
+  })
+})
+
 describe('MANIFESTS and LF_DIRS', () => {
+  it('verifies the derived notable-bases manifest (frozen in 02-02) and keeps the older sets', () => {
+    expect(MANIFESTS).toContain('engine/test/fixtures/derived/MANIFEST.json')
+    expect(MANIFESTS).toEqual(
+      expect.arrayContaining(['e2e/__golden__/MANIFEST.json', 'engine/test/fixtures/MANIFEST.json', 'e2e/__behaviour__/MANIFEST.json']),
+    )
+    // the derived fixture directory sits under engine/test/fixtures, which is already a frozen LF directory
+    expect(LF_DIRS).toContain('engine/test/fixtures')
+  })
   it('covers the behaviour baseline: its manifest is verified and its directory is a frozen LF oracle dir', () => {
     expect(MANIFESTS).toContain('e2e/__behaviour__/MANIFEST.json')
     expect(LF_DIRS).toContain('e2e/__behaviour__')

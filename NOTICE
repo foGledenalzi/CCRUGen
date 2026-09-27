@@ -9,6 +9,7 @@ This NOTICE is authoritative on which terms apply to which files.
    code; see section 3 for the goldens), perf/, .github/, vitest.config.mts,
    playwright.config.ts, .gitattributes, everything under scripts/,
    app/lib/basePath.ts, app/components/navigation/LegacyQueryRedirect.tsx,
+   app/presets/base10/ except lore.ts (the base-10 engine adapter),
    the CCRUG mark public/ccrug-mark.svg (also used as app/icon.svg), README.md,
    and the layout, naming and export code added in later phases.
 
@@ -31,17 +32,15 @@ This NOTICE is authoritative on which terms apply to which files.
 
 3. CCRU-derived lore - excluded from the MIT license
    The base-10 zone, syzygy, current, gate and demon names and descriptions
-   in the following files follow the writings of the Cybernetic Culture
+   in the following file follow the writings of the Cybernetic Culture
    Research Unit (CCRU). They are third-party lore, are not covered by the
    MIT license, and are kept unchanged:
-     app/data/zones.ts
-     app/data/gates.ts
-     app/data/currents.ts
-     app/data/syzygies.ts
-     app/data/demons.ts
-   Frozen test fixtures derived from them (engine/test/fixtures/,
-   e2e/__golden__/ and the behaviour baseline in e2e/__behaviour__/) carry
-   the same status for any lore text they contain.
+     app/presets/base10/lore.ts
+   Until Phase 2 they lived in app/data/zones.ts, gates.ts, currents.ts,
+   syzygies.ts and demons.ts, which no longer hold lore text. Frozen test
+   fixtures derived from them (engine/test/fixtures/, e2e/__golden__/ and
+   the behaviour baseline in e2e/__behaviour__/) carry the same status for
+   any lore text they contain.
 
 4. reference/
    reference/ is local, untracked research material (gitignored). It is

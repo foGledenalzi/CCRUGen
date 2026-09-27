@@ -1,16 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { CURRENTS as OLD_CURRENTS } from '../../app/data/currents'
-import { DEMON_NAMES as OLD_DEMON_NAMES } from '../../app/data/demons'
-import { GATE_LIST as OLD_GATE_LIST } from '../../app/data/gates'
-import { SYZYGIES as OLD_SYZYGIES } from '../../app/data/syzygies'
-import {
-  PLANET_SYMBOL as OLD_PLANET_SYMBOL,
-  ZONE_CLR as OLD_ZONE_CLR,
-  ZONE_META as OLD_ZONE_META,
-  ZONE_PARTICLE as OLD_ZONE_PARTICLE,
-} from '../../app/data/zones'
 import {
   CURRENT_LORE,
   DEMON_NAMES,
@@ -29,9 +19,9 @@ import { LORE_HEADER } from '../../scripts/check-repo.mjs'
 //   (2) the key sets are EXACTLY the engine's base-10 ids (nothing missing, nothing orphaned),
 //   (3) the joins the viewer relies on are consistent (a syzygy's demon is its syzygetic demon, a zone's lemurs
 //       are its demons),
-//   (4) the names agree with the frozen numeric oracle,
-//   (5) while the old app/data files still held the lore: the moved text is equal to the old text (T-02-29).
-// The lore text is third-party CCRU-derived material; it is compared, never edited.
+//   (4) the names agree with the frozen numeric oracle.
+// The text of the lore is third-party CCRU-derived material: it was moved unchanged (proved equal to the pre-move
+// app/data files field by field while both existed, see the 02-07 summary) and is never edited.
 
 const g = createNumogram(10)
 
@@ -178,41 +168,5 @@ describe('agreement with the frozen numeric oracle (base10.golden.json)', () => 
   it('CURRENT_LORE[pair].name equals the golden current name for all five currents', () => {
     expect(golden.currents).toHaveLength(5)
     for (const c of golden.currents) expect(CURRENT_LORE[c.pair[0]].name, `current ${c.name}`).toBe(c.name)
-  })
-})
-
-describe('equivalence with the pre-move lore (removed in Task 2)', () => {
-  const meshOfKey = (key: string): number => {
-    const [a, b] = key.split(':').map(Number)
-    return (a * (a - 1)) / 2 + b
-  }
-
-  it('ZONE_CLR, ZONE_PARTICLE, PLANET_SYMBOL and ZONE_META deep-equal the old app/data/zones exports', () => {
-    expect(ZONE_CLR).toEqual(OLD_ZONE_CLR)
-    expect(ZONE_PARTICLE).toEqual(OLD_ZONE_PARTICLE)
-    expect(PLANET_SYMBOL).toEqual(OLD_PLANET_SYMBOL)
-    expect(ZONE_META).toEqual(OLD_ZONE_META)
-  })
-
-  it('SYZYGY_LORE[min(a, b)] holds the old demon and desc of each syzygy', () => {
-    expect(OLD_SYZYGIES).toHaveLength(5)
-    for (const s of OLD_SYZYGIES) expect(SYZYGY_LORE[Math.min(s.a, s.b)]).toEqual({ demon: s.demon, desc: s.desc })
-  })
-
-  it('CURRENT_LORE[pair of from] holds the old name and desc of each current', () => {
-    expect(OLD_CURRENTS).toHaveLength(5)
-    for (const c of OLD_CURRENTS) expect(CURRENT_LORE[g.pairOf(c.from)]).toEqual({ name: c.name, desc: c.desc })
-  })
-
-  it('GATE_LORE[from] holds the old desc and detail of each gate', () => {
-    expect(OLD_GATE_LIST).toHaveLength(10)
-    for (const gate of OLD_GATE_LIST) expect(GATE_LORE[gate.from]).toEqual({ desc: gate.desc, detail: gate.detail })
-  })
-
-  it('DEMON_NAMES[mesh] is the old name of each old a:b key, 45 entries on both sides', () => {
-    const oldKeys = Object.keys(OLD_DEMON_NAMES)
-    expect(oldKeys).toHaveLength(45)
-    expect(Object.keys(DEMON_NAMES)).toHaveLength(45)
-    for (const key of oldKeys) expect(DEMON_NAMES[meshOfKey(key)], key).toBe(OLD_DEMON_NAMES[key])
   })
 })

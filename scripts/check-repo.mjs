@@ -16,9 +16,14 @@ import path from 'node:path'
 import { ROOT, verifyManifestFile } from './golden-manifest.mjs'
 import { isMain } from './is-main.mjs'
 
-export const LORE_FILES = ['app/data/zones.ts', 'app/data/gates.ts', 'app/data/currents.ts', 'app/data/syzygies.ts', 'app/data/demons.ts']
+export const LORE_FILES = ['app/presets/base10/lore.ts']
 export const LORE_HEADER = '// CCRU-derived lore. Not covered by the MIT license; see NOTICE.'
-export const MANIFESTS = ['e2e/__golden__/MANIFEST.json', 'engine/test/fixtures/MANIFEST.json', 'e2e/__behaviour__/MANIFEST.json']
+export const MANIFESTS = [
+  'e2e/__golden__/MANIFEST.json',
+  'engine/test/fixtures/MANIFEST.json',
+  'engine/test/fixtures/derived/MANIFEST.json',
+  'e2e/__behaviour__/MANIFEST.json',
+]
 export const LF_DIRS = ['e2e/__golden__', 'engine/test/fixtures', 'perf', 'e2e/__behaviour__']
 // Markers that must never appear in the static export: Vercel leftovers, the deleted share-image route and,
 // by user order (2026-09-25), the old upstream branding.
@@ -69,7 +74,7 @@ export function findTrackedJunk(files) {
 }
 
 /**
- * Entries NOTICE must name: the five CCRU-derived lore files and the upstream credit.
+ * Entries NOTICE must name: the CCRU-derived lore file and the upstream credit.
  * @param {string} text
  * @returns {string[]} the missing entries
  */
@@ -148,7 +153,7 @@ export function gitattributesProblems(text) {
 }
 
 /**
- * Every lore file must carry the CCRU-derived header on line 1.
+ * The CCRU-derived lore file must carry the licence header on line 1.
  * @param {(repoPath: string) => string} read returns the file text or throws
  * @returns {string[]}
  */

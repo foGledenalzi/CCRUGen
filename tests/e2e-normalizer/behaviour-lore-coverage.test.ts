@@ -2,16 +2,15 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { CURRENTS } from '../../app/data/currents'
-import { GATE_LIST } from '../../app/data/gates'
-import { SYZYGIES } from '../../app/data/syzygies'
-import { ZONE_META } from '../../app/data/zones'
+import { CURRENT_LORE, GATE_LORE, SYZYGY_LORE, ZONE_META } from '../../app/presets/base10/lore'
 import { ROOT } from '../../scripts/golden-manifest.mjs'
 
 // The behaviour baseline (D-15) exists to catch a wrong lore key after the lore move. That only works if the
 // frozen original.json really contains every lore string the viewer can show, so this test proves it: each gate
 // desc and detail, each current desc and label, each syzygy desc and each non-empty zone desc and lemurian must
-// occur as a substring of some recorded string. It reads the lore through the same names the viewer imports
-// (app/data/* stay exported through Phase 2) and the baseline file read-only.
+// occur as a substring of some recorded string. The lore is read from the single lore module
+// (app/presets/base10/lore.ts, D-06) and the baseline file read-only. The current labels (8-1=7 style) are
+// viewer structure, not lore text, so they still come from the app/data/currents seam until it is engine-derived.
 
 const BASELINE = path.join(ROOT, 'e2e', '__behaviour__', 'original.json')
 
@@ -28,13 +27,12 @@ const norm = (s: string) => s.replace(/\s+/g, ' ').trim().replace(/\d{4}-\d{2}-\
 
 interface LoreItem { id: string; text: string }
 const lore: LoreItem[] = []
-for (const g of GATE_LIST) {
-  lore.push({ id: `gate ${g.name} desc`, text: g.desc }, { id: `gate ${g.name} detail`, text: g.detail })
+for (const [zone, g] of Object.entries(GATE_LORE)) {
+  lore.push({ id: `gate ${zone} desc`, text: g.desc }, { id: `gate ${zone} detail`, text: g.detail })
 }
-for (const c of CURRENTS) {
-  lore.push({ id: `current ${c.name} desc`, text: c.desc }, { id: `current ${c.name} label`, text: c.label })
-}
-for (const s of SYZYGIES) lore.push({ id: `syzygy ${s.a}::${s.b} desc`, text: s.desc })
+for (const [pair, c] of Object.entries(CURRENT_LORE)) lore.push({ id: `current ${c.name} (pair ${pair}) desc`, text: c.desc })
+for (const c of CURRENTS) lore.push({ id: `current ${c.name} label`, text: c.label })
+for (const [pair, s] of Object.entries(SYZYGY_LORE)) lore.push({ id: `syzygy pair ${pair} desc`, text: s.desc })
 for (const [zone, meta] of Object.entries(ZONE_META)) {
   if (meta.desc) lore.push({ id: `zone ${zone} desc`, text: meta.desc })
   if (meta.lemurian) lore.push({ id: `zone ${zone} lemurian`, text: meta.lemurian })
