@@ -18,8 +18,10 @@ if (!existsSync(resolve('tests/bruteforce/numogramReference.ts'))) {
   console.error('capture-notable-bases: run from the repository root')
   process.exit(2)
 }
+const REFUSAL = 'capture-notable-bases: engine/test/fixtures/derived/notable-bases.golden.json exists; derived fixtures are frozen and never regenerated'
+// Fast path only: the write below is what actually refuses (flag wx), so two runs started together cannot both write.
 if (existsSync(OUT)) {
-  console.error('capture-notable-bases: engine/test/fixtures/derived/notable-bases.golden.json exists; derived fixtures are frozen and never regenerated')
+  console.error(REFUSAL)
   process.exit(1)
 }
 
@@ -87,5 +89,13 @@ const data = {
 
 mkdirSync(dirname(OUT), { recursive: true })
 const text = JSON.stringify(data, null, 2) + '\n'
-writeFileSync(OUT, text, 'utf8')
+try {
+  writeFileSync(OUT, text, { encoding: 'utf8', flag: 'wx' }) // exclusive create: fails with EEXIST instead of overwriting
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+    console.error(REFUSAL)
+    process.exit(1)
+  }
+  throw error
+}
 console.log(`capture-notable-bases: wrote ${Buffer.byteLength(text)} bytes`)
