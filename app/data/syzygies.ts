@@ -2,7 +2,11 @@
 import { SYZYGY_LORE } from '../presets/base10/lore'
 import type { SyzygyData } from './types'
 
-export const SYZYGIES: SyzygyData[] = [
+// Swap 1 (plan 02-08): SYZYGIES is now derived by the engine and joined with lore in app/presets/base10/syzygies.ts.
+export { SYZYGIES } from '../presets/base10/syzygies'
+
+// The hand-authored structure, kept only until plan 02-08 Task 2 deletes it (D-08); the adapter test compares against it.
+export const LEGACY_SYZYGIES: SyzygyData[] = [
   { a: 4, b: 5, demon: SYZYGY_LORE[4].demon, desc: SYZYGY_LORE[4].desc },
   { a: 3, b: 6, demon: SYZYGY_LORE[3].demon, desc: SYZYGY_LORE[3].desc },
   { a: 2, b: 7, demon: SYZYGY_LORE[2].demon, desc: SYZYGY_LORE[2].desc },
