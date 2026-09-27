@@ -27,6 +27,9 @@ reference/
 /.e2e-basepath/
 *.tsbuildinfo
 
+# dev-only layout contact sheet (Phase 3 plan 03-08, D-10): never committed, regenerated on every review round
+/.review/
+
 # npm only (yarn.lock is removed in plan 01-08)
 yarn.lock
 
