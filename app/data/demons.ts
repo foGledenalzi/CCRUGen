@@ -1,8 +1,12 @@
 // Base-10 data seam (MIG-01). Lore text lives in app/presets/base10/lore.ts (CCRU-derived, see NOTICE).
 import { DEMON_NAMES } from '../presets/base10/lore'
+import { TC } from '../presets/base10/regions'
 import type { Demon } from './types'
 
-export const TC = new Set([1, 2, 4, 5, 7, 8])
+export { TC } from '../presets/base10/regions'
+
+// Hand-authored set kept only until the deletion commit of plan 02-11 (D-08).
+export const LEGACY_TC = new Set([1, 2, 4, 5, 7, 8])
 
 export const ALL_DEMONS: Demon[] = []
 for (let i = 1; i < 10; i++)

@@ -2,18 +2,31 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
+import { LEGACY_TC, TC as SEAM_TC } from '../../app/data/demons'
 import { GATE_LIST as SEAM_GATES } from '../../app/data/gates'
 import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
+import type { Region } from '../../app/data/types'
+import { LEGACY_ZONE_REGION, ZONE_REGION as SEAM_ZONE_REGION } from '../../app/data/zones'
+import {
+  LEGACY_TC_CURRENTS,
+  LEGACY_TC_EDGES,
+  LEGACY_TC_SYZYGIES,
+  TC_CURRENTS as SEAM_TC_CURRENTS,
+  TC_EDGES as SEAM_TC_EDGES,
+  TC_SYZYGIES as SEAM_TC_SYZYGIES,
+} from '../../app/lib/constants'
 import { CURRENTS, legacyCurrentFrom } from '../../app/presets/base10/currents'
 import { GATE_LIST } from '../../app/presets/base10/gates'
 import { CURRENT_LORE, DEMON_NAMES, GATE_LORE, SYZYGY_LORE } from '../../app/presets/base10/lore'
 import { BASE10 } from '../../app/presets/base10/numogram'
+import { TC, TC_CURRENTS, TC_EDGES, TC_SYZYGIES, ZONE_REGION } from '../../app/presets/base10/regions'
 import { SYZYGIES } from '../../app/presets/base10/syzygies'
 import { formatGateName } from '../../engine/index'
-import { refDigitSumRoot } from '../bruteforce/numogramReference'
+import { refDigitSumRoot, refStructure } from '../bruteforce/numogramReference'
 
 // MIG-01 / D-01 / D-02: the base-10 adapter derives the viewer's data shapes from the engine (createNumogram(10))
 // joined with the lore by id. Swap 1 (plan 02-08): syzygies. Swap 2 (plan 02-09): currents. Swap 3 (plan 02-10): gates.
+// Swap 4 (plan 02-11): regions and the Torque time-circuit constants.
 // The frozen numeric oracle (base10.golden.json, never regenerated) and the definitions below, not the adapter, say what
 // the values must be.
 
@@ -23,6 +36,9 @@ const golden = JSON.parse(
   pairs: [number, number][]
   currents: { name: string; pair: [number, number]; from: number; to: number }[]
   gates: { name: string; from: number; to: number; cum: number }[]
+  zoneRegion: Record<string, string>
+  regions: { plex: number[]; torque: number[]; warp: number[] }
+  tc: { zones: number[]; edges: [number, number][]; currents: string[]; syzygies: [number, number][] }
 }
 
 // U+2212 MINUS SIGN, built from its code point so this file holds no escape sequence.
@@ -205,6 +221,90 @@ describe('gates', () => {
   })
 })
 
+describe('regions', () => {
+  const ZONES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  // The independent reference (definitions only, tests/bruteforce): regions and the Torque cycle straight from the rules.
+  const REF = refStructure(10)
+  const refKind = (zone: number) => REF.cycles[REF.cycleOfZone[zone] as number]?.kind
+  const refTorque = REF.cycles.filter((c) => c.kind === 'torque')
+
+  it('ZONE_REGION is the frozen oracle zoneRegion: zones 0..9 to the exact Region strings', () => {
+    expect(ZONE_REGION).toEqual(golden.zoneRegion)
+    expect(Object.keys(ZONE_REGION)).toEqual(ZONES.map(String))
+    expect(ZONES.map((z) => ZONE_REGION[z])).toEqual([
+      'plex', 'torque', 'torque', 'warp', 'torque', 'torque', 'warp', 'torque', 'torque', 'plex',
+    ])
+  })
+
+  it('ZONE_REGION comes from the engine cycles (the kind of each zone\'s cycle) and regroups into the oracle regions', () => {
+    for (const z of ZONES) expect(ZONE_REGION[z], `zone ${z}`).toBe(BASE10.cycleOfZone(z).kind)
+    const grouped: Record<Region, number[]> = { plex: [], torque: [], warp: [] }
+    for (const z of ZONES) grouped[ZONE_REGION[z] as Region].push(z)
+    expect(grouped).toEqual(golden.regions)
+    expect(BASE10.torqueCount).toBe(1)
+  })
+
+  it('ZONE_REGION agrees with the independent definition-based reference, zone by zone', () => {
+    for (const z of ZONES) expect(ZONE_REGION[z], `zone ${z}`).toBe(refKind(z))
+  })
+
+  it('TC is the set of Torque zones, in ascending insertion order (1, 2, 4, 5, 7, 8)', () => {
+    expect(TC).toBeInstanceOf(Set)
+    expect(Array.from(TC)).toEqual([1, 2, 4, 5, 7, 8])
+    expect(Array.from(TC)).toEqual(golden.tc.zones)
+    expect(Array.from(TC)).toEqual(ZONES.filter((z) => refKind(z) === 'torque'))
+  })
+
+  it('TC_EDGES is the closed Torque walk, odd member then even member of each pair in flow order', () => {
+    expect(TC_EDGES).toEqual([[1, 8], [8, 7], [7, 2], [2, 5], [5, 4], [4, 1]])
+    expect(TC_EDGES).toEqual(golden.tc.edges)
+    // Rebuilt from the reference cycle (pair ids in flow order): the odd zone of each pair, then its even zone.
+    const walk = refTorque.flatMap((c) =>
+      c.pairs.flatMap((p) => {
+        const partner = REF.partner[p] as number
+        return p % 2 === 1 ? [p, partner] : [partner, p]
+      }),
+    )
+    expect(walk).toHaveLength(2 * BASE10.torques[0]!.lengthInPairs)
+    expect(TC_EDGES).toEqual(walk.map((z, i) => [z, walk[(i + 1) % walk.length]]))
+    // Closed and connected: every edge starts where the previous one ended (the last one ends where the first starts).
+    TC_EDGES.forEach((edge, i) => expect(edge[0]).toBe(TC_EDGES[(i + TC_EDGES.length - 1) % TC_EDGES.length]?.[1]))
+  })
+
+  it('TC_SYZYGIES are the Torque pairs as [low zone, high zone] in flow order', () => {
+    expect(TC_SYZYGIES).toEqual([[1, 8], [2, 7], [4, 5]])
+    expect(TC_SYZYGIES).toEqual(golden.tc.syzygies)
+    for (const [lo, hi] of TC_SYZYGIES) expect(lo + hi).toBe(BASE10.base - 1)
+    expect(TC_SYZYGIES).toEqual(refTorque.flatMap((c) => c.pairs.map((p) => [p, REF.partner[p]])))
+  })
+
+  it('TC_CURRENTS are the lore names of the Torque pairs in flow order (Surge, Hold, Sink)', () => {
+    expect(TC_CURRENTS).toBeInstanceOf(Set)
+    expect(Array.from(TC_CURRENTS)).toEqual(['Surge', 'Hold', 'Sink'])
+    expect(Array.from(TC_CURRENTS).sort()).toEqual(golden.tc.currents)
+    expect(Array.from(TC_CURRENTS)).toEqual(TC_SYZYGIES.map(([lo]) => CURRENT_LORE[lo]?.name))
+    // each is a current of the viewer's list, drawn from a Torque zone
+    for (const c of CURRENTS.filter((cur) => TC_CURRENTS.has(cur.name))) expect(TC.has(c.from), c.name).toBe(true)
+  })
+
+  it('equal the hand-authored values (LEGACY_*) they replace: shape, values and order', () => {
+    expect(ZONE_REGION).toEqual(LEGACY_ZONE_REGION)
+    expect(Object.keys(ZONE_REGION)).toEqual(Object.keys(LEGACY_ZONE_REGION))
+    expect(Array.from(TC)).toEqual(Array.from(LEGACY_TC))
+    expect(TC_EDGES).toEqual(LEGACY_TC_EDGES)
+    expect(TC_SYZYGIES).toEqual(LEGACY_TC_SYZYGIES)
+    expect(Array.from(TC_CURRENTS)).toEqual(Array.from(LEGACY_TC_CURRENTS))
+  })
+
+  it('are the very objects the seams export (the consumers keep their imports)', () => {
+    expect(SEAM_ZONE_REGION).toBe(ZONE_REGION)
+    expect(SEAM_TC).toBe(TC)
+    expect(SEAM_TC_EDGES).toBe(TC_EDGES)
+    expect(SEAM_TC_SYZYGIES).toBe(TC_SYZYGIES)
+    expect(SEAM_TC_CURRENTS).toBe(TC_CURRENTS)
+  })
+})
+
 describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore text', () => {
   it('no file in app/presets/base10 other than lore.ts contains a syzygy, current or gate name, demon name or description', () => {
     const dir = fileURLToPath(new URL('../../app/presets/base10/', import.meta.url))
@@ -213,6 +313,7 @@ describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore 
     expect(files).toContain('currents.ts')
     expect(files).toContain('gates.ts')
     expect(files).toContain('numogram.ts')
+    expect(files).toContain('regions.ts')
     const lore = Object.values(SYZYGY_LORE).flatMap((l) => [l.demon, l.desc])
     expect(lore.length).toBe(10)
     // Current names are one short word each (comments may legitimately say Warp or Plex), so a quoted literal is what
