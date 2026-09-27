@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
-import { TC as SEAM_TC } from '../../app/data/demons'
+import { ALL_DEMONS as SEAM_ALL_DEMONS, LEGACY_ALL_DEMONS, TC as SEAM_TC } from '../../app/data/demons'
 import { GATE_LIST as SEAM_GATES } from '../../app/data/gates'
 import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import type { Region } from '../../app/data/types'
@@ -13,17 +13,18 @@ import {
   TC_SYZYGIES as SEAM_TC_SYZYGIES,
 } from '../../app/lib/constants'
 import { CURRENTS, legacyCurrentFrom } from '../../app/presets/base10/currents'
+import { ALL_DEMONS, legacyKind, type LegacyDemonKind } from '../../app/presets/base10/demons'
 import { GATE_LIST } from '../../app/presets/base10/gates'
-import { CURRENT_LORE, DEMON_NAMES, GATE_LORE, SYZYGY_LORE } from '../../app/presets/base10/lore'
+import { CURRENT_LORE, DEMON_NAMES, GATE_LORE, SYZYGY_LORE, ZONE_META } from '../../app/presets/base10/lore'
 import { BASE10 } from '../../app/presets/base10/numogram'
 import { TC, TC_CURRENTS, TC_EDGES, TC_SYZYGIES, ZONE_REGION } from '../../app/presets/base10/regions'
 import { SYZYGIES } from '../../app/presets/base10/syzygies'
-import { formatGateName } from '../../engine/index'
-import { refDigitSumRoot, refStructure } from '../bruteforce/numogramReference'
+import { DEMON_SUBTYPES, formatGateName, type DemonSubtype } from '../../engine/index'
+import { refClassify, refDemons, refDigitSumRoot, refStructure } from '../bruteforce/numogramReference'
 
 // MIG-01 / D-01 / D-02: the base-10 adapter derives the viewer's data shapes from the engine (createNumogram(10))
 // joined with the lore by id. Swap 1 (plan 02-08): syzygies. Swap 2 (plan 02-09): currents. Swap 3 (plan 02-10): gates.
-// Swap 4 (plan 02-11): regions and the Torque time-circuit constants.
+// Swap 4 (plan 02-11): regions and the Torque time-circuit constants. Swap 5 (plan 02-12): demons.
 // The frozen numeric oracle (base10.golden.json, never regenerated) and the definitions below, not the adapter, say what
 // the values must be.
 
@@ -36,6 +37,9 @@ const golden = JSON.parse(
   zoneRegion: Record<string, string>
   regions: { plex: number[]; torque: number[]; warp: number[] }
   tc: { zones: number[]; edges: [number, number][]; currents: string[]; syzygies: [number, number][] }
+  demons: { a: number; b: number; netSpan: string; kind: string; name: string }[]
+  demonCount: number
+  kinds: Record<string, number>
 }
 
 // U+2212 MINUS SIGN, built from its code point so this file holds no escape sequence.
@@ -293,6 +297,158 @@ describe('regions', () => {
   })
 })
 
+describe('demons', () => {
+  // The independent reference (definitions only, tests/bruteforce): every demon a > b in enumeration order, classified from
+  // the regions by the rules, never by the engine's demon code.
+  const REF = refStructure(10)
+  const REF_DEMONS = refDemons(REF)
+  const isTorque = (zone: number) => REF.cycles[REF.cycleOfZone[zone] as number]?.kind === 'torque'
+  const netSpan = (d: { a: number; b: number }) => `${d.a}::${d.b}`
+  const tally = (items: string[]): Record<string, number> => {
+    const out: Record<string, number> = {}
+    for (const item of items) out[item] = (out[item] ?? 0) + 1
+    return out
+  }
+
+  // The viewer's own classification, kept exactly (T-02-45): nine-sum demons (the syzygetic ones) are their own kind
+  // 'syzygy', otherwise both zones in the Torque is 'chrono' (cyclic and cross-Torque alike), neither is 'xeno', the rest 'amphi'.
+  const EXPECTED_KIND: Record<DemonSubtype, LegacyDemonKind> = {
+    'cyclic-chrono': 'chrono',
+    'cross-torque-chrono': 'chrono',
+    'syzygetic-chrono': 'syzygy',
+    'plex-amphi': 'amphi',
+    'warp-amphi': 'amphi',
+    'chaotic-xeno': 'xeno',
+    'syzygetic-xeno': 'syzygy',
+  }
+  // The same rule from the definitions, written the way the hand builder wrote it (zones and the Torque set, no subtypes).
+  const definitionKind = (a: number, b: number): LegacyDemonKind =>
+    a + b === REF.base - 1 ? 'syzygy' : isTorque(a) && isTorque(b) ? 'chrono' : !isTorque(a) && !isTorque(b) ? 'xeno' : 'amphi'
+
+  it('are the 45 demons of the frozen oracle (a, b, net-span, kind, name), in the same order', () => {
+    expect(golden.demonCount).toBe(45)
+    expect(golden.demons).toHaveLength(45)
+    expect(ALL_DEMONS).toHaveLength(45)
+    expect(
+      ALL_DEMONS.map((d) => ({ a: d.a, b: d.b, netSpan: netSpan(d), kind: d.kind, name: d.name })),
+    ).toEqual(golden.demons)
+  })
+
+  it('come from the engine demon space in mesh order: entry m is the demon of mesh m, named by the lore of mesh m', () => {
+    expect(BASE10.demons.count).toBe(45)
+    expect(ALL_DEMONS).toHaveLength(BASE10.demons.count)
+    ALL_DEMONS.forEach((d, m) => {
+      const ref = BASE10.demons.at(m)
+      expect(ref.mesh, netSpan(d)).toBe(m)
+      expect([d.a, d.b], `mesh ${m}`).toEqual([ref.a, ref.b])
+      expect((d.a * (d.a - 1)) / 2 + d.b, netSpan(d)).toBe(m) // mesh number by definition
+      expect(d.a, netSpan(d)).toBeGreaterThan(d.b)
+      expect(d.name, netSpan(d)).toBe(DEMON_NAMES[m])
+    })
+    // The enumeration order of the definition-based reference is the same order (a = 1..9, b = 0..a-1).
+    expect(ALL_DEMONS.map((d) => [d.a, d.b])).toEqual(REF_DEMONS.map((d) => [d.a, d.b]))
+  })
+
+  it('keep the exact key order a, b, name, kind that the consumers were written against', () => {
+    for (const d of ALL_DEMONS) expect(Object.keys(d)).toEqual(['a', 'b', 'name', 'kind'])
+  })
+
+  it('carry a lore name for every mesh number (no placeholder), joined right: each zone lemur list reads the same names', () => {
+    for (const d of ALL_DEMONS) {
+      expect(d.name.length, netSpan(d)).toBeGreaterThan(0)
+      expect(d.name, netSpan(d)).not.toBe('?')
+    }
+    // A second, independent path to the names: the per-zone lemur lists of the lore module ('a::b Name', b ascending)
+    // must equal the adapter's demons of that zone, so a mesh mis-join or a shifted name cannot pass.
+    expect(ZONE_META[0]?.lemurs).toEqual([])
+    for (let zone = 1; zone < BASE10.zoneCount; zone++) {
+      expect(ZONE_META[zone]?.lemurs, `zone ${zone}`).toEqual(
+        ALL_DEMONS.filter((d) => d.a === zone).map((d) => `${netSpan(d)} ${d.name}`),
+      )
+    }
+  })
+
+  it('count { amphi: 24, chrono: 12, syzygy: 5, xeno: 4 } by kind (the frozen oracle kinds)', () => {
+    const kinds = tally(ALL_DEMONS.map((d) => d.kind))
+    expect(kinds).toEqual({ amphi: 24, chrono: 12, syzygy: 5, xeno: 4 })
+    expect(kinds).toEqual(golden.kinds)
+  })
+
+  it('split by engine subtype as 12+3 chrono (cyclic + syzygetic), 12+12 amphi (Plex + Warp) and 4+2 xeno (chaotic + syzygetic)', () => {
+    // These counts are definitions of the base-10 numogram (the guide prose has them wrong), not viewer data.
+    const counts = {
+      'cyclic-chrono': 12,
+      'cross-torque-chrono': 0,
+      'syzygetic-chrono': 3,
+      'plex-amphi': 12,
+      'warp-amphi': 12,
+      'chaotic-xeno': 4,
+      'syzygetic-xeno': 2,
+    }
+    expect(BASE10.demons.counts()).toEqual(counts)
+    expect(tally(ALL_DEMONS.map((_, m) => BASE10.demons.at(m).subtype))).toEqual(
+      Object.fromEntries(Object.entries(counts).filter(([, n]) => n > 0)),
+    )
+    // The viewer kinds are exactly those groups: chrono 12 = cyclic, syzygy 5 = 3 + 2, amphi 24 = 12 + 12, xeno 4 = chaotic.
+    expect(ALL_DEMONS.filter((d) => d.kind === 'chrono')).toHaveLength(counts['cyclic-chrono'] + counts['cross-torque-chrono'])
+    expect(ALL_DEMONS.filter((d) => d.kind === 'syzygy')).toHaveLength(counts['syzygetic-chrono'] + counts['syzygetic-xeno'])
+    expect(ALL_DEMONS.filter((d) => d.kind === 'amphi')).toHaveLength(counts['plex-amphi'] + counts['warp-amphi'])
+    expect(ALL_DEMONS.filter((d) => d.kind === 'xeno')).toHaveLength(counts['chaotic-xeno'])
+  })
+
+  it('kind syzygy is exactly the five nine-sum demons: 5::4, 7::2, 8::1 (syzygetic chrono) and 6::3, 9::0 (syzygetic xeno)', () => {
+    const syzygy = ALL_DEMONS.filter((d) => d.kind === 'syzygy')
+    expect(syzygy.map(netSpan)).toEqual(['5::4', '6::3', '7::2', '8::1', '9::0'])
+    expect(ALL_DEMONS.filter((d) => d.a + d.b === BASE10.base - 1).map(netSpan)).toEqual(syzygy.map(netSpan))
+    expect(syzygy.map((d) => BASE10.demons.ref(d.a, d.b).subtype)).toEqual([
+      'syzygetic-chrono', 'syzygetic-xeno', 'syzygetic-chrono', 'syzygetic-chrono', 'syzygetic-xeno',
+    ])
+    expect(syzygy.map((d) => refClassify(REF, d.a, d.b).subtype)).toEqual([
+      'syzygetic-chrono', 'syzygetic-xeno', 'syzygetic-chrono', 'syzygetic-chrono', 'syzygetic-xeno',
+    ])
+  })
+
+  it('legacyKind maps all seven engine subtypes: syzygetic to syzygy, cyclic and cross-Torque to chrono, Plex and Warp to amphi, chaotic to xeno', () => {
+    expect(DEMON_SUBTYPES).toHaveLength(7)
+    expect(Object.keys(EXPECTED_KIND).sort()).toEqual([...DEMON_SUBTYPES].sort())
+    for (const subtype of DEMON_SUBTYPES) expect(legacyKind(subtype), subtype).toBe(EXPECTED_KIND[subtype])
+    expect(legacyKind('syzygetic-chrono')).toBe('syzygy')
+    expect(legacyKind('syzygetic-xeno')).toBe('syzygy')
+    expect(legacyKind('cyclic-chrono')).toBe('chrono')
+    expect(legacyKind('cross-torque-chrono')).toBe('chrono') // no member at base 10, but the mapping is part of the contract
+    expect(legacyKind('plex-amphi')).toBe('amphi')
+    expect(legacyKind('warp-amphi')).toBe('amphi')
+    expect(legacyKind('chaotic-xeno')).toBe('xeno')
+  })
+
+  it('every demon kind agrees with the independent reference (the rule from the definitions, and the reference subtype)', () => {
+    expect(REF_DEMONS).toHaveLength(ALL_DEMONS.length)
+    REF_DEMONS.forEach((ref, m) => {
+      const d = ALL_DEMONS[m]
+      expect(d?.kind, `${ref.a}::${ref.b}`).toBe(definitionKind(ref.a, ref.b))
+      expect(d?.kind, `${ref.a}::${ref.b}`).toBe(EXPECTED_KIND[ref.subtype])
+      expect(ref.mesh).toBe(m)
+    })
+  })
+
+  it('feed the two viewer views as before: the pandemonium layer shows the 40 non-syzygy demons, each zone lists 9 demons', () => {
+    expect(ALL_DEMONS.filter((d) => d.kind !== 'syzygy')).toHaveLength(40)
+    for (let zone = 0; zone < BASE10.zoneCount; zone++) {
+      expect(ALL_DEMONS.filter((d) => d.a === zone || d.b === zone), `zone ${zone}`).toHaveLength(BASE10.base - 1)
+    }
+  })
+
+  it('equal the hand-built list they replace: same length, same keys in the same order, same values', () => {
+    expect(LEGACY_ALL_DEMONS).toHaveLength(45)
+    expect(ALL_DEMONS).toStrictEqual(LEGACY_ALL_DEMONS)
+    ALL_DEMONS.forEach((d, m) => expect(Object.keys(d), `mesh ${m}`).toEqual(Object.keys(LEGACY_ALL_DEMONS[m] as object)))
+  })
+
+  it('are the very array the app/data seam exports (the consumers keep their import)', () => {
+    expect(SEAM_ALL_DEMONS).toBe(ALL_DEMONS)
+  })
+})
+
 describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore text', () => {
   it('no file in app/presets/base10 other than lore.ts contains a syzygy, current or gate name, demon name or description', () => {
     const dir = fileURLToPath(new URL('../../app/presets/base10/', import.meta.url))
@@ -302,7 +458,8 @@ describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore 
     expect(files).toContain('gates.ts')
     expect(files).toContain('numogram.ts')
     expect(files).toContain('regions.ts')
-    const lore = Object.values(SYZYGY_LORE).flatMap((l) => [l.demon, l.desc])
+    expect(files).toContain('demons.ts')
+    const lore =Object.values(SYZYGY_LORE).flatMap((l) => [l.demon, l.desc])
     expect(lore.length).toBe(10)
     // Current names are one short word each (comments may legitimately say Warp or Plex), so a quoted literal is what
     // counts as hard-coded lore; the descriptions are prose and must not appear at all.
@@ -311,8 +468,15 @@ describe('adapter files (NOTICE section 1: original MIT code) hold no CCRU lore 
     // Gate lore is prose (a short title in desc, a sentence or two in detail): none of it may appear in an adapter file.
     const gateLore = Object.values(GATE_LORE).flatMap((l) => [l.desc, l.detail])
     expect(gateLore.length).toBe(20)
+    // Demon names are lore too (one short word each): a quoted literal of any of the 45 is hard-coded lore.
+    const demonNames = Object.values(DEMON_NAMES)
+    expect(demonNames.length).toBe(45)
     for (const f of files) {
       const text = readFileSync(dir + f, 'utf8')
+      for (const name of demonNames) {
+        expect(text, `${f} hard-codes the demon name ${name}`).not.toContain(`'${name}'`)
+        expect(text, `${f} hard-codes the demon name ${name}`).not.toContain(`"${name}"`)
+      }
       for (const s of lore) expect(text, `${f} contains lore text`).not.toContain(s)
       for (const s of gateLore) expect(text, `${f} contains gate lore text`).not.toContain(s)
       for (const l of currentLore) {
