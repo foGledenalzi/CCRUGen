@@ -150,6 +150,44 @@ describe('parseNumeral inverts formatNumeral', () => {
     )
   })
 
+  // WR-01: parseNumeral must read back everything formatNumeral can write, up to its own maximum padding (64 digits).
+  // In bases above 36 every digit costs up to 8 characters plus a dot, so the reader counts digit groups, not characters.
+  const ROUND_TRIP_BASES = [2, 10, 16, 35, 36, 37, 60, 1000, 65_536, MAX_BASE]
+
+  it('round-trips every padding 1..64 in bases on both sides of 36 (deterministic values)', () => {
+    for (const base of ROUND_TRIP_BASES) {
+      for (let minDigits = 1; minDigits <= 64; minDigits++) {
+        for (const value of [0, 1, base - 1, base, MAX_SAFE]) {
+          const text = formatNumeral(value, base, minDigits)
+          expect(parseNumeral(text, base), `${value} in base ${base} padded to ${minDigits}`).toBe(value)
+        }
+      }
+    }
+  })
+
+  it('round-trips padding 1..64 for random bases and values (fixed seed 20260935)', () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(fc.constantFrom(...ROUND_TRIP_BASES), fc.integer({ min: 2, max: MAX_BASE })),
+        fc.oneof(fc.constantFrom(0, MAX_SAFE), fc.integer({ min: 0, max: MAX_SAFE })),
+        fc.integer({ min: 1, max: 64 }),
+        (base, value, minDigits) => parseNumeral(formatNumeral(value, base, minDigits), base) === value,
+      ),
+      { seed: 20260935, numRuns: 3000 },
+    )
+  })
+
+  it('reads the writable texts the old 64-character cap refused (the review reproductions)', () => {
+    expect(formatNumeral(0, 60, 33)).toHaveLength(65)
+    expect(parseNumeral(formatNumeral(0, 60, 33), 60)).toBe(0)
+    expect(formatNumeral(5, 37, 64)).toHaveLength(127)
+    expect(parseNumeral(formatNumeral(5, 37, 64), 37)).toBe(5)
+    expect(formatNumeral(MAX_SAFE, 37, 32)).toHaveLength(72)
+    expect(parseNumeral(formatNumeral(MAX_SAFE, 37, 32), 37)).toBe(MAX_SAFE)
+    expect(formatNumeral(MAX_SAFE, MAX_BASE, 32)).toHaveLength(77)
+    expect(parseNumeral(formatNumeral(MAX_SAFE, MAX_BASE, 32), MAX_BASE)).toBe(MAX_SAFE)
+  })
+
   it('round-trips the extremes in every base 2..70 and at the ceiling', () => {
     for (let b = 2; b <= 70; b++) {
       for (const v of [0, 1, b - 1, b, b + 1, MAX_SAFE - 1, MAX_SAFE]) {
@@ -209,8 +247,8 @@ describe('parseNumeral rejects with RangeError', () => {
     ['1' + '0'.repeat(16), 10], // 1e16 is above MAX_SAFE_INTEGER
     ['9007199254740992', 10], // MAX_SAFE_INTEGER + 1
     ['1' + '0'.repeat(53), 2], // 2^53
-    ['0'.repeat(65), 10], // 65 characters: over the length cap, although the value is 0
-    ['0.'.repeat(33) + '0', 60], // 67 characters
+    ['0'.repeat(65), 10], // 65 characters: over the letter-base cap (64 digits), although the value is 0
+    ['0.'.repeat(64) + '0', 60], // 65 digit groups: one over the largest padding formatNumeral writes
   ]
 
   for (const [text, base] of rejected) {
@@ -249,6 +287,55 @@ describe('parseNumeral rejects with RangeError', () => {
       }),
       { seed: 20260934, numRuns: 1000 },
     )
+  })
+
+  // WR-01: the limit is 64 digits (MAX_MIN_DIGITS). Letter bases spend one character per digit, so the cap is 64
+  // characters; above 36 it is 64 digit groups, and the character cap is the longest grammar-legal text: 64 groups of
+  // up to 8 characters (67108863) plus 63 dots = 575.
+  describe('the length limits', () => {
+    const messageOf = (text: string, base: number): string => {
+      try {
+        parseNumeral(text, base)
+      } catch (e) {
+        expect(e).toBeInstanceOf(RangeError)
+        return (e as RangeError).message
+      }
+      throw new Error('expected parseNumeral to throw')
+    }
+
+    it('letter bases: 64 digits are read, 65 characters are refused', () => {
+      expect(parseNumeral('0'.repeat(64), 10)).toBe(0)
+      expect(parseNumeral('0'.repeat(63) + '5', 36)).toBe(5)
+      expect(messageOf('0'.repeat(65), 10)).toMatch(/longer than 64 characters/)
+      expect(messageOf('0'.repeat(65), 36)).toMatch(/longer than 64 characters/)
+    })
+
+    it('dotted bases: 64 digit groups are read, 65 are refused by the group count', () => {
+      expect(parseNumeral('0.'.repeat(63) + '0', 60)).toBe(0)
+      expect(parseNumeral('0.'.repeat(63) + '5', 37)).toBe(5)
+      expect(messageOf('0.'.repeat(64) + '0', 60)).toMatch(/more than 64 digit groups/)
+      expect(messageOf('0.'.repeat(64) + '5', 37)).toMatch(/more than 64 digit groups/)
+    })
+
+    it('dotted bases: the character cap is 575, and one character more is refused by the length', () => {
+      const atCap = '0.'.repeat(287) + '0' // 575 characters, past the length check and stopped by the group count
+      const overCap = '0.'.repeat(288) // 576 characters
+      expect(atCap).toHaveLength(575)
+      expect(overCap).toHaveLength(576)
+      expect(messageOf(atCap, 60)).toMatch(/more than 64 digit groups/)
+      expect(messageOf(overCap, 60)).toMatch(/longer than 575 characters/)
+      // The longest text of 64 groups that the grammar allows is 575 characters; it is refused only for its value.
+      const widest = Array.from({ length: 64 }, () => String(MAX_BASE - 1)).join('.')
+      expect(widest).toHaveLength(575)
+      expect(messageOf(widest, MAX_BASE)).toMatch(/above the largest safe integer/)
+    })
+
+    it('refuses a huge dotted input quickly and with a bounded message', () => {
+      const big = '9.'.repeat(500_000) + '9'
+      const message = messageOf(big, 60)
+      expect(message).toMatch(/longer than 575 characters/)
+      expect(message.length).toBeLessThan(300)
+    })
   })
 
   it('refuses a huge input quickly and with a bounded message', () => {

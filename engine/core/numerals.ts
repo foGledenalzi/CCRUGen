@@ -14,8 +14,12 @@ export const NUMERAL_DIGITS = '0123456789abcdefghijklmnopqrstuvwxyz'
 export const NUMERAL_SEPARATOR = '.'
 
 const LETTER_BASE_LIMIT = 36 // NUMERAL_DIGITS.length: the largest base written with single characters
-const MAX_TEXT_LENGTH = 64 // parseNumeral refuses longer text (no numeral of a safe integer needs more unpadded)
-const MAX_MIN_DIGITS = 64
+const MAX_MIN_DIGITS = 64 // the most digits formatNumeral writes (its padding limit) and therefore the most parseNumeral reads
+const MAX_GROUP_CHARS = String(MAX_BASE - 1).length // 8: the widest decimal digit group (67108863)
+// parseNumeral refuses longer text before reading any of it. A letter-base digit is one character; a dotted numeral is
+// at most MAX_MIN_DIGITS groups of MAX_GROUP_CHARS characters plus the dots between them (575).
+const MAX_LETTER_TEXT_LENGTH = MAX_MIN_DIGITS
+const MAX_DOTTED_TEXT_LENGTH = MAX_MIN_DIGITS * MAX_GROUP_CHARS + (MAX_MIN_DIGITS - 1)
 const MAX_ECHO = 40 // characters of refused text echoed in an error message
 const TORQUE_LETTERS = 26
 
@@ -85,12 +89,13 @@ function step(result: number, base: number, digit: number, text: string): number
 }
 
 /**
- * Reads a numeral written by formatNumeral back into its value. RangeError for a non-string, an empty or over-long
- * (more than 64 characters) text, any character outside the grammar, a digit at or above the base, or a value above
- * Number.MAX_SAFE_INTEGER. One linear pass over the characters (no backtracking pattern).
+ * Reads a numeral written by formatNumeral back into its value, for every padding formatNumeral accepts (up to 64
+ * digits). RangeError for a non-string, an empty or over-long text (more than 64 characters up to base 36, more than
+ * 575 characters or 64 digit groups above it), any character outside the grammar, a digit at or above the base, or a
+ * value above Number.MAX_SAFE_INTEGER. One linear pass over at most 575 characters (no backtracking pattern).
  *  - base <= 36: characters of NUMERAL_DIGITS only (lowercase), leading '0' digits allowed.
- *  - base > 36: groups separated by single dots, each group `0` or `[1-9][0-9]*` with a value below the base;
- *    no empty group, no leading or trailing dot.
+ *  - base > 36: at most 64 groups separated by single dots, each group `0` or `[1-9][0-9]*` with a value below the
+ *    base; no empty group, no leading or trailing dot.
  */
 export function parseNumeral(text: string, base: number): number {
   checkBase(base)
@@ -98,7 +103,8 @@ export function parseNumeral(text: string, base: number): number {
     throw new RangeError(`Invalid numeral ${show(text)} for base ${base}: the numeral must be a string`)
   }
   if (text.length === 0) throw numeralError(text, base, 'the numeral is empty')
-  if (text.length > MAX_TEXT_LENGTH) throw numeralError(text, base, `longer than ${MAX_TEXT_LENGTH} characters`)
+  const maxLength = base <= LETTER_BASE_LIMIT ? MAX_LETTER_TEXT_LENGTH : MAX_DOTTED_TEXT_LENGTH
+  if (text.length > maxLength) throw numeralError(text, base, `longer than ${maxLength} characters`)
 
   let result = 0
   if (base <= LETTER_BASE_LIMIT) {
@@ -116,6 +122,7 @@ export function parseNumeral(text: string, base: number): number {
 
   let group = 0 // value of the digit group being read
   let groupLength = 0 // characters in it
+  let groups = 0 // digit groups started so far, the one being read included
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i)
     if (c === CHAR_DOT) {
@@ -124,6 +131,10 @@ export function parseNumeral(text: string, base: number): number {
       group = 0
       groupLength = 0
     } else if (c >= CHAR_0 && c <= CHAR_9) {
+      if (groupLength === 0) {
+        groups++
+        if (groups > MAX_MIN_DIGITS) throw numeralError(text, base, `more than ${MAX_MIN_DIGITS} digit groups`)
+      }
       if (groupLength === 1 && group === 0) throw numeralError(text, base, 'leading zero in a digit group')
       group = group * 10 + (c - CHAR_0)
       groupLength++
