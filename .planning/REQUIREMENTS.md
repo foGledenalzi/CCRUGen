@@ -17,15 +17,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Engine
 
-- [ ] **ENG-01**: For any even base n >= 2 the engine returns the zones, syzygy pairs (`hi::lo`, sum n-1), currents (pair -> `hi-lo`), and gates (zone k -> in-base digital root of T(k), with T(0) -> 0)
-- [ ] **ENG-02**: Regions are Plex (always), Warp (iff n = 3o+1 with o odd), and one or more Torque cycles in a canonical order (length descending, then smallest zone id), each cycle reported in pairs and zones
-- [ ] **ENG-03**: Demons are virtual: mesh number <-> net-span `a::b` in O(1), type classification with the guide's subtypes plus an explicit **cross-Torque chronodemon** subtype (cyclic = same-Torque only), closed-form counts per type, and Numodemons (n/2 - 1)
-- [ ] **ENG-04**: Base-10 engine output equals the frozen oracle; the guide's verified facts hold (base 12 example, base 16 = [4,2], 28 = [9,3], 80 = [39], 82 = [27,9,3]); property sweeps pass for every even n up to 2000; odd or invalid bases are rejected
-- [ ] **ENG-05**: Computing any base up to the safe ceiling (2^26) never materializes an O(n^2) structure
+- [x] **ENG-01**: For any even base n >= 2 the engine returns the zones, syzygy pairs (`hi::lo`, sum n-1), currents (pair -> `hi-lo`), and gates (zone k -> in-base digital root of T(k), with T(0) -> 0)
+- [x] **ENG-02**: Regions are Plex (always), Warp (iff n = 3o+1 with o odd), and one or more Torque cycles in a canonical order (length descending, then smallest zone id), each cycle reported in pairs and zones
+- [x] **ENG-03**: Demons are virtual: mesh number <-> net-span `a::b` in O(1), type classification with the guide's subtypes plus an explicit **cross-Torque chronodemon** subtype (cyclic = same-Torque only), closed-form counts per type, and Numodemons (n/2 - 1)
+- [x] **ENG-04**: Base-10 engine output equals the frozen oracle; the guide's verified facts hold (base 12 example, base 16 = [4,2], 28 = [9,3], 80 = [39], 82 = [27,9,3]); property sweeps pass for every even n up to 2000; odd or invalid bases are rejected
+- [x] **ENG-05**: Computing any base up to the safe ceiling (2^26) never materializes an O(n^2) structure
 
 ### Migration
 
-- [ ] **MIG-01**: The base-10 viewer's syzygies, currents, gates, demons and regions are derived from the engine and joined with lore by id, with DOM goldens byte-identical to the pre-refactor viewer
+- [x] **MIG-01**: The base-10 viewer's syzygies, currents, gates, demons and regions are derived from the engine and joined with lore by id, with DOM goldens byte-identical to the pre-refactor viewer
 - [ ] **MIG-02**: No hard-coded 10-zone constants remain (CI grep gate for `9 - z`, `[1, 2, 4, 5, 7, 8]`, `n <= 9`), and bases 2-40 smoke-render with no NaN or undefined
 
 ### Layout
@@ -123,12 +123,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FND-03 | Phase 1 | Complete |
 | FND-04 | Phase 1 | Complete |
 | FND-05 | Phase 1 | Complete |
-| ENG-01 | Phase 2 | Pending |
-| ENG-02 | Phase 2 | Pending |
-| ENG-03 | Phase 2 | Pending |
-| ENG-04 | Phase 2 | Pending |
-| ENG-05 | Phase 2 | Pending |
-| MIG-01 | Phase 2 | Pending |
+| ENG-01 | Phase 2 | Complete |
+| ENG-02 | Phase 2 | Complete |
+| ENG-03 | Phase 2 | Complete |
+| ENG-04 | Phase 2 | Complete |
+| ENG-05 | Phase 2 | Complete |
+| MIG-01 | Phase 2 | Complete |
 | LAY-01 | Phase 3 | Pending |
 | LAY-02 | Phase 3 | Pending |
 | LAY-03 | Phase 3 | Pending |
