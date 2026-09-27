@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-08-PLAN.md
-last_updated: "2026-09-27T22:33:27.350Z"
-last_activity: "2026-09-27 -- 03-08 complete (layout contact sheet built and user-approved, packer default changed to shelf, Warp-beside-Plex and no gate bundling confirmed unchanged; signed-off layouts pinned by digest across both timezones; LAY-01, LAY-03, LAY-04 marked Complete; full npm run verify green)"
+stopped_at: Completed 03-09-PLAN.md
+last_updated: "2026-09-27T23:07:31.250Z"
+last_activity: "2026-09-27 -- 03-09 complete (ceiling-spike Playwright/CDP harness built: four device profiles gpu/sw/sw-4x/sw-6x, real committed engine layouts and routes, calib/limits/headless/svg-rich/svg-lean/canvas/chords suites, environment metadata and DOM/JS-heap memory capture; smoke-tested with a gpu quick run and a sw-6x throttled run reproducing the research's slowdown pattern, 0 leftover chrome.exe processes; REN-01 stays Pending in REQUIREMENTS.md, 03-10 runs the real four-profile measured table)"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 31
-  completed_plans: 29
-  percent: 94
+  completed_plans: 30
+  percent: 97
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 3 — EXECUTING
-Plan: 03-09 of 10
-Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-08 complete, wave 6 continues with 03-09 — an autonomous plan: the ceiling-spike Playwright harness, not a checkpoint)
-Last activity: 2026-09-27 -- 03-08 complete (contact-sheet sign-off: packer default -> shelf, Warp beside Plex and no gate bundling confirmed unchanged, signed-off layouts pinned by digest; LAY-01/LAY-03/LAY-04 Complete)
+Plan: 03-10 of 10
+Status: Executing Phase 3 (10 plans, 7 waves; 03-01..03-09 complete; 03-10 is the final plan, a checkpoint — measured threshold-table review, autonomous: false, not spawned by this executor)
+Last activity: 2026-09-27 -- 03-09 complete (ceiling-spike Playwright/CDP harness built: four device profiles gpu/sw/sw-4x/sw-6x, real committed engine layouts and routes, calib/limits/headless/svg-rich/svg-lean/canvas/chords suites, environment metadata and DOM/JS-heap memory capture; smoke-tested with a gpu quick run and a sw-6x throttled run reproducing the research's slowdown pattern, 0 leftover chrome.exe processes; REN-01 stays Pending in REQUIREMENTS.md, 03-10 runs the real four-profile measured table)
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [█████████░] 94%
 | Phase 03 P06 | 35min | 2 tasks | 3 files |
 | Phase 03 P07 | 19min | 2 tasks | 10 files |
 | Phase 03 P08 | 19min | 3 tasks | 9 files |
+| Phase 03 P09 | 30min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,7 @@ Recent decisions affecting current work:
 - [Phase 3 P06] engine/scene/svgString.ts (research Pattern 8): layoutToSvg (any zone layout) and pairGraphToSvg (the pair-graph view) as pure string-array + join('\n') emitters with named layer groups (regions, gates, currents, syzygies, one 'zone' group per node, gate-labels), rounded coordinates via fmt, an explicit viewBox, and escapeXml applied at every free-text interpolation point (title, region-label text, pair-graph hi::lo labels) as the phase's XSS control (T-03-16, concretely tested with a </title><script> payload and an edited <b> region label); background is hex-regex-validated or thrown as RangeError (T-03-17); the emitter never reads g.demons (T-03-18), proven with a guard Proxy that rebinds every forwarded method to the real target (NumogramImpl carries a private class field, so naive receiver-forwarding breaks on any method call, not just .demons). engine/test/layout.degenerate.test.ts covers Pitfall 10 (bases 2/4/6 across all four layouts: finite coordinates, node discs inside the frame, no bad numbers in any route or SVG string) plus a NaN sweep over every even base 2..128 and the review-set bases 28/64/82/100; all green on first run, no production module needed a fix. Full npm run verify green (75 e2e + 5 expected-skipped, 60 goldens and behaviour baseline unchanged, page-weight OK, check-repo 12/12). LAY-01/LAY-03/LAY-04 remain in progress (03-07/03-08 still pending for LAY-01/LAY-03, 03-08 for LAY-04); none marked complete in REQUIREMENTS.md by this plan.
 - [Phase 3 P07] lerpPositions copies t=0/t=1 exactly via Float64Array.set() rather than the lerp formula (fx + (tx-fx) is not always bit-identical to tx under IEEE 754); resolveLayout resolves preset -> procedural LAYOUT_IDS id -> first supporting preset else ring (T-03-19: an id is only ever compared, never evaluated); engine/index.ts now re-exports layout/index and scene/index with sideEffects:false, page weight flat (+0 bytes raw); LAY-01/LAY-03 traceability rows hand-edited to add 03-07 (still in progress, 03-08 pending)
 - [Phase 3 P08] User sign-off (D-10, D-02, D-03) on the layout contact sheet: default packer changed to shelf (spiral stays selectable, lore-neutral per confirmation); Warp capsule placement kept beside Plex (base-10 convention, unchanged); gate edge-bundling at 64/100 not requested (left optional/unimplemented). Signed-off coordinates for the 10 review bases x 4 layouts (40 entries) pinned by sha256 in engine/test/layout.digest.test.ts (sheet sha 0d9cd5c0cb3a); a digest changes only with a new sign-off, never to make a test pass. LAY-01, LAY-03 and LAY-04 marked Complete (this was their final covering plan).
+- [Phase 3 P09] Ceiling spike harness built (scripts/spike/driver.ts, scripts/spike/harness.mjs): Playwright/CDP driver serving the compiled real engine to a cross-origin-isolated fake https://spike.test/ origin, four device profiles (gpu/sw/sw-4x/sw-6x), calib/limits/headless/svg-rich/svg-lean/canvas/chords suites with adaptive frame/hover/tween counts and a 20s-mount/3s-hover early-stop; page.evaluate callbacks must inline-cast window.__spike (no outer Node closures — they are not serialized to the browser); the chords suite is a synthetic n-point-circle density probe independent of the numogram engine; verified with a gpu quick run and a sw-6x throttled run reproducing 03-RESEARCH.md's slowdown pattern, 0 leftover chrome.exe processes; REN-01 stays Pending (03-10 runs the real measured table).
 
 ### Pending Todos
 
@@ -162,8 +164,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-27T22:33:27.342Z
-Stopped at: Completed 03-08-PLAN.md
+Last session: 2026-09-27T23:07:31.243Z
+Stopped at: Completed 03-09-PLAN.md
 Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
