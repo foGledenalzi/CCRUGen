@@ -15,7 +15,7 @@
 // group(type) and subtype(subtype) serve "the k-th demon of this type or subtype in ascending mesh order" by a binary
 // search over mesh numbers (unrank.ts); this file only validates the name and memoizes the selection.
 
-import { MAX_BASE } from './base'
+import { clipEcho, MAX_BASE } from './base'
 import { checkIndex } from './index-check' // the shared check: it also turns a caller's -0 into +0, so no field is ever -0
 import type { NumogramInternals } from './numogram' // type only: no runtime import cycle with numogram.ts
 import { DEMON_SUBTYPES, DEMON_TYPES } from './types'
@@ -160,9 +160,9 @@ function* numodemonRun(s: NumogramInternals, base: number): Generator<DemonRef, 
   for (let b = 1; b < base / 2; b++) yield buildDemon(s, base - 1, base - b, b)
 }
 
-/** A name as shown in an error message: quoted when it is a string, else its type. */
+/** A name as shown in an error message: quoted (and clipped to MAX_ECHO characters) when it is a string, else its type. */
 function showName(x: unknown): string {
-  return typeof x === 'string' ? JSON.stringify(x) : `<${typeof x}>`
+  return typeof x === 'string' ? JSON.stringify(clipEcho(x)) : `<${typeof x}>`
 }
 
 class DemonSpaceImpl implements DemonSpace {

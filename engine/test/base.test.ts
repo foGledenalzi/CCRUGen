@@ -133,6 +133,33 @@ describe('validateBase messages say why', () => {
   })
 })
 
+// IN-04: an error message never carries more than 40 characters of a caller's string (numerals.ts does the same).
+describe('validateBase and assertBase echo a bounded piece of a long string', () => {
+  const HUGE = 'x'.repeat(100_000)
+
+  it('clips a long string to 40 characters and marks the cut', () => {
+    const check = validateBase(HUGE)
+    expect(check.ok).toBe(false)
+    if (!check.ok) {
+      expect(check.reason).toBe('not-a-number')
+      expect(check.message).toBe(`Invalid base "${'x'.repeat(40)}...": the base must be a number`)
+    }
+    expect(() => assertBase(HUGE)).toThrow(`Invalid base "${'x'.repeat(40)}...": the base must be a number`)
+  })
+
+  it('echoes a string of exactly 40 characters whole and clips one of 41', () => {
+    const forty = 'y'.repeat(40)
+    expect(validateBase(forty)).toMatchObject({ ok: false, message: `Invalid base "${forty}": the base must be a number` })
+    expect(validateBase(`${forty}z`)).toMatchObject({ ok: false, message: `Invalid base "${forty}...": the base must be a number` })
+  })
+
+  it('keeps the message short for a huge bigint too', () => {
+    const check = validateBase(10n ** 5000n)
+    expect(check.ok).toBe(false)
+    if (!check.ok) expect(check.message.length).toBeLessThan(120)
+  })
+})
+
 describe('assertBase', () => {
   it('returns undefined for a valid base', () => {
     expect(assertBase(10)).toBeUndefined()

@@ -8,7 +8,7 @@
 //     NUMERAL_SEPARATOR ('1.0.1' is 3601 in base 60; a single-digit value is plain decimal, '59').
 //   - minDigits left-pads with zero digits ('03' in base 10, '0.3' in base 60).
 //   - parseNumeral accepts exactly what formatNumeral can write (plus extra leading zero digits where the grammar allows).
-import { MAX_BASE } from './base'
+import { clipEcho, MAX_BASE } from './base'
 
 export const NUMERAL_DIGITS = '0123456789abcdefghijklmnopqrstuvwxyz'
 export const NUMERAL_SEPARATOR = '.'
@@ -20,7 +20,6 @@ const MAX_GROUP_CHARS = String(MAX_BASE - 1).length // 8: the widest decimal dig
 // at most MAX_MIN_DIGITS groups of MAX_GROUP_CHARS characters plus the dots between them (575).
 const MAX_LETTER_TEXT_LENGTH = MAX_MIN_DIGITS
 const MAX_DOTTED_TEXT_LENGTH = MAX_MIN_DIGITS * MAX_GROUP_CHARS + (MAX_MIN_DIGITS - 1)
-const MAX_ECHO = 40 // characters of refused text echoed in an error message
 const TORQUE_LETTERS = 26
 
 const CHAR_0 = 48
@@ -46,8 +45,7 @@ function checkValue(value: number): void {
 }
 
 function numeralError(text: string, base: number, why: string): RangeError {
-  const echoed = text.length > MAX_ECHO ? `${text.slice(0, MAX_ECHO)}...` : text
-  return new RangeError(`Invalid numeral ${JSON.stringify(echoed)} for base ${base}: ${why}`)
+  return new RangeError(`Invalid numeral ${JSON.stringify(clipEcho(text))} for base ${base}: ${why}`)
 }
 
 /** The digits of value in the base, most significant first ([0] for 0). Each digit is a number 0..base-1. */

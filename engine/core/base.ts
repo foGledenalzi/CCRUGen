@@ -10,10 +10,19 @@ export type BaseCheck =
   | { readonly ok: true; readonly base: number }
   | { readonly ok: false; readonly reason: BaseProblem; readonly message: string }
 
-// A description of an arbitrary value that can never throw (Object.create(null), a throwing toString, a Proxy ...).
+/** Characters of a caller's text an error message may echo (IN-04): a huge argument must not become a huge message. */
+export const MAX_ECHO = 40
+
+/** text as it may appear in an error message: whole up to MAX_ECHO characters, else its first MAX_ECHO followed by '...'. */
+export function clipEcho(text: string): string {
+  return text.length > MAX_ECHO ? `${text.slice(0, MAX_ECHO)}...` : text
+}
+
+// A description of an arbitrary value that can never throw (Object.create(null), a throwing toString, a Proxy ...),
+// bounded to MAX_ECHO characters of the value.
 function describeValue(n: unknown): string {
   try {
-    return typeof n === 'string' ? JSON.stringify(n) : String(n)
+    return typeof n === 'string' ? JSON.stringify(clipEcho(n)) : clipEcho(String(n))
   } catch {
     return `<${typeof n}>`
   }

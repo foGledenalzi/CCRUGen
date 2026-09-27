@@ -161,6 +161,26 @@ describe('unranking: selections are frozen, memoized and strict about names and 
     }
   })
 
+  // IN-04: an unknown name is echoed at most 40 characters long, so a huge string cannot become a huge message.
+  it('echoes a bounded piece of an unknown name in the message', () => {
+    const space = createNumogram(16).demons
+    const huge = 'x'.repeat(100_000)
+    const clipped = `"${'x'.repeat(40)}..."`
+    expect(() => space.group(huge as DemonType)).toThrow(`Invalid demon type ${clipped}: expected one of chrono, amphi, xeno`)
+    expect(() => space.subtype(huge as DemonSubtype)).toThrow(RangeError)
+    expect(() => space.subtype(huge as DemonSubtype)).toThrow(new RegExp(`^Invalid demon subtype ${clipped.replace(/\./g, '\\.')}: expected one of `))
+    expect(() => space.group('toString' as DemonType)).toThrow('Invalid demon type "toString": expected one of chrono, amphi, xeno')
+    for (const call of [() => space.group(huge as DemonType), () => space.subtype(huge as DemonSubtype)]) {
+      let caught: unknown
+      try {
+        call()
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as RangeError).message.length).toBeLessThan(300)
+    }
+  })
+
   for (const n of [2, 4, 10, 12, 28, 82]) {
     it(`base ${n}: at(-1), at(count), at(0.5) and other bad ranks throw RangeError for every selector, valid ranks never do`, () => {
       const space = createNumogram(n).demons
