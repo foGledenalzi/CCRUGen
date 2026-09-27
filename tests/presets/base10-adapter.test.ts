@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { CURRENTS as SEAM_CURRENTS, LEGACY_CURRENTS } from '../../app/data/currents'
+import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
 import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import { CURRENTS, legacyCurrentFrom } from '../../app/presets/base10/currents'
 import { CURRENT_LORE, DEMON_NAMES, SYZYGY_LORE } from '../../app/presets/base10/lore'
@@ -69,13 +69,6 @@ describe('syzygies', () => {
 describe('currents', () => {
   // Viewer order: Surge, Hold, Sink (the Torque cycle in flow order), then Warp, then Plex = pair ids 1, 2, 4, 3, 0.
   const PAIR_IDS = [1, 2, 4, 3, 0]
-
-  it('deep-equal the hand-authored data still present in this commit, every label character included', () => {
-    expect(CURRENTS).toStrictEqual(LEGACY_CURRENTS)
-    CURRENTS.forEach((c, i) => {
-      expect(codePoints(c.label), `label ${i}`).toEqual(codePoints(LEGACY_CURRENTS[i]?.label ?? ''))
-    })
-  })
 
   it('are the five currents of the frozen oracle (name, from, to), in the same order', () => {
     expect(golden.currents).toHaveLength(5)
