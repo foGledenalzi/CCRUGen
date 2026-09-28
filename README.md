@@ -6,7 +6,7 @@ Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / W
 
 Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). The upstream repository ships no license, so the files inherited from it are not relicensed here, and the CCRU-derived base-10 lore text is a third-party pack (see [NOTICE](NOTICE) and [Licensing](#licensing-and-credits)).
 
-> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phases 1 and 2 are complete and independently verified: the numogram engine is built, and the base-10 viewer now runs on it. Phase 3 (procedural layout and the ceiling spike) is planned and ready to execute: layout decisions are locked (anticlockwise rings, Plex and Warp at the bottom, ring / ladder / Barker-spiral layouts for every base, base 10 keeping its four authored layouts), research has verified the layout math against the engine and run a four-device-profile ceiling spike on real hardware, and 10 plans across 7 waves are checked and ready.
+> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phases 1 through 3 are complete and independently verified. The numogram engine is built, the base-10 viewer runs on it, and any even base now gets a deterministic procedural layout (ring, ladder or Barker spiral, plus a syzygy-collapsed pair-graph view), with base 10 keeping its four authored layouts as presets. The renderer's threshold table is measured, not assumed: a real four-device-profile spike (native GPU, software raster, and two CPU-throttled profiles emulating weaker hardware) on the maintainer's machine, reviewed and approved before it shipped.
 
 ## The idea
 
@@ -31,7 +31,7 @@ Torque cycles by base (lengths counted in syzygy pairs):
 | 80 | no | 39 |
 | 82 | yes | 27, 9, 3 |
 
-The arithmetic itself is instant, even at base 100,000. The real limits are drawing that many nodes and the quadratic demon layer (base 666 has 221,445 demons), which is why the renderer is tiered and the ceiling is measured rather than assumed.
+The arithmetic itself is instant, even at base 100,000. The real limits are drawing that many nodes and the quadratic demon layer (base 666 has 221,445 demons), which is why the renderer is tiered and the ceiling is measured rather than assumed: a real four-device-profile ceiling spike (Phase 3) found the interactive SVG tier legible to roughly 200-300 zones, the Canvas tier (Phase 6) comfortably interactive through at least 4,000 with no ceiling found in the measured range, and the full demon "web" of every pairwise connection at once legible only to about 60-80 zones regardless of speed (an overlap limit, not a performance one). The engine's own mathematical ceiling is base 2^26.
 
 ## What v1 covers
 
@@ -51,7 +51,7 @@ Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`]
 |-------|------|--------|
 | 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Complete (verified) |
 | 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Complete (verified) |
-| 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Planned, ready to execute (10 plans, 7 waves) |
+| 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Complete (verified) |
 | 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Not started |
 | 5. Demons Layer | Browse, count and inspect every demon at any base | Not started |
 | 6. Canvas Tier and Worker | Large bases stay interactive; graceful degradation | Not started |
