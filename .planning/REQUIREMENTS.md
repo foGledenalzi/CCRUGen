@@ -56,7 +56,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Rendering and Ceiling
 
-- [ ] **REN-01**: A ceiling spike measures frame time and memory per render tier against n and yields a threshold table stored as data, not hard-coded
+- [x] **REN-01**: A ceiling spike measures frame time and memory per render tier against n and yields a threshold table stored as data, not hard-coded
 - [ ] **REN-02**: An SVG tier serves small bases and a Canvas tier serves large bases, selected from the threshold table, behind one shared view contract
 - [ ] **REN-03**: Heavy computation runs in a Web Worker at large n so the UI never freezes; beyond the measured ceiling the app degrades to headless export with a visible message
 
@@ -133,7 +133,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAY-02 | Phase 3 | Complete |
 | LAY-03 | Phase 3 | Complete (03-01, 03-03, 03-04, 03-06, 03-07, 03-08) |
 | LAY-04 | Phase 3 | Complete (03-03, 03-06, 03-08) |
-| REN-01 | Phase 3 | Pending |
+| REN-01 | Phase 3 | Complete (03-02, 03-09, 03-10) |
 | UI-01 | Phase 4 | Pending |
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 4 | Pending |

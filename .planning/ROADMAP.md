@@ -98,7 +98,7 @@ Plans:
 - [x] 03-07-PLAN.md - Layout registry, tween helper, engine layout/scene exports, determinism and sizing tests, full gate with page-weight check (wave 4)
 - [x] 03-08-PLAN.md - Layout contact sheet, user sign-off (D-10), signed-off digest pin (wave 5, checkpoint)
 - [x] 03-09-PLAN.md - Ceiling-spike harness: Playwright driver in four device profiles running the real engine in the page (wave 6)
-- [ ] 03-10-PLAN.md - Four-profile spike run, measured threshold table, user review, phase gate (wave 7, checkpoint)
+- [x] 03-10-PLAN.md - Four-profile spike run, measured threshold table, user review, phase gate (wave 7, checkpoint)
 **UI hint**: yes
 **Research**: YES, run `/gsd-research-phase`. Layout legibility at 10-60 cycles (multi-ring vs spiral vs Fermat-spiral glyph packing), label collision, Y-junction routing, edge bundling for gates at n >= 100; the spike itself is measurement on real hardware (Safari canvas-area probe if a device is available), not literature.
 **Notes**: Layout plans come first; spike plans come last because the harness needs real routes. The spike table is the exit gate for Phases 4, 5 and 6 (SVG-tier limit, matrix resolution, Canvas/worker scope); ship the conservative research placeholders in the tier table until measurements replace them. A dev-only review harness (scene-to-SVG string emitter plus a minimal tsx script) is built here so layouts can be judged before the UI exists; it is promoted to the deliverables EXP-01 and EXP-04 in Phase 8. User taste is needed on flow direction (anticlockwise per existing lore) and Plex placement (center vs bottom).
@@ -200,7 +200,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 |-------|----------------|--------|-----------|
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
-| 3. Procedural Layout and Ceiling Spike | 9/10 | Executing | - |
+| 3. Procedural Layout and Ceiling Spike | 10/10 | Executed (verification pending) | - |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
