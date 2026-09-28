@@ -1,11 +1,12 @@
-// Schema test for the interim tier table (REN-01, D-11/D-12/D-14). Every assertion here is data-independent because
-// plan 03-10 replaces the interim rows with measured ones (status 'measured') and this test must keep passing
-// unchanged. Mutation tests (structuredClone then one edit) exercise validateTierTable's rules directly, rather than
-// asserting anything about this PC's speed (research Pitfall 10, D-14).
+// Schema test for the committed tier table (REN-01, D-11/D-12/D-14). Every assertion here is data-independent: it
+// never pins a specific measured millisecond, memory or overlap number (that would break on the next re-measure on
+// different hardware), only schema/invariant facts that must hold for any valid table. Mutation tests
+// (structuredClone then one edit) exercise validateTierTable's rules directly, rather than asserting anything about
+// this PC's speed (research Pitfall 10, D-14).
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { deriveBoundaries, validateTierTable } from '../scene/tiers'
+import { DEVICE_PROFILES, MEASURED_SUITES, deriveBoundaries, validateTierTable } from '../scene/tiers'
 import type { TierTable } from '../scene/tiers'
 import { TIER_TABLE } from '../scene/tierTable'
 
@@ -46,6 +47,10 @@ describe('TIER_TABLE', () => {
   })
 
   it('the stored svgRichMaxN, svgLeanMaxN, allChordsMaxN and canvasAreaLimitPx equal deriveBoundaries over its own rows', () => {
+    // Genuinely data-independent: a self-consistency check against the table's own rows, not a pin on any
+    // particular measured number (03-10 replaced the interim sw-6x-only rows with a real four-profile run; the
+    // exact ms/overlap values on this machine are not asserted here -- engine/test/tiers.select.test.ts already
+    // covers deriveBoundaries's arithmetic against small synthetic tables).
     const derived = deriveBoundaries({
       measurements: TIER_TABLE.measurements,
       chords: TIER_TABLE.chords,
@@ -57,15 +62,15 @@ describe('TIER_TABLE', () => {
     expect(TIER_TABLE.boundaries.svgLeanMaxN.n).toBe(derived.svgLeanMaxN)
     expect(TIER_TABLE.boundaries.allChordsMaxN.n).toBe(derived.allChordsMaxN)
     expect(TIER_TABLE.boundaries.canvasAreaLimitPx).toBe(derived.canvasAreaLimitPx)
-    expect(derived.svgRichMaxN).toBe(100)
-    expect(derived.svgLeanMaxN).toBe(1000)
-    expect(derived.allChordsMaxN).toBe(60)
-    expect(derived.canvasAreaLimitPx).toBe(268435456)
   })
 
-  it('is stored as sw-6x-only rows: 22 measurements total', () => {
-    expect(TIER_TABLE.measurements.length).toBe(22)
-    expect(TIER_TABLE.measurements.every(m => m.profile === 'sw-6x')).toBe(true)
+  it('holds measurement rows for every device profile across every measured suite (REN-01: not sw-6x-only)', () => {
+    expect(TIER_TABLE.status).toBe('measured')
+    for (const p of DEVICE_PROFILES) {
+      for (const suite of MEASURED_SUITES) {
+        expect(TIER_TABLE.measurements.some(m => m.profile === p && m.suite === suite)).toBe(true)
+      }
+    }
   })
 
   it('is LF-only JSON with a final newline that parses to the object the loader exports', () => {
@@ -133,6 +138,7 @@ describe('TIER_TABLE', () => {
     it("status 'measured' with a placeholder environment", () => {
       const broken = brokenCopy(t => {
         ;(t as { status: string }).status = 'measured'
+        ;(t.environments.sw as { placeholder: boolean }).placeholder = true
       })
       expect(hasProblemStartingWith(validateTierTable(broken), 'measured table: environment sw is still a placeholder')).toBe(true)
     })
