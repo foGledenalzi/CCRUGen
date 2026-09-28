@@ -113,7 +113,25 @@ Plans:
   3. Zone labels are in-base digits up to base 36 and decimal with a separator beyond, with custom-alphabet and xenotation options, while URLs, JSON and demon keys keep the integer identity
   4. Hovering or pinning a zone, syzygy, current or gate highlights it and opens its detail panel; a region legend table lists Plex, Warp and each Torque cycle with a stable id and lets the user isolate or mute a region; layers toggle and the diagram zooms, pans and fits
   5. The diagram is usable without a mouse or colour vision: keyboard traversal, ARIA labelling, non-colour cues, reduced-motion support, and a text view of the numogram with a copy button
-**Plans**: TBD
+**Plans**: 16 plans in 10 waves
+
+Plans:
+- [ ] 04-01-PLAN.md - Guards: data-post-baseline marker contract for the frozen behaviour baseline, MIG-02 grep gate as an opt-in check (wave 1)
+- [ ] 04-02-PLAN.md - Label-scheme library: digits/xeno/presets/custom alphabet validation, glyph heuristic, labels= URL form (wave 1)
+- [ ] 04-03-PLAN.md - Region ids and isolate/mute model, view layout ids, tier-table accessor, numogram view model and summary (wave 1)
+- [ ] 04-04-PLAN.md - Base-10 route geometry moves to app/presets/base10/routes.ts with golden parity and NOTICE (wave 2)
+- [ ] 04-05-PLAN.md - Unified URL codec (strict base, lenient fields, isolate/mute/labels/packer) with the frozen-baseline legacy corpus (wave 2)
+- [ ] 04-06-PLAN.md - BasePicker and LabelSchemeControls components with refusal copy and summary logic (wave 2)
+- [ ] 04-07-PLAN.md - Bounded numogram text, text view with copy, big-base fallback, interactive pair graph (wave 2)
+- [ ] 04-08-PLAN.md - Layout targets, engine route adapter, base-generic tween and reduced-motion hooks, layout icons (wave 2)
+- [ ] 04-09-PLAN.md - Projection renders any base from the view model; in-base plexExpr; NumogramViewContext (wave 3)
+- [ ] 04-10-PLAN.md - Todo 003 real-mouse fix and context-driven panels, detail and pinned views (wave 4)
+- [ ] 04-11-PLAN.md - Engine-driven viewer: ?base= via the codec, procedural/pair-graph layouts, SVG-tier gate, MIG-02 in NumogramClient (wave 5)
+- [ ] 04-12-PLAN.md - Header base picker with UI-08 sanitation, live labels and packer; picker/label/reset e2e (wave 6)
+- [ ] 04-13-PLAN.md - Region legend for any base with isolate and mute in both diagrams, URL and history (wave 7)
+- [ ] 04-14-PLAN.md - Keyboard traversal, ARIA names, focus ring and reduced motion; accessibility e2e (wave 8)
+- [ ] 04-15-PLAN.md - Collapsible panels, Text panel, zoom/fit toolbar; layers-zoom e2e (wave 9)
+- [ ] 04-16-PLAN.md - MIG-02 closeout: seams deleted, base-ten gate default, bases 2-40 smoke, D-07 wording, todos, full gate (wave 10)
 **UI hint**: yes
 **Research**: Targeted, run `/gsd-research-phase` for the label scheme beyond base 36 (decision plus font/glyph coverage tests). The URL codec is standard.
 **Notes**: `base` becomes a required argument everywhere so unmigrated call sites fail to compile; a single URL codec replaces the three existing parsers (omit `base` when 10, strict even-integer validation, layout validated against base, legacy-URL fixture corpus, `tc=1` maps to the union of Torque zones). Bases above the SVG tier's measured limit show the summary and text view plus a visible message until the Canvas tier arrives in Phase 6. Settle once here: label separator, `region=` URL syntax, `digits` scheme values, Torque letter/number display. Text view, region legend and pair-graph toggle are confirmed v1 scope.
@@ -201,7 +219,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
-| 4. Base Picker and Generator UI | 0/TBD | Not started | - |
+| 4. Base Picker and Generator UI | 0/16 | Planned | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
