@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03-10-PLAN.md
-last_updated: "2026-09-28T01:56:22.281Z"
-last_activity: "2026-09-28 -- 03-10 complete (measured four-profile ceiling spike table: real gpu/sw/sw-4x/sw-6x runs on this PC, 144 measurement rows, shipped boundaries all basedOn sw-6x, WebGL adopt=false, tier= override enabled; user reviewed and approved the table in chat with no budget changes; REN-01 marked Complete, its final covering plan; Phase 3 execution 10/10 plans done, phase verification pending)"
+status: ready_to_plan
+stopped_at: Phase 3 complete and verified (10/10 plans, 03-VERIFICATION.md passed 5/5 criteria and 5/5 requirements, code review clean at 0 critical/0 warning); next is /gsd-discuss-phase 4
+last_updated: "2026-09-28T02:10:00.000Z"
+last_activity: "2026-09-28 -- Phase 3 (Procedural Layout and Ceiling Spike) verified and marked complete: measured four-profile ceiling spike table (real gpu/sw/sw-4x/sw-6x runs on this PC, 144 measurement rows, shipped boundaries all basedOn sw-6x, WebGL adopt=false, tier= override enabled), REN-01 and all other Phase 3 requirements complete, phase gate green, code review 0 critical/0 warning (4 info-level, non-blocking)"
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 31
   completed_plans: 31
-  percent: 100
+  percent: 38
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 3 — Procedural Layout and Ceiling Spike
+**Current focus:** Phase 4 — Base Picker and Generator UI
 
 ## Current Position
 
-Phase: 3 — EXECUTED (10/10 plans complete; phase verification pending)
-Plan: 03-10 of 10 (complete, final plan of the phase)
-Status: Phase 3 execution complete; next step is /gsd-verify-work 3
-Last activity: 2026-09-28 -- 03-10 complete (measured four-profile ceiling spike table; user approved; REN-01 marked Complete)
+Phase: 4
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-28
 
 Progress: [██████████] 100%
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 24
+- Total plans completed: 34
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -46,6 +46,7 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 1 | 8 | - | - |
 | 2 | 13 | 334min | 26min |
+| 3 | 10 | - | - |
 
 **Recent Trend:**
 
@@ -146,7 +147,7 @@ Recent decisions affecting current work:
 - [Phase 1]: RESOLVED in 01-05: the static export builds (`next build` exit 0) and the client redirect is proven at the root and under `/ccrug`
 - [Phase 1]: RESOLVED: Windows specifics verified (`process.env.TZ` runtime pin and canary in 01-01, Vite 8 with Vitest 5 runs green, fflate plugin ZIP sha256 identical under UTC / Asia/Tokyo / America/New_York in 01-06)
 - [Phase 1]: RESOLVED in 01-07: LICENSE and NOTICE exist and the five lore files are marked CCRU-derived (prose provenance recorded, text unchanged). Confirmed by the user on 2026-09-25 at the 01-08 Task 3 checkpoint: LICENSE holder `foGledenalzi` and the NOTICE scope as written. The remotes were already set (origin = foGledenalzi/CCRUGen, upstream push disabled); 01-08 only asserted them.
-- [Phase 3]: RESOLVED by research: renderer thresholds now have real four-profile measurements (183 rows) with conservative placeholder boundaries in `engine/scene/tiers.ts`; the real `sw-6x`/`gpu`/etc. spike run is plan 03-10, still pending execution — Phases 4-6 wait on that final table, not on research placeholders
+- [Phase 3]: RESOLVED: plan 03-10 ran the real four-profile ceiling spike on this PC (144 measurement rows) and the user reviewed and approved the final measured table (`engine/scene/tier-table.json`, status 'measured', shipped boundaries basedOn sw-6x, WebGL adopt=false) with no budget changes — Phases 4-6 now read from this measured table, not a placeholder
 - [Phase 3]: RESOLVED in 03-CONTEXT.md (2026-09-27): flow direction anticlockwise (D-01), Plex/Warp bottom outside the rings (D-02); default label case left to Claude's discretion, unresolved by name but not blocking (no requirement pins case)
 - [Phase 4]: Label scheme beyond base 36 needs a decision plus font/glyph coverage tests
 - [Phase 6]: Worker chunk loading in an exported site with `trailingSlash` and `basePath` is unverified
@@ -167,7 +168,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-09-28T01:55:49.285Z
-Stopped at: Completed 03-10-PLAN.md
+Stopped at: Phase 3 complete and verified (10/10 plans); next is /gsd-discuss-phase 4
 Resume file: None
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z

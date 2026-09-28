@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundations and Safety Net** - Buildable static-export toolchain, frozen base-10 oracle, enforced engine boundary, licensing and repo hygiene (completed 2026-09-26)
 - [x] **Phase 2: Engine Core and Base-10 Migration** - Pure tested engine for any even base, then the base-10 viewer re-derived from it with byte-identical output (completed 2026-09-27)
-- [ ] **Phase 3: Procedural Layout and Ceiling Spike** - Deterministic legible layouts for any base, base-10 presets, pair-graph view, and the measured renderer threshold table
+- [x] **Phase 3: Procedural Layout and Ceiling Spike** - Deterministic legible layouts for any base, base-10 presets, pair-graph view, and the measured renderer threshold table (completed 2026-09-28)
 - [ ] **Phase 4: Base Picker and Generator UI** - Interactive SVG viewer for any even base with URL state, labels, region legend, accessibility and text view
 - [ ] **Phase 5: Demons Layer** - Facets, virtualized browser, focus chords, triangular matrix and canonical base-10 names for all C(n,2) demons
 - [ ] **Phase 6: Canvas Tier and Worker** - Canvas rendering for large bases, worker-offloaded computation and graceful degradation past the measured ceiling
@@ -200,7 +200,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 |-------|----------------|--------|-----------|
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
-| 3. Procedural Layout and Ceiling Spike | 10/10 | Executed (verification pending) | - |
+| 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 0/TBD | Not started | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
