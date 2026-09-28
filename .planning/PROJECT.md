@@ -36,15 +36,17 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - ✓ Engine: pure, dependency-free TypeScript (`engine/`) that derives, for any even base from 2 to 2^26, the zones, syzygy pairs, currents, gates, Plex / Warp / Torque cycles (`Cycle[]`, canonical order) and a virtual demon space (O(1) mesh <-> net-span exact up to the ceiling, explicit cross-Torque chronodemon subtype, closed-form counts, unranking, Numodemons n/2 - 1), with own-base numerals, `RangeError` on invalid bases and O(n) typed-array memory (base 2^26 in about 0.6 s and 300 MB) — Validated in Phase 2: Engine Core and Base-10 Migration
 - ✓ Golden tests: the engine equals the frozen base-10 oracle and the guide's facts (bases 12, 16, 28, 80, 82), checked against an independent brute-force reference (every even base to 2000 structurally, every demon to 300) with fixed seeds — Validated in Phase 2
 - ✓ Base-10 viewer runs on the engine: syzygies, currents, gates, demons and regions come from the engine joined with the CCRU lore by id (adapters in `app/presets/base10/`), with the 60 DOM goldens and a frozen behaviour and text baseline unchanged — Validated in Phase 2 (component-level 10-zone constants remain until Phase 4, MIG-02)
+- ✓ Procedural layout for any even base: deterministic ring layout (nested up to 3 Torque cycles, packed beyond via the user-chosen shelf packer, spiral kept selectable), plus ladder and Barker-spiral alternatives, verified for every even base 2 to 400; base 10 keeps its four authored layouts as `LayoutSpec` presets proven equal to the frozen oracle and DOM goldens — Validated in Phase 3: Procedural Layout and Ceiling Spike
+- ✓ Syzygy-collapsed pair-graph view: every Torque cycle drawn as a clean ring of pair nodes (hi::lo), verified including base 64's six rings — Validated in Phase 3
+- ✓ Ceiling spike: real four-profile (native GPU, software raster, 4x/6x CPU-throttled) measurement on the maintainer's hardware, 144 rows, user-reviewed and approved threshold table (`engine/scene/tier-table.json`) with shipped boundaries derived from the conservative throttled profile, WebGL contingency decided (no), degrade path defined (SVG to Canvas to headless, no arbitrary hard cap) — Validated in Phase 3
 
 ### Active
 
-- [ ] **Procedural layout** for arbitrary n (no hand-placed coordinates): deterministic, legible layouts that expose syzygy pairing and Torque cycles; base-10 keeps its authored layouts as a preset
-- [ ] **Renderer generalization**: replace the 10-zone assumptions in Projection/NumogramClient with engine-driven rendering; tiered by size (rich interactive SVG for small bases, Canvas/LOD for large, headless SVG/JSON for huge), thresholds set by measurement
+- [ ] **Renderer generalization**: replace the 10-zone assumptions in Projection/NumogramClient with engine-driven rendering; tiered by size (rich interactive SVG for small bases, Canvas/LOD for large, headless SVG/JSON for huge) — the measured thresholds now exist (Phase 3's `tier-table.json`); this requirement is building the tiered renderers that consume them (Phase 4, 6)
 - [ ] **Base picker + generator UI**: choose an even base, see summary (zones, regions, torque cycle lengths, demon count), live diagram, URL-shareable `?base=`
 - [ ] **Zone labelling for large bases**: in-base digits (0-9,a-z) up to base-36, a defined scheme beyond (decimal / glyph set), plus xenotation option
 - [ ] **Demons layer**: all T(n-1) demons with net-span, mesh number and type (including an explicit cross-Torque chronodemon subtype); virtualized/on-demand so it never freezes the page at high base
-- [ ] **Legibility and access**: region legend table with stable Torque ids and isolate/mute, syzygy-collapsed pair-graph view (each Torque cycle a clean ring), and a text view with keyboard traversal, ARIA and non-colour cues
+- [ ] **Legibility and access**: region legend table with stable Torque ids and isolate/mute, and a text view with keyboard traversal, ARIA and non-colour cues (the pair-graph view itself is validated, above)
 - [ ] **Naming builder**: user assigns a sound/phoneme per zone (seeded auto-generator for any base; CCRU zone phonemes for base-10 preset), demon names derived from net-span sounds, editable, importable/exportable as JSON
 - [ ] **Export**: self-contained SVG file, PNG, and engine-data JSON for the current numogram
 - [ ] **Ceiling spike**: benchmark zones/paths/demons vs frame time and memory per renderer tier; document the measured thresholds and degrade gracefully past them (no arbitrary hard cap)
@@ -91,9 +93,9 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Engine is a separate pure TS module with golden tests | Math is instant at any base; correctness is the core value and the repo has no tests | ✓ Good |
-| Base-10 becomes a preset of the new engine | User choice; hand-authored data replaced by derived data proven equal by tests, hand layouts kept as base-10 preset | ✓ Good (viewer data now derived; hand layouts stay the preset until Phase 3) |
+| Base-10 becomes a preset of the new engine | User choice; hand-authored data replaced by derived data proven equal by tests, hand layouts kept as base-10 preset | ✓ Good (viewer data derived in Phase 2; hand layouts became formal `LayoutSpec` presets in Phase 3, proven equal to the frozen oracle and DOM goldens) |
 | v1 covers core diagram + demons + naming builder only | User choice: no mythos/card-game layers (pitch, Decadence, rites, correspondences) | ✓ Good |
-| Ceiling is measured, not assumed; tiered renderers | User choice; math is O(n) but demons O(n^2) and SVG node count limit interactivity | — Pending |
+| Ceiling is measured, not assumed; tiered renderers | User choice; math is O(n) but demons O(n^2) and SVG node count limit interactivity | ✓ Good (measured in Phase 3: real four-profile spike, shipped boundaries basedOn the conservative throttled profile per the user's explicit "a lesser machine would be obliterated" caveat; the tiered renderers themselves are Phase 4/6) |
 | Static web app + engine lib as the deliverable | User choice; keeps engine usable from tests/CLI and the app hostable anywhere | — Pending |
 | Even bases only | Odd bases force a self-paired zone, which the CCRU rejects (source guide, part 1) | ✓ Good |
 | Keep Next.js base rather than rewriting | "Base repo to build off"; revisit after ceiling spike | — Pending |
@@ -109,6 +111,8 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 | Migrate the base-10 viewer through thin adapters and seams (components untouched), one data source at a time with the full gate green before the old data is deleted | User choice 2026-09-26; keeps the render path and the DOM goldens byte-identical | ✓ Good |
 | Write gate names, mesh numbers and net-spans in the numogram's own base; numeral formatter built in the engine (0-9a-z to base 36, dotted decimal groups above) | User choice 2026-09-26; `Gt-56` at base 12; identical at base 10 | ✓ Good |
 | Verify the engine with an independent brute-force reference, fixed seeds, and the 2^26 test inside `npm run verify` | User choice 2026-09-26; correctness is the core value | ✓ Good |
+| Shelf packer as the default for 4+ nested Torque-cycle rings (spiral kept selectable); Warp capsule stays beside Plex, matching base 10's authored convention | User sign-off 2026-09-27 on the Phase 3 layout contact sheet; packer choice only affects where separate ring clusters sit on the canvas, no effect on any ring's zones, syzygies, flow or demons | ✓ Good |
+| Shipped renderer-tier boundaries come from the conservative CPU-throttled profile (sw-6x), never the maintainer's own fast hardware; native rows stay in the table for reference | User's explicit hardware caveat 2026-09-27 ("my specs are high... maxing out here would obliterate a lesser machine"); D-14 | ✓ Good |
 
 ## Evolution
 
@@ -128,4 +132,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-27 after Phase 2 completion*
+*Last updated: 2026-09-28 after Phase 3 completion*
