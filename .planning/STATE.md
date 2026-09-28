@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 4 context gathered (04-CONTEXT.md, decisions D-01..D-24)
-last_updated: "2026-09-28T02:38:55.215Z"
+stopped_at: Phase 4 UI-SPEC approved (6/6 dimensions)
+last_updated: "2026-09-28T03:50:20.387Z"
 last_activity: 2026-09-28
 progress:
   total_phases: 8
@@ -168,8 +168,8 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-09-28
-Stopped at: Phase 4 context gathered (04-CONTEXT.md, decisions D-01..D-24)
-Resume file: .planning/phases/04-base-picker-and-generator-ui/04-CONTEXT.md
+Stopped at: Phase 4 UI-SPEC approved (6/6 dimensions)
+Resume file: .planning/phases/04-base-picker-and-generator-ui/04-UI-SPEC.md
 
 **Planned Phase:** 3 (Procedural Layout and Ceiling Spike) — 10 plans — 2026-09-27T06:00:00Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
