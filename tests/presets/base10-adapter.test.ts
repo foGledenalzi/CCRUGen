@@ -447,13 +447,16 @@ describe('demons', () => {
 // scanned like the adapter files: CCRU text pasted into any of them would make NOTICE wrong about which files are MIT.
 describe('adapter and seam files (NOTICE section 1: original MIT code) hold no CCRU lore text', () => {
   const APP_DIR = fileURLToPath(new URL('../../app/', import.meta.url))
-  const tsFilesIn = (dir: string, except?: string): string[] =>
+  const tsFilesIn = (dir: string, except: readonly string[] = []): string[] =>
     readdirSync(APP_DIR + dir)
-      .filter((f) => f.endsWith('.ts') && f !== except)
+      .filter((f) => f.endsWith('.ts') && !except.includes(f))
       .map((f) => dir + f)
 
-  // lore.ts is the only allowed home of the lore, so it is the one file that is not scanned.
-  const ADAPTER_FILES = tsFilesIn('presets/base10/', 'lore.ts')
+  // lore.ts is the only allowed home of the lore, so it is not scanned. routes.ts (plan 04-04, NOTICE section 2 like
+  // layout-tables.ts) legitimately compares a current's name against the literal upstream names 'Warp' and 'Plex' as
+  // routing logic (which pair converges to its low zone), not decorative lore text, so its quoted literals are not a
+  // "current name" hit; it is exempted from this MIT-focused scan the same way lore.ts is.
+  const ADAPTER_FILES = tsFilesIn('presets/base10/', ['lore.ts', 'routes.ts'])
   const SEAM_FILES = [...tsFilesIn('data/'), 'lib/constants.ts']
 
   const lore = Object.values(SYZYGY_LORE).flatMap((l) => [l.demon, l.desc])
@@ -499,11 +502,12 @@ describe('adapter and seam files (NOTICE section 1: original MIT code) hold no C
     return hits
   }
 
-  it('scans every adapter file and every data seam (only lore.ts is exempt)', () => {
+  it('scans every adapter file and every data seam (only lore.ts and routes.ts are exempt)', () => {
     for (const f of ['syzygies.ts', 'currents.ts', 'gates.ts', 'numogram.ts', 'regions.ts', 'demons.ts']) {
       expect(ADAPTER_FILES).toContain(`presets/base10/${f}`)
     }
     expect(ADAPTER_FILES).not.toContain('presets/base10/lore.ts')
+    expect(ADAPTER_FILES).not.toContain('presets/base10/routes.ts')
     for (const f of ['currents.ts', 'demons.ts', 'gates.ts', 'syzygies.ts', 'zones.ts']) {
       expect(SEAM_FILES).toContain(`data/${f}`)
     }
