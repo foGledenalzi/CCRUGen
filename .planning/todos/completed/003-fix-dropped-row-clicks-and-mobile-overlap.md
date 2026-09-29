@@ -1,9 +1,10 @@
 ---
 title: "Fix dropped real mouse clicks on Zones/Syzygies/Currents/Gates rows; note mobile panel overlap"
-status: pending
+status: completed
 priority: P2
 source: "todo 001 executor findings (2026-09-26)"
 created: 2026-09-26
+completed: 2026-09-29
 theme: ui
 ---
 
@@ -19,7 +20,9 @@ Two pre-existing upstream defects found while inventorying the UI before and aft
 
 ## Acceptance Criteria
 
-- [ ] Finding 1 reproduced with a real-mouse Playwright test (`locator.click()` or `page.mouse`) on a Zones row, a Syzygies row, a Currents row and a Gates row, first failing on current code
-- [ ] Root cause confirmed and fixed (for example define the row component outside the render function or stop remounting on mousedown), with that test passing
-- [ ] The 60 DOM goldens and the full `npm run verify` gate still pass unchanged
-- [ ] Findings 2 and 3 taken into the Phase 4 discuss (mention them in that phase's CONTEXT)
+- [x] Finding 1 reproduced with a real-mouse Playwright test (`locator.click()` or `page.mouse`) on a Zones row, a Syzygies row, a Currents row and a Gates row, first failing on current code (04-10, `e2e/row-click-regression.spec.ts`, commit d6c3a49: all four panels failed before the fix)
+- [x] Root cause confirmed and fixed (for example define the row component outside the render function or stop remounting on mousedown), with that test passing (04-10, commit df1e8e5: `SelectableListPanel` only accepts `itemDisplay`, a plain function called directly rather than mounted as a component type, so a row can no longer be recreated as a new component identity and remounted mid-click)
+- [x] The 60 DOM goldens and the full `npm run verify` gate still pass unchanged (04-10: `npm run verify` exit 0 on the committed tree, goldens and behaviour baseline byte-identical)
+- [x] Findings 2 and 3 taken into the Phase 4 discuss (mention them in that phase's CONTEXT) (done before 04-10 was planned: `04-CONTEXT.md` line 54 folds both into Phase 4 scope)
+
+Finding 2 (mobile overlap below ~390px) and finding 3 (dead panel-collapse-toggle code) are not themselves fixed by this closure — they were folded into Phase 4's broader UI work per `04-CONTEXT.md`, which is what this todo's own acceptance criteria required. See `.planning/phases/04-base-picker-and-generator-ui/04-10-SUMMARY.md` for the finding-1 fix detail.

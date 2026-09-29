@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-09-PLAN.md
-last_updated: "2026-09-29T05:24:41.019Z"
+stopped_at: Completed 04-10-PLAN.md
+last_updated: "2026-09-29T06:03:50.499Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 47
-  completed_plans: 40
-  percent: 85
+  completed_plans: 41
+  percent: 87
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 04 (base-picker-and-generator-ui) — EXECUTING
-Plan: 10 of 16
+Plan: 11 of 16
 Status: Ready to execute
 Last activity: 2026-09-29
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -93,6 +93,7 @@ Progress: [█████████░] 85%
 | Phase 04 P07 | 13min | 2 tasks | 5 files |
 | Phase 04 P08 | 20min | 2 tasks | 7 files |
 | Phase 04 P09 | 55min | 2 tasks | 11 files |
+| Phase 04 P10 | 50min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -153,11 +154,11 @@ Recent decisions affecting current work:
 - [Phase 4 P07] Standalone text/fallback/pair-graph pieces shipped (UI-07, D-14..D-18): app/lib/numogramText.ts (numogramText/bigBaseMessage/TEXT_VIEW_ZONE_LIMIT=1024, bounded per T-04-21, ascending pair-id/zone-order listings, at most 12 truncated Torque lengths above the limit via summarize()), TextView.tsx (read-only monospace block, Copy numogram text / Copied 1.5s, reusing the header share button's color pattern) and BigBaseSummary.tsx (refusal message + 4-metric summary card + TextView, no show-anyway control, cutoff always a prop never a literal) plus app/components/projection/PairGraphProjection.tsx (interactive syzygy-collapsed pair-graph mirroring engine/scene/svgString.ts pairGraphToSvg, hover/pin/toggle, pairStates dim/hide channel for 04-13). 14 new unit tests, npm run typecheck (4x tsc + lint) and the full 1477-test suite green. None of the four artifacts are mounted yet (04-11 wires them into the viewer); UI-07 and UI-02 both span multiple plans so requirements-completed stays empty (final covering plans 04-15 and 04-12 respectively).
 - [Phase 4 P08] Base-generic layout plumbing shipped (UI-06/UI-07 plumbing, not mounted): app/lib/viewLayouts.ts's layoutTarget(g, id, packer, planetaryPos) resolves one LayoutTarget for any base/layout-id/packer, base-10 presets returning the authored P_ORIGINAL/P_LABYRINTH/P_LADDER/FRAME_HEIGHT/DRAW_ORDER/REGION_LABELS tables by identity and ring/ladder/spiral/pairGraph at any base from resolveLayout/pairGraphLayout; app/lib/renderData.ts's engineRenderData adapts routeGates/routeCurrents into GateRender/CurrentRender records keyed by the view's own names, frameLayout re-positions a layout for a tween frame while sharing groups/zoneGroup/center by reference; app/hooks/useLayoutTween.ts generalizes useTween's 600ms easeInOutCubic interpolation to any LayoutTarget with a fromBaseRef guard that hard-jumps instead of interpolating across a base change (T-04-26); app/hooks/useReducedMotion.ts reads prefers-reduced-motion via matchMedia with a live change listener; three new icons (RingIcon, SpiralIcon, PairGraphIcon) added to NumogramIcons.tsx. Nothing mounted yet (NumogramClient.tsx and useTween.ts untouched, verified via git diff --quiet); 04-11 wires this in and deletes useTween.ts. UI-06 and UI-07 stay Pending (both span multiple plans; final covering plans are later in the phase). Full unit suite 1491 tests / 58 files green, npm run typecheck clean.
 - [Phase 4 P09] Base-generic Projection.tsx (MIG-02) shipped: no base-10 data imports remain, view/metrics/label props only (view: NumogramView, layoutId, routingStyle, presetRouting, width/nodeRadius/labelSize/strokeScale, regionLabels, zoneLabels, labelsOn, gateMode), node/stroke scale factors k=nodeRadius/21 and ss=strokeScale exactly 1 for the four base-10 presets; NumogramViewContext/useNumogramView (app/components/numogram/ViewContext.tsx) mounted in NumogramClient.tsx (base 10 only, 04-11 makes it follow the chosen base); plexExpr/syzMidBiased/syzTrianglePoints/xenotationByZone now take base/partner/zoneCount as parameters via the engine's digitsOf/formatNumeral instead of decimal or literal-9 base-10 assumptions; plexExpr deliberately keeps its pre-existing multi-step chain-drop shape at base 10 (plexExpr(28,10)='2+8=10=1') to match the frozen e2e/__behaviour__ baseline, which recorded the untouched viewer's actual output, not the plan's inherited-docstring example; per-walk React.Fragment (not a wrapping <g>) keeps the Time-Circuit layers byte-identical at the single-Torque-cycle base-10 case while supporting any Torque-cycle count; vitest.config.mts needed oxc.jsx:{runtime:'automatic'} (Vite 8 defaults to oxc over esbuild) so the new tests/app/projectionRender.test.ts could import Projection.tsx directly for a renderToStaticMarkup smoke proving bases 2..40 render via a procedural ring layout with no NaN/undefined; full npm run verify green (75 e2e + 5 skipped, 1537 unit tests in two timezones, page-weight OK without a baseline update at +4.5% raw/+4.8% gzip on /numogram/, inside tolerance); MIG-02/UI-03/UI-04 stay Pending (final covering plans 04-16/04-12/04-11 respectively, per this phase's established per-plan-requirements precedent)
+- [Phase 4 P10] Todo 003 finding 1 fixed with a red-then-green real-mouse Playwright regression (e2e/row-click-regression.spec.ts, page.mouse down/up, never .click()): the confirmed root cause was each list panel defining its row component inline and passing it as ItemDisplayComponent, so CyberPanel's onMouseDownCapture bring-to-front re-render recreated that component's identity and remounted the row before mouseup; SelectableListPanel now only accepts itemDisplay (a plain function called directly, no new component identity per render), and ItemDisplayComponent is deleted from the type so the bug cannot recur through this primitive. ZonesPanel/SyzygiesPanel/CurrentsPanel/GatesPanel, LayersPanel/LabelsPanel, InfoDisplay.tsx and PinnedBackground.tsx all now read base/view/zoneLabels/gateMode/svgRichMaxN/allChordsMaxN from useNumogramView() instead of importing app/data/{zones,syzygies,currents,gates,demons} directly; each detail sub-component branches on view.lore (not base===10) so base 10 keeps its exact text via zoneLabel()/formatNumeral(base-1,base) substitutions while a generic branch drops planets/lore descriptions/base-10-only footers; PanelUnavailable is the shared fallback when view is null. npm run verify exit 0 on the committed tree (page-weight baseline raised, /numogram/ +6.2KB raw/+5.6KB gzip, this plan's growth only); 60 goldens and the behaviour lore sweep unchanged. Todo 003 closed (moved to completed/): findings 2 (mobile overlap) and 3 (dead panel-collapse code) were already folded into 04-CONTEXT.md, not fixed here. UI-04/UI-03/MIG-02 stay Pending (final covering plans 04-11/04-12/04-16 respectively).
 
 ### Pending Todos
 
 - 002 (P3): Phase 1 code review findings deferred, not fixed in Phase 1
-- 003 (P2): Dropped real mouse clicks on Zones/Syzygies/Currents/Gates rows; mobile panel overlap noted
 - 004 (P3): Phase 2 code review findings deferred, not fixed in Phase 2 (IN-02, IN-03, IN-05, IN-07, MIG-02)
 - 005 (P3): Expose packer choice (shelf vs. spiral) in the Phase 4 generator UI — user's Phase 3 sign-off request (2026-09-27)
 
@@ -186,8 +187,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-29T05:24:41.011Z
-Stopped at: Completed 04-09-PLAN.md
+Last session: 2026-09-29T06:03:50.493Z
+Stopped at: Completed 04-10-PLAN.md
 Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z
