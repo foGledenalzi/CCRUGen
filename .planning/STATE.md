@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 UI-SPEC approved (6/6 dimensions)
-last_updated: "2026-09-29T00:03:20.253Z"
-last_activity: 2026-09-29 -- Phase 04 execution started
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-09-29T00:35:54.657Z"
+last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 47
-  completed_plans: 31
-  percent: 66
+  completed_plans: 32
+  percent: 68
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 04 (base-picker-and-generator-ui) — EXECUTING
-Plan: 1 of 16
-Status: Executing Phase 04
-Last activity: 2026-09-29 -- Phase 04 execution started
+Plan: 2 of 16
+Status: Ready to execute
+Last activity: 2026-09-29
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 68%
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ Progress: [██████████] 100%
 | Phase 03 P08 | 19min | 3 tasks | 9 files |
 | Phase 03 P09 | 30min | 2 tasks | 3 files |
 | Phase 03 P10 | 153min | 3 tasks | 5 files |
+| Phase 04 P01 | 30min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,8 @@ Recent decisions affecting current work:
 - [Phase 3 P08] User sign-off (D-10, D-02, D-03) on the layout contact sheet: default packer changed to shelf (spiral stays selectable, lore-neutral per confirmation); Warp capsule placement kept beside Plex (base-10 convention, unchanged); gate edge-bundling at 64/100 not requested (left optional/unimplemented). Signed-off coordinates for the 10 review bases x 4 layouts (40 entries) pinned by sha256 in engine/test/layout.digest.test.ts (sheet sha 0d9cd5c0cb3a); a digest changes only with a new sign-off, never to make a test pass. LAY-01, LAY-03 and LAY-04 marked Complete (this was their final covering plan).
 - [Phase 3 P09] Ceiling spike harness built (scripts/spike/driver.ts, scripts/spike/harness.mjs): Playwright/CDP driver serving the compiled real engine to a cross-origin-isolated fake https://spike.test/ origin, four device profiles (gpu/sw/sw-4x/sw-6x), calib/limits/headless/svg-rich/svg-lean/canvas/chords suites with adaptive frame/hover/tween counts and a 20s-mount/3s-hover early-stop; page.evaluate callbacks must inline-cast window.__spike (no outer Node closures — they are not serialized to the browser); the chords suite is a synthetic n-point-circle density probe independent of the numogram engine; verified with a gpu quick run and a sw-6x throttled run reproducing 03-RESEARCH.md's slowdown pattern, 0 leftover chrome.exe processes; REN-01 stays Pending (03-10 runs the real measured table).
 - [Phase 3 P10] Measured ceiling spike table shipped (REN-01, D-09/D-11/D-12/D-13/D-14): four real device profiles on this PC (gpu/sw/sw-4x/sw-6x, measured throttle 1x/0.98x/4.1x/6.3x), 144 measurement rows, shipped boundaries all basedOn sw-6x (svgRichMaxN 200, svgLeanMaxN 300, canvasMaxN null/no ceiling found to n=4000, layoutTweenMaxN 28, allChordsMaxN 80, canvasAreaLimitPx 2^28), WebGL adopt=false (Canvas stays in budget to n=4000), tier= override enabled; user approved the table as-is in chat review, no budget changes; Rule 1 fix to tiers.schema.test.ts's placeholder-shaped row-count assertion (commit b0b62e6); REN-01 complete (final covering plan, after 03-02 and 03-09); Phase 3 execution 10/10 plans done, verification pending
+- [Phase 4 P01] Marker contract (data-post-baseline) lets Phase 4 add new interactive chrome without regenerating the frozen behaviour baseline; behaviour.spec.ts asserts no pre-existing region (PANELS header, page header, projection svg) is ever marked, so the skip cannot hide existing UI
+- [Phase 4 P01] MIG-02 grep gate findHardcodedBaseTen shipped as an opt-in check-repo check (node scripts/check-repo.mjs --only base-ten), not yet in DEFAULT_CHECKS; worklist recorded (NumogramClient.tsx, Projection.tsx, InfoDisplay.tsx, Currents/Gates/ZonesPanel.tsx, useTween.ts, geometry.ts, shareParams.ts, xenotation.ts) matching 04-RESEARCH.md Priority 3; plan 04-16 promotes it to a default check
 
 ### Pending Todos
 
@@ -167,9 +170,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-28
-Stopped at: Phase 4 UI-SPEC approved (6/6 dimensions)
-Resume file: .planning/phases/04-base-picker-and-generator-ui/04-UI-SPEC.md
+Last session: 2026-09-29T00:35:54.649Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z

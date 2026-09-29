@@ -116,7 +116,7 @@ Plans:
 **Plans**: 16 plans in 10 waves
 
 Plans:
-- [ ] 04-01-PLAN.md - Guards: data-post-baseline marker contract for the frozen behaviour baseline, MIG-02 grep gate as an opt-in check (wave 1)
+- [x] 04-01-PLAN.md - Guards: data-post-baseline marker contract for the frozen behaviour baseline, MIG-02 grep gate as an opt-in check (wave 1)
 - [ ] 04-02-PLAN.md - Label-scheme library: digits/xeno/presets/custom alphabet validation, glyph heuristic, labels= URL form (wave 1)
 - [ ] 04-03-PLAN.md - Region ids and isolate/mute model, view layout ids, tier-table accessor, numogram view model and summary (wave 1)
 - [ ] 04-04-PLAN.md - Base-10 route geometry moves to app/presets/base10/routes.ts with golden parity and NOTICE (wave 2)
