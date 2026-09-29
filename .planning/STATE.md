@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-09-29T01:35:28.453Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-09-29T01:53:08.194Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 47
-  completed_plans: 35
-  percent: 74
+  completed_plans: 36
+  percent: 77
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 04 (base-picker-and-generator-ui) — EXECUTING
-Plan: 5 of 16
+Plan: 6 of 16
 Status: Ready to execute
 Last activity: 2026-09-29
 
-Progress: [███████░░░] 74%
+Progress: [████████░░] 77%
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Progress: [███████░░░] 74%
 | Phase 04 P02 | 10min | 2 tasks | 6 files |
 | Phase 04 P03 | 15 | 2 tasks | 9 files |
 | Phase 04 P04 | 18min | 2 tasks | 5 files |
+| Phase 04 P05 | 16min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -143,6 +144,7 @@ Recent decisions affecting current work:
 - [Phase 4 P02] Pure label-scheme library shipped (UI-03, D-08..D-13): app/lib/customAlphabet.ts (MAX_ALPHABET=1024, four curated presets base62/base64url/ascii/latin1 all shipped per D-10, checkAlphabetChars/validateAlphabet typed reasons with the UI-SPEC's exact copy, FORBIDDEN = \p{Cc}\p{Cf}\p{Z}\p{M}\p{Cs}\p{Co}\p{Cn} covering bidi/control/combining/private-use per T-04-04), app/lib/glyphCoverage.ts (injectable GlyphCanvas, canvas-vs-PUA-reference heuristic memoized per character, null canvas always 'ok'), app/lib/labelScheme.ts (formatZoneLabel/zoneLabelsFor built on the engine's formatNumeral and xenotation.ts's formatXenotationForDisplay, never re-implemented; a short preset/custom alphabet always falls back to the numeral, never a wrong label; formatLabelScheme/parseLabelScheme/labelSchemeKey give labels= a lenient round-tripping URL form); 50 unit tests in tests/app/ (new vitest oracle-project directory), npm run typecheck clean; UI-03 spans six plans (04-02, 04-05, 04-06, 04-09, 04-10, 04-12) so REQUIREMENTS.md stays Pending until 04-12
 - [Phase 4 P03] Base-generic data layer shipped: app/lib/regions.ts (RegionId/RegionRow, regionRows/isRegionId/parseRegionId/regionOfZone/zonesOfRegion from the engine's Cycle[], never a single-Torque assumption; independent isolate/mute RegionFilter with zoneStates/elementState per D-19/D-22/D-23/D-24), app/lib/layoutIds.ts (VIEW_LAYOUT_IDS/BASE10_PRESET_LAYOUT_IDS, layoutIdsForBase/defaultLayoutFor/isLayoutIdFor/isPresetLayoutId/LAYOUT_LABELS/layoutShortcut, decided from the base number alone since the base-10 presets support() check is exactly base===10), app/lib/tierBounds.ts (TIER_VIEW scoped to boundaries/tierOverrideParam only, never the full ~84 KB TIER_TABLE, backed by a type-only widening of engine/scene/tiers.ts's selectTier/parseTierOverride/tweenAllowed/labelsVisible/gateLayerMode to Pick<TierTable, ...>), app/lib/numogramView.ts (buildNumogramView returns the base-10 preset objects by identity, toBe not toEqual, and structural lists with in-base numerals and no lore at every other even base; summarize is safe at any base, tested to 65536, reading at most 12 Torque cycles via cycleAt plus the demon space's O(1) count/typeCounts). 79 new unit tests (129 total in tests/app/), 1373 total oracle+engine tests green, npm run typecheck clean. UI-01, UI-05 and MIG-02 are NOT marked complete in REQUIREMENTS.md by this plan (it ships only the data layer they depend on) — final covering plans are 04-16, 04-13 and 04-16 respectively, mirroring the 04-02/UI-03 precedent.
 - [Phase 4 P04] Base-10 route geometry moved to app/presets/base10/routes.ts (base10GateRender/base10CurrentRender): the ~350-line upstream gate/current SVG memos moved out of NumogramClient.tsx character-for-character except the enumerated 10-zone-literal-to-engine-loop edits (connectionVectors/connectedByZone via g.zoneCount, 9 - c.from via g.partner(c.from), the <= 4 special loop via g.pairCount); proven against the frozen DOM goldens without a browser (canonAttr-normalized d strings read from the golden text files); zoneRadius is now an injected input field (a useCallback in NumogramClient.tsx) rather than a closure inside routes.ts. Rule 3 fix: tests/presets/base10-adapter.test.ts's CCRU-lore scanner (which auto-scans every app/presets/base10/*.ts file except lore.ts) now also exempts routes.ts, since its literal c.name === Warp/Plex checks are upstream routing logic kept verbatim by this plan's instructions, not decorative lore, and the file is NOTICE section 2 like layout-tables.ts. NOTICE section 1 exclusion list and section 2 both updated. Full npm run verify green (75 e2e + 5 skipped, page-weight baseline unchanged, /numogram/ 581112 bytes raw / 175607 gzip JS). MIG-02 stays Pending (final covering plan 04-16, per the 04-01/04-03 precedent) since the rest of the hard-coded-base-10 worklist (Projection.tsx, InfoDisplay.tsx, panels, useTween.ts, geometry.ts, shareParams.ts, xenotation.ts) and the opt-in grep gate default are untouched.
+- [Phase 4 P05] Unified URL codec shipped (UI-02 base=/refusal, D-13 labels=, D-21 isolate=/mute=, todo 005 packer=): app/lib/shareParams.ts replaces the dead canonicalizeShareParams with parseShareParams (base is the one strict field via engine validateBase, a BaseRefusal record instead of throwing; every other field lenient-per-field, region/isolate/mute validated against a lazily-built createNumogram(base)) and buildShareParams (omit-at-default extended to labels/isolate/mute/packer/tier, keys sorted with localeCompare matching NumogramClient.tsx's existing sortSearchParams); tests/app/shareParams.test.ts proves 40 URLs from the frozen e2e/__behaviour__ baseline round-trip byte-for-byte plus a fast-check property across bases 2/10/12/28/64 (51 tests, full suite 1437 green in both timezones). UI-02/UI-03/UI-05 stay Pending (final covering plans 04-12, 04-12, 04-13 respectively, per this phase's per-plan requirements frontmatter) mirroring the 04-01..04-04 precedent. The viewer itself switches to this codec in 04-11.
 
 ### Pending Todos
 
@@ -176,8 +178,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-29T01:35:28.445Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-09-29T01:53:08.186Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z
