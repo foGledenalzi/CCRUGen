@@ -12,16 +12,16 @@
       "htmlGzip": 1769,
       "jsBytes": 416830,
       "jsGzip": 128120,
-      "cssBytes": 19506,
-      "cssGzip": 4837
+      "cssBytes": 19618,
+      "cssGzip": 4867
     },
     "/numogram/": {
-      "htmlBytes": 77362,
-      "htmlGzip": 11649,
-      "jsBytes": 650133,
-      "jsGzip": 196755,
-      "cssBytes": 19506,
-      "cssGzip": 4837
+      "htmlBytes": 81399,
+      "htmlGzip": 12120,
+      "jsBytes": 656664,
+      "jsGzip": 198439,
+      "cssBytes": 19618,
+      "cssGzip": 4867
     }
   },
   "domNodes": {
@@ -208,6 +208,40 @@
             "htmlGzip": 11649,
             "jsGzip": 196755,
             "cssGzip": 4837
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-09-29",
+      "reason": "04-14: roving-tabindex keyboard model, ARIA names, focus-visible CSS and reduced-motion gating added to both diagrams (UI-07)",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128120,
+            "cssGzip": 4837
+          },
+          "/numogram/": {
+            "htmlGzip": 11649,
+            "jsGzip": 196755,
+            "cssGzip": 4837
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128120,
+            "cssGzip": 4867
+          },
+          "/numogram/": {
+            "htmlGzip": 12120,
+            "jsGzip": 198439,
+            "cssGzip": 4867
           }
         },
         "domNodesTotal": 6405
