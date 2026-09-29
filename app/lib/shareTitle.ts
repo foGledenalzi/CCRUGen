@@ -7,6 +7,8 @@ type ShareTitleInput = {
   particles?: boolean | '0' | '1'
   date?: string
   orbits?: '0' | '1'
+  /** Omit or pass undefined at base 10 (UI-02's own omit-at-default convention). */
+  base?: number
 }
 
 function flagEnabled(value: ShareTitleInput['particles']): boolean {
@@ -15,8 +17,10 @@ function flagEnabled(value: ShareTitleInput['particles']): boolean {
 
 export function buildNumogramTitle(input: ShareTitleInput): string {
   const zonesPart = input.selectedIds.length > 0 ? input.selectedIds.join(',') : 'all'
-  const settings: string[] = [`layout=${input.layout}`]
+  const settings: string[] = []
 
+  if (input.base !== undefined && input.base !== 10) settings.push(`base=${input.base}`)
+  settings.push(`layout=${input.layout}`)
   if (input.layers) settings.push(`layers=${input.layers}`)
   if (flagEnabled(input.particles)) settings.push('particles=1')
   if (input.date) settings.push(`date=${input.date}`)

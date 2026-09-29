@@ -3,28 +3,31 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 
 // Data
-import type { Layout, Layer, Region, Pos, HoverInfo, LabelVisibility } from './data/types'
-import { ZONE_REGION } from './data/zones'
+import type { Layout, Layer, Pos, HoverInfo, LabelVisibility } from './data/types'
 import { PLANETARY_DEFAULT_ANGLE, PLANETARY_SIZE } from './data/positions'
-import { CURRENTS } from './data/currents'
-import { GATE_LIST } from './data/gates'
-import { SYZYGIES } from './data/syzygies'
 
 // Engine (base-generic layout plumbing, 04-11)
-import { routePairGraph } from '../engine/index'
-import type { Packer, PairGraphLayout } from '../engine/index'
+import { createNumogram, routePairGraph } from '../engine/index'
+import type { Packer, PairGraphLayout, RenderTier } from '../engine/index'
 
 // Lib
 import { getAnglesForDate, computePlanetaryPositions } from './lib/planetary'
 import { buildNumogramTitle } from './lib/shareTitle'
 import { withBasePath } from './lib/basePath'
-import { buildNumogramView } from './lib/numogramView'
+import { buildNumogramView, summarize } from './lib/numogramView'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel, zoneLabelsFor } from './lib/labelScheme'
-import { ALL_CHORDS_MAX_N, SVG_RICH_MAX_N, gateMode, labelsShown, mayTween } from './lib/tierBounds'
+import type { LabelScheme } from './lib/labelScheme'
+import { ALL_CHORDS_MAX_N, SVG_RICH_MAX_N, gateMode, labelsShown, mayTween, tierFor } from './lib/tierBounds'
 import { DIAGRAM_CSS_WIDTH, layoutTarget } from './lib/viewLayouts'
 import { engineRenderData, frameLayout } from './lib/renderData'
 import { isPresetLayoutId, LAYOUT_LABELS, layoutIdsForBase, layoutShortcut } from './lib/layoutIds'
 import type { ViewLayoutId } from './lib/layoutIds'
+import { isRegionId, zonesOfRegion } from './lib/regions'
+import type { RegionId } from './lib/regions'
+import { buildShareParams, DEFAULT_LAYERS, parseShareParams } from './lib/shareParams'
+import type { ShareState } from './lib/shareParams'
+import { refusalFromUrl } from './lib/basePicker'
+import { numogramText } from './lib/numogramText'
 
 // Presets
 import { BASE10 } from './presets/base10/numogram'
@@ -45,6 +48,7 @@ import { CyberButtonGroup as ButtonSet } from './components/ui/CyberButtonGroup'
 import { CyberPanel as Panel } from './components/ui/CyberPanel'
 import { Projection } from './components/projection/Projection'
 import { PairGraphProjection } from './components/projection/PairGraphProjection'
+import { BigBaseSummary } from './components/numogram/BigBaseSummary'
 import { InfoDisplay } from './components/info/InfoDisplay'
 import { PinnedBackground } from './components/info/PinnedBackground'
 import { LayersPanel } from './components/panels/LayersPanel'
@@ -81,7 +85,6 @@ const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
   currents: 34,
   gates: 34,
 }
-const DEFAULT_LAYERS: Layer[] = ['syzygies', 'currents', 'gates']
 const DESKTOP_PANEL_BASE_Y = 64
 const DESKTOP_PANEL_GAP = 18
 const DESKTOP_PANEL_LEFT_X = 12
@@ -94,7 +97,7 @@ type HistorySnapshot = {
   layout: ViewLayoutId
   layers: Layer[]
   selZones: number[]
-  hlRegion: Region | null
+  hlRegion: RegionId | null
   tcActive: boolean
   particlesOn: boolean
   showOrbits: boolean
@@ -117,15 +120,24 @@ function toggleTerminalSelection(prev: Set<number>, terminals: Iterable<number>)
   return next
 }
 
+// useLayoutTween always needs a target to interpolate (rules of hooks forbid skipping the call); above the SVG tier
+// the diagram is never shown, so its output is simply unused. Built once at module scope (D-16): base 10's cheap
+// authored 'original' preset, never the current (possibly huge) base.
+const FALLBACK_TARGET = layoutTarget(BASE10, 'original', 'shelf', {})
+
 export default function NumogramPage() {
   // ── State ──────────────────────────────────────────────────
   const [layout, setLayout] = useState<ViewLayoutId>('original')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- setPacker is wired by the URL codec in this plan's Task 2 (packer=)
   const [packer, setPacker] = useState<Packer>('shelf')
+  const [base, setBase] = useState(10)
+  const [labelScheme, setLabelScheme] = useState<LabelScheme>(DEFAULT_LABEL_SCHEME)
+  const [tierOverride, setTierOverride] = useState<RenderTier | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- baseRefusal is read by the base picker mounted in 04-12; this plan only stores it
+  const [baseRefusal, setBaseRefusal] = useState<string | null>(null)
   const [layers, setLayers] = useState<Set<Layer>>(() => new Set<Layer>(['syzygies', 'currents', 'gates']))
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
   const [selZones, setSelZones] = useState<Set<number>>(new Set())
-  const [hlRegion, setHlRegion] = useState<Region | null>(null)
+  const [hlRegion, setHlRegion] = useState<RegionId | null>(null)
   const [tcActive, setTcActive] = useState(false)
   const [hoveredLayout, setHoveredLayout] = useState<ViewLayoutId | null>(null)
   const [particlesOn, setParticlesOn] = useState(false)
@@ -161,15 +173,26 @@ export default function NumogramPage() {
     planets: true,
   })
 
-  // Base 10 only in this plan; 04-11's second task makes this follow a chosen base.
-  const g = BASE10
+  // ── Engine-derived state (UI-02, D-14..D-18): follows the chosen base ─────
+  const g = useMemo(() => createNumogram(base), [base])
+  const summary = useMemo(() => summarize(g), [g])
+  // Above the measured SVG tier, no view/layout/render structure is ever built (D-16, T-04-08): only the O(1)
+  // summary and the bounded text view.
+  const showDiagram = tierFor(base, tierOverride) === 'svg'
+  const view = useMemo(() => (showDiagram ? buildNumogramView(g) : null), [g, showDiagram])
+  const zoneLabels = useMemo(() => (view ? zoneLabelsFor(base, labelScheme) : null), [view, base, labelScheme])
 
   // ── Hooks ──────────────────────────────────────────────────
   const { planetaryAngles, setPlanetaryAngles, orbiting, setOrbiting, onDateUpdateRef } = useOrbitalAnimation(layout, PLANETARY_DEFAULT_ANGLE)
   const reducedMotion = useReducedMotion()
   const planetaryPos = useMemo(() => computePlanetaryPositions(planetaryAngles), [planetaryAngles])
-  const target = useMemo(() => layoutTarget(g, layout, packer, planetaryPos), [g, layout, packer, planetaryPos])
-  const { pos, ctr, svgWidth, svgHeight, tweening, switchLayout, jumpToTarget } = useLayoutTween(target, mayTween(g.zoneCount) && !reducedMotion)
+  const target = useMemo(
+    () => (view ? layoutTarget(g, layout, packer, planetaryPos) : null),
+    [view, g, layout, packer, planetaryPos],
+  )
+  // useLayoutTween must be called every render (rules of hooks); above the SVG tier target is null and the hook
+  // runs on the cheap module-level FALLBACK_TARGET instead, its output unused.
+  const { pos, ctr, svgWidth, svgHeight, tweening, switchLayout, jumpToTarget } = useLayoutTween(target ?? FALLBACK_TARGET, mayTween(g.zoneCount) && !reducedMotion)
   const parallax = useParallax()
   const {
     positions: panelPositions,
@@ -201,56 +224,39 @@ export default function NumogramPage() {
   const planetaryDateInputRef = useRef<HTMLInputElement | null>(null)
   const dateFieldWasVisibleRef = useRef(false)
 
-  const zonesForRegion = useCallback((region: Region): number[] => {
-    const zones: number[] = []
-    for (let z = 0; z <= 9; z++) {
-      if (ZONE_REGION[z] === region) zones.push(z)
-    }
-    return zones
-  }, [])
-
   // ── View context (MIG-02, UI-03) ─────────────────────────────
-  // Base 10 only for now; 04-11 makes this follow a chosen base.
-  const view = useMemo(() => buildNumogramView(BASE10), [])
-  const zoneLabels = useMemo(() => zoneLabelsFor(10, DEFAULT_LABEL_SCHEME), [])
+  const zoneGateMode: 'on' | 'thin' | 'off' = target ? (target.preset ? 'on' : gateMode(g.zoneCount)) : 'off'
   const viewCtx = useMemo<NumogramViewContextValue>(() => ({
-    base: 10,
-    g: BASE10,
-    summary: view.summary,
+    base,
+    g,
+    summary,
     view,
     zoneLabels,
-    labelScheme: DEFAULT_LABEL_SCHEME,
-    zoneLabel: z => formatZoneLabel(z, 10, DEFAULT_LABEL_SCHEME),
+    labelScheme,
+    zoneLabel: z => formatZoneLabel(z, base, labelScheme),
     svgRichMaxN: SVG_RICH_MAX_N,
     allChordsMaxN: ALL_CHORDS_MAX_N,
-    gateMode: 'on',
-  }), [view, zoneLabels])
+    gateMode: zoneGateMode,
+  }), [base, g, summary, view, zoneLabels, labelScheme, zoneGateMode])
 
-  const sortSearchParams = useCallback((params: URLSearchParams): URLSearchParams => {
-    return new URLSearchParams(Array.from(params.entries()).sort(([a], [b]) => a.localeCompare(b)))
-  }, [])
-
-  const buildShareParams = useCallback((opts?: { includeLayoutAlways?: boolean }): URLSearchParams => {
-    const params = new URLSearchParams()
-    const selectedIds = Array.from(selZones).sort((a, b) => a - b)
-    const layerIds = Array.from(layers).sort()
-    const defaultLayerIds = [...DEFAULT_LAYERS].sort()
-    const includeLayout = opts?.includeLayoutAlways || layout !== 'original'
-
-    if (includeLayout) params.set('layout', layout)
-    if (selectedIds.length > 0) params.set('selected', selectedIds.join(','))
-    if (layerIds.join(',') !== defaultLayerIds.join(',')) params.set('layers', layerIds.join(','))
-    if (hlRegion) params.set('region', hlRegion)
-    if (tcActive) params.set('tc', '1')
-    if (particlesOn) params.set('particles', '1')
-
-    if (layout === 'planetary') {
-      if (planetDate) params.set('date', planetDate)
-      if (!showOrbits) params.set('orbits', '0')
-    }
-
-    return sortSearchParams(params)
-  }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, sortSearchParams])
+  // The single URL codec's ShareState for the session's current values (UI-02): the replaceState sync effect and
+  // the share button both build a query from this, so a URL never drifts from what the two writers would produce.
+  const currentShareState = useCallback((): ShareState => ({
+    base,
+    layout,
+    layers: Array.from(layers),
+    selected: Array.from(selZones),
+    region: hlRegion,
+    tc: tcActive,
+    particles: particlesOn,
+    date: planetDate,
+    orbits: showOrbits,
+    labels: labelScheme,
+    isolate: [],
+    mute: [],
+    packer,
+    tier: tierOverride,
+  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, packer, tierOverride])
 
   const snapshotState = useCallback((): HistorySnapshot => ({
     layout,
@@ -463,7 +469,7 @@ export default function NumogramPage() {
     }
 
     const selected = new Set<number>()
-    for (let z = 0; z <= 9; z++) {
+    for (let z = 0; z < g.zoneCount; z++) {
       const pt = svgEl.createSVGPoint()
       pt.x = pos[z].x
       pt.y = pos[z].y
@@ -483,7 +489,7 @@ export default function NumogramPage() {
     suppressNextCanvasClickRef.current = true
     setSelectionStart(null)
     setSelectionNow(null)
-  }, [selectionStart, pos])
+  }, [selectionStart, pos, g])
 
   useEffect(() => {
     if (!selectionStart) return
@@ -506,72 +512,46 @@ export default function NumogramPage() {
     if (typeof window === 'undefined') return
     urlHydratedRef.current = true
 
-    const params = new URLSearchParams(window.location.search)
-    if (!params.toString()) {
+    if (!window.location.search.replace(/^\?/, '')) {
       setUrlSyncReady(true)
       return
     }
 
-    const layoutParam = params.get('layout')
-    if (layoutParam === 'original' || layoutParam === 'labyrinth' || layoutParam === 'ladder' || layoutParam === 'planetary') {
-      setLayout(layoutParam)
-    }
+    const { state, baseRefusal: refusal } = parseShareParams(window.location.search)
+    if (refusal) setBaseRefusal(refusalFromUrl(refusal.raw, refusal.check, 10))
 
-    const layersParam = params.get('layers')
-    if (layersParam !== null) {
-      const allowed: Layer[] = ['syzygies', 'currents', 'gates', 'pandemonium']
-      const parsed = layersParam
-        .split(',')
-        .map(s => s.trim())
-        .filter((s): s is Layer => (allowed as string[]).includes(s))
-      setLayers(new Set(parsed))
-    }
-
-    const regionParam = params.get('region')
-    if (regionParam === 'torque' || regionParam === 'warp' || regionParam === 'plex') {
-      setHlRegion(regionParam)
-    }
-    setTcActive(params.get('tc') === '1')
-    setParticlesOn(params.get('particles') === '1')
-
-    const orbitsParam = params.get('orbits')
-    if (orbitsParam === '0') setShowOrbits(false)
-    if (orbitsParam === '1') setShowOrbits(true)
-
-    const dateParam = params.get('date')
-    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-      setPlanetDate(dateParam)
+    setBase(state.base)
+    setLayout(state.layout)
+    setLayers(new Set(state.layers))
+    setHlRegion(state.region)
+    setTcActive(state.tc)
+    setParticlesOn(state.particles)
+    setShowOrbits(state.orbits)
+    if (state.date) {
+      setPlanetDate(state.date)
       setOrbiting(false)
-      setPlanetaryAngles(getAnglesForDate(new Date(`${dateParam}T12:00:00`)))
+      setPlanetaryAngles(getAnglesForDate(new Date(`${state.date}T12:00:00`)))
     }
+    if (state.selected.length > 0) setSelZones(new Set(state.selected))
+    setLabelScheme(state.labels)
+    setPacker(state.packer)
+    setTierOverride(state.tier)
 
-    const selectedParam = params.get('selected')
+    // Pending fit zones (only within the SVG tier: D-16, never build region zones for a huge base).
     let pendingZones: number[] | null = null
-    if (selectedParam) {
-      const parsed = Array.from(new Set(
-        selectedParam
-          .split(',')
-          .map(s => Number(s.trim()))
-          .filter(n => Number.isInteger(n) && n >= 0 && n <= 9)
-      )).sort((a, b) => a - b)
-      if (parsed.length > 0) {
-        setSelZones(new Set(parsed))
-        pendingZones = parsed
-      }
-    }
-
-    if (!pendingZones && (regionParam === 'torque' || regionParam === 'warp' || regionParam === 'plex')) {
-      pendingZones = zonesForRegion(regionParam)
-    }
-    if (!pendingZones && params.get('tc') === '1') {
-      pendingZones = [1, 2, 4, 5, 7, 8]
+    if (state.selected.length > 0) {
+      pendingZones = [...state.selected]
+    } else if ((state.region !== null || state.tc) && tierFor(state.base, state.tier) === 'svg') {
+      const gForBase = createNumogram(state.base)
+      if (state.region !== null) pendingZones = zonesOfRegion(gForBase, state.region)
+      else if (state.tc) pendingZones = zonesOfRegion(gForBase, 'torque')
     }
 
     if (pendingZones && pendingZones.length > 0) {
       pendingShareSelectionRef.current = pendingZones
     }
     setUrlSyncReady(true)
-  }, [setPlanetaryAngles, setOrbiting, zonesForRegion])
+  }, [setPlanetaryAngles, setOrbiting])
 
   useEffect(() => {
     const zones = pendingShareSelectionRef.current
@@ -588,7 +568,7 @@ export default function NumogramPage() {
     if (!urlSyncReady) return
     if (typeof window === 'undefined') return
 
-    const query = buildShareParams({ includeLayoutAlways: false }).toString()
+    const query = buildShareParams(currentShareState(), { includeLayoutAlways: false }).toString()
     if (skipFirstUrlSyncRef.current) {
       skipFirstUrlSyncRef.current = false
       lastSyncedQueryRef.current = query
@@ -599,7 +579,7 @@ export default function NumogramPage() {
     const url = `${window.location.pathname}${query ? `?${query}` : ''}`
     window.history.replaceState(window.history.state, '', url)
     lastSyncedQueryRef.current = query
-  }, [urlSyncReady, buildShareParams])
+  }, [urlSyncReady, currentShareState])
 
   const onToggleZone = useCallback((z: number) => {
     setSelZones(prev => {
@@ -614,20 +594,20 @@ export default function NumogramPage() {
     setSelZones(prev => toggleTerminalSelection(prev, [a, b]))
   }, [])
 
-  const onSelectRegion = useCallback((r: Region | null) => {
+  const onSelectRegion = useCallback((r: RegionId | null) => {
     setHlRegion(r)
     setTcActive(false)
   }, [])
 
   const onToggleAllZones = useCallback(() => {
     setSelZones(prev => {
-      if (prev.size === 10) return new Set()
+      if (prev.size === g.zoneCount) return new Set()
       const all = new Set<number>()
-      for (let z = 0; z <= 9; z++) all.add(z)
+      for (let z = 0; z < g.zoneCount; z++) all.add(z)
       return all
     })
     setHlRegion(null)
-  }, [])
+  }, [g])
 
   const onToggleTC = useCallback(() => {
     setTcActive(prev => !prev)
@@ -635,8 +615,8 @@ export default function NumogramPage() {
   }, [])
 
   const onSelectCurrent = useCallback((from: number, to: number) => {
-    setSelZones(prev => toggleTerminalSelection(prev, [from, 9 - from, to]))
-  }, [])
+    setSelZones(prev => toggleTerminalSelection(prev, [from, g.partner(from), to]))
+  }, [g])
 
   const onSelectGate = useCallback((from: number, to: number) => {
     setSelZones(prev => toggleTerminalSelection(prev, [from, to]))
@@ -660,7 +640,7 @@ export default function NumogramPage() {
       }
       if (info.type === 'current') {
         next.delete(info.data.from)
-        next.delete(9 - info.data.from)
+        next.delete(g.partner(info.data.from))
         next.delete(info.data.to)
         return next
       }
@@ -673,7 +653,7 @@ export default function NumogramPage() {
       next.delete(info.demon.b)
       return next
     })
-  }, [])
+  }, [g])
 
   const onZoneNodeClick = useCallback((zone: number) => {
     setSelZones(prev => {
@@ -800,17 +780,20 @@ export default function NumogramPage() {
       const dateFieldVisible = layout === 'planetary' && !!planetDate
       if (dateFieldVisible && /^[0-9]$/.test(key)) return
 
-      if (!/^[0-9]$/.test(key)) return
-      const zone = Number(key)
-      const gate = GATE_LIST.find(g => g.from === zone)
-      if (!gate) return
-      e.preventDefault()
-      onSelectGate(gate.from, gate.to)
+      // Digit-shortcut gate lookup is base 10 only (research Pitfall 4, A4): every other base uses the picker
+      // and panels, never a 0-9 keyboard shortcut that would collide with its own in-base numerals.
+      if (base === 10 && /^[0-9]$/.test(key)) {
+        const zone = Number(key)
+        const gate = view?.gates.find(gt => gt.from === zone)
+        if (!gate) return
+        e.preventDefault()
+        onSelectGate(gate.from, gate.to)
+      }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [layout, planetDate, onSelectGate, onUndo, onRedo, shortcutsOpen])
+  }, [layout, planetDate, base, view, onSelectGate, onUndo, onRedo, shortcutsOpen])
 
   useEffect(() => {
     const dateFieldVisible = layout === 'planetary' && !!planetDate
@@ -884,13 +867,9 @@ export default function NumogramPage() {
   }, [desktopPanelHeights, isDesktop, setPanelPositions])
 
   const hlZones = useMemo(() => {
-    if (tcActive) return new Set([1, 2, 4, 5, 7, 8])
-    if (hlRegion) {
-      const s = new Set<number>()
-      for (let z = 0; z <= 9; z++) {
-        if (ZONE_REGION[z] === hlRegion) s.add(z)
-      }
-      return s
+    if (tcActive) return new Set(view ? view.torqueZones : [])
+    if (hlRegion && isRegionId(hlRegion, g)) {
+      return new Set(zonesOfRegion(g, hlRegion))
     }
     if (hoverInfo?.type === 'gate') {
       return new Set<number>([hoverInfo.gate.from, hoverInfo.gate.to])
@@ -902,16 +881,16 @@ export default function NumogramPage() {
         case 'syzygy': s.add(hoverInfo.data.a); s.add(hoverInfo.data.b); break
         case 'current': {
           const c = hoverInfo.data
-          s.add(c.from); s.add(9 - c.from); s.add(c.to); break
+          s.add(c.from); s.add(g.partner(c.from)); s.add(c.to); break
         }
         case 'demon': s.add(hoverInfo.demon.a); s.add(hoverInfo.demon.b); break
       }
     }
     return s
-  }, [hoverInfo, selZones, hlRegion, tcActive])
+  }, [hoverInfo, selZones, hlRegion, tcActive, view, g])
 
   const selectedInfos = useMemo<HoverInfo[]>(() => {
-    if (selZones.size === 0) return []
+    if (selZones.size === 0 || !view) return []
     const infos: HoverInfo[] = []
     const seen = new Set<string>()
     const pushUnique = (key: string, info: HoverInfo) => {
@@ -921,22 +900,22 @@ export default function NumogramPage() {
     }
 
     if (layers.has('gates')) {
-      for (const g of GATE_LIST) {
-        if (selZones.has(g.from) && selZones.has(g.to)) {
-          pushUnique(`gate:${g.name}`, { type: 'gate', gate: g })
+      for (const gt of view.gates) {
+        if (selZones.has(gt.from) && selZones.has(gt.to)) {
+          pushUnique(`gate:${gt.name}`, { type: 'gate', gate: gt })
         }
       }
     }
     if (layers.has('currents')) {
-      for (const c of CURRENTS) {
-        const partner = 9 - c.from
+      for (const c of view.currents) {
+        const partner = g.partner(c.from)
         if (selZones.has(c.from) && selZones.has(partner) && selZones.has(c.to)) {
           pushUnique(`current:${c.name}`, { type: 'current', data: c })
         }
       }
     }
     if (layers.has('syzygies')) {
-      for (const s of SYZYGIES) {
+      for (const s of view.syzygies) {
         if (selZones.has(s.a) && selZones.has(s.b)) {
           pushUnique(`syzygy:${s.a}:${s.b}`, { type: 'syzygy', data: s })
         }
@@ -947,7 +926,7 @@ export default function NumogramPage() {
     })
 
     return infos
-  }, [selZones, layers])
+  }, [selZones, layers, view, g])
 
   const onShareExplanation = useCallback(async () => {
     const selectedIds = Array.from(selZones).sort((a, b) => a - b)
@@ -960,6 +939,7 @@ export default function NumogramPage() {
       particles: particlesOn,
       date: layout === 'planetary' ? (planetDate || undefined) : undefined,
       orbits: layout === 'planetary' && !showOrbits ? '0' : undefined,
+      base: base !== 10 ? base : undefined,
     })
     const summaryBits: string[] = selectedIds.length > 0
       ? [
@@ -977,12 +957,7 @@ export default function NumogramPage() {
     if (layout === 'planetary' && !showOrbits) summaryBits.push('orbits hidden')
     const shareSubtitle = summaryBits.join(' · ')
 
-    const baseParams = buildShareParams({ includeLayoutAlways: true })
-
-    let finalParams = new URLSearchParams(baseParams)
-
-    finalParams = sortSearchParams(finalParams)
-    const query = finalParams.toString()
+    const query = buildShareParams(currentShareState(), { includeLayoutAlways: true }).toString()
     const url = `${window.location.origin}${window.location.pathname}${query ? `?${query}` : ''}`
 
     try {
@@ -996,55 +971,55 @@ export default function NumogramPage() {
     } catch {
       // User-cancelled share or unavailable clipboard permissions.
     }
-  }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, buildShareParams, sortSearchParams])
+  }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, base, currentShareState])
 
   const anyFocus = hlZones.size > 0
 
   const zoneRadius = useCallback((z: number) => (layout === 'planetary' ? PLANETARY_SIZE[z] : 21), [layout])
 
   // Base-10 presets render through the authored path (byte-identical to the frozen goldens); every procedural
-  // layout and the pair graph render through the engine's own routing (LAY-01..04, UI-06).
+  // layout and the pair graph render through the engine's own routing (LAY-01..04, UI-06). All of these run only
+  // when view/target are non-null (i.e. within the SVG tier, D-16): above it nothing here is ever built.
   const presetGates = useMemo(
-    () => (target.preset
+    () => (view && target && target.preset
       ? base10GateRender({ layout: layout as Layout, pos, ctr, g, gates: view.gates, currents: view.currents, syzygies: view.syzygies, zoneRadius })
       : null),
-    [target.preset, layout, pos, ctr, g, view, zoneRadius],
+    [view, target, layout, pos, ctr, g, zoneRadius],
   )
   const presetCurrents = useMemo(
-    () => (target.preset
+    () => (view && target && target.preset
       ? base10CurrentRender(
           { layout: layout as Layout, pos, ctr, g, gates: view.gates, currents: view.currents, syzygies: view.syzygies, zoneRadius },
           currentOrientationRef.current,
         )
       : null),
-    [target.preset, layout, pos, ctr, g, view, zoneRadius],
+    [view, target, layout, pos, ctr, g, zoneRadius],
   )
   const finalRoutes = useMemo(
-    () => (target.layout && !target.pairGraph ? engineRenderData(view, target.layout) : null),
+    () => (view && target && target.layout && !target.pairGraph ? engineRenderData(view, target.layout) : null),
     [view, target],
   )
   const frameRoutes = useMemo(
-    () => (finalRoutes && tweening && target.layout
+    () => (view && target && finalRoutes && tweening && target.layout
       ? engineRenderData(view, frameLayout(target.layout, pos), {
           gateOrientation: finalRoutes.gateRoutes.orientation,
           currentOrientation: finalRoutes.currentRoutes.orientation,
         })
       : finalRoutes),
-    [finalRoutes, tweening, target, pos, view],
+    [view, target, finalRoutes, tweening, pos],
   )
   const gateRenderData = presetGates ?? frameRoutes?.gates ?? {}
   const currentRenderData = presetCurrents ?? frameRoutes?.currents ?? {}
   const pairRoutes = useMemo(
-    () => (target.pairGraph && target.layout ? routePairGraph(g, target.layout as PairGraphLayout) : null),
+    () => (target && target.pairGraph && target.layout ? routePairGraph(g, target.layout as PairGraphLayout) : null),
     [g, target],
   )
 
-  const zoneOrder = useMemo(
-    () => (target.drawOrder ? [...target.drawOrder] : Array.from({ length: g.zoneCount }, (_, z) => z).sort((a, b) => pos[a].y - pos[b].y)),
-    [target.drawOrder, g, pos],
-  )
-  const labelsOn = target.preset || labelsShown(target.nodeRadius * (DIAGRAM_CSS_WIDTH / svgWidth) * zoom)
-  const zoneGateMode = target.preset ? 'on' : gateMode(g.zoneCount)
+  const zoneOrder = useMemo(() => {
+    if (!target) return []
+    return target.drawOrder ? [...target.drawOrder] : Array.from({ length: g.zoneCount }, (_, z) => z).sort((a, b) => pos[a].y - pos[b].y)
+  }, [target, g, pos])
+  const labelsOn = !!target && (target.preset || labelsShown(target.nodeRadius * (DIAGRAM_CSS_WIDTH / svgWidth) * zoom))
 
   const gateCalcFocusName = hoverInfo?.type === 'gate'
     ? hoverInfo.gate.name
@@ -1072,6 +1047,13 @@ export default function NumogramPage() {
     if (selectionStart) return 'crosshair'
     return hoverInfo ? 'grab' : 'crosshair'
   }, [selectionStart, hoverInfo])
+
+  // D-14/D-16: the big-base fallback's text view, bounded internally (TEXT_VIEW_ZONE_LIMIT) so it stays cheap at
+  // any base; empty (and unused) while the diagram is shown.
+  const bigBaseText = useMemo(
+    () => (showDiagram ? '' : numogramText(g, z => formatZoneLabel(z, base, labelScheme))),
+    [showDiagram, g, base, labelScheme],
+  )
 
   // ── Render ─────────────────────────────────────────────────
   return (
@@ -1177,88 +1159,94 @@ export default function NumogramPage() {
       <div className="relative z-10 flex flex-col items-center w-full">
         <div style={{ height: layout === 'planetary' ? 72 : 48 }} />
 
-        <div className="flex justify-center w-full" style={{
-          transform: `translate(${canvasPan.x}px, ${canvasPan.y}px)`,
-        }}>
-          <div ref={svgWrapRef} style={{
-            transform: `translate(${parallax.x}px, ${parallax.y}px) scale(${zoom})`,
-            transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
-            cursor: canvasCursor,
-          }}
-          onMouseDown={e => {
-            if (e.button === 1 || e.altKey) {
-              startCanvasDrag(e)
-              return
-            }
-            if (((e.target as HTMLElement).tagName === 'DIV' || (e.target as SVGElement).tagName === 'svg') && e.button === 0) {
-              selectionAdditiveRef.current = e.shiftKey
-              const start = { x: e.clientX, y: e.clientY }
-              setSelectionStart(start)
-              setSelectionNow(start)
-            }
-          }}
-          onClick={e => {
-            if ((e.target as HTMLElement).tagName === 'DIV' || (e.target as SVGElement).tagName === 'svg') {
-              if (suppressNextCanvasClickRef.current) {
-                suppressNextCanvasClickRef.current = false
+        {view && target ? (
+          <div className="flex justify-center w-full" style={{
+            transform: `translate(${canvasPan.x}px, ${canvasPan.y}px)`,
+          }}>
+            <div ref={svgWrapRef} style={{
+              transform: `translate(${parallax.x}px, ${parallax.y}px) scale(${zoom})`,
+              transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+              cursor: canvasCursor,
+            }}
+            onMouseDown={e => {
+              if (e.button === 1 || e.altKey) {
+                startCanvasDrag(e)
                 return
               }
-              clearInfoFocus()
-            }
-          }}>
-            {target.pairGraph ? (
-              <PairGraphProjection
-                g={g}
-                view={view}
-                layout={target.layout as PairGraphLayout}
-                routes={pairRoutes!}
-                zoneLabels={zoneLabels}
-                selZones={selZones}
-                hlZones={hlZones}
-                anyFocus={anyFocus}
-                labelsOn={labelsOn}
-                pairStates={null}
-                onHoverInfo={onHoverInfo}
-                onPinInfo={onPinInfo}
-                onTogglePair={onToggleSyzygyPair}
-              />
-            ) : (
-              <Projection
-                view={view}
-                layoutId={layout}
-                routingStyle={target.routingStyle}
-                presetRouting={target.preset}
-                width={svgWidth}
-                nodeRadius={target.nodeRadius}
-                labelSize={target.labelSize}
-                strokeScale={target.strokeScale}
-                regionLabels={target.regionLabels}
-                zoneLabels={zoneLabels}
-                labelsOn={labelsOn}
-                gateMode={zoneGateMode}
-                pos={pos}
-                ctr={ctr}
-                svgHeight={svgHeight}
-                layers={layers}
-                hlZones={hlZones}
-                selZones={selZones}
-                anyFocus={anyFocus}
-                tcActive={tcActive}
-                showOrbits={showOrbits}
-                planetaryPos={planetaryPos}
-                zoneOrder={zoneOrder}
-                gateRenderData={gateRenderData}
-                currentRenderData={currentRenderData}
-                gateCalcFocusName={gateCalcFocusName}
-                labelVisibility={labelVisibility}
-                particlesOn={particlesOn}
-                onHoverInfo={onHoverInfo}
-                onPinInfo={onPinInfo}
-                onZoneNodeClick={onZoneNodeClick}
-              />
-            )}
+              if (((e.target as HTMLElement).tagName === 'DIV' || (e.target as SVGElement).tagName === 'svg') && e.button === 0) {
+                selectionAdditiveRef.current = e.shiftKey
+                const start = { x: e.clientX, y: e.clientY }
+                setSelectionStart(start)
+                setSelectionNow(start)
+              }
+            }}
+            onClick={e => {
+              if ((e.target as HTMLElement).tagName === 'DIV' || (e.target as SVGElement).tagName === 'svg') {
+                if (suppressNextCanvasClickRef.current) {
+                  suppressNextCanvasClickRef.current = false
+                  return
+                }
+                clearInfoFocus()
+              }
+            }}>
+              {target.pairGraph ? (
+                <PairGraphProjection
+                  g={g}
+                  view={view}
+                  layout={target.layout as PairGraphLayout}
+                  routes={pairRoutes!}
+                  zoneLabels={zoneLabels!}
+                  selZones={selZones}
+                  hlZones={hlZones}
+                  anyFocus={anyFocus}
+                  labelsOn={labelsOn}
+                  pairStates={null}
+                  onHoverInfo={onHoverInfo}
+                  onPinInfo={onPinInfo}
+                  onTogglePair={onToggleSyzygyPair}
+                />
+              ) : (
+                <Projection
+                  view={view}
+                  layoutId={layout}
+                  routingStyle={target.routingStyle}
+                  presetRouting={target.preset}
+                  width={svgWidth}
+                  nodeRadius={target.nodeRadius}
+                  labelSize={target.labelSize}
+                  strokeScale={target.strokeScale}
+                  regionLabels={target.regionLabels}
+                  zoneLabels={zoneLabels!}
+                  labelsOn={labelsOn}
+                  gateMode={zoneGateMode}
+                  pos={pos}
+                  ctr={ctr}
+                  svgHeight={svgHeight}
+                  layers={layers}
+                  hlZones={hlZones}
+                  selZones={selZones}
+                  anyFocus={anyFocus}
+                  tcActive={tcActive}
+                  showOrbits={showOrbits}
+                  planetaryPos={planetaryPos}
+                  zoneOrder={zoneOrder}
+                  gateRenderData={gateRenderData}
+                  currentRenderData={currentRenderData}
+                  gateCalcFocusName={gateCalcFocusName}
+                  labelVisibility={labelVisibility}
+                  particlesOn={particlesOn}
+                  onHoverInfo={onHoverInfo}
+                  onPinInfo={onPinInfo}
+                  onZoneNodeClick={onZoneNodeClick}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="select-text">
+            <BigBaseSummary summary={summary} svgRichMaxN={SVG_RICH_MAX_N} text={bigBaseText} />
+          </div>
+        )}
       </div>
 
       {selectionRect && (
@@ -1284,7 +1272,7 @@ export default function NumogramPage() {
           showHomeLink={false}
           title="CCRUG"
           titleHref="/numogram"
-          description="Decimal Labyrinth"
+          description={base === 10 ? 'Decimal Labyrinth' : `Base ${base}`}
           actions={(
             <div className="flex items-center gap-1">
               <button

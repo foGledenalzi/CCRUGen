@@ -2,13 +2,16 @@
 
 import React from 'react'
 import type { Region } from '../../data/types'
+import type { RegionId } from '../../lib/regions'
 import { REGION_CLR } from '../../lib/constants'
 import { HoverInfoList, type HoverInfoListItem } from './HoverInfoList'
 
+// hlRegion/onSelectRegion widened to RegionId (04-11, UI-06 at generated bases); the panel's own torque/warp/plex
+// rows below are still the base-10-shaped hand list (04-13 rewrites this panel to be base-generic).
 interface RegionsPanelProps {
-  hlRegion: Region | null
+  hlRegion: RegionId | null
   tcActive: boolean
-  onSelectRegion: (r: Region | null) => void
+  onSelectRegion: (r: RegionId | null) => void
   onToggleTC: () => void
 }
 
