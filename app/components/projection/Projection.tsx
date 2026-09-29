@@ -45,6 +45,9 @@ interface ProjectionProps {
   gateCalcFocusName: string | null
   labelVisibility: LabelVisibility
   particlesOn: boolean
+  // UI-07: prefers-reduced-motion gate for the orbit/particle rAF and SMIL animation (the CSS-only
+  // @media (prefers-reduced-motion: reduce) block in globals.css cannot reach these). Static edges stay.
+  reducedMotion: boolean
   onHoverInfo: (info: HoverInfo | null) => void
   onPinInfo: (info: HoverInfo) => void
   onZoneNodeClick: (zone: number) => void
@@ -55,7 +58,7 @@ export const Projection = React.memo(function Projection({
   regionLabels, zoneLabels, labelsOn, gateMode,
   pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
   tcActive, showOrbits, planetaryPos, zoneOrder, zoneStates, gateRenderData,
-  currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, onHoverInfo, onPinInfo, onZoneNodeClick,
+  currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, reducedMotion, onHoverInfo, onPinInfo, onZoneNodeClick,
 }: ProjectionProps) {
 
   const [focusKey, setFocusKey] = useState<string | null>(null)
@@ -886,7 +889,7 @@ export const Projection = React.memo(function Projection({
       })}
 
       {/* Particle animation layer */}
-      {particlesOn && (
+      {particlesOn && !reducedMotion && (
         <g style={{ pointerEvents: 'none' }}>
           {layers.has('currents') && view.currents.map(c => {
             const rd = currentRenderData[c.name]
@@ -1002,7 +1005,7 @@ export const Projection = React.memo(function Projection({
       )}
 
       {/* Selection-triggered particle flow */}
-      {selZones.size > 0 && (
+      {selZones.size > 0 && !reducedMotion && (
         <g style={{ pointerEvents: 'none' }}>
           {layers.has('currents') && view.currents.filter(c => {
             const rd = currentRenderData[c.name]
@@ -1157,7 +1160,7 @@ export const Projection = React.memo(function Projection({
                 filter="url(#gl)" />
             )
           })}
-          {view.torqueWalks.map((walk, i) => {
+          {!reducedMotion && view.torqueWalks.map((walk, i) => {
             if (stateOf(walk) === ZONE_HIDDEN) return null
             const tcPath = walk.map((z, j) => {
               const p = pos[z]

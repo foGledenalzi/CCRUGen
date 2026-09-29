@@ -44,6 +44,10 @@ export function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
           <div><span style={{ color: '#10ff50' }}>Selection:</span> digits 0-9 toggle corresponding gate, Esc clears selection</div>
           <div><span style={{ color: '#10ff50' }}>History:</span> Cmd/Ctrl+Z undo, Shift+Cmd/Ctrl+Z redo, Ctrl+Y redo</div>
           <div><span style={{ color: '#10ff50' }}>Overlay:</span> Shift+/ toggles this shortcuts panel</div>
+          <div data-post-baseline="" className="grid gap-1.5">
+            <div><span style={{ color: '#10ff50' }}>Diagram:</span> Tab moves into the diagram, arrow keys step through zones, syzygies, currents and gates, Home/End jump, Enter or Space selects</div>
+            <div><span style={{ color: '#10ff50' }}>Gate keys:</span> digits 0-9 work at base 10 only</div>
+          </div>
         </div>
       </div>
     </div>

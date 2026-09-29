@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { ORBITAL_PERIOD } from '../lib/planetary'
 
-/** `layout` is any view layout id (base-generic, 04-11): only ever compared against 'planetary', never evaluated. */
-export function useOrbitalAnimation(layout: string, defaultAngles: Record<number, number>) {
+/** `layout` is any view layout id (base-generic, 04-11): only ever compared against 'planetary', never evaluated.
+ * `reducedMotion` (UI-07) short-circuits the rAF loop to the end state instantly: the CSS-only
+ * `@media (prefers-reduced-motion: reduce)` block in globals.css cannot reach this JS tween. */
+export function useOrbitalAnimation(layout: string, defaultAngles: Record<number, number>, reducedMotion = false) {
   const [planetaryAngles, setPlanetaryAngles] = useState(defaultAngles)
   const [orbiting, setOrbiting] = useState(false)
   const animRef = useRef<number>(0)
@@ -12,7 +14,7 @@ export function useOrbitalAnimation(layout: string, defaultAngles: Record<number
   const onDateUpdateRef = useRef<((years: number) => void) | null>(null)
 
   useEffect(() => {
-    if (!orbiting || layout !== 'planetary') {
+    if (!orbiting || layout !== 'planetary' || reducedMotion) {
       if (animRef.current) cancelAnimationFrame(animRef.current)
       return
     }
@@ -41,7 +43,7 @@ export function useOrbitalAnimation(layout: string, defaultAngles: Record<number
     lastTimeRef.current = 0
     animRef.current = requestAnimationFrame(animate)
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
-  }, [orbiting, layout])
+  }, [orbiting, layout, reducedMotion])
 
   return { planetaryAngles, setPlanetaryAngles, orbiting, setOrbiting, onDateUpdateRef }
 }

@@ -190,8 +190,8 @@ export default function NumogramPage() {
   const zoneLabels = useMemo(() => (view ? zoneLabelsFor(base, labelScheme) : null), [view, base, labelScheme])
 
   // ── Hooks ──────────────────────────────────────────────────
-  const { planetaryAngles, setPlanetaryAngles, orbiting, setOrbiting, onDateUpdateRef } = useOrbitalAnimation(layout, PLANETARY_DEFAULT_ANGLE)
   const reducedMotion = useReducedMotion()
+  const { planetaryAngles, setPlanetaryAngles, orbiting, setOrbiting, onDateUpdateRef } = useOrbitalAnimation(layout, PLANETARY_DEFAULT_ANGLE, reducedMotion)
   const planetaryPos = useMemo(() => computePlanetaryPositions(planetaryAngles), [planetaryAngles])
   const target = useMemo(
     () => (view ? layoutTarget(g, layout, packer, planetaryPos) : null),
@@ -1182,7 +1182,7 @@ export default function NumogramPage() {
         {layout === 'planetary' && (
           <div className="pointer-events-auto flex items-start gap-1.5">
             <ButtonSet>
-              <Button active={orbiting} indicator shortcut="z" onClick={() => setOrbiting(o => !o)} className="py-1.5">
+              <Button active={orbiting} indicator shortcut="z" disabled={reducedMotion} onClick={() => setOrbiting(o => !o)} className="py-1.5">
                 <OrbitIcon clr={orbiting ? '#10ff50' : '#555'} />
               </Button>
             </ButtonSet>
@@ -1319,6 +1319,7 @@ export default function NumogramPage() {
                   gateCalcFocusName={gateCalcFocusName}
                   labelVisibility={labelVisibility}
                   particlesOn={particlesOn}
+                  reducedMotion={reducedMotion}
                   onHoverInfo={onHoverInfo}
                   onPinInfo={onPinInfo}
                   onZoneNodeClick={onZoneNodeClick}
