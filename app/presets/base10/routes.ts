@@ -305,7 +305,7 @@ export function base10CurrentRender(input: Base10RouteInput, orientationCache: R
       const dest = pos[toZone]
       const isSelfRef = !convergesToLower && (c.to === c.from || c.to === partner)
       if (isSelfRef) {
-        const pt = syzMidBiased(c.from, pos)
+        const pt = syzMidBiased(c.from, partner, pos)
         const junction: Pos = { x: pt.x, y: pt.y + (pt.y > ctr.y ? 20 : -20) }
         const legCurve = isPlanetary ? 0.3 : 0.12
         data[c.name] = {

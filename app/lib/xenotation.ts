@@ -173,9 +173,9 @@ export function formatXenotationForDisplay(n: number): string {
   return xenotateNumber(n)
 }
 
-export function xenotationByZone(): Record<number, string> {
+export function xenotationByZone(zoneCount: number): Record<number, string> {
   const out: Record<number, string> = {}
-  for (let z = 0; z <= 9; z++) {
+  for (let z = 0; z < zoneCount; z++) {
     out[z] = formatXenotationForDisplay(z)
   }
   return out

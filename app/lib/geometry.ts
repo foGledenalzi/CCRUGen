@@ -4,8 +4,8 @@ export function midpoint(a: Pos, b: Pos): Pos {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
 }
 
-export function syzMidBiased(zone: number, pos: Record<number, Pos>): Pos {
-  const a = pos[zone], b = pos[9 - zone]
+export function syzMidBiased(zone: number, partner: number, pos: Record<number, Pos>): Pos {
+  const a = pos[zone], b = pos[partner]
   const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2
   return { x: mx + (a.x - mx) * 0.15, y: my + (a.y - my) * 0.15 }
 }
@@ -36,12 +36,11 @@ export function curveAway(from: Pos, to: Pos, cx: number, cy: number, factor = 0
   return quadPath(from, to, sign * dist * factor)
 }
 
-export function syzTrianglePoints(zone: number, pos: Record<number, Pos>): string {
-  const partner = 9 - zone
+export function syzTrianglePoints(zone: number, partner: number, pos: Record<number, Pos>, scale = 1): string {
   const p = pos[zone], pp = pos[partner]
   const dx = pp.x - p.x, dy = pp.y - p.y
   const angle = Math.atan2(dy, dx)
-  const tipDist = 8, baseSize = 5
+  const tipDist = 8 * scale, baseSize = 5 * scale
   const tipX = p.x + Math.cos(angle) * tipDist
   const tipY = p.y + Math.sin(angle) * tipDist
   const b1x = p.x + Math.cos(angle + Math.PI * 0.75) * baseSize

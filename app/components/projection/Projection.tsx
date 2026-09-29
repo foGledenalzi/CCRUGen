@@ -12,8 +12,10 @@ import { REGION_CLR, TC_EDGES, TC_CURRENTS, TC_SYZYGIES } from '../../lib/consta
 import { curveAway, syzMidBiased, syzTrianglePoints, midpoint } from '../../lib/geometry'
 import { formatXenotationForDisplay } from '../../lib/xenotation'
 import { plexExpr } from '../../lib/numogram'
+import type { NumogramView } from '../../lib/numogramView'
 
 interface ProjectionProps {
+  view: NumogramView
   layout: Layout
   pos: Record<number, Pos>
   ctr: Pos
@@ -37,7 +39,7 @@ interface ProjectionProps {
 }
 
 export const Projection = React.memo(function Projection({
-  layout, pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
+  view, layout, pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
   tcActive, showOrbits, planetaryPos, zoneOrder, gateRenderData,
   currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, onHoverInfo, onPinInfo, onZoneNodeClick,
 }: ProjectionProps) {
@@ -588,7 +590,7 @@ export const Projection = React.memo(function Projection({
               strokeWidth={isSun ? 0 : (act ? 1.6 : hl ? 1.2 : 0.7)}
               filter={isSun ? 'url(#sunGlow)' : undefined} />
             {!isSun && (
-              <polygon points={syzTrianglePoints(z, pos)} fill={clr}
+              <polygon points={syzTrianglePoints(z, view.partner(z), pos)} fill={clr}
                 opacity={act || hl ? 0.5 : 0.2}
                 style={{ pointerEvents: 'none', transition: 'opacity 0.15s' }} />
             )}
@@ -668,7 +670,7 @@ export const Projection = React.memo(function Projection({
       {layout !== 'ladder' && layers.has('gates') && !tcActive && GATE_LIST.map(g => {
         const rd = gateRenderData[g.name]
         if (!rd) return null
-        const sumExpr = plexExpr(g.cum)
+        const sumExpr = plexExpr(g.cum, view.base)
         const gateLabel = String(g.from)
         const showCalc = gateCalcFocusName === g.name
         const hl = hlZones.has(g.from) || hlZones.has(g.to)
@@ -683,7 +685,7 @@ export const Projection = React.memo(function Projection({
         } else if (rd.type === 'loop') {
           if (rd.mid) j = rd.mid
           else {
-            const pt = syzMidBiased(g.from, pos)
+            const pt = syzMidBiased(g.from, view.partner(g.from), pos)
             j = { x: pt.x, y: pt.y + (pt.y > ctr.y ? 20 : -20) }
           }
         } else {

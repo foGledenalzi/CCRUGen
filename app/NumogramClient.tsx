@@ -14,6 +14,9 @@ import { SYZYGIES } from './data/syzygies'
 import { getAnglesForDate } from './lib/planetary'
 import { buildNumogramTitle } from './lib/shareTitle'
 import { withBasePath } from './lib/basePath'
+import { buildNumogramView } from './lib/numogramView'
+import { DEFAULT_LABEL_SCHEME, formatZoneLabel, zoneLabelsFor } from './lib/labelScheme'
+import { ALL_CHORDS_MAX_N, SVG_RICH_MAX_N } from './lib/tierBounds'
 
 // Presets
 import { BASE10 } from './presets/base10/numogram'
@@ -49,6 +52,8 @@ import {
 import { ShortcutsModal } from './components/numogram/ShortcutsModal'
 import { SourcesFooter } from './components/numogram/SourcesFooter'
 import { CyberPageHeader } from './components/ui/CyberPageHeader'
+import { NumogramViewContext } from './components/numogram/ViewContext'
+import type { NumogramViewContextValue } from './components/numogram/ViewContext'
 
 /* ═══════════════════════════════════════════════════════════════
    THE NUMOGRAM — The Decimal Labyrinth (CCRU)
@@ -185,6 +190,23 @@ export default function NumogramPage() {
     }
     return zones
   }, [])
+
+  // ── View context (MIG-02, UI-03) ─────────────────────────────
+  // Base 10 only for now; 04-11 makes this follow a chosen base.
+  const view = useMemo(() => buildNumogramView(BASE10), [])
+  const zoneLabels = useMemo(() => zoneLabelsFor(10, DEFAULT_LABEL_SCHEME), [])
+  const viewCtx = useMemo<NumogramViewContextValue>(() => ({
+    base: 10,
+    g: BASE10,
+    summary: view.summary,
+    view,
+    zoneLabels,
+    labelScheme: DEFAULT_LABEL_SCHEME,
+    zoneLabel: z => formatZoneLabel(z, 10, DEFAULT_LABEL_SCHEME),
+    svgRichMaxN: SVG_RICH_MAX_N,
+    allChordsMaxN: ALL_CHORDS_MAX_N,
+    gateMode: 'on',
+  }), [view, zoneLabels])
 
   const sortSearchParams = useCallback((params: URLSearchParams): URLSearchParams => {
     return new URLSearchParams(Array.from(params.entries()).sort(([a], [b]) => a.localeCompare(b)))
@@ -1010,6 +1032,7 @@ export default function NumogramPage() {
 
   // ── Render ─────────────────────────────────────────────────
   return (
+    <NumogramViewContext.Provider value={viewCtx}>
     <div className="h-screen overflow-hidden bg-[#060609] text-gray-300 flex flex-col items-center justify-center px-4 py-8 font-mono select-none relative">
       {/* === Fixed top bar === */}
       <div className="fixed top-0 left-0 right-0 z-40 flex flex-col items-center pt-3 pb-1 pointer-events-none"
@@ -1141,6 +1164,7 @@ export default function NumogramPage() {
             }
           }}>
             <Projection
+              view={view}
               layout={layout}
               pos={pos}
               ctr={ctr}
@@ -1390,5 +1414,6 @@ export default function NumogramPage() {
 
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
+    </NumogramViewContext.Provider>
   )
 }

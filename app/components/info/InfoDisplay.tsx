@@ -14,6 +14,7 @@ import { GlitchText } from '../ui/GlitchText'
 import { StatusDot } from '../ui/StatusDot'
 import { DataRow } from '../ui/DataRow'
 import { SectionFrame } from '../ui/SectionFrame'
+import { useNumogramView } from '../numogram/ViewContext'
 
 // ── Zone Info ──────────────────────────────────────────────────
 
@@ -147,7 +148,8 @@ function CurrentInfo({ data }: { data: HoverInfo & { type: 'current' } }) {
 
 function GateInfo({ data }: { data: HoverInfo & { type: 'gate' } }) {
   const g = data.gate
-  const plex = plexExpr(g.cum)
+  const { base } = useNumogramView()
+  const plex = plexExpr(g.cum, base)
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
