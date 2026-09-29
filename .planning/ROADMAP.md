@@ -127,7 +127,7 @@ Plans:
 - [x] 04-09-PLAN.md - Projection renders any base from the view model; in-base plexExpr; NumogramViewContext (wave 3)
 - [x] 04-10-PLAN.md - Todo 003 real-mouse fix and context-driven panels, detail and pinned views (wave 4)
 - [x] 04-11-PLAN.md - Engine-driven viewer: ?base= via the codec, procedural/pair-graph layouts, SVG-tier gate, MIG-02 in NumogramClient (wave 5)
-- [ ] 04-12-PLAN.md - Header base picker with UI-08 sanitation, live labels and packer; picker/label/reset e2e (wave 6)
+- [x] 04-12-PLAN.md - Header base picker with UI-08 sanitation, live labels and packer; picker/label/reset e2e (wave 6)
 - [ ] 04-13-PLAN.md - Region legend for any base with isolate and mute in both diagrams, URL and history (wave 7)
 - [ ] 04-14-PLAN.md - Keyboard traversal, ARIA names, focus ring and reduced motion; accessibility e2e (wave 8)
 - [ ] 04-15-PLAN.md - Collapsible panels, Text panel, zoom/fit toolbar; layers-zoom e2e (wave 9)
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
-| 4. Base Picker and Generator UI | 11/16 | In Progress | - |
+| 4. Base Picker and Generator UI | 12/16 | In Progress | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
