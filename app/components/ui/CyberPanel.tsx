@@ -25,6 +25,7 @@ export interface CyberPanelProps {
   collapseDirection?: CollapseDirection
   headerRight?: React.ReactNode
   positionMode?: PositionMode
+  postBaseline?: boolean
   children: React.ReactNode
 }
 
@@ -47,6 +48,7 @@ export function CyberPanel({
   collapseDirection = 'none',
   headerRight,
   positionMode = 'fixed',
+  postBaseline = false,
   children,
 }: CyberPanelProps) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -95,6 +97,7 @@ export function CyberPanel({
     <div
       ref={rootRef}
       className="font-mono text-[10px]"
+      data-post-baseline={postBaseline ? '' : undefined}
       style={{
         position: positionMode,
         left: positionMode === 'relative' ? undefined : position.x,
@@ -148,6 +151,10 @@ export function CyberPanel({
                 {headerRight}
                 {showPanelToggle && (
                   <button
+                    type="button"
+                    data-post-baseline=""
+                    aria-label={isOpen ? `Collapse ${title}` : `Expand ${title}`}
+                    aria-expanded={isOpen}
                     onClick={e => {
                       e.stopPropagation()
                       handleToggle()
@@ -218,8 +225,13 @@ export function CyberPanel({
             </div>
           ) : (
             <div
-              className="overflow-hidden transition-all duration-200"
-              style={{ maxHeight: isOpen ? maxBodyHeight || 500 : 0, opacity: isOpen ? 1 : 0 }}
+              className="transition-all duration-200"
+              style={{
+                maxHeight: isOpen ? maxBodyHeight || 500 : 0,
+                opacity: isOpen ? 1 : 0,
+                overflowX: 'hidden',
+                overflowY: isOpen ? 'auto' : 'hidden',
+              }}
             >
               {children}
             </div>

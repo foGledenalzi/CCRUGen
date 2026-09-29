@@ -8,6 +8,7 @@ interface PanelPositions {
   syz: { x: number; y: number }
   currents: { x: number; y: number }
   gates: { x: number; y: number }
+  text: { x: number; y: number }
   info: { x: number; y: number }
 }
 
@@ -21,6 +22,7 @@ const INITIAL_Z_INDEX: Record<PanelId, number> = {
   currents: 44,
   syz: 45,
   gates: 46,
+  text: 48,
   info: 47,
 }
 
@@ -33,6 +35,7 @@ export function usePanelDrag() {
     regions: { x: 216, y: 64 },
     currents: { x: 216, y: 258 },
     gates: { x: 216, y: 516 },
+    text: { x: 216, y: 760 },
     info: { x: 420, y: 64 },
   })
   const [zIndexes, setZIndexes] = useState<Record<PanelId, number>>(INITIAL_Z_INDEX)
@@ -120,7 +123,8 @@ export function usePanelDrag() {
       syz: { x: baseX, y: baseY + rowStep * 4 },
       currents: { x: baseX, y: baseY + rowStep * 5 },
       gates: { x: baseX, y: baseY + rowStep * 6 },
-      info: { x: baseX, y: baseY + rowStep * 7 },
+      text: { x: baseX, y: baseY + rowStep * 7 },
+      info: { x: baseX, y: baseY + rowStep * 8 },
     })
   }, [])
 

@@ -51,6 +51,7 @@ import { Projection } from './components/projection/Projection'
 import { PairGraphProjection } from './components/projection/PairGraphProjection'
 import { BasePicker } from './components/numogram/BasePicker'
 import { BigBaseSummary } from './components/numogram/BigBaseSummary'
+import { TextView } from './components/numogram/TextView'
 import { InfoDisplay } from './components/info/InfoDisplay'
 import { PinnedBackground } from './components/info/PinnedBackground'
 import { LayersPanel } from './components/panels/LayersPanel'
@@ -76,7 +77,7 @@ import type { NumogramViewContextValue } from './components/numogram/ViewContext
    ═══════════════════════════════════════════════════════════════ */
 
 const MOBILE_SELECTOR_BREAKPOINT = 820
-const PANEL_GROUP_ORDER = ['layers', 'labels', 'zones', 'regions', 'syz', 'currents', 'gates'] as const
+const PANEL_GROUP_ORDER = ['layers', 'labels', 'zones', 'regions', 'syz', 'currents', 'gates', 'text'] as const
 type PanelId = (typeof PANEL_GROUP_ORDER)[number]
 const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
   layers: 34,
@@ -86,6 +87,7 @@ const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
   syz: 34,
   currents: 34,
   gates: 34,
+  text: 34,
 }
 const DESKTOP_PANEL_BASE_Y = 64
 const DESKTOP_PANEL_GAP = 18
@@ -160,9 +162,9 @@ export default function NumogramPage() {
   const [syzOpen, setSyzOpen] = useState(true)
   const [currentsOpen, setCurrentsOpen] = useState(true)
   const [gatesOpen, setGatesOpen] = useState(true)
+  const [textOpen, setTextOpen] = useState(false)
 
   const svgWrapRef = useRef<HTMLDivElement>(null)
-  const mobileSelectorInitRef = useRef(false)
   const selectionAdditiveRef = useRef(false)
   const suppressNextCanvasClickRef = useRef(false)
   const desktopPanelLayoutInitRef = useRef(false)
@@ -404,19 +406,7 @@ export default function NumogramPage() {
     return () => window.removeEventListener('resize', updateViewport)
   }, [])
 
-  useEffect(() => {
-    if (mobileSelectorInitRef.current || viewport.w <= 0) return
-    mobileSelectorInitRef.current = true
-    if (viewport.w <= MOBILE_SELECTOR_BREAKPOINT) {
-      setLayersOpen(false)
-      setLabelsOpen(false)
-      setZonesOpen(false)
-      setRegionsOpen(false)
-      setSyzOpen(false)
-      setCurrentsOpen(false)
-      setGatesOpen(false)
-    }
-  }, [viewport.w])
+  // Panels start open at every width (as shipped); the chevrons collapse them (todo 003).
 
   useEffect(() => {
     if (infoPanelInitRef.current) return
@@ -938,6 +928,7 @@ export default function NumogramPage() {
       regions: { x: DESKTOP_PANEL_RIGHT_X, y: DESKTOP_PANEL_BASE_Y },
       currents: { x: DESKTOP_PANEL_RIGHT_X, y: Math.round(currentsY) },
       gates: { x: DESKTOP_PANEL_RIGHT_X, y: Math.round(gatesY) },
+      text: { x: DESKTOP_PANEL_RIGHT_X, y: Math.round(gatesY + (desktopPanelHeights.gates ?? 34) + DESKTOP_PANEL_GAP) },
     }))
     desktopPanelLayoutInitRef.current = true
   }, [desktopPanelHeights, isDesktop, setPanelPositions])
@@ -1135,6 +1126,13 @@ export default function NumogramPage() {
   // any base; empty (and unused) while the diagram is shown.
   const bigBaseText = useMemo(
     () => (showDiagram ? '' : numogramText(g, z => formatZoneLabel(z, base, labelScheme))),
+    [showDiagram, g, base, labelScheme],
+  )
+
+  // The Text panel's copy (UI-07): only built at the SVG tier, since above it BigBaseSummary already carries the
+  // text view (bigBaseText, above) and the panel itself is hidden.
+  const panelText = useMemo(
+    () => (showDiagram ? numogramText(g, z => formatZoneLabel(z, base, labelScheme)) : ''),
     [showDiagram, g, base, labelScheme],
   )
 
@@ -1426,6 +1424,7 @@ export default function NumogramPage() {
         width={mobilePanelWidth}
         zIndex={panelZ.layers}
         draggable={!isMobile}
+        collapseDirection="vertical"
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={layersOpen} onToggle={() => setLayersOpen(o => !o)} onDragStart={startDrag}>
@@ -1438,6 +1437,7 @@ export default function NumogramPage() {
         width={mobilePanelWidth}
         zIndex={panelZ.labels}
         draggable={!isMobile}
+        collapseDirection="vertical"
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={labelsOpen} onToggle={() => setLabelsOpen(o => !o)} onDragStart={startDrag}>
@@ -1449,6 +1449,7 @@ export default function NumogramPage() {
         width={mobilePanelWidth}
         zIndex={panelZ.zones}
         draggable={!isMobile}
+        collapseDirection="vertical"
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={zonesOpen} onToggle={() => setZonesOpen(o => !o)} onDragStart={startDrag}>
@@ -1461,6 +1462,7 @@ export default function NumogramPage() {
         width={mobilePanelWidth}
         zIndex={panelZ.regions}
         draggable={!isMobile}
+        collapseDirection="vertical"
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={regionsOpen} onToggle={() => setRegionsOpen(o => !o)} onDragStart={startDrag}>
@@ -1474,6 +1476,7 @@ export default function NumogramPage() {
         width={mobilePanelWidth}
         zIndex={panelZ.syz}
         draggable={!isMobile}
+        collapseDirection="vertical"
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={syzOpen} onToggle={() => setSyzOpen(o => !o)} onDragStart={startDrag}>
@@ -1486,6 +1489,7 @@ export default function NumogramPage() {
         width={mobilePanelWidth}
         zIndex={panelZ.currents}
         draggable={!isMobile}
+        collapseDirection="vertical"
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={currentsOpen} onToggle={() => setCurrentsOpen(o => !o)} onDragStart={startDrag}>
@@ -1498,12 +1502,30 @@ export default function NumogramPage() {
         width={mobilePanelWidth}
         zIndex={panelZ.gates}
         draggable={!isMobile}
+        collapseDirection="vertical"
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={gatesOpen} onToggle={() => setGatesOpen(o => !o)} onDragStart={startDrag}>
         <GatesPanel hlZones={hlZones} selZones={selZones} onHoverInfo={onHoverInfo}
           onSelectGate={onSelectGate} onToggleAll={onToggleAllZones} />
       </Panel>
+
+      {showDiagram && (
+        <Panel id="text" title="Text"
+          postBaseline
+          position={isMobile ? mobilePanelPositions.text : panelPositions.text}
+          width={isMobile ? mobilePanelWidth : INFO_PANEL_WIDTH}
+          zIndex={panelZ.text}
+          draggable={!isMobile}
+          collapseDirection="vertical"
+          onHeightChange={onPanelHeight}
+          onActivate={activatePanel}
+          open={textOpen} onToggle={() => setTextOpen(o => !o)} onDragStart={startDrag}>
+          <div className="px-3 pb-2.5 select-text">
+            <TextView text={panelText} />
+          </div>
+        </Panel>
+      )}
 
       {/* === Selection Panel === */}
       <Panel
