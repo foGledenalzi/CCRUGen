@@ -22,12 +22,15 @@ export interface SessionResetState {
   readonly tcActive: boolean
   readonly orbiting: boolean
   readonly pinned: boolean
+  readonly isolate: readonly RegionId[]
+  readonly mute: readonly RegionId[]
 }
 
 /**
- * The session state after switching to `base` (UI-08): selection, region highlight, Time Circuit and orbiting all
- * clear unconditionally (a selected zone, a `torque:`/`plex:` region id or an orbiting Torque loop from the old base
- * may not even exist at the new one), and the layout is kept only if `nextLayoutForBase` says it still applies.
+ * The session state after switching to `base` (UI-08): selection, region highlight, Time Circuit, orbiting and the
+ * region legend's isolate/mute filter all clear unconditionally (a selected zone, a `torque:`/`plex:` region id or
+ * an orbiting Torque loop from the old base may not even exist at the new one), and the layout is kept only if
+ * `nextLayoutForBase` says it still applies.
  */
 export function sessionAfterBaseSwitch(prev: SessionResetState, base: number): SessionResetState {
   return {
@@ -37,5 +40,7 @@ export function sessionAfterBaseSwitch(prev: SessionResetState, base: number): S
     tcActive: false,
     orbiting: false,
     pinned: false,
+    isolate: [],
+    mute: [],
   }
 }

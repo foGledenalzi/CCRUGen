@@ -168,3 +168,25 @@ export function PairGraphIcon({ clr }: IconProps) {
     </svg>
   )
 }
+
+// Region legend icons (04-13, UI-05): isolate (spotlight, a ringed target) and mute (an eye with a slash).
+export function IsolateIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="8.5" stroke={clr} strokeWidth="1.2" fill="none" />
+      <circle cx="12" cy="12" r="3.5" fill={clr} opacity="0.6" />
+      <path d="M12 1.5V3.5 M12 20.5V22.5 M1.5 12H3.5 M20.5 12H22.5" stroke={clr} strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function MuteIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M2.5 12C5 7.5 8.3 5.5 12 5.5S19 7.5 21.5 12C19 16.5 15.7 18.5 12 18.5S5 16.5 2.5 12Z"
+        stroke={clr} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx="12" cy="12" r="2.5" fill={clr} opacity="0.6" />
+      <path d="M4 20L20 4" stroke={clr} strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}

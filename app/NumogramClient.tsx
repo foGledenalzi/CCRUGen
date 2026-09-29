@@ -22,8 +22,8 @@ import { DIAGRAM_CSS_WIDTH, layoutTarget } from './lib/viewLayouts'
 import { engineRenderData, frameLayout } from './lib/renderData'
 import { isPresetLayoutId, LAYOUT_LABELS, layoutIdsForBase, layoutShortcut } from './lib/layoutIds'
 import type { ViewLayoutId } from './lib/layoutIds'
-import { isRegionId, zonesOfRegion } from './lib/regions'
-import type { RegionId } from './lib/regions'
+import { EMPTY_REGION_FILTER, isRegionId, sanitizeRegionFilter, toggleIsolate, toggleMute, zonesOfRegion } from './lib/regions'
+import type { RegionFilter, RegionId } from './lib/regions'
 import { buildShareParams, DEFAULT_LAYERS, parseShareParams } from './lib/shareParams'
 import type { ShareState } from './lib/shareParams'
 import { refusalFromUrl } from './lib/basePicker'
@@ -109,6 +109,8 @@ type HistorySnapshot = {
   labelVisibility: LabelVisibility
   labels: LabelScheme
   packer: Packer
+  isolate: string[]
+  mute: string[]
 }
 
 function toggleTerminalSelection(prev: Set<number>, terminals: Iterable<number>): Set<number> {
@@ -142,6 +144,7 @@ export default function NumogramPage() {
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
   const [selZones, setSelZones] = useState<Set<number>>(new Set())
   const [hlRegion, setHlRegion] = useState<RegionId | null>(null)
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>(EMPTY_REGION_FILTER)
   const [tcActive, setTcActive] = useState(false)
   const [hoveredLayout, setHoveredLayout] = useState<ViewLayoutId | null>(null)
   const [particlesOn, setParticlesOn] = useState(false)
@@ -256,11 +259,11 @@ export default function NumogramPage() {
     date: planetDate,
     orbits: showOrbits,
     labels: labelScheme,
-    isolate: [],
-    mute: [],
+    isolate: [...regionFilter.isolate],
+    mute: [...regionFilter.mute],
     packer,
     tier: tierOverride,
-  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, packer, tierOverride])
+  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, regionFilter, packer, tierOverride])
 
   const snapshotState = useCallback((): HistorySnapshot => ({
     base,
@@ -280,7 +283,9 @@ export default function NumogramPage() {
     },
     labels: labelScheme,
     packer,
-  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, showOrbits, planetDate, orbiting, labelVisibility, labelScheme, packer])
+    isolate: Array.from(regionFilter.isolate).sort(),
+    mute: Array.from(regionFilter.mute).sort(),
+  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, showOrbits, planetDate, orbiting, labelVisibility, labelScheme, packer, regionFilter])
 
   const snapshotKey = useCallback((snapshot: HistorySnapshot): string => {
     return JSON.stringify(snapshot)
@@ -311,6 +316,10 @@ export default function NumogramPage() {
     })
     setLabelScheme(snapshot.labels)
     setPacker(snapshot.packer)
+    setRegionFilter(sanitizeRegionFilter({
+      isolate: new Set(snapshot.isolate as RegionId[]),
+      mute: new Set(snapshot.mute as RegionId[]),
+    }, g))
 
     if (snapshot.layout === 'planetary') {
       if (snapshot.planetDate) {
@@ -319,7 +328,7 @@ export default function NumogramPage() {
         setPlanetaryAngles(PLANETARY_DEFAULT_ANGLE)
       }
     }
-  }, [base, layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting])
+  }, [base, layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting, g])
 
   // UI-08: the base picker's one commit path. Everything base-shaped resets in a single batched event-handler call
   // (React batches all these setters into one render with the new base) so no intermediate render ever shows a
@@ -327,7 +336,10 @@ export default function NumogramPage() {
   const commitBase = useCallback((n: number) => {
     if (n === base) return
     const next = sessionAfterBaseSwitch(
-      { layout, selected: [...selZones], hlRegion, tcActive, orbiting, pinned: pinnedInfo !== null },
+      {
+        layout, selected: [...selZones], hlRegion, tcActive, orbiting, pinned: pinnedInfo !== null,
+        isolate: [...regionFilter.isolate], mute: [...regionFilter.mute],
+      },
       n,
     )
     jumpToTarget()
@@ -340,6 +352,7 @@ export default function NumogramPage() {
     setPinnedInfo(null)
     setSelZones(new Set())
     setHlRegion(null)
+    setRegionFilter(EMPTY_REGION_FILTER)
     setTcActive(false)
     setOrbiting(false)
     setLayout(next.layout)
@@ -349,7 +362,7 @@ export default function NumogramPage() {
     setZoomOrigin({ x: 50, y: 50 })
     setBase(n)
   }, [
-    base, layout, selZones, hlRegion, tcActive, orbiting, pinnedInfo, jumpToTarget,
+    base, layout, selZones, hlRegion, tcActive, orbiting, pinnedInfo, regionFilter, jumpToTarget,
     setCanvasPan, setZoom, setZoomOrigin, setOrbiting,
   ])
 
@@ -576,6 +589,7 @@ export default function NumogramPage() {
     setLayout(state.layout)
     setLayers(new Set(state.layers))
     setHlRegion(state.region)
+    setRegionFilter({ isolate: new Set(state.isolate), mute: new Set(state.mute) })
     setTcActive(state.tc)
     setParticlesOn(state.particles)
     setShowOrbits(state.orbits)
@@ -649,6 +663,14 @@ export default function NumogramPage() {
   const onSelectRegion = useCallback((r: RegionId | null) => {
     setHlRegion(r)
     setTcActive(false)
+  }, [])
+
+  // Isolate/mute (D-19, D-22): independent per-region toggles, never clearing another row's state.
+  const onToggleIsolate = useCallback((id: RegionId) => {
+    setRegionFilter(f => toggleIsolate(f, id))
+  }, [])
+  const onToggleMute = useCallback((id: RegionId) => {
+    setRegionFilter(f => toggleMute(f, id))
   }, [])
 
   const onToggleAllZones = useCallback(() => {
@@ -1433,8 +1455,9 @@ export default function NumogramPage() {
         onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         open={regionsOpen} onToggle={() => setRegionsOpen(o => !o)} onDragStart={startDrag}>
-        <RegionsPanel hlRegion={hlRegion} tcActive={tcActive}
-          onSelectRegion={onSelectRegion} onToggleTC={onToggleTC} />
+        <RegionsPanel hlRegion={hlRegion} tcActive={tcActive} filter={regionFilter}
+          onSelectRegion={onSelectRegion} onToggleTC={onToggleTC}
+          onToggleIsolate={onToggleIsolate} onToggleMute={onToggleMute} />
       </Panel>
 
       <Panel id="syz" title="Syzygies"

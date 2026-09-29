@@ -25,6 +25,8 @@ describe('sessionAfterBaseSwitch', () => {
       tcActive: true,
       orbiting: true,
       pinned: true,
+      isolate: ['torque:0'],
+      mute: ['plex'],
     }
     expect(sessionAfterBaseSwitch(prev, 28)).toEqual({
       layout: 'ring',
@@ -33,6 +35,8 @@ describe('sessionAfterBaseSwitch', () => {
       tcActive: false,
       orbiting: false,
       pinned: false,
+      isolate: [],
+      mute: [],
     })
   })
 
@@ -44,7 +48,25 @@ describe('sessionAfterBaseSwitch', () => {
       tcActive: false,
       orbiting: false,
       pinned: false,
+      isolate: [],
+      mute: [],
     }
     expect(sessionAfterBaseSwitch(prev, 28).layout).toBe('ring')
+  })
+
+  it('clears a non-empty isolate/mute filter even when the layout stays the same', () => {
+    const prev: SessionResetState = {
+      layout: 'ring',
+      selected: [],
+      hlRegion: null,
+      tcActive: false,
+      orbiting: false,
+      pinned: false,
+      isolate: ['torque:2', 'warp'],
+      mute: ['torque:0'],
+    }
+    const next = sessionAfterBaseSwitch(prev, 64)
+    expect(next.isolate).toEqual([])
+    expect(next.mute).toEqual([])
   })
 })
