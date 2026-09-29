@@ -130,7 +130,7 @@ Plans:
 - [x] 04-12-PLAN.md - Header base picker with UI-08 sanitation, live labels and packer; picker/label/reset e2e (wave 6)
 - [x] 04-13-PLAN.md - Region legend for any base with isolate and mute in both diagrams, URL and history (wave 7)
 - [x] 04-14-PLAN.md - Keyboard traversal, ARIA names, focus ring and reduced motion; accessibility e2e (wave 8)
-- [ ] 04-15-PLAN.md - Collapsible panels, Text panel, zoom/fit toolbar; layers-zoom e2e (wave 9)
+- [x] 04-15-PLAN.md - Collapsible panels, Text panel, zoom/fit toolbar; layers-zoom e2e (wave 9)
 - [ ] 04-16-PLAN.md - MIG-02 closeout: seams deleted, base-ten gate default, bases 2-40 smoke, D-07 wording, todos, full gate (wave 10)
 **UI hint**: yes
 **Research**: Targeted, run `/gsd-research-phase` for the label scheme beyond base 36 (decision plus font/glyph coverage tests). The URL codec is standard.
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
-| 4. Base Picker and Generator UI | 14/16 | In Progress | - |
+| 4. Base Picker and Generator UI | 15/16 | In Progress | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
