@@ -2,82 +2,103 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import type { HoverInfo } from '../../data/types'
-import { ZONE_CLR, ZONE_REGION, ZONE_META, ZONE_PARTICLE } from '../../data/zones'
-import { SYZYGIES } from '../../data/syzygies'
-import { GATE_LIST } from '../../data/gates'
-import { ALL_DEMONS } from '../../data/demons'
 import { REGION_CLR } from '../../lib/constants'
 import { plexExpr } from '../../lib/numogram'
+import { formatNumeral } from '../../../engine/index'
 import { PanelGroup } from '../panels/PanelGroup'
 import type { PanelGroupItem } from '../panels/PanelGroup'
 import { GlitchText } from '../ui/GlitchText'
 import { StatusDot } from '../ui/StatusDot'
 import { DataRow } from '../ui/DataRow'
 import { SectionFrame } from '../ui/SectionFrame'
-import { useNumogramView } from '../numogram/ViewContext'
+import { useNumogramView, type NumogramViewContextValue } from '../numogram/ViewContext'
 
 // ── Zone Info ──────────────────────────────────────────────────
 
 function ZoneInfo({ zone }: { zone: number }) {
-  const meta = ZONE_META[zone]
-  const clr = ZONE_CLR[zone]
-  const demons = ALL_DEMONS.filter(d => d.a === zone || d.b === zone)
-  const gate = GATE_LIST.find(g => g.from === zone)
-  const syz = SYZYGIES.find(s => s.a === zone || s.b === zone)
+  const { base, view, zoneLabel } = useNumogramView()
+  if (!view) return null
+  const clr = view.zoneColors[zone] as string
+  const kind = view.zoneKind[zone]
+  const gate = view.gates[zone]
+  const syz = view.syzygies.find(s => s.a === zone || s.b === zone)
+
+  if (view.lore) {
+    const meta = view.lore.zoneMeta[zone]
+    const demons = (view.demons ?? []).filter(d => d.a === zone || d.b === zone)
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <GlitchText text={`Zone ${zoneLabel(zone)}`} color={clr} />
+          <StatusDot color={clr} />
+          <span className="text-[8px] tracking-[0.15em] uppercase ml-auto" style={{ color: REGION_CLR[kind] }}>
+            {kind}
+          </span>
+        </div>
+
+        <div className="text-[9px] font-mono" style={{ color: `${clr}88` }}>{meta.planetFull}</div>
+        <p className="text-[8px] text-gray-500 leading-relaxed italic">{meta.desc}</p>
+
+        <SectionFrame color={clr}>
+          {syz && <DataRow label="SYZ" value={`${zoneLabel(syz.a)}+${zoneLabel(syz.b)}=${formatNumeral(base - 1, base)} (${syz.demon})`} color={clr} />}
+          <DataRow label="PARTICLE" value={view.lore.zoneParticle[zone] as string} color={clr} />
+          {meta.spinal && <DataRow label="MU_TANTRA" value={`${meta.spinal} spine`} color={clr} />}
+          <DataRow label="MESH_TAG" value={meta.meshTag} color={clr} />
+          <DataRow label="PHASE_CT" value={String(meta.phaseCount)} color={clr} />
+        </SectionFrame>
+
+        {meta.door && (
+          <SectionFrame title="DOOR" color={clr}>
+            <div className="text-[8px] text-gray-400 italic">{meta.door}</div>
+          </SectionFrame>
+        )}
+
+        {gate && (
+          <SectionFrame title="GATE" color="#cc44ff">
+            <div className="text-[9px]">
+              <span style={{ color: '#cc44ff' }}>{gate.name}</span>
+              <span className="text-gray-600"> {'→'} Zone {zoneLabel(gate.to)}</span>
+            </div>
+            <div className="text-[8px] text-gray-500 italic">{gate.desc}</div>
+          </SectionFrame>
+        )}
+
+        <SectionFrame title="LEMURIAN ETHNOGRAPHY" color={clr}>
+          <p className="text-[8px] text-gray-600 leading-relaxed">{meta.lemurian}</p>
+        </SectionFrame>
+
+        {meta.lemurs.length > 0 && (
+          <SectionFrame title={`PHASE-${zone} LEMURS (${meta.phaseCount})`} color={clr}>
+            <div className="space-y-0.5">
+              {meta.lemurs.map(l => (
+                <div key={l} className="text-[8px] italic" style={{ color: `${clr}77` }}>{l}</div>
+              ))}
+            </div>
+          </SectionFrame>
+        )}
+
+        <div className="text-[7px] text-gray-700 pt-1 tracking-[0.1em]">
+          {demons.length} DEMONS IN PANDEMONIUM
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <GlitchText text={`Zone ${zone}`} color={clr} />
+        <GlitchText text={`Zone ${zoneLabel(zone)}`} color={clr} />
         <StatusDot color={clr} />
-        <span className="text-[8px] tracking-[0.15em] uppercase ml-auto" style={{ color: REGION_CLR[ZONE_REGION[zone]] }}>
-          {ZONE_REGION[zone]}
+        <span className="text-[8px] tracking-[0.15em] uppercase ml-auto" style={{ color: REGION_CLR[kind] }}>
+          {kind}
         </span>
       </div>
-
-      <div className="text-[9px] font-mono" style={{ color: `${clr}88` }}>{meta.planetFull}</div>
-      <p className="text-[8px] text-gray-500 leading-relaxed italic">{meta.desc}</p>
-
       <SectionFrame color={clr}>
-        {syz && <DataRow label="SYZ" value={`${syz.a}+${syz.b}=9 (${syz.demon})`} color={clr} />}
-        <DataRow label="PARTICLE" value={ZONE_PARTICLE[zone]} color={clr} />
-        {meta.spinal && <DataRow label="MU_TANTRA" value={`${meta.spinal} spine`} color={clr} />}
-        <DataRow label="MESH_TAG" value={meta.meshTag} color={clr} />
-        <DataRow label="PHASE_CT" value={String(meta.phaseCount)} color={clr} />
+        {syz && <DataRow label="SYZ" value={`${zoneLabel(syz.a)}+${zoneLabel(syz.b)}=${formatNumeral(base - 1, base)} (${syz.demon})`} color={clr} />}
+        {gate && <DataRow label="GATE" value={`${gate.name} → Zone ${zoneLabel(gate.to)}`} color={clr} />}
       </SectionFrame>
-
-      {meta.door && (
-        <SectionFrame title="DOOR" color={clr}>
-          <div className="text-[8px] text-gray-400 italic">{meta.door}</div>
-        </SectionFrame>
-      )}
-
-      {gate && (
-        <SectionFrame title="GATE" color="#cc44ff">
-          <div className="text-[9px]">
-            <span style={{ color: '#cc44ff' }}>{gate.name}</span>
-            <span className="text-gray-600"> {'\u2192'} Zone {gate.to}</span>
-          </div>
-          <div className="text-[8px] text-gray-500 italic">{gate.desc}</div>
-        </SectionFrame>
-      )}
-
-      <SectionFrame title="LEMURIAN ETHNOGRAPHY" color={clr}>
-        <p className="text-[8px] text-gray-600 leading-relaxed">{meta.lemurian}</p>
-      </SectionFrame>
-
-      {meta.lemurs.length > 0 && (
-        <SectionFrame title={`PHASE-${zone} LEMURS (${meta.phaseCount})`} color={clr}>
-          <div className="space-y-0.5">
-            {meta.lemurs.map(l => (
-              <div key={l} className="text-[8px] italic" style={{ color: `${clr}77` }}>{l}</div>
-            ))}
-          </div>
-        </SectionFrame>
-      )}
-
       <div className="text-[7px] text-gray-700 pt-1 tracking-[0.1em]">
-        {demons.length} DEMONS IN PANDEMONIUM
+        {base - 1} DEMONS IN PANDEMONIUM
       </div>
     </div>
   )
@@ -87,25 +108,54 @@ function ZoneInfo({ zone }: { zone: number }) {
 
 function SyzygyInfo({ data }: { data: HoverInfo & { type: 'syzygy' } }) {
   const s = data.data
+  const { base, view, zoneLabel } = useNumogramView()
+  if (!view) return null
+  const diff = s.b - s.a
+
+  if (view.lore) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <GlitchText text={`Syzygy ${zoneLabel(s.a)}::${zoneLabel(s.b)}`} color="#e8e8e8" />
+          <StatusDot color="#e8e8e8" />
+        </div>
+        <DataRow label="TWINNING" value={`${zoneLabel(s.a)} + ${zoneLabel(s.b)} = ${formatNumeral(base - 1, base)}`} color="#e8e8e8" />
+        <DataRow label="DEMON" value={s.demon} color="#e8e8e8" />
+        <p className="text-[8px] text-gray-500 leading-relaxed italic">{s.desc}</p>
+        <SectionFrame color="#e8e8e8">
+          <div className="text-[9px]">
+            <span style={{ color: view.zoneColors[s.a] }}>Zone {zoneLabel(s.a)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[s.a]?.planet}) {'↔'} </span>
+            <span style={{ color: view.zoneColors[s.b] }}>Zone {zoneLabel(s.b)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[s.b]?.planet})</span>
+          </div>
+          <DataRow
+            label="CURRENT_DIFF"
+            value={`${zoneLabel(s.b)}−${zoneLabel(s.a)}=${formatNumeral(diff, base)}${diff === s.a ? ' (self-ref)' : ` → Z${zoneLabel(diff)}`}`}
+            color="#e8e8e8"
+          />
+        </SectionFrame>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <GlitchText text={`Syzygy ${s.a}::${s.b}`} color="#e8e8e8" />
+        <GlitchText text={`Syzygy ${zoneLabel(s.a)}::${zoneLabel(s.b)}`} color="#e8e8e8" />
         <StatusDot color="#e8e8e8" />
       </div>
-      <DataRow label="TWINNING" value={`${s.a} + ${s.b} = 9`} color="#e8e8e8" />
+      <DataRow label="TWINNING" value={`${zoneLabel(s.a)} + ${zoneLabel(s.b)} = ${formatNumeral(base - 1, base)}`} color="#e8e8e8" />
       <DataRow label="DEMON" value={s.demon} color="#e8e8e8" />
-      <p className="text-[8px] text-gray-500 leading-relaxed italic">{s.desc}</p>
       <SectionFrame color="#e8e8e8">
         <div className="text-[9px]">
-          <span style={{ color: ZONE_CLR[s.a] }}>Zone {s.a}</span>
-          <span className="text-gray-700"> ({ZONE_META[s.a].planet}) {'\u2194'} </span>
-          <span style={{ color: ZONE_CLR[s.b] }}>Zone {s.b}</span>
-          <span className="text-gray-700"> ({ZONE_META[s.b].planet})</span>
+          <span style={{ color: view.zoneColors[s.a] }}>Zone {zoneLabel(s.a)}</span>
+          <span className="text-gray-700"> {'↔'} </span>
+          <span style={{ color: view.zoneColors[s.b] }}>Zone {zoneLabel(s.b)}</span>
         </div>
         <DataRow
           label="CURRENT_DIFF"
-          value={`${s.b}\u2212${s.a}=${s.b - s.a}${s.b - s.a === s.a ? ' (self-ref)' : ` \u2192 Z${s.b - s.a}`}`}
+          value={`${zoneLabel(s.b)}−${zoneLabel(s.a)}=${formatNumeral(diff, base)}${diff === s.a ? ' (self-ref)' : ` → Z${zoneLabel(diff)}`}`}
           color="#e8e8e8"
         />
       </SectionFrame>
@@ -117,6 +167,37 @@ function SyzygyInfo({ data }: { data: HoverInfo & { type: 'syzygy' } }) {
 
 function CurrentInfo({ data }: { data: HoverInfo & { type: 'current' } }) {
   const c = data.data
+  const { view, zoneLabel } = useNumogramView()
+  if (!view) return null
+
+  if (view.lore) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <GlitchText text={`${c.name} Current`} color="#22ee66" />
+          <StatusDot color="#22ee66" />
+        </div>
+        <DataRow label="FORMULA" value={c.label} color="#22ee66" />
+        <p className="text-[8px] text-gray-500 leading-relaxed italic">{c.desc}</p>
+        <SectionFrame color="#22ee66">
+          <div className="text-[9px]">
+            <span className="text-gray-600">FROM: </span>
+            <span style={{ color: view.zoneColors[c.from] }}>Zone {zoneLabel(c.from)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[c.from]?.planet})</span>
+          </div>
+          <div className="text-[9px]">
+            <span className="text-gray-600">TO: </span>
+            <span style={{ color: view.zoneColors[c.to] }}>Zone {zoneLabel(c.to)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[c.to]?.planet})</span>
+          </div>
+        </SectionFrame>
+        <div className="text-[7px] text-gray-700 tracking-[0.1em]">
+          TIME CIRCUIT FLOW (ANTICLOCKWISE)
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
@@ -124,22 +205,16 @@ function CurrentInfo({ data }: { data: HoverInfo & { type: 'current' } }) {
         <StatusDot color="#22ee66" />
       </div>
       <DataRow label="FORMULA" value={c.label} color="#22ee66" />
-      <p className="text-[8px] text-gray-500 leading-relaxed italic">{c.desc}</p>
       <SectionFrame color="#22ee66">
         <div className="text-[9px]">
           <span className="text-gray-600">FROM: </span>
-          <span style={{ color: ZONE_CLR[c.from] }}>Zone {c.from}</span>
-          <span className="text-gray-700"> ({ZONE_META[c.from].planet})</span>
+          <span style={{ color: view.zoneColors[c.from] }}>Zone {zoneLabel(c.from)}</span>
         </div>
         <div className="text-[9px]">
           <span className="text-gray-600">TO: </span>
-          <span style={{ color: ZONE_CLR[c.to] }}>Zone {c.to}</span>
-          <span className="text-gray-700"> ({ZONE_META[c.to].planet})</span>
+          <span style={{ color: view.zoneColors[c.to] }}>Zone {zoneLabel(c.to)}</span>
         </div>
       </SectionFrame>
-      <div className="text-[7px] text-gray-700 tracking-[0.1em]">
-        TIME CIRCUIT FLOW (ANTICLOCKWISE)
-      </div>
     </div>
   )
 }
@@ -148,32 +223,60 @@ function CurrentInfo({ data }: { data: HoverInfo & { type: 'current' } }) {
 
 function GateInfo({ data }: { data: HoverInfo & { type: 'gate' } }) {
   const g = data.gate
-  const { base } = useNumogramView()
+  const { base, view, zoneLabel } = useNumogramView()
   const plex = plexExpr(g.cum, base)
+  if (!view) return null
+
+  if (view.lore) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <GlitchText text={g.name} color="#cc44ff" />
+          <StatusDot color="#cc44ff" />
+          <span className="text-[8px] text-gray-600 ml-auto">{g.desc}</span>
+        </div>
+        <DataRow label="CUMULATION" value={formatNumeral(g.cum, base)} color="#cc44ff" />
+        {plex && (
+          <DataRow label="PLEX" value={plex} color="#cc44ff" />
+        )}
+        <DataRow
+          label="CHANNEL"
+          value={g.from === g.to ? `Z${zoneLabel(g.from)} → self` : `Z${zoneLabel(g.from)} → Z${zoneLabel(g.to)}`}
+          color="#cc44ff"
+        />
+        <p className="text-[8px] text-gray-500 leading-relaxed italic">{g.detail}</p>
+        <SectionFrame color="#cc44ff">
+          <div className="text-[9px]">
+            <span className="text-gray-600">FLOW: </span>
+            <span style={{ color: view.zoneColors[g.from] }}>Zone {zoneLabel(g.from)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[g.from]?.planet}) {'→'} </span>
+            <span style={{ color: view.zoneColors[g.to] }}>Zone {zoneLabel(g.to)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[g.to]?.planet})</span>
+          </div>
+        </SectionFrame>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
         <GlitchText text={g.name} color="#cc44ff" />
         <StatusDot color="#cc44ff" />
-        <span className="text-[8px] text-gray-600 ml-auto">{g.desc}</span>
       </div>
-      <DataRow label="CUMULATION" value={String(g.cum)} color="#cc44ff" />
-      {plex && (
-        <DataRow label="PLEX" value={plex} color="#cc44ff" />
-      )}
+      <DataRow label="CUMULATION" value={formatNumeral(g.cum, base)} color="#cc44ff" />
+      {plex && <DataRow label="PLEX" value={plex} color="#cc44ff" />}
       <DataRow
         label="CHANNEL"
-        value={g.from === g.to ? `Z${g.from} \u2192 self` : `Z${g.from} \u2192 Z${g.to}`}
+        value={g.from === g.to ? `Z${zoneLabel(g.from)} → self` : `Z${zoneLabel(g.from)} → Z${zoneLabel(g.to)}`}
         color="#cc44ff"
       />
-      <p className="text-[8px] text-gray-500 leading-relaxed italic">{g.detail}</p>
       <SectionFrame color="#cc44ff">
         <div className="text-[9px]">
           <span className="text-gray-600">FLOW: </span>
-          <span style={{ color: ZONE_CLR[g.from] }}>Zone {g.from}</span>
-          <span className="text-gray-700"> ({ZONE_META[g.from].planet}) {'\u2192'} </span>
-          <span style={{ color: ZONE_CLR[g.to] }}>Zone {g.to}</span>
-          <span className="text-gray-700"> ({ZONE_META[g.to].planet})</span>
+          <span style={{ color: view.zoneColors[g.from] }}>Zone {zoneLabel(g.from)}</span>
+          <span className="text-gray-700"> {'→'} </span>
+          <span style={{ color: view.zoneColors[g.to] }}>Zone {zoneLabel(g.to)}</span>
         </div>
       </SectionFrame>
     </div>
@@ -184,31 +287,61 @@ function GateInfo({ data }: { data: HoverInfo & { type: 'gate' } }) {
 
 function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
   const d = data.demon
+  const { base, view, zoneLabel } = useNumogramView()
+  if (!view) return null
   const kindClr = d.kind === 'chrono' ? '#00ccff'
     : d.kind === 'xeno' ? '#cc3333'
     : d.kind === 'amphi' ? '#cc8833' : '#e8e8e8'
+
+  if (view.lore) {
+    const kindDesc = d.kind === 'chrono'
+      ? 'CHRONODEMON — both zones within Time Circuit'
+      : d.kind === 'xeno'
+      ? 'XENODEMON — both zones outside Time Circuit'
+      : d.kind === 'amphi'
+      ? 'AMPHIDEMON — spans TC and outer regions'
+      : 'SYZYGETIC — carries a nine-sum twinning'
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <GlitchText text={d.name} color={kindClr} />
+          <StatusDot color={kindClr} />
+          <span className="text-[8px] text-gray-600 ml-auto">{zoneLabel(d.a)}::{zoneLabel(d.b)}</span>
+        </div>
+        <div className="text-[7px] tracking-[0.12em]" style={{ color: `${kindClr}bb` }}>{kindDesc}</div>
+        <SectionFrame color={kindClr}>
+          <div className="text-[9px]">
+            <span style={{ color: view.zoneColors[d.a] }}>Zone {zoneLabel(d.a)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[d.a]?.planet}) {'—'} </span>
+            <span style={{ color: view.zoneColors[d.b] }}>Zone {zoneLabel(d.b)}</span>
+            <span className="text-gray-700"> ({view.lore.zoneMeta[d.b]?.planet})</span>
+          </div>
+        </SectionFrame>
+      </div>
+    )
+  }
+
   const kindDesc = d.kind === 'chrono'
-    ? 'CHRONODEMON \u2014 both zones within Time Circuit'
+    ? 'CHRONODEMON — both zones in Torque cycles'
     : d.kind === 'xeno'
-    ? 'XENODEMON \u2014 both zones outside Time Circuit'
+    ? 'XENODEMON — both zones outside the Torque cycles'
     : d.kind === 'amphi'
-    ? 'AMPHIDEMON \u2014 spans TC and outer regions'
-    : 'SYZYGETIC \u2014 carries a nine-sum twinning'
+    ? 'AMPHIDEMON — spans a Torque cycle and Plex or Warp'
+    : `SYZYGETIC — its zones sum to ${formatNumeral(base - 1, base)}`
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
         <GlitchText text={d.name} color={kindClr} />
         <StatusDot color={kindClr} />
-        <span className="text-[8px] text-gray-600 ml-auto">{d.a}::{d.b}</span>
+        <span className="text-[8px] text-gray-600 ml-auto">{zoneLabel(d.a)}::{zoneLabel(d.b)}</span>
       </div>
       <div className="text-[7px] tracking-[0.12em]" style={{ color: `${kindClr}bb` }}>{kindDesc}</div>
       <SectionFrame color={kindClr}>
         <div className="text-[9px]">
-          <span style={{ color: ZONE_CLR[d.a] }}>Zone {d.a}</span>
-          <span className="text-gray-700"> ({ZONE_META[d.a].planet}) {'\u2014'} </span>
-          <span style={{ color: ZONE_CLR[d.b] }}>Zone {d.b}</span>
-          <span className="text-gray-700"> ({ZONE_META[d.b].planet})</span>
+          <span style={{ color: view.zoneColors[d.a] }}>Zone {zoneLabel(d.a)}</span>
+          <span className="text-gray-700"> {'—'} </span>
+          <span style={{ color: view.zoneColors[d.b] }}>Zone {zoneLabel(d.b)}</span>
         </div>
       </SectionFrame>
     </div>
@@ -235,12 +368,13 @@ function selectedInfoKey(info: HoverInfo): string {
   }
 }
 
-function selectedInfoMeta(info: HoverInfo): { title: string; color: string } {
+function selectedInfoMeta(info: HoverInfo, ctx: NumogramViewContextValue): { title: string; color: string } {
+  const { view, zoneLabel } = ctx
   switch (info.type) {
     case 'zone':
-      return { title: `Zone ${info.zone}`, color: ZONE_CLR[info.zone] }
+      return { title: `Zone ${zoneLabel(info.zone)}`, color: view ? (view.zoneColors[info.zone] as string) : '#e8e8e8' }
     case 'syzygy':
-      return { title: `Syzygy ${info.data.a}::${info.data.b}`, color: '#e8e8e8' }
+      return { title: `Syzygy ${zoneLabel(info.data.a)}::${zoneLabel(info.data.b)}`, color: '#e8e8e8' }
     case 'current':
       return { title: `${info.data.name} Current`, color: '#22ee66' }
     case 'gate':
@@ -264,30 +398,63 @@ function renderInfoContent(info: HoverInfo) {
 }
 
 function NumogramIntro() {
+  const { base, view, summary, zoneLabel } = useNumogramView()
+
+  if (view?.lore) {
+    return (
+      <div className="space-y-2">
+        <SectionFrame color="#10ff50">
+          <p className="text-[8px] text-gray-400 leading-relaxed italic">
+            The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine,
+            and pathways that map transitions through the system.
+          </p>
+          <p className="text-[8px] text-gray-500 leading-relaxed mt-1.5">
+            Currents track differential flows across syzygetic pairs. Gates track culminations
+            (triangular sums), then reduce multi-digit values by summation to determine the
+            connecting source.
+          </p>
+          <p className="text-[8px] text-gray-600 leading-relaxed mt-1.5">
+            Use hover and selection to inspect zones, currents, gates, and demons as a navigational
+            map of recursive time and drift between torque, warp, and plex.
+          </p>
+          <p className="text-[8px] text-gray-500 leading-relaxed mt-1.5">
+            Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle
+            gates, ASDF to change view.
+          </p>
+        </SectionFrame>
+        <div className="text-[7px] text-gray-700 tracking-[0.1em] uppercase">
+          Click empty space to return here.
+        </div>
+      </div>
+    )
+  }
+
+  if (view) {
+    const n = view.zoneCount
+    return (
+      <div className="space-y-2">
+        <SectionFrame color="#10ff50">
+          <p className="text-[8px] text-gray-400 leading-relaxed italic">
+            {`This numogram has ${n} zones (${zoneLabel(0)} to ${zoneLabel(n - 1)}); each syzygy pairs zones that sum to ${formatNumeral(n - 1, n)}. Currents flow from each syzygy's difference, gates from each zone's triangular cumulation reduced by the in-base digital root.`}
+          </p>
+          <p className="text-[8px] text-gray-500 leading-relaxed mt-1.5">
+            Controls: click + drag to select, alt + drag to move, scroll to zoom, ASDF to change view.
+          </p>
+        </SectionFrame>
+        <div className="text-[7px] text-gray-700 tracking-[0.1em] uppercase">
+          Click empty space to return here.
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2">
       <SectionFrame color="#10ff50">
         <p className="text-[8px] text-gray-400 leading-relaxed italic">
-          The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine,
-          and pathways that map transitions through the system.
-        </p>
-        <p className="text-[8px] text-gray-500 leading-relaxed mt-1.5">
-          Currents track differential flows across syzygetic pairs. Gates track culminations
-          (triangular sums), then reduce multi-digit values by summation to determine the
-          connecting source.
-        </p>
-        <p className="text-[8px] text-gray-600 leading-relaxed mt-1.5">
-          Use hover and selection to inspect zones, currents, gates, and demons as a navigational
-          map of recursive time and drift between torque, warp, and plex.
-        </p>
-        <p className="text-[8px] text-gray-500 leading-relaxed mt-1.5">
-          Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle
-          gates, ASDF to change view.
+          {`Base ${base}: ${summary.zoneCount} zones, ${summary.torqueCount} Torque cycle${summary.torqueCount === 1 ? '' : 's'}${summary.hasWarp ? ', a Warp,' : ','} ${summary.demonCount} demons.`}
         </p>
       </SectionFrame>
-      <div className="text-[7px] text-gray-700 tracking-[0.1em] uppercase">
-        Click empty space to return here.
-      </div>
     </div>
   )
 }
@@ -299,6 +466,7 @@ export function InfoDisplay({
   onRemoveSelectedInfo,
   onHoverSelectedInfo,
 }: InfoDisplayProps) {
+  const ctx = useNumogramView()
   const info = hoverInfo || pinnedInfo
   const selectedByKey = new Map(selectedInfos.map(si => [selectedInfoKey(si), si]))
   const selectedKeys = useMemo(() => selectedInfos.map(selectedInfoKey), [selectedInfos])
@@ -323,7 +491,7 @@ export function InfoDisplay({
     const groupItems = orderedKeys.reduce<PanelGroupItem[]>((acc, key) => {
         const si = selectedByKey.get(key)
         if (!si) return acc
-        const meta = selectedInfoMeta(si)
+        const meta = selectedInfoMeta(si, ctx)
         acc.push({
           id: key,
           title: meta.title,

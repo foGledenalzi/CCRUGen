@@ -2,7 +2,7 @@
 
 import React from 'react'
 import type { HoverInfo } from '../../data/types'
-import { ZONE_CLR, ZONE_META } from '../../data/zones'
+import { useNumogramView } from '../numogram/ViewContext'
 
 interface PinnedBackgroundProps {
   pinnedInfo: HoverInfo | null
@@ -10,7 +10,8 @@ interface PinnedBackgroundProps {
 }
 
 export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProps) {
-  if (!pinnedInfo) return null
+  const { view, zoneLabel } = useNumogramView()
+  if (!pinnedInfo || !view) return null
 
   return (
     <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-[1] font-mono"
@@ -19,13 +20,22 @@ export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProp
       <div className="max-w-[600px] px-12 text-center space-y-3">
         {pinnedInfo.type === 'zone' && (() => {
           const z = pinnedInfo.zone
-          const meta = ZONE_META[z]
+          const clr = view.zoneColors[z]
+          if (view.lore) {
+            const meta = view.lore.zoneMeta[z]
+            return (
+              <>
+                <div className="text-2xl tracking-[0.2em] uppercase" style={{ color: clr }}>Zone {zoneLabel(z)}</div>
+                <div className="text-sm text-gray-600">{meta?.planetFull}</div>
+                <p className="text-xs text-gray-700 leading-relaxed italic">{meta?.desc}</p>
+                <p className="text-[10px] text-gray-800 leading-relaxed">{meta?.lemurian}</p>
+              </>
+            )
+          }
           return (
             <>
-              <div className="text-2xl tracking-[0.2em] uppercase" style={{ color: ZONE_CLR[z] }}>Zone {z}</div>
-              <div className="text-sm text-gray-600">{meta.planetFull}</div>
-              <p className="text-xs text-gray-700 leading-relaxed italic">{meta.desc}</p>
-              <p className="text-[10px] text-gray-800 leading-relaxed">{meta.lemurian}</p>
+              <div className="text-2xl tracking-[0.2em] uppercase" style={{ color: clr }}>Zone {zoneLabel(z)}</div>
+              <div className="text-sm text-gray-600 uppercase tracking-[0.15em]">{view.zoneKind[z]}</div>
             </>
           )
         })()}
@@ -33,9 +43,9 @@ export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProp
           const s = pinnedInfo.data
           return (
             <>
-              <div className="text-2xl tracking-[0.2em] uppercase text-white">Syzygy {s.a}::{s.b}</div>
+              <div className="text-2xl tracking-[0.2em] uppercase text-white">Syzygy {zoneLabel(s.a)}::{zoneLabel(s.b)}</div>
               <div className="text-sm text-gray-600 italic">{s.demon}</div>
-              <p className="text-xs text-gray-700 leading-relaxed italic">{s.desc}</p>
+              {view.lore && <p className="text-xs text-gray-700 leading-relaxed italic">{s.desc}</p>}
             </>
           )
         })()}
@@ -45,17 +55,25 @@ export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProp
             <>
               <div className="text-2xl tracking-[0.2em] uppercase" style={{ color: '#22ee66' }}>{c.name}</div>
               <div className="text-sm text-gray-600">{c.label}</div>
-              <p className="text-xs text-gray-700 leading-relaxed italic">{c.desc}</p>
+              {view.lore && <p className="text-xs text-gray-700 leading-relaxed italic">{c.desc}</p>}
             </>
           )
         })()}
         {pinnedInfo.type === 'gate' && (() => {
           const g = pinnedInfo.gate
+          if (view.lore) {
+            return (
+              <>
+                <div className="text-2xl tracking-[0.2em] uppercase" style={{ color: '#cc44ff' }}>{g.name}</div>
+                <div className="text-sm text-gray-600">{g.desc}</div>
+                <p className="text-xs text-gray-700 leading-relaxed italic">{g.detail}</p>
+              </>
+            )
+          }
           return (
             <>
               <div className="text-2xl tracking-[0.2em] uppercase" style={{ color: '#cc44ff' }}>{g.name}</div>
-              <div className="text-sm text-gray-600">{g.desc}</div>
-              <p className="text-xs text-gray-700 leading-relaxed italic">{g.detail}</p>
+              <div className="text-sm text-gray-600">Zone {zoneLabel(g.from)} {'→'} Zone {zoneLabel(g.to)}</div>
             </>
           )
         })()}
@@ -64,7 +82,7 @@ export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProp
           return (
             <>
               <div className="text-2xl tracking-[0.2em] uppercase italic text-gray-400">{d.name}</div>
-              <div className="text-sm text-gray-600">{d.a}::{d.b}</div>
+              <div className="text-sm text-gray-600">{zoneLabel(d.a)}::{zoneLabel(d.b)}</div>
             </>
           )
         })()}
