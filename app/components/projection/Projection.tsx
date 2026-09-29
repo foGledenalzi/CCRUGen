@@ -11,6 +11,7 @@ import type { NumogramView } from '../../lib/numogramView'
 import type { ViewLayoutId } from '../../lib/layoutIds'
 import type { RegionLabel, RoutingStyle } from '../../../engine/index'
 import { formatNumeral } from '../../../engine/index'
+import { elementState, ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../lib/regions'
 
 interface ProjectionProps {
   view: NumogramView
@@ -36,6 +37,9 @@ interface ProjectionProps {
   showOrbits: boolean
   planetaryPos: Record<number, Pos>
   zoneOrder: number[]
+  // Isolate/mute render filter (UI-05, D-19..D-24): null (no active filter) reduces every rule below to a no-op,
+  // so the byte-identical-goldens contract holds unchanged (04-13).
+  zoneStates: Uint8Array | null
   gateRenderData: Record<string, GateRender>
   currentRenderData: Record<string, CurrentRender>
   gateCalcFocusName: string | null
@@ -50,7 +54,7 @@ export const Projection = React.memo(function Projection({
   view, routingStyle, presetRouting, width, nodeRadius, labelSize, strokeScale,
   regionLabels, zoneLabels, labelsOn, gateMode,
   pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
-  tcActive, showOrbits, planetaryPos, zoneOrder, gateRenderData,
+  tcActive, showOrbits, planetaryPos, zoneOrder, zoneStates, gateRenderData,
   currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, onHoverInfo, onPinInfo, onZoneNodeClick,
 }: ProjectionProps) {
 
@@ -62,6 +66,10 @@ export const Projection = React.memo(function Projection({
   const sunClr = view.zoneColors[0]
   // In planetary mode, reduce unfocused path opacity to cut visual clutter
   const dimOpacity = isPlanetary ? 0.03 : 0.08
+  // Isolate/mute render filter (UI-05, D-19..D-24): null zoneStates (no active filter) reduces both helpers to the
+  // prior always-normal behaviour, so every rule below is a no-op and the frozen goldens stay byte-identical.
+  const zs = (z: number): 0 | 1 | 2 => (zoneStates ? (zoneStates[z] as 0 | 1 | 2) : ZONE_NORMAL)
+  const stateOf = (zones: readonly number[]): 0 | 1 | 2 => (zoneStates ? elementState(zoneStates, zones) : ZONE_NORMAL)
   // plexExpr imported from ../../lib/numogram
   const pathTerminals = (d: string): { start: Pos; end: Pos } | null => {
     const nums = d.match(/-?\d*\.?\d+/g)
@@ -154,6 +162,8 @@ export const Projection = React.memo(function Projection({
 
       {/* Pandemonium layer */}
       {layers.has('pandemonium') && !tcActive && demons !== null && demons.filter(d => d.kind !== 'syzygy').map(d => {
+        const st = stateOf([d.a, d.b])
+        if (st === ZONE_HIDDEN) return null
         const hl = hlZones.has(d.a) || hlZones.has(d.b)
         const clr = d.kind === 'chrono' ? '#00ccff' : d.kind === 'xeno' ? '#cc3333' : '#cc8833'
         const pathD = curveAway(pos[d.a], pos[d.b], ctr.x, ctr.y, 0.25)
@@ -161,7 +171,7 @@ export const Projection = React.memo(function Projection({
           <g key={`d-${d.a}:${d.b}`} data-demon={`${d.a}:${d.b}`}>
             <path d={pathD} fill="none" stroke={clr}
               strokeWidth={(hl ? 1 : 0.4) * ss}
-              opacity={hl ? 0.6 : anyFocus ? 0.03 : (isPlanetary ? 0.06 : 0.15)}
+              opacity={hl ? 0.6 : (anyFocus || st === ZONE_DIMMED) ? 0.03 : (isPlanetary ? 0.06 : 0.15)}
               filter={hl ? 'url(#gl)' : undefined}
               style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
             <path d={pathD} fill="none" stroke="transparent" strokeWidth={12 * ss}
@@ -177,6 +187,8 @@ export const Projection = React.memo(function Projection({
       {layers.has('gates') && !tcActive && gateMode !== 'off' && view.gates.map(g => {
         const rd = gateRenderData[g.name]
         if (!rd) return null
+        const st = stateOf([g.from, g.to])
+        if (st === ZONE_HIDDEN) return null
         const fromSel = selZones.has(g.from)
         const toSel = selZones.has(g.to)
         const selectedCount = g.from === g.to
@@ -186,7 +198,7 @@ export const Projection = React.memo(function Projection({
         const partialSel = selectedCount > 0 && selectedCount < terminalCount
         const hl = hlZones.has(g.from) || hlZones.has(g.to)
         const fullHl = hl && !partialSel
-        const opacity = (fullHl ? 0.8 : anyFocus ? dimOpacity : (isPlanetary ? 0.25 : 0.5)) * (gateMode === 'thin' ? 0.5 : 1)
+        const opacity = (fullHl ? 0.8 : (anyFocus || st === ZONE_DIMMED) ? dimOpacity : (isPlanetary ? 0.25 : 0.5)) * (gateMode === 'thin' ? 0.5 : 1)
         const sw = (fullHl ? 1.2 : 0.7) * ss
         const flt = fullHl ? 'url(#gl)' : undefined
         const evts = {
@@ -278,6 +290,8 @@ export const Projection = React.memo(function Projection({
             if (!rd) return null
             const partner = view.partner(c.from)
             const destZone = currentDest(c)
+            const st = stateOf([c.from, partner, destZone])
+            if (st === ZONE_HIDDEN) return null
             const terminals = Array.from(new Set(
               rd.type === 'single'
                 ? [c.from, destZone]
@@ -290,7 +304,7 @@ export const Projection = React.memo(function Projection({
             const partialZone = selectedTerminals.length === 1 ? selectedTerminals[0] : null
             const hl = tcActive || hlZones.has(c.from) || hlZones.has(c.to) || hlZones.has(partner)
             const fullHl = hl && !partialSel
-            const opacity = fullHl ? 0.85 : anyFocus ? dimOpacity : (isPlanetary ? 0.3 : 0.6)
+            const opacity = fullHl ? 0.85 : (anyFocus || st === ZONE_DIMMED) ? dimOpacity : (isPlanetary ? 0.3 : 0.6)
             const sw = (fullHl ? 1.8 : 1.2) * ss
             const flt = fullHl ? 'url(#gl)' : undefined
             const evts = {
@@ -484,12 +498,15 @@ export const Projection = React.memo(function Projection({
       {layers.has('currents') && labelsOn && view.currents.filter(c => !tcActive || view.torqueCurrentNames.has(c.name)).map(c => {
         const rd = currentRenderData[c.name]
         if (!rd) return null
+        const partner = view.partner(c.from)
+        const destZone = currentDest(c)
+        if (stateOf([c.from, partner, destZone]) !== ZONE_NORMAL) return null
         const labelPos = rd.type === 'single' ? rd.mid : rd.junction
-        const dest = pos[currentDest(c)]
+        const dest = pos[destZone]
         const dx = dest.x - labelPos.x, dy = dest.y - labelPos.y
         const len = Math.sqrt(dx * dx + dy * dy) || 1
         const off = (rd.type === 'single' ? 14 : 18) * k
-        const hl = hlZones.has(c.from) || hlZones.has(c.to) || hlZones.has(view.partner(c.from))
+        const hl = hlZones.has(c.from) || hlZones.has(c.to) || hlZones.has(partner)
         return (
           <g key={`cl-${c.name}`} style={{ pointerEvents: 'none' }}>
             <text
@@ -510,6 +527,8 @@ export const Projection = React.memo(function Projection({
 
       {/* Syzygies layer */}
       {layers.has('syzygies') && view.syzygies.filter(s => !tcActive || view.torqueSyzygies.some(t => t[0] === s.a && t[1] === s.b)).map(s => {
+        const st = stateOf([s.a, s.b])
+        if (st === ZONE_HIDDEN) return null
         const selectedCount = (selZones.has(s.a) ? 1 : 0) + (selZones.has(s.b) ? 1 : 0)
         const partialSel = selectedCount > 0 && selectedCount < 2
         const hl = tcActive || hlZones.has(s.a) || hlZones.has(s.b)
@@ -537,11 +556,11 @@ export const Projection = React.memo(function Projection({
               const dotR = (1.0 + (t - startT) / span * 1.5) * k
               return (
                 <circle key={i} cx={x} cy={y} r={dotR} fill="#e8e8e8"
-                  opacity={fullHl ? 0.7 : anyFocus ? (isPlanetary ? 0.03 : 0.1) : (isPlanetary ? 0.2 : 0.5)}
+                  opacity={fullHl ? 0.7 : (anyFocus || st === ZONE_DIMMED) ? (isPlanetary ? 0.03 : 0.1) : (isPlanetary ? 0.2 : 0.5)}
                   style={{ transition: 'opacity 0.15s' }} />
               )
             })}
-            {fullHl && labelsOn && (() => {
+            {fullHl && labelsOn && st === ZONE_NORMAL && (() => {
               const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2
               const ndx = -dy / (dist || 1), ndy = dx / (dist || 1)
               return (
@@ -558,6 +577,7 @@ export const Projection = React.memo(function Projection({
 
       {/* Zone nodes */}
       {zoneOrder.map(z => {
+        if (zs(z) === ZONE_HIDDEN) return null
         const p = pos[z]
         const clr = view.zoneColors[z]
         const act = selZones.has(z)
@@ -578,6 +598,7 @@ export const Projection = React.memo(function Projection({
 
         return (
           <g key={z} data-zone={z} style={{ cursor: 'pointer' }}
+            opacity={zs(z) === ZONE_DIMMED ? 0.2 : undefined}
             onMouseEnter={() => onHoverInfo({ type: 'zone', zone: z })}
             onMouseLeave={() => onHoverInfo(null)}
             onClick={() => {
@@ -680,6 +701,7 @@ export const Projection = React.memo(function Projection({
       {routingStyle !== 'ladder' && layers.has('gates') && !tcActive && gateMode === 'on' && labelsOn && view.gates.map(g => {
         const rd = gateRenderData[g.name]
         if (!rd) return null
+        if (stateOf([g.from, g.to]) !== ZONE_NORMAL) return null
         const sumExpr = plexExpr(g.cum, view.base)
         const gateLabel = zoneLabels[g.from]
         const showCalc = gateCalcFocusName === g.name
@@ -749,6 +771,7 @@ export const Projection = React.memo(function Projection({
             const rd = currentRenderData[c.name]
             if (!rd) return null
             const partner = view.partner(c.from)
+            if (stateOf([c.from, partner, currentDest(c)]) === ZONE_HIDDEN) return null
             const startClrA = view.zoneColors[c.from]
             const startClrB = view.zoneColors[partner]
             if (rd.type === 'yshape') {
@@ -812,6 +835,7 @@ export const Projection = React.memo(function Projection({
           {layers.has('gates') && view.gates.filter(g => g.from !== g.to).map(g => {
             const rd = gateRenderData[g.name]
             if (!rd || rd.type === 'loop') return null
+            if (stateOf([g.from, g.to]) === ZONE_HIDDEN) return null
             const gatePath = rd.type === 'single' ? rd.path : rd.stem
             const destClr = view.zoneColors[g.to]
             const sourceClr = view.zoneColors[g.from]
@@ -832,6 +856,7 @@ export const Projection = React.memo(function Projection({
             )
           })}
           {view.torqueWalks.map((walk, i) => {
+            if (stateOf(walk) === ZONE_HIDDEN) return null
             const tcPath = walk.map((z, j) => {
               const p = pos[z]
               return j === 0 ? `M${p.x} ${p.y}` : `L${p.x} ${p.y}`
@@ -875,6 +900,7 @@ export const Projection = React.memo(function Projection({
             const rd = currentRenderData[c.name]
             if (!rd) return null
             const partner = view.partner(c.from)
+            if (stateOf([c.from, partner, currentDest(c)]) === ZONE_HIDDEN) return null
             const startClrA = view.zoneColors[c.from]
             const startClrB = view.zoneColors[partner]
 
@@ -939,6 +965,7 @@ export const Projection = React.memo(function Projection({
             if (layers.has('syzygies')) {
               for (const s of view.syzygies) {
                 if (!selZones.has(s.a) || !selZones.has(s.b)) continue
+                if (stateOf([s.a, s.b]) === ZONE_HIDDEN) continue
                 const pa = pos[s.a]
                 const pb = pos[s.b]
                 paths.push({ id: `sp-syz-${s.a}-${s.b}`, d: `M${pa.x} ${pa.y}L${pb.x} ${pb.y}`, clr: view.zoneColors[s.a], dur: 2 })
@@ -947,6 +974,7 @@ export const Projection = React.memo(function Projection({
             if (layers.has('gates')) {
               for (const g of view.gates) {
                 if (!selZones.has(g.from) || !selZones.has(g.to)) continue
+                if (stateOf([g.from, g.to]) === ZONE_HIDDEN) continue
                 const rd = gateRenderData[g.name]
                 if (!rd) continue
                 const gateFill = { start: view.zoneColors[g.to], end: view.zoneColors[g.from] }
@@ -966,6 +994,7 @@ export const Projection = React.memo(function Projection({
               for (const d of demons ?? []) {
                 if (d.kind === 'syzygy') continue
                 if (!selZones.has(d.a) || !selZones.has(d.b)) continue
+                if (stateOf([d.a, d.b]) === ZONE_HIDDEN) continue
                 const pathD = curveAway(pos[d.a], pos[d.b], ctr.x, ctr.y, 0.25)
                 paths.push({ id: `sp-dem-${d.a}-${d.b}`, d: pathD, clr: view.zoneColors[d.a], dur: 3 })
               }
@@ -998,6 +1027,7 @@ export const Projection = React.memo(function Projection({
       {tcActive && (
         <g style={{ pointerEvents: 'none' }}>
           {view.torqueEdges.map(([a, b], i) => {
+            if (stateOf([a, b]) === ZONE_HIDDEN) return null
             const pa = pos[a], pb = pos[b]
             return (
               <line key={`tc-edge-${i}`}
@@ -1007,6 +1037,7 @@ export const Projection = React.memo(function Projection({
             )
           })}
           {view.torqueWalks.map((walk, i) => {
+            if (stateOf(walk) === ZONE_HIDDEN) return null
             const tcPath = walk.map((z, j) => {
               const p = pos[z]
               return j === 0 ? `M${p.x} ${p.y}` : `L${p.x} ${p.y}`

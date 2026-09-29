@@ -22,7 +22,7 @@ import { DIAGRAM_CSS_WIDTH, layoutTarget } from './lib/viewLayouts'
 import { engineRenderData, frameLayout } from './lib/renderData'
 import { isPresetLayoutId, LAYOUT_LABELS, layoutIdsForBase, layoutShortcut } from './lib/layoutIds'
 import type { ViewLayoutId } from './lib/layoutIds'
-import { EMPTY_REGION_FILTER, isRegionId, sanitizeRegionFilter, toggleIsolate, toggleMute, zonesOfRegion } from './lib/regions'
+import { EMPTY_REGION_FILTER, isRegionId, regionFilterActive, sanitizeRegionFilter, toggleIsolate, toggleMute, zonesOfRegion, zoneStates as computeZoneStates } from './lib/regions'
 import type { RegionFilter, RegionId } from './lib/regions'
 import { buildShareParams, DEFAULT_LAYERS, parseShareParams } from './lib/shareParams'
 import type { ShareState } from './lib/shareParams'
@@ -942,6 +942,13 @@ export default function NumogramPage() {
     desktopPanelLayoutInitRef.current = true
   }, [desktopPanelHeights, isDesktop, setPanelPositions])
 
+  // Isolate/mute render filter (UI-05, D-19..D-24): built only when the filter is non-empty and there is a view to
+  // filter (SVG tier, D-16); null means "render exactly as before" to both diagrams.
+  const zoneStateArr = useMemo(
+    () => (view && regionFilterActive(regionFilter) ? computeZoneStates(g, regionFilter) : null),
+    [view, g, regionFilter],
+  )
+
   const hlZones = useMemo(() => {
     if (tcActive) return new Set(view ? view.torqueZones : [])
     if (hlRegion && isRegionId(hlRegion, g)) {
@@ -1276,7 +1283,7 @@ export default function NumogramPage() {
                   hlZones={hlZones}
                   anyFocus={anyFocus}
                   labelsOn={labelsOn}
-                  pairStates={null}
+                  pairStates={zoneStateArr ? Uint8Array.from({ length: g.pairCount }, (_, q) => zoneStateArr[q]) : null}
                   onHoverInfo={onHoverInfo}
                   onPinInfo={onPinInfo}
                   onTogglePair={onToggleSyzygyPair}
@@ -1306,6 +1313,7 @@ export default function NumogramPage() {
                   showOrbits={showOrbits}
                   planetaryPos={planetaryPos}
                   zoneOrder={zoneOrder}
+                  zoneStates={zoneStateArr}
                   gateRenderData={gateRenderData}
                   currentRenderData={currentRenderData}
                   gateCalcFocusName={gateCalcFocusName}
