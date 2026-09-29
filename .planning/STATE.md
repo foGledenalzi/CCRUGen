@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-09-29T00:35:54.657Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-09-29T00:48:40.326Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 47
-  completed_plans: 32
-  percent: 68
+  completed_plans: 33
+  percent: 70
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 04 (base-picker-and-generator-ui) — EXECUTING
-Plan: 2 of 16
+Plan: 3 of 16
 Status: Ready to execute
 Last activity: 2026-09-29
 
-Progress: [███████░░░] 68%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Progress: [███████░░░] 68%
 | Phase 03 P09 | 30min | 2 tasks | 3 files |
 | Phase 03 P10 | 153min | 3 tasks | 5 files |
 | Phase 04 P01 | 30min | 2 tasks | 4 files |
+| Phase 04 P02 | 10min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,7 @@ Recent decisions affecting current work:
 - [Phase 3 P10] Measured ceiling spike table shipped (REN-01, D-09/D-11/D-12/D-13/D-14): four real device profiles on this PC (gpu/sw/sw-4x/sw-6x, measured throttle 1x/0.98x/4.1x/6.3x), 144 measurement rows, shipped boundaries all basedOn sw-6x (svgRichMaxN 200, svgLeanMaxN 300, canvasMaxN null/no ceiling found to n=4000, layoutTweenMaxN 28, allChordsMaxN 80, canvasAreaLimitPx 2^28), WebGL adopt=false (Canvas stays in budget to n=4000), tier= override enabled; user approved the table as-is in chat review, no budget changes; Rule 1 fix to tiers.schema.test.ts's placeholder-shaped row-count assertion (commit b0b62e6); REN-01 complete (final covering plan, after 03-02 and 03-09); Phase 3 execution 10/10 plans done, verification pending
 - [Phase 4 P01] Marker contract (data-post-baseline) lets Phase 4 add new interactive chrome without regenerating the frozen behaviour baseline; behaviour.spec.ts asserts no pre-existing region (PANELS header, page header, projection svg) is ever marked, so the skip cannot hide existing UI
 - [Phase 4 P01] MIG-02 grep gate findHardcodedBaseTen shipped as an opt-in check-repo check (node scripts/check-repo.mjs --only base-ten), not yet in DEFAULT_CHECKS; worklist recorded (NumogramClient.tsx, Projection.tsx, InfoDisplay.tsx, Currents/Gates/ZonesPanel.tsx, useTween.ts, geometry.ts, shareParams.ts, xenotation.ts) matching 04-RESEARCH.md Priority 3; plan 04-16 promotes it to a default check
+- [Phase 4 P02] Pure label-scheme library shipped (UI-03, D-08..D-13): app/lib/customAlphabet.ts (MAX_ALPHABET=1024, four curated presets base62/base64url/ascii/latin1 all shipped per D-10, checkAlphabetChars/validateAlphabet typed reasons with the UI-SPEC's exact copy, FORBIDDEN = \p{Cc}\p{Cf}\p{Z}\p{M}\p{Cs}\p{Co}\p{Cn} covering bidi/control/combining/private-use per T-04-04), app/lib/glyphCoverage.ts (injectable GlyphCanvas, canvas-vs-PUA-reference heuristic memoized per character, null canvas always 'ok'), app/lib/labelScheme.ts (formatZoneLabel/zoneLabelsFor built on the engine's formatNumeral and xenotation.ts's formatXenotationForDisplay, never re-implemented; a short preset/custom alphabet always falls back to the numeral, never a wrong label; formatLabelScheme/parseLabelScheme/labelSchemeKey give labels= a lenient round-tripping URL form); 50 unit tests in tests/app/ (new vitest oracle-project directory), npm run typecheck clean; UI-03 spans six plans (04-02, 04-05, 04-06, 04-09, 04-10, 04-12) so REQUIREMENTS.md stays Pending until 04-12
 
 ### Pending Todos
 
@@ -170,8 +172,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-29T00:35:54.649Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-09-29T00:48:40.319Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z
