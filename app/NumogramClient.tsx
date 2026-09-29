@@ -52,6 +52,7 @@ import { PairGraphProjection } from './components/projection/PairGraphProjection
 import { BasePicker } from './components/numogram/BasePicker'
 import { BigBaseSummary } from './components/numogram/BigBaseSummary'
 import { TextView } from './components/numogram/TextView'
+import { ViewControls } from './components/numogram/ViewControls'
 import { InfoDisplay } from './components/info/InfoDisplay'
 import { PinnedBackground } from './components/info/PinnedBackground'
 import { LayersPanel } from './components/panels/LayersPanel'
@@ -940,6 +941,12 @@ export default function NumogramPage() {
     [view, g, regionFilter],
   )
 
+  // UI-06: fit every visible (non-muted) zone into view, keyboard-reachable via the ViewControls toolbar.
+  const fitAll = useCallback(() => {
+    const zones = Array.from({ length: g.zoneCount }, (_, z) => z).filter(z => !zoneStateArr || zoneStateArr[z] !== 0)
+    fitSelectionToView(zones)
+  }, [g, zoneStateArr, fitSelectionToView])
+
   const hlZones = useMemo(() => {
     if (tcActive) return new Set(view ? view.torqueZones : [])
     if (hlRegion && isRegionId(hlRegion, g)) {
@@ -1575,6 +1582,10 @@ export default function NumogramPage() {
           />
         </div>
       </Panel>
+
+      {showDiagram && (
+        <ViewControls zoom={zoom} onZoomIn={() => setZoom(zoom * 1.25)} onZoomOut={() => setZoom(zoom / 1.25)} onFit={fitAll} />
+      )}
 
       <button
         className="fixed bottom-3 right-3 z-[74] px-2.5 py-1 text-[8px] uppercase tracking-[0.17em]"

@@ -190,3 +190,33 @@ export function MuteIcon({ clr }: IconProps) {
     </svg>
   )
 }
+
+// View toolbar icons (04-15, UI-06): zoom in/out (a magnifier with a +/- bar) and fit (four corner brackets).
+export function ZoomInIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="10.5" cy="10.5" r="6.5" stroke={clr} strokeWidth="1.2" strokeLinecap="round" fill="none" />
+      <path d="M15.5 15.5L21 21" stroke={clr} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M8 10.5H13 M10.5 8V13" stroke={clr} strokeWidth="1.1" strokeLinecap="round" opacity="0.6" />
+    </svg>
+  )
+}
+
+export function ZoomOutIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="10.5" cy="10.5" r="6.5" stroke={clr} strokeWidth="1.2" strokeLinecap="round" fill="none" />
+      <path d="M15.5 15.5L21 21" stroke={clr} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M8 10.5H13" stroke={clr} strokeWidth="1.1" strokeLinecap="round" opacity="0.6" />
+    </svg>
+  )
+}
+
+export function FitIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M4 9V4H9 M15 4H20V9 M20 15V20H15 M9 20H4V15" stroke={clr} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx="12" cy="12" r="1.2" fill={clr} opacity="0.6" />
+    </svg>
+  )
+}
