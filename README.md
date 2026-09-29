@@ -6,7 +6,7 @@ Pick a base and CCRUG derives the zones, syzygies, currents, gates, the Plex / W
 
 Based on lumpenspace/ccru (https://github.com/lumpenspace/ccru). The upstream repository ships no license, so the files inherited from it are not relicensed here, and the CCRU-derived base-10 lore text is a third-party pack (see [NOTICE](NOTICE) and [Licensing](#licensing-and-credits)).
 
-> **Status: early development.** The repository still runs the inherited base-10 viewer, now built as a fully static site, decluttered (no CRT overlay, glitch effects or intro splash, and no functionality removed) and frozen behind a base-10 test oracle. The generator is being built phase by phase (see the [roadmap](#roadmap)): Phases 1 through 3 are complete and independently verified. The numogram engine is built, the base-10 viewer runs on it, and any even base now gets a deterministic procedural layout (ring, ladder or Barker spiral, plus a syzygy-collapsed pair-graph view), with base 10 keeping its four authored layouts as presets. The renderer's threshold table is measured, not assumed: a real four-device-profile spike (native GPU, software raster, and two CPU-throttled profiles emulating weaker hardware) on the maintainer's machine, reviewed and approved before it shipped.
+> **Status: early development.** The generator is being built phase by phase (see the [roadmap](#roadmap)): Phases 1 through 4 are complete and independently verified. The repository is now a fully static site with an interactive numogram viewer that works for any even base, not just base 10. Pick a base by typing, stepping, sliding or clicking a notable-base chip; the diagram, a region legend (Plex, Warp and each Torque cycle, independently isolated or muted), and zone labels (in-base digits, decimal with a separator, xenotation, or a custom alphabet) all update live, the view round-trips through a shareable `?base=` URL, and the whole thing works without a mouse or colour vision (keyboard traversal, ARIA labelling, reduced motion, and a text view with a copy button). Base 10 stays byte-identical to a frozen pre-refactor oracle throughout, and layouts above it are deterministic and procedural (ring, ladder or Barker spiral, plus a syzygy-collapsed pair-graph view). The renderer's threshold table is measured, not assumed: a real four-device-profile spike (native GPU, software raster, and two CPU-throttled profiles emulating weaker hardware) on the maintainer's machine, reviewed and approved before it shipped. Past that measured SVG-tier ceiling, a text summary takes over rather than freezing the tab; the Canvas tier for larger bases (Phase 6) is still to come.
 
 ## The idea
 
@@ -52,7 +52,7 @@ Planning documents live in [`.planning/`](.planning/): start with [`PROJECT.md`]
 | 1. Foundations and Safety Net | Static-export toolchain, the base-10 viewer frozen as a test oracle, enforced engine boundary, licensing | Complete (verified) |
 | 2. Engine Core and Base-10 Migration | Pure tested engine for any even base; the base-10 viewer re-derived from it | Complete (verified) |
 | 3. Procedural Layout and Ceiling Spike | Legible layouts for any base and a measured renderer threshold table | Complete (verified) |
-| 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Not started |
+| 4. Base Picker and Generator UI | Interactive viewer for any even base, URL state, accessibility | Complete (verified) |
 | 5. Demons Layer | Browse, count and inspect every demon at any base | Not started |
 | 6. Canvas Tier and Worker | Large bases stay interactive; graceful degradation | Not started |
 | 7. Naming Builder | Zone sounds, derived demon names, JSON import / export | Not started |
@@ -127,7 +127,7 @@ Two more frozen sets sit beside them. `engine/test/fixtures/derived/notable-base
 ## Repository layout
 
 - `app/` - the Next.js viewer (`app/numogram/`, `app/NumogramClient.tsx`, `app/components/`, `app/hooks/`, `app/lib/`).
-- `app/data/` - thin pass-through seams (the base-10 structure now comes from the engine); they and one seam in `app/lib/constants.ts` go away in Phase 4.
+- `app/data/` - just `types.ts` now; the six base-10 data seams and the re-export in `app/lib/constants.ts` were deleted in Phase 4 once every consumer moved to `app/presets/base10/*` or the engine directly.
 - `app/presets/base10/` - the base-10 adapters (engine output joined with lore by id) and `lore.ts`, the single CCRU-lore module (third-party text, see `NOTICE`).
 - `engine/` - the pure TypeScript numogram engine (`engine/core/`), its tests, and the frozen numeric oracle and derived fixtures.
 - `tests/` - Vitest suites (oracle, manifests, page-weight, e2e normalizer, repository guards) and the independent brute-force reference in `tests/bruteforce/`.
