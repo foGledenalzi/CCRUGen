@@ -4,8 +4,9 @@
 //
 // Default checks: reference, origin, junk, license, notice, lore, goldens, lf, gitattributes, workflow.
 // Extra checks (only when flagged): --clean-tree (build/test left no tracked file modified, frozen oracle
-// dirs pristine) and --static-out (the exported out/ tree is clean). --only restricts the run to the named
-// checks (any of the twelve).
+// dirs pristine) and --static-out (the exported out/ tree is clean). base-ten (MIG-02's hard-coded 10-zone
+// grep gate) is runnable with --only base-ten but is not yet a default check (becomes one in plan 04-16).
+// --only restricts the run to the named checks (any of the thirteen).
 //
 // Zero dependencies, ESM. git is always run without a shell, and only local read commands are used: this
 // script never contacts a remote (D-05).
@@ -239,6 +240,41 @@ export function parseDirtyStatus(porcelain) {
   return porcelain.split(/\r?\n/).filter((line) => line.trim() !== '')
 }
 
+/** Paths exempt from the MIG-02 gate: the base-10 preset (by design), the base-10-only planetary layout (Phase 3 D-05) and icon geometry. */
+export const BASE_TEN_EXEMPT = ['app/presets/base10/', 'app/lib/planetary.ts', 'app/hooks/useOrbitalAnimation.ts', 'app/components/numogram/NumogramIcons.tsx']
+export const BASE_TEN_PATTERNS = [
+  { name: 'partner 9 - x', re: /\b9\s*-\s*[A-Za-z_$(]/ },
+  { name: 'torque zones [1, 2, 4, 5, 7, 8]', re: /\[\s*1\s*,\s*2\s*,\s*4\s*,\s*5\s*,\s*7\s*,\s*8\s*\]/ },
+  { name: 'torque walk [1, 8, 7, 2, 5, 4, 1]', re: /\[\s*1\s*,\s*8\s*,\s*7\s*,\s*2\s*,\s*5\s*,\s*4\s*,\s*1\s*\]/ },
+  { name: 'zone bound <= 9', re: /[A-Za-z_$][\w$.]*\s*<=\s*9\b/ },
+  { name: 'zone bound > 9', re: /[A-Za-z_$][\w$.]*\s*>\s*9\b/ },
+  { name: 'half-base bound <= 4', re: /[A-Za-z_$][\w$.]*\s*<=\s*4\b/ },
+  { name: 'ten-zone array { length: 10 }', re: /length:\s*10\b/ },
+  { name: 'zone total={10}', re: /total=\{\s*10\s*\}/ },
+  { name: 'nine-sum = 9', re: /\}\s*=\s*9\b/ },
+  { name: 'zone list [0..9]', re: /\[\s*0\s*,\s*1\s*,\s*2\s*,\s*3\s*,\s*4\s*,\s*5\s*,\s*6\s*,\s*7\s*,\s*8\s*,\s*9\s*\]/ },
+  { name: 'zone list [1..9]', re: /\[\s*1\s*,\s*2\s*,\s*3\s*,\s*4\s*,\s*5\s*,\s*6\s*,\s*7\s*,\s*8\s*,\s*9\s*\]/ },
+]
+/**
+ * Hard-coded 10-zone constants (MIG-02): one problem per matching line and pattern, `<path>:<line>: <pattern name>`.
+ * @param {{ path: string, text: string }[]} files repo-relative forward-slash paths
+ * @returns {string[]}
+ */
+export function findHardcodedBaseTen(files) {
+  /** @type {string[]} */
+  const problems = []
+  for (const { path: filePath, text } of files) {
+    if (BASE_TEN_EXEMPT.some((exempt) => filePath.startsWith(exempt))) continue
+    const lines = text.split(/\r?\n/)
+    for (let i = 0; i < lines.length; i++) {
+      for (const { name, re } of BASE_TEN_PATTERNS) {
+        if (re.test(lines[i])) problems.push(`${filePath}:${i + 1}: ${name}`)
+      }
+    }
+  }
+  return problems
+}
+
 // ----- checks against the real repository -----
 
 /** @param {string[]} args @returns {string} */
@@ -261,6 +297,13 @@ function trackedFiles() {
 
 /** @param {string} rel @returns {string} */
 const readText = (rel) => readFileSync(path.join(ROOT, ...rel.split('/')), 'utf8')
+
+/** @returns {{ path: string, text: string }[]} every tracked .ts/.tsx file under app/ */
+function appSourceFiles() {
+  return trackedFiles()
+    .filter((f) => f.startsWith('app/') && /\.(ts|tsx)$/.test(f))
+    .map((f) => ({ path: f, text: readText(f) }))
+}
 
 /**
  * @param {string} rel
@@ -309,6 +352,7 @@ const CHECKS = {
   workflow: () => fileCheck('.github/workflows/ci.yml', workflowProblems),
   'clean-tree': checkCleanTree,
   'static-out': () => scanStaticOut(path.join(ROOT, 'out')),
+  'base-ten': () => findHardcodedBaseTen(appSourceFiles()),
 }
 export const DEFAULT_CHECKS = ['reference', 'origin', 'junk', 'license', 'notice', 'lore', 'goldens', 'lf', 'gitattributes', 'workflow']
 

@@ -4,12 +4,14 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  BASE_TEN_EXEMPT,
   FORBIDDEN_OUT,
   LF_DIRS,
   LORE_FILES,
   LORE_HEADER,
   MANIFESTS,
   findCarriageReturns,
+  findHardcodedBaseTen,
   findTrackedJunk,
   findTrackedReference,
   gitattributesProblems,
@@ -377,6 +379,60 @@ describe('MANIFESTS and LF_DIRS', () => {
     // the older frozen sets stay covered
     expect(MANIFESTS).toEqual(expect.arrayContaining(['e2e/__golden__/MANIFEST.json', 'engine/test/fixtures/MANIFEST.json']))
     expect(LF_DIRS).toEqual(expect.arrayContaining(['e2e/__golden__', 'engine/test/fixtures', 'perf']))
+  })
+})
+
+describe('findHardcodedBaseTen', () => {
+  const f = (text: string) => [{ path: 'app/example.ts', text }]
+
+  it.each([
+    ['partner 9 - x', 'const p = 9 - zone'],
+    ['torque zones [1, 2, 4, 5, 7, 8]', 'new Set([1, 2, 4, 5, 7, 8])'],
+    ['torque walk [1, 8, 7, 2, 5, 4, 1]', 'const w = [1, 8, 7, 2, 5, 4, 1]'],
+    ['zone bound <= 9', 'for (let z = 0; z <= 9; z++)'],
+    ['zone bound > 9', 'if (n > 9) return'],
+    ['half-base bound <= 4', 'for (let z = 0; z <= 4; z++)'],
+    ['ten-zone array { length: 10 }', 'Array.from({ length: 10 }, f)'],
+    ['zone total={10}', 'total={10}'],
+    ['nine-sum = 9', '`${a}+${b}=9`'],
+    ['zone list [0..9]', '[0,1,2,3,4,5,6,7,8,9].sort()'],
+    ['zone list [1..9]', '[1,2,3,4,5,6,7,8,9].map(f)'],
+  ])('flags %s', (name, line) => {
+    expect(findHardcodedBaseTen(f(line))).toEqual([`app/example.ts:1: ${name}`])
+  })
+
+  it('reports the correct 1-based line number', () => {
+    const text = 'const a = 1\nconst b = 2\nconst p = 9 - zone\n'
+    expect(findHardcodedBaseTen([{ path: 'app/x.ts', text }])).toEqual(['app/x.ts:3: partner 9 - x'])
+  })
+
+  it.each(BASE_TEN_EXEMPT)('skips files under the exemption list even when they match: %s', (exempt) => {
+    const filePath = exempt.endsWith('/') ? `${exempt}foo.ts` : exempt
+    expect(findHardcodedBaseTen([{ path: filePath, text: 'const p = 9 - zone' }])).toEqual([])
+  })
+
+  it.each([
+    'g.partner(z)',
+    'for (let z = 0; z < g.zoneCount; z++)',
+    'z <= lastZone',
+    'n - 1 - z',
+    'const nine = 9',
+    'const y = 19 - x',
+    'if (w <= 90) return',
+  ])('does not flag generic code: %s', (line) => {
+    expect(findHardcodedBaseTen(f(line))).toEqual([])
+  })
+
+  it('scans multiple files and multiple patterns per file', () => {
+    const files = [
+      { path: 'app/a.ts', text: 'const p = 9 - zone\nconst q = [1, 2, 4, 5, 7, 8]' },
+      { path: 'app/b.tsx', text: 'total={10}' },
+    ]
+    expect(findHardcodedBaseTen(files)).toEqual([
+      'app/a.ts:1: partner 9 - x',
+      'app/a.ts:2: torque zones [1, 2, 4, 5, 7, 8]',
+      'app/b.tsx:1: zone total={10}',
+    ])
   })
 })
 
