@@ -1,22 +1,30 @@
 'use client'
 
 import React from 'react'
-import type { Layout, Layer, Pos, HoverInfo, GateRender, CurrentRender, LabelVisibility } from '../../data/types'
-import { ZONE_CLR, ZONE_REGION, ZONE_META, PLANET_SYMBOL } from '../../data/zones'
-import { PLANETARY_CX, PLANETARY_CY, PLANETARY_SIZE } from '../../data/positions'
-import { SYZYGIES } from '../../data/syzygies'
-import { CURRENTS } from '../../data/currents'
-import { GATE_LIST } from '../../data/gates'
-import { ALL_DEMONS } from '../../data/demons'
-import { REGION_CLR, TC_EDGES, TC_CURRENTS, TC_SYZYGIES } from '../../lib/constants'
+import type { Layer, Pos, HoverInfo, GateRender, CurrentRender, LabelVisibility, CurrentData } from '../../data/types'
+import { PLANETARY_CX, PLANETARY_CY, PLANETARY_SIZE } from '../../presets/base10/layouts'
+import { REGION_CLR } from '../../lib/constants'
 import { curveAway, syzMidBiased, syzTrianglePoints, midpoint } from '../../lib/geometry'
 import { formatXenotationForDisplay } from '../../lib/xenotation'
 import { plexExpr } from '../../lib/numogram'
 import type { NumogramView } from '../../lib/numogramView'
+import type { ViewLayoutId } from '../../lib/layoutIds'
+import type { RegionLabel, RoutingStyle } from '../../../engine/index'
+import { formatNumeral } from '../../../engine/index'
 
 interface ProjectionProps {
   view: NumogramView
-  layout: Layout
+  layoutId: ViewLayoutId
+  routingStyle: RoutingStyle
+  presetRouting: boolean
+  width: number
+  nodeRadius: number
+  labelSize: number
+  strokeScale: number
+  regionLabels: readonly RegionLabel[]
+  zoneLabels: readonly string[]
+  labelsOn: boolean
+  gateMode: 'on' | 'thin' | 'off'
   pos: Record<number, Pos>
   ctr: Pos
   svgHeight: number
@@ -39,18 +47,21 @@ interface ProjectionProps {
 }
 
 export const Projection = React.memo(function Projection({
-  view, layout, pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
+  view, routingStyle, presetRouting, width, nodeRadius, labelSize, strokeScale,
+  regionLabels, zoneLabels, labelsOn, gateMode,
+  pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
   tcActive, showOrbits, planetaryPos, zoneOrder, gateRenderData,
   currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, onHoverInfo, onPinInfo, onZoneNodeClick,
 }: ProjectionProps) {
 
-  const isPlanetary = layout === 'planetary'
-  const sunClr = ZONE_CLR[0]
+  const isPlanetary = routingStyle === 'planetary'
+  const k = nodeRadius / 21
+  const ss = strokeScale
+  const currentDest = (c: CurrentData) => (presetRouting ? view.presetCurrentDest(c) : c.to)
+  const demons = view.demons
+  const sunClr = view.zoneColors[0]
   // In planetary mode, reduce unfocused path opacity to cut visual clutter
   const dimOpacity = isPlanetary ? 0.03 : 0.08
-  const getCurrentDestZone = (from: number, to: number, name: string) => (
-    name === 'Warp' || name === 'Plex' ? Math.min(from, 9 - from) : to
-  )
   // plexExpr imported from ../../lib/numogram
   const pathTerminals = (d: string): { start: Pos; end: Pos } | null => {
     const nums = d.match(/-?\d*\.?\d+/g)
@@ -85,7 +96,7 @@ export const Projection = React.memo(function Projection({
   }
 
   return (
-    <svg viewBox={`0 0 800 ${svgHeight}`} className="w-[580px] flex-shrink-0" style={{ overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${svgHeight}`} className="w-[580px] flex-shrink-0" style={{ overflow: 'visible' }} data-diagram="zones">
       <defs>
         <filter id="gl"><feGaussianBlur stdDeviation="3" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         <filter id="gl2"><feGaussianBlur stdDeviation="5" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
@@ -116,14 +127,14 @@ export const Projection = React.memo(function Projection({
           <stop offset="50%" stopColor={sunClr} stopOpacity="0.12" />
           <stop offset="100%" stopColor={sunClr} stopOpacity="0" />
         </radialGradient>
-        {layout === 'planetary' && [1,2,3,4,5,6,7,8,9].map(z => {
+        {isPlanetary && Array.from({ length: view.zoneCount - 1 }, (_, i) => i + 1).map(z => {
           const pp = planetaryPos[z]
           const dx = PLANETARY_CX - pp.x
           const dy = PLANETARY_CY - pp.y
           const dist = Math.sqrt(dx * dx + dy * dy) || 1
           const nx = dx / dist, ny = dy / dist
           const fxP = 50 + nx * 35, fyP = 50 + ny * 35
-          const clr = ZONE_CLR[z]
+          const clr = view.zoneColors[z]
           return (
             <radialGradient key={`sphere-${z}`} id={`sphere-${z}`}
               cx="50%" cy="50%" r="50%" fx={`${fxP}%`} fy={`${fyP}%`}>
@@ -139,21 +150,21 @@ export const Projection = React.memo(function Projection({
       </defs>
 
       {/* Region labels */}
-      <RegionLabels layout={layout} showOrbits={showOrbits} />
+      <RegionLabels labels={regionLabels} planetary={isPlanetary} showOrbits={showOrbits} />
 
       {/* Pandemonium layer */}
-      {layers.has('pandemonium') && !tcActive && ALL_DEMONS.filter(d => d.kind !== 'syzygy').map(d => {
+      {layers.has('pandemonium') && !tcActive && demons !== null && demons.filter(d => d.kind !== 'syzygy').map(d => {
         const hl = hlZones.has(d.a) || hlZones.has(d.b)
         const clr = d.kind === 'chrono' ? '#00ccff' : d.kind === 'xeno' ? '#cc3333' : '#cc8833'
         const pathD = curveAway(pos[d.a], pos[d.b], ctr.x, ctr.y, 0.25)
         return (
-          <g key={`d-${d.a}:${d.b}`}>
+          <g key={`d-${d.a}:${d.b}`} data-demon={`${d.a}:${d.b}`}>
             <path d={pathD} fill="none" stroke={clr}
-              strokeWidth={hl ? 1 : 0.4}
+              strokeWidth={(hl ? 1 : 0.4) * ss}
               opacity={hl ? 0.6 : anyFocus ? 0.03 : (isPlanetary ? 0.06 : 0.15)}
               filter={hl ? 'url(#gl)' : undefined}
               style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
-            <path d={pathD} fill="none" stroke="transparent" strokeWidth={12}
+            <path d={pathD} fill="none" stroke="transparent" strokeWidth={12 * ss}
               style={{ cursor: 'pointer' }}
               onMouseEnter={() => onHoverInfo({ type: 'demon', demon: d })}
               onMouseLeave={() => onHoverInfo(null)}
@@ -163,7 +174,7 @@ export const Projection = React.memo(function Projection({
       })}
 
       {/* Gates layer */}
-      {layers.has('gates') && !tcActive && GATE_LIST.map(g => {
+      {layers.has('gates') && !tcActive && gateMode !== 'off' && view.gates.map(g => {
         const rd = gateRenderData[g.name]
         if (!rd) return null
         const fromSel = selZones.has(g.from)
@@ -175,8 +186,8 @@ export const Projection = React.memo(function Projection({
         const partialSel = selectedCount > 0 && selectedCount < terminalCount
         const hl = hlZones.has(g.from) || hlZones.has(g.to)
         const fullHl = hl && !partialSel
-        const opacity = fullHl ? 0.8 : anyFocus ? dimOpacity : (isPlanetary ? 0.25 : 0.5)
-        const sw = fullHl ? 1.2 : 0.7
+        const opacity = (fullHl ? 0.8 : anyFocus ? dimOpacity : (isPlanetary ? 0.25 : 0.5)) * (gateMode === 'thin' ? 0.5 : 1)
+        const sw = (fullHl ? 1.2 : 0.7) * ss
         const flt = fullHl ? 'url(#gl)' : undefined
         const evts = {
           onMouseEnter: () => onHoverInfo({ type: 'gate', gate: g }),
@@ -186,11 +197,11 @@ export const Projection = React.memo(function Projection({
 
         if (rd.type === 'loop') {
           return (
-            <g key={g.name}>
+            <g key={g.name} data-gate={g.name}>
               <path d={rd.loop} fill="none" stroke="#cc44ff"
-                strokeWidth={sw} strokeDasharray="3 2" opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
+                strokeWidth={sw} strokeDasharray={`${3 * ss} ${2 * ss}`} opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
                 style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
-              <path d={rd.loop} fill="none" stroke="transparent" strokeWidth={12}
+              <path d={rd.loop} fill="none" stroke="transparent" strokeWidth={12 * ss}
                 style={{ cursor: 'pointer' }} {...evts} />
             </g>
           )
@@ -198,9 +209,9 @@ export const Projection = React.memo(function Projection({
 
         if (rd.type === 'single') {
           return (
-            <g key={g.name}>
+            <g key={g.name} data-gate={g.name}>
               <path d={rd.path} fill="none" stroke="#cc44ff"
-                strokeWidth={sw} strokeDasharray="5 3" opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
+                strokeWidth={sw} strokeDasharray={`${5 * ss} ${3 * ss}`} opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
                 style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
               {partialSel && (
                 (() => {
@@ -223,7 +234,7 @@ export const Projection = React.memo(function Projection({
                         d={rd.path}
                         fill="none"
                         stroke={gv ? `url(#${gradId})` : '#cc44ff'}
-                        strokeWidth={1.2}
+                        strokeWidth={1.2 * ss}
                         opacity={0.95}
                         filter="url(#gl)"
                         style={{ pointerEvents: 'none' }}
@@ -232,28 +243,28 @@ export const Projection = React.memo(function Projection({
                   )
                 })()
               )}
-              <path d={rd.path} fill="none" stroke="transparent" strokeWidth={12}
+              <path d={rd.path} fill="none" stroke="transparent" strokeWidth={12 * ss}
                 style={{ cursor: 'pointer' }} {...evts} />
             </g>
           )
         }
 
         return (
-          <g key={g.name}>
+          <g key={g.name} data-gate={g.name}>
             <path d={rd.legA} fill="none" stroke="#cc44ff" strokeWidth={sw * 0.8}
-              strokeDasharray="3 3" opacity={opacity * 0.7} filter={flt}
+              strokeDasharray={`${3 * ss} ${3 * ss}`} opacity={opacity * 0.7} filter={flt}
               style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
             <path d={rd.legB} fill="none" stroke="#cc44ff" strokeWidth={sw * 0.8}
-              strokeDasharray="3 3" opacity={opacity * 0.7} filter={flt}
+              strokeDasharray={`${3 * ss} ${3 * ss}`} opacity={opacity * 0.7} filter={flt}
               style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
             <path d={rd.stem} fill="none" stroke="#cc44ff" strokeWidth={sw}
-              strokeDasharray="5 3" opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
+              strokeDasharray={`${5 * ss} ${3 * ss}`} opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
               style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
-            <path d={rd.legA} fill="none" stroke="transparent" strokeWidth={12}
+            <path d={rd.legA} fill="none" stroke="transparent" strokeWidth={12 * ss}
               style={{ cursor: 'pointer' }} {...evts} />
-            <path d={rd.legB} fill="none" stroke="transparent" strokeWidth={12}
+            <path d={rd.legB} fill="none" stroke="transparent" strokeWidth={12 * ss}
               style={{ cursor: 'pointer' }} {...evts} />
-            <path d={rd.stem} fill="none" stroke="transparent" strokeWidth={12}
+            <path d={rd.stem} fill="none" stroke="transparent" strokeWidth={12 * ss}
               style={{ cursor: 'pointer' }} {...evts} />
           </g>
         )
@@ -262,11 +273,11 @@ export const Projection = React.memo(function Projection({
       {/* Currents layer */}
       {layers.has('currents') && (
         <>
-          {CURRENTS.filter(c => !tcActive || TC_CURRENTS.has(c.name)).map(c => {
+          {view.currents.filter(c => !tcActive || view.torqueCurrentNames.has(c.name)).map(c => {
             const rd = currentRenderData[c.name]
             if (!rd) return null
-            const partner = 9 - c.from
-            const destZone = getCurrentDestZone(c.from, c.to, c.name)
+            const partner = view.partner(c.from)
+            const destZone = currentDest(c)
             const terminals = Array.from(new Set(
               rd.type === 'single'
                 ? [c.from, destZone]
@@ -280,7 +291,7 @@ export const Projection = React.memo(function Projection({
             const hl = tcActive || hlZones.has(c.from) || hlZones.has(c.to) || hlZones.has(partner)
             const fullHl = hl && !partialSel
             const opacity = fullHl ? 0.85 : anyFocus ? dimOpacity : (isPlanetary ? 0.3 : 0.6)
-            const sw = fullHl ? 1.8 : 1.2
+            const sw = (fullHl ? 1.8 : 1.2) * ss
             const flt = fullHl ? 'url(#gl)' : undefined
             const evts = {
               onMouseEnter: () => onHoverInfo({ type: 'current', data: c }),
@@ -290,7 +301,7 @@ export const Projection = React.memo(function Projection({
 
             if (rd.type === 'single') {
               return (
-                <g key={c.name}>
+                <g key={c.name} data-current={c.name}>
                   <path d={rd.path} fill="none" stroke="#22ee66" strokeWidth={sw}
                     opacity={opacity} markerEnd="url(#arr-c)" filter={flt}
                     style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -316,7 +327,7 @@ export const Projection = React.memo(function Projection({
                             d={rd.path}
                             fill="none"
                             stroke={gv ? `url(#${gradId})` : '#22ee66'}
-                            strokeWidth={1.8}
+                            strokeWidth={1.8 * ss}
                             opacity={0.95}
                             filter="url(#gl)"
                             style={{ pointerEvents: 'none' }}
@@ -325,10 +336,10 @@ export const Projection = React.memo(function Projection({
                       )
                     })()
                   )}
-                  <circle cx={rd.mid.x} cy={rd.mid.y} r={fullHl ? 4 : 3}
-                    fill="#ffffff" stroke="#22ee66" strokeWidth={0.6}
+                  <circle cx={rd.mid.x} cy={rd.mid.y} r={(fullHl ? 4 : 3) * k}
+                    fill="#ffffff" stroke="#22ee66" strokeWidth={0.6 * ss}
                     opacity={opacity * 0.9} style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
-                  <path d={rd.path} fill="none" stroke="transparent" strokeWidth={14}
+                  <path d={rd.path} fill="none" stroke="transparent" strokeWidth={14 * ss}
                     style={{ cursor: 'pointer' }} {...evts} />
                 </g>
               )
@@ -337,7 +348,7 @@ export const Projection = React.memo(function Projection({
             if (rd.type === 'loop') {
               const partialLeg = partialZone !== null ? pickClosestPathHalf([rd.legA, rd.legB], partialZone) : null
               return (
-                <g key={c.name}>
+                <g key={c.name} data-current={c.name}>
                   <path d={rd.legA} fill="none" stroke="#22ee66" strokeWidth={sw * 0.7}
                     opacity={opacity * 0.7} filter={flt}
                     style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -366,7 +377,7 @@ export const Projection = React.memo(function Projection({
                             d={partialLeg.path}
                             fill="none"
                             stroke={gv ? `url(#${gradId})` : '#22ee66'}
-                            strokeWidth={1.25}
+                            strokeWidth={1.25 * ss}
                             opacity={0.95}
                             filter="url(#gl)"
                             style={{ pointerEvents: 'none' }}
@@ -375,11 +386,11 @@ export const Projection = React.memo(function Projection({
                       )
                     })()
                   )}
-                  <path d={rd.legA} fill="none" stroke="transparent" strokeWidth={14}
+                  <path d={rd.legA} fill="none" stroke="transparent" strokeWidth={14 * ss}
                     style={{ cursor: 'pointer' }} {...evts} />
-                  <path d={rd.legB} fill="none" stroke="transparent" strokeWidth={14}
+                  <path d={rd.legB} fill="none" stroke="transparent" strokeWidth={14 * ss}
                     style={{ cursor: 'pointer' }} {...evts} />
-                  <path d={rd.loop} fill="none" stroke="transparent" strokeWidth={12}
+                  <path d={rd.loop} fill="none" stroke="transparent" strokeWidth={12 * ss}
                     style={{ cursor: 'pointer' }} {...evts} />
                 </g>
               )
@@ -387,15 +398,15 @@ export const Projection = React.memo(function Projection({
 
             const partialLeg = partialZone !== null ? pickClosestPathHalf([rd.legA, rd.legB], partialZone) : null
             return (
-              <g key={c.name}>
+              <g key={c.name} data-current={c.name}>
                 <path d={rd.legA} fill="none" stroke="#22ee66" strokeWidth={sw * 0.7}
                   opacity={opacity * 0.7} filter={flt}
                   style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
                 <path d={rd.legB} fill="none" stroke="#22ee66" strokeWidth={sw * 0.7}
                   opacity={opacity * 0.7} filter={flt}
                   style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
-                <circle cx={rd.junction.x} cy={rd.junction.y} r={hl ? 5 : 3.5}
-                  fill="#ffffff" stroke="#22ee66" strokeWidth={0.8}
+                <circle cx={rd.junction.x} cy={rd.junction.y} r={(hl ? 5 : 3.5) * k}
+                  fill="#ffffff" stroke="#22ee66" strokeWidth={0.8 * ss}
                   opacity={opacity} style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
                 <path d={rd.stem} fill="none" stroke="#22ee66" strokeWidth={sw}
                   opacity={opacity} markerEnd="url(#arr-c)" filter={flt}
@@ -420,7 +431,7 @@ export const Projection = React.memo(function Projection({
                             d={rd.stem}
                             fill="none"
                             stroke={gv ? `url(#${gradId})` : '#22ee66'}
-                            strokeWidth={1.8}
+                            strokeWidth={1.8 * ss}
                             opacity={0.95}
                             filter="url(#gl)"
                             style={{ pointerEvents: 'none' }}
@@ -447,7 +458,7 @@ export const Projection = React.memo(function Projection({
                             d={partialLeg.path}
                             fill="none"
                             stroke={gv ? `url(#${gradId})` : '#22ee66'}
-                            strokeWidth={1.25}
+                            strokeWidth={1.25 * ss}
                             opacity={0.95}
                             filter="url(#gl)"
                             style={{ pointerEvents: 'none' }}
@@ -457,11 +468,11 @@ export const Projection = React.memo(function Projection({
                     })()
                   ) : null
                 )}
-                <path d={rd.legA} fill="none" stroke="transparent" strokeWidth={14}
+                <path d={rd.legA} fill="none" stroke="transparent" strokeWidth={14 * ss}
                   style={{ cursor: 'pointer' }} {...evts} />
-                <path d={rd.legB} fill="none" stroke="transparent" strokeWidth={14}
+                <path d={rd.legB} fill="none" stroke="transparent" strokeWidth={14 * ss}
                   style={{ cursor: 'pointer' }} {...evts} />
-                <path d={rd.stem} fill="none" stroke="transparent" strokeWidth={14}
+                <path d={rd.stem} fill="none" stroke="transparent" strokeWidth={14 * ss}
                   style={{ cursor: 'pointer' }} {...evts} />
               </g>
             )
@@ -470,27 +481,27 @@ export const Projection = React.memo(function Projection({
       )}
 
       {/* Current labels */}
-      {layers.has('currents') && CURRENTS.filter(c => !tcActive || TC_CURRENTS.has(c.name)).map(c => {
+      {layers.has('currents') && labelsOn && view.currents.filter(c => !tcActive || view.torqueCurrentNames.has(c.name)).map(c => {
         const rd = currentRenderData[c.name]
         if (!rd) return null
         const labelPos = rd.type === 'single' ? rd.mid : rd.junction
-        const dest = pos[getCurrentDestZone(c.from, c.to, c.name)]
+        const dest = pos[currentDest(c)]
         const dx = dest.x - labelPos.x, dy = dest.y - labelPos.y
         const len = Math.sqrt(dx * dx + dy * dy) || 1
-        const off = rd.type === 'single' ? 14 : 18
-        const hl = hlZones.has(c.from) || hlZones.has(c.to) || hlZones.has(9 - c.from)
+        const off = (rd.type === 'single' ? 14 : 18) * k
+        const hl = hlZones.has(c.from) || hlZones.has(c.to) || hlZones.has(view.partner(c.from))
         return (
           <g key={`cl-${c.name}`} style={{ pointerEvents: 'none' }}>
             <text
               x={labelPos.x + (-dy / len) * off}
-              y={labelPos.y + (dx / len) * off - 3}
-              textAnchor="middle" fill="#22ee66" fontSize="8" fontWeight="bold"
+              y={labelPos.y + (dx / len) * off - 3 * k}
+              textAnchor="middle" fill="#22ee66" fontSize={8 * k} fontWeight="bold"
               opacity={hl ? 0.85 : 0.45} fontFamily="monospace"
             >{c.name}</text>
             <text
               x={labelPos.x + (-dy / len) * off}
-              y={labelPos.y + (dx / len) * off + 7}
-              textAnchor="middle" fill="#22ee66" fontSize="6"
+              y={labelPos.y + (dx / len) * off + 7 * k}
+              textAnchor="middle" fill="#22ee66" fontSize={6 * k}
               opacity={hl ? 0.6 : 0.3} fontFamily="monospace"
             >{c.label}</text>
           </g>
@@ -498,7 +509,7 @@ export const Projection = React.memo(function Projection({
       })}
 
       {/* Syzygies layer */}
-      {layers.has('syzygies') && SYZYGIES.filter(s => !tcActive || TC_SYZYGIES.some(t => t[0] === s.a && t[1] === s.b)).map(s => {
+      {layers.has('syzygies') && view.syzygies.filter(s => !tcActive || view.torqueSyzygies.some(t => t[0] === s.a && t[1] === s.b)).map(s => {
         const selectedCount = (selZones.has(s.a) ? 1 : 0) + (selZones.has(s.b) ? 1 : 0)
         const partialSel = selectedCount > 0 && selectedCount < 2
         const hl = tcActive || hlZones.has(s.a) || hlZones.has(s.b)
@@ -506,37 +517,37 @@ export const Projection = React.memo(function Projection({
         const pa = pos[s.a], pb = pos[s.b]
         const dx = pb.x - pa.x, dy = pb.y - pa.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        const r = 21
+        const r = nodeRadius
         const startT = dist > 0 ? r / dist : 0
         const endT = dist > 0 ? 1 - r / dist : 1
         const span = endT - startT
-        const numDots = Math.max(3, Math.min(10, Math.round(dist / 30)))
+        const numDots = Math.max(3, Math.min(10, Math.round(dist / (30 * k))))
 
         return (
-          <g key={`s-${s.a}:${s.b}`} style={{ cursor: 'pointer' }}
+          <g key={`s-${s.a}:${s.b}`} data-syzygy={`${s.a}:${s.b}`} style={{ cursor: 'pointer' }}
             onMouseEnter={() => onHoverInfo({ type: 'syzygy', data: s })}
             onMouseLeave={() => onHoverInfo(null)}
             onClick={() => onPinInfo({ type: 'syzygy', data: s })}
           >
-            <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="transparent" strokeWidth={14} />
+            <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="transparent" strokeWidth={14 * ss} />
             {Array.from({ length: numDots }, (_, i) => {
               const t = startT + span * (i + 1) / (numDots + 1)
               const x = pa.x + dx * t
               const y = pa.y + dy * t
-              const dotR = 1.0 + (t - startT) / span * 1.5
+              const dotR = (1.0 + (t - startT) / span * 1.5) * k
               return (
                 <circle key={i} cx={x} cy={y} r={dotR} fill="#e8e8e8"
                   opacity={fullHl ? 0.7 : anyFocus ? (isPlanetary ? 0.03 : 0.1) : (isPlanetary ? 0.2 : 0.5)}
                   style={{ transition: 'opacity 0.15s' }} />
               )
             })}
-            {fullHl && (() => {
+            {fullHl && labelsOn && (() => {
               const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2
               const ndx = -dy / (dist || 1), ndy = dx / (dist || 1)
               return (
-                <text x={mx + ndx * 14} y={my + ndy * 14}
+                <text x={mx + ndx * 14 * k} y={my + ndy * 14 * k}
                   textAnchor="middle" dominantBaseline="central"
-                  fill="#e8e8e8" fontSize="7" fontStyle="italic" fontFamily="monospace"
+                  fill="#e8e8e8" fontSize={7 * k} fontStyle="italic" fontFamily="monospace"
                   opacity={0.7} style={{ pointerEvents: 'none' }}
                 >{s.demon}</text>
               )
@@ -548,26 +559,25 @@ export const Projection = React.memo(function Projection({
       {/* Zone nodes */}
       {zoneOrder.map(z => {
         const p = pos[z]
-        const clr = ZONE_CLR[z]
+        const clr = view.zoneColors[z]
         const act = selZones.has(z)
         const hl = hlZones.has(z)
-        const region = ZONE_REGION[z]
-        const meta = ZONE_META[z]
+        const region = view.zoneKind[z]
+        const meta = view.lore ? view.lore.zoneMeta[z] : null
         const xenotation = formatXenotationForDisplay(z)
-        const isPlanetary = layout === 'planetary'
-        const nodeR = isPlanetary ? PLANETARY_SIZE[z] : 21
+        const nodeR = isPlanetary ? PLANETARY_SIZE[z] : nodeRadius
         const isSun = isPlanetary && z === 0
-        const showNumber = labelVisibility.numbers
-        const showPlanet = labelVisibility.planets
-        const showXenotation = labelVisibility.xenotation && xenotation.length > 0
+        const showNumber = labelVisibility.numbers && labelsOn
+        const showPlanet = labelVisibility.planets && meta !== null
+        const showXenotation = labelVisibility.xenotation && labelsOn && xenotation.length > 0
         const lowerLabels: string[] = []
-        if (showNumber) lowerLabels.push(String(z))
+        if (showNumber) lowerLabels.push(zoneLabels[z])
         if (showXenotation) lowerLabels.push(xenotation)
-        if (showPlanet) lowerLabels.push(meta.planet)
-        const regionDotY = p.y + nodeR + 10 + (lowerLabels.length > 0 ? lowerLabels.length * 8 + 2 : 0)
+        if (showPlanet && meta) lowerLabels.push(meta.planet)
+        const regionDotY = p.y + nodeR + 10 * k + (lowerLabels.length > 0 ? lowerLabels.length * 8 * k + 2 * k : 0)
 
         return (
-          <g key={z} style={{ cursor: 'pointer' }}
+          <g key={z} data-zone={z} style={{ cursor: 'pointer' }}
             onMouseEnter={() => onHoverInfo({ type: 'zone', zone: z })}
             onMouseLeave={() => onHoverInfo(null)}
             onClick={() => {
@@ -582,15 +592,15 @@ export const Projection = React.memo(function Projection({
               </>
             )}
             {act && (
-              <circle cx={p.x} cy={p.y} r={nodeR + 7} fill="none" stroke={clr} strokeWidth={0.5} opacity={0.3} filter="url(#gl2)" />
+              <circle cx={p.x} cy={p.y} r={nodeR + 7 * k} fill="none" stroke={clr} strokeWidth={0.5 * ss} opacity={0.3} filter="url(#gl2)" />
             )}
             <circle cx={p.x} cy={p.y} r={nodeR}
               fill={isPlanetary ? `url(#sphere-${z})` : `${clr}18`}
               stroke={isSun ? 'none' : (act || hl ? clr : `${clr}44`)}
-              strokeWidth={isSun ? 0 : (act ? 1.6 : hl ? 1.2 : 0.7)}
+              strokeWidth={(isSun ? 0 : (act ? 1.6 : hl ? 1.2 : 0.7)) * ss}
               filter={isSun ? 'url(#sunGlow)' : undefined} />
             {!isSun && (
-              <polygon points={syzTrianglePoints(z, view.partner(z), pos)} fill={clr}
+              <polygon points={syzTrianglePoints(z, view.partner(z), pos, k)} fill={clr}
                 opacity={act || hl ? 0.5 : 0.2}
                 style={{ pointerEvents: 'none', transition: 'opacity 0.15s' }} />
             )}
@@ -602,7 +612,7 @@ export const Projection = React.memo(function Projection({
                     fill="#000000"
                     fontSize={isSun ? 24 : Math.max(12, nodeR * 0.9)} fontWeight="bold"
                     style={{ pointerEvents: 'none' }}
-                  >{PLANET_SYMBOL[z]}</text>
+                  >{view.lore?.planetSymbol[z]}</text>
                 )}
                 {!showPlanet && showNumber && (
                   <text x={p.x} y={p.y + 1}
@@ -610,17 +620,17 @@ export const Projection = React.memo(function Projection({
                     fill={act || hl ? clr : `${clr}aa`}
                     fontSize={Math.max(12, nodeR * 0.85)} fontWeight="bold" fontFamily="monospace"
                     style={{ pointerEvents: 'none' }}
-                  >{z}</text>
+                  >{zoneLabels[z]}</text>
                 )}
                 {lowerLabels.map((label, idx) => (
                   <text
                     key={`${z}-planetary-label-${idx}`}
                     x={p.x}
-                    y={p.y + nodeR + 10 + (idx + 1) * 8}
+                    y={p.y + nodeR + 10 * k + (idx + 1) * 8 * k}
                     textAnchor="middle"
                     dominantBaseline="central"
                     fill={act || hl ? clr : `${clr}66`}
-                    fontSize={idx === 0 ? '7' : '6.5'}
+                    fontSize={idx === 0 ? 7 * k : 6.5 * k}
                     fontFamily="monospace"
                     fontStyle={label === xenotation ? 'italic' : 'normal'}
                     opacity={act || hl ? 0.8 : 0.4}
@@ -636,42 +646,42 @@ export const Projection = React.memo(function Projection({
                   <text x={p.x} y={p.y + 1}
                     textAnchor="middle" dominantBaseline="central"
                     fill={act || hl ? clr : `${clr}aa`}
-                    fontSize="17" fontWeight="bold" fontFamily="monospace"
+                    fontSize={labelSize} fontWeight="bold" fontFamily="monospace"
                     style={{ pointerEvents: 'none' }}
-                  >{z}</text>
+                  >{zoneLabels[z]}</text>
                 )}
                 {showXenotation && (
-                  <text x={p.x} y={p.y + 24}
+                  <text x={p.x} y={p.y + 24 * k}
                     textAnchor="middle" dominantBaseline="central"
                     fill={act || hl ? clr : `${clr}70`}
-                    fontSize="6.5" fontFamily="monospace" fontStyle="italic"
+                    fontSize={6.5 * k} fontFamily="monospace" fontStyle="italic"
                     opacity={act || hl ? 0.82 : 0.44}
                     style={{ pointerEvents: 'none', transition: 'opacity 0.15s' }}
                   >{xenotation}</text>
                 )}
                 {showPlanet && (
-                  <text x={p.x} y={p.y + (showXenotation ? 32 : 30)}
+                  <text x={p.x} y={p.y + (showXenotation ? 32 : 30) * k}
                     textAnchor="middle" dominantBaseline="central"
                     fill={act || hl ? clr : `${clr}66`}
-                    fontSize="7" fontFamily="monospace"
+                    fontSize={7 * k} fontFamily="monospace"
                     opacity={act || hl ? 0.8 : 0.4}
                     style={{ pointerEvents: 'none', transition: 'opacity 0.15s' }}
-                  >{meta.planet}</text>
+                  >{meta?.planet}</text>
                 )}
               </>
             )}
-            <circle cx={p.x} cy={regionDotY} r={2}
+            <circle cx={p.x} cy={regionDotY} r={2 * k}
               fill={REGION_CLR[region]} opacity={0.3} />
           </g>
         )
       })}
 
       {/* Gate meeting labels */}
-      {layout !== 'ladder' && layers.has('gates') && !tcActive && GATE_LIST.map(g => {
+      {routingStyle !== 'ladder' && layers.has('gates') && !tcActive && gateMode === 'on' && labelsOn && view.gates.map(g => {
         const rd = gateRenderData[g.name]
         if (!rd) return null
         const sumExpr = plexExpr(g.cum, view.base)
-        const gateLabel = String(g.from)
+        const gateLabel = zoneLabels[g.from]
         const showCalc = gateCalcFocusName === g.name
         const hl = hlZones.has(g.from) || hlZones.has(g.to)
         const gateEvts = {
@@ -686,46 +696,46 @@ export const Projection = React.memo(function Projection({
           if (rd.mid) j = rd.mid
           else {
             const pt = syzMidBiased(g.from, view.partner(g.from), pos)
-            j = { x: pt.x, y: pt.y + (pt.y > ctr.y ? 20 : -20) }
+            j = { x: pt.x, y: pt.y + (pt.y > ctr.y ? 20 * k : -20 * k) }
           }
         } else {
           j = rd.junction
         }
         return (
-          <g key={`gl-${g.name}`} style={{ cursor: 'pointer' }} {...gateEvts}>
-            <circle cx={j.x} cy={j.y} r={showCalc && sumExpr ? 12 : 9}
-              fill="#060609" stroke="#cc44ff33" strokeWidth={0.5} />
+          <g key={`gl-${g.name}`} data-gate-label={g.name} style={{ cursor: 'pointer' }} {...gateEvts}>
+            <circle cx={j.x} cy={j.y} r={(showCalc && sumExpr ? 12 : 9) * k}
+              fill="#060609" stroke="#cc44ff33" strokeWidth={0.5 * ss} />
             {rd.type === 'loop' && (
               <circle
                 cx={j.x}
                 cy={j.y}
-                r={showCalc && sumExpr ? 15 : 12}
+                r={(showCalc && sumExpr ? 15 : 12) * k}
                 fill="none"
                 stroke="#cc44ff66"
-                strokeWidth={0.7}
+                strokeWidth={0.7 * ss}
                 opacity={hl ? 0.8 : 0.45}
               />
             )}
             {showCalc && sumExpr && (
-              <text x={j.x} y={j.y - 12} textAnchor="middle"
-                fill="#cc44ff" fontSize="8.5" fontFamily="monospace"
+              <text x={j.x} y={j.y - 12 * k} textAnchor="middle"
+                fill="#cc44ff" fontSize={8.5 * k} fontFamily="monospace"
                 fontStyle="italic" opacity={hl ? 0.86 : 0.5}
-              >{g.cum}</text>
+              >{formatNumeral(g.cum, view.base)}</text>
             )}
-            <text x={j.x} y={j.y - (showCalc && sumExpr ? 2 : 0)} textAnchor="middle" dominantBaseline="central"
-              fill="#cc44ff" fontSize="7" fontFamily="monospace" fontStyle="italic"
+            <text x={j.x} y={j.y - (showCalc && sumExpr ? 2 : 0) * k} textAnchor="middle" dominantBaseline="central"
+              fill="#cc44ff" fontSize={7 * k} fontFamily="monospace" fontStyle="italic"
               opacity={hl ? 0.92 : 0.55}
             >{gateLabel}</text>
             {showCalc && sumExpr && (
-              <text x={j.x} y={j.y + 8} textAnchor="middle"
-                fill="#cc44ff" fontSize="8" fontFamily="monospace"
+              <text x={j.x} y={j.y + 8 * k} textAnchor="middle"
+                fill="#cc44ff" fontSize={8 * k} fontFamily="monospace"
                 fontStyle="italic" opacity={hl ? 0.8 : 0.45}
               >{sumExpr}</text>
             )}
             <circle
               cx={j.x}
               cy={j.y}
-              r={showCalc && sumExpr ? 18 : 14}
+              r={(showCalc && sumExpr ? 18 : 14) * k}
               fill="transparent"
             />
           </g>
@@ -735,11 +745,12 @@ export const Projection = React.memo(function Projection({
       {/* Particle animation layer */}
       {particlesOn && (
         <g style={{ pointerEvents: 'none' }}>
-          {layers.has('currents') && CURRENTS.map(c => {
+          {layers.has('currents') && view.currents.map(c => {
             const rd = currentRenderData[c.name]
             if (!rd) return null
-            const startClrA = ZONE_CLR[c.from]
-            const startClrB = ZONE_CLR[9 - c.from]
+            const partner = view.partner(c.from)
+            const startClrA = view.zoneColors[c.from]
+            const startClrB = view.zoneColors[partner]
             if (rd.type === 'yshape') {
               const inboundDur = 1.8
               const stemDur = 2.4
@@ -749,13 +760,13 @@ export const Projection = React.memo(function Projection({
                   <path id={`cp-legB-${c.name}`} d={rd.legB} fill="none" stroke="none" />
                   <path id={`cp-stem-${c.name}`} d={rd.stem} fill="none" stroke="none" />
 
-                  <circle r={2.4} fill={startClrA} opacity={0.92} filter="url(#gl)">
+                  <circle r={2.4 * k} fill={startClrA} opacity={0.92} filter="url(#gl)">
                     <animateMotion dur={`${inboundDur}s`} begin="0s" repeatCount="indefinite">
                       <mpath href={`#cp-legA-${c.name}`} />
                     </animateMotion>
                     <animate attributeName="opacity" values="0.98;0.18;0.98" dur="0.9s" repeatCount="indefinite" />
                   </circle>
-                  <circle r={2.4} fill={startClrB} opacity={0.92} filter="url(#gl)">
+                  <circle r={2.4 * k} fill={startClrB} opacity={0.92} filter="url(#gl)">
                     <animateMotion dur={`${inboundDur}s`} begin="0s" repeatCount="indefinite">
                       <mpath href={`#cp-legB-${c.name}`} />
                     </animateMotion>
@@ -763,7 +774,7 @@ export const Projection = React.memo(function Projection({
                   </circle>
 
                   {[0, 1].map(i => (
-                    <circle key={`stem-${i}`} r={2.4}
+                    <circle key={`stem-${i}`} r={2.4 * k}
                       fill={i === 0 ? startClrA : startClrB} opacity={0.95} filter="url(#gl)">
                       <animateMotion dur={`${stemDur}s`} begin={`${inboundDur + i * (stemDur / 2)}s`} repeatCount="indefinite">
                         <mpath href={`#cp-stem-${c.name}`} />
@@ -783,7 +794,7 @@ export const Projection = React.memo(function Projection({
               <g key={`particle-c-${c.name}`}>
                 <path id={`cp-${c.name}`} d={stemPath} fill="none" stroke="none" />
                 {[0, 1].map(i => (
-                  <circle key={i} r={2.5} fill={i === 0 ? startClrA : startClrB} opacity={0.92} filter="url(#gl)">
+                  <circle key={i} r={2.5 * k} fill={i === 0 ? startClrA : startClrB} opacity={0.92} filter="url(#gl)">
                     <animateMotion dur="3s" begin={`${i * 1.5}s`} repeatCount="indefinite">
                       <mpath href={`#cp-${c.name}`} />
                     </animateMotion>
@@ -798,16 +809,16 @@ export const Projection = React.memo(function Projection({
               </g>
             )
           })}
-          {layers.has('gates') && GATE_LIST.filter(g => g.from !== g.to).map(g => {
+          {layers.has('gates') && view.gates.filter(g => g.from !== g.to).map(g => {
             const rd = gateRenderData[g.name]
             if (!rd || rd.type === 'loop') return null
             const gatePath = rd.type === 'single' ? rd.path : rd.stem
-            const destClr = ZONE_CLR[g.to]
-            const sourceClr = ZONE_CLR[g.from]
+            const destClr = view.zoneColors[g.to]
+            const sourceClr = view.zoneColors[g.from]
             return (
               <g key={`particle-g-${g.name}`}>
                 <path id={`gp-${g.name}`} d={gatePath} fill="none" stroke="none" />
-                <circle r={2} fill={destClr} opacity={0.7} filter="url(#gl)">
+                <circle r={2 * k} fill={destClr} opacity={0.7} filter="url(#gl)">
                   <animateMotion dur="4s" repeatCount="indefinite">
                     <mpath href={`#gp-${g.name}`} />
                   </animateMotion>
@@ -820,38 +831,38 @@ export const Projection = React.memo(function Projection({
               </g>
             )
           })}
-          {(() => {
-            const tcZones = [1, 8, 7, 2, 5, 4, 1]
-            const tcPath = tcZones.map((z, i) => {
+          {view.torqueWalks.map((walk, i) => {
+            const tcPath = walk.map((z, j) => {
               const p = pos[z]
-              return i === 0 ? `M${p.x} ${p.y}` : `L${p.x} ${p.y}`
+              return j === 0 ? `M${p.x} ${p.y}` : `L${p.x} ${p.y}`
             }).join(' ')
+            const pathId = i === 0 ? 'tc-path' : `tc-path-${i}`
             return (
-              <>
-                <path id="tc-path" d={tcPath} fill="none" stroke="none" />
-                {[0, 1, 2].map(i => (
-                  <circle key={`tc-${i}`} r={3} fill="#00ccff" opacity={0.7} filter="url(#gl)">
-                    <animateMotion dur="8s" begin={`${i * 2.67}s`} repeatCount="indefinite">
-                      <mpath href="#tc-path" />
+              <React.Fragment key={`tc-particle-${i}`}>
+                <path id={pathId} d={tcPath} fill="none" stroke="none" />
+                {[0, 1, 2].map(pi => (
+                  <circle key={`tc-${i}-${pi}`} r={3 * k} fill="#00ccff" opacity={0.7} filter="url(#gl)">
+                    <animateMotion dur="8s" begin={`${pi * 2.67}s`} repeatCount="indefinite">
+                      <mpath href={`#${pathId}`} />
                     </animateMotion>
                     <animate attributeName="r" values="2;4;2" dur="2.67s" repeatCount="indefinite" />
                     <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.67s" repeatCount="indefinite" />
                   </circle>
                 ))}
-              </>
+              </React.Fragment>
             )
-          })()}
+          })}
         </g>
       )}
 
       {/* Selection-triggered particle flow */}
       {selZones.size > 0 && (
         <g style={{ pointerEvents: 'none' }}>
-          {layers.has('currents') && CURRENTS.filter(c => {
+          {layers.has('currents') && view.currents.filter(c => {
             const rd = currentRenderData[c.name]
             if (!rd) return false
-            const partner = 9 - c.from
-            const dest = getCurrentDestZone(c.from, c.to, c.name)
+            const partner = view.partner(c.from)
+            const dest = currentDest(c)
             const terminals = Array.from(new Set(
               rd.type === 'single'
                 ? [c.from, dest]
@@ -863,8 +874,9 @@ export const Projection = React.memo(function Projection({
           }).map(c => {
             const rd = currentRenderData[c.name]
             if (!rd) return null
-            const startClrA = ZONE_CLR[c.from]
-            const startClrB = ZONE_CLR[9 - c.from]
+            const partner = view.partner(c.from)
+            const startClrA = view.zoneColors[c.from]
+            const startClrB = view.zoneColors[partner]
 
             if (rd.type === 'yshape') {
               const inboundDur = 1.8
@@ -875,13 +887,13 @@ export const Projection = React.memo(function Projection({
                   <path id={`sp-cur-legB-${c.name}`} d={rd.legB} fill="none" stroke="none" />
                   <path id={`sp-cur-stem-${c.name}`} d={rd.stem} fill="none" stroke="none" />
 
-                  <circle r={2.5} fill={startClrA} opacity={0.95} filter="url(#gl)">
+                  <circle r={2.5 * k} fill={startClrA} opacity={0.95} filter="url(#gl)">
                     <animateMotion dur={`${inboundDur}s`} begin="0s" repeatCount="indefinite">
                       <mpath href={`#sp-cur-legA-${c.name}`} />
                     </animateMotion>
                     <animate attributeName="opacity" values="0.98;0.18;0.98" dur="0.9s" repeatCount="indefinite" />
                   </circle>
-                  <circle r={2.5} fill={startClrB} opacity={0.95} filter="url(#gl)">
+                  <circle r={2.5 * k} fill={startClrB} opacity={0.95} filter="url(#gl)">
                     <animateMotion dur={`${inboundDur}s`} begin="0s" repeatCount="indefinite">
                       <mpath href={`#sp-cur-legB-${c.name}`} />
                     </animateMotion>
@@ -889,7 +901,7 @@ export const Projection = React.memo(function Projection({
                   </circle>
 
                   {[0, 1].map(i => (
-                    <circle key={`stem-${i}`} r={2.5}
+                    <circle key={`stem-${i}`} r={2.5 * k}
                       fill={i === 0 ? startClrA : startClrB} opacity={0.95} filter="url(#gl)">
                       <animateMotion dur={`${stemDur}s`} begin={`${inboundDur + i * (stemDur / 2)}s`} repeatCount="indefinite">
                         <mpath href={`#sp-cur-stem-${c.name}`} />
@@ -910,7 +922,7 @@ export const Projection = React.memo(function Projection({
               <g key={`sp-cur-${c.name}`}>
                 <path id={`sp-cur-${c.name}`} d={stemPath} fill="none" stroke="none" />
                 {[0, 1].map(i => (
-                  <circle key={i} r={2.5} fill={i === 0 ? startClrA : startClrB} opacity={0.92} filter="url(#gl)">
+                  <circle key={i} r={2.5 * k} fill={i === 0 ? startClrA : startClrB} opacity={0.92} filter="url(#gl)">
                     <animateMotion dur="3s" begin={`${i * 1.5}s`} repeatCount="indefinite">
                       <mpath href={`#sp-cur-${c.name}`} />
                     </animateMotion>
@@ -925,20 +937,20 @@ export const Projection = React.memo(function Projection({
             const paths: { id: string; d: string; clr: string; dur: number; gateFill?: { start: string; end: string } }[] = []
 
             if (layers.has('syzygies')) {
-              for (const s of SYZYGIES) {
+              for (const s of view.syzygies) {
                 if (!selZones.has(s.a) || !selZones.has(s.b)) continue
                 const pa = pos[s.a]
                 const pb = pos[s.b]
-                paths.push({ id: `sp-syz-${s.a}-${s.b}`, d: `M${pa.x} ${pa.y}L${pb.x} ${pb.y}`, clr: ZONE_CLR[s.a], dur: 2 })
+                paths.push({ id: `sp-syz-${s.a}-${s.b}`, d: `M${pa.x} ${pa.y}L${pb.x} ${pb.y}`, clr: view.zoneColors[s.a], dur: 2 })
               }
             }
             if (layers.has('gates')) {
-              for (const g of GATE_LIST) {
+              for (const g of view.gates) {
                 if (!selZones.has(g.from) || !selZones.has(g.to)) continue
                 const rd = gateRenderData[g.name]
                 if (!rd) continue
-                const gateFill = { start: ZONE_CLR[g.to], end: ZONE_CLR[g.from] }
-                const clr = ZONE_CLR[g.from]
+                const gateFill = { start: view.zoneColors[g.to], end: view.zoneColors[g.from] }
+                const clr = view.zoneColors[g.from]
                 if (rd.type === 'loop') {
                   paths.push({ id: `sp-gate-${g.name}`, d: rd.loop, clr, dur: 2, gateFill })
                 } else if (rd.type === 'single') {
@@ -951,11 +963,11 @@ export const Projection = React.memo(function Projection({
               }
             }
             if (layers.has('pandemonium')) {
-              for (const d of ALL_DEMONS) {
+              for (const d of demons ?? []) {
                 if (d.kind === 'syzygy') continue
                 if (!selZones.has(d.a) || !selZones.has(d.b)) continue
                 const pathD = curveAway(pos[d.a], pos[d.b], ctr.x, ctr.y, 0.25)
-                paths.push({ id: `sp-dem-${d.a}-${d.b}`, d: pathD, clr: ZONE_CLR[d.a], dur: 3 })
+                paths.push({ id: `sp-dem-${d.a}-${d.b}`, d: pathD, clr: view.zoneColors[d.a], dur: 3 })
               }
             }
 
@@ -963,7 +975,7 @@ export const Projection = React.memo(function Projection({
               <g key={p.id}>
                 <path id={p.id} d={p.d} fill="none" stroke="none" />
                 {[0, 1].map(i => (
-                  <circle key={i} r={2.5} fill={p.clr} opacity={0.8} filter="url(#gl)">
+                  <circle key={i} r={2.5 * k} fill={p.clr} opacity={0.8} filter="url(#gl)">
                     <animateMotion dur={`${p.dur}s`} begin={`${i * p.dur / 2}s`} repeatCount="indefinite">
                       <mpath href={`#${p.id}`} />
                     </animateMotion>
@@ -985,36 +997,36 @@ export const Projection = React.memo(function Projection({
       {/* Time Circuit overlay */}
       {tcActive && (
         <g style={{ pointerEvents: 'none' }}>
-          {TC_EDGES.map(([a, b], i) => {
+          {view.torqueEdges.map(([a, b], i) => {
             const pa = pos[a], pb = pos[b]
             return (
               <line key={`tc-edge-${i}`}
                 x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y}
-                stroke="#00ccff" strokeWidth={1.5} opacity={0.6}
+                stroke="#00ccff" strokeWidth={1.5 * ss} opacity={0.6}
                 filter="url(#gl)" />
             )
           })}
-          {(() => {
-            const tcZones = [1, 8, 7, 2, 5, 4, 1]
-            const tcPath = tcZones.map((z, i) => {
+          {view.torqueWalks.map((walk, i) => {
+            const tcPath = walk.map((z, j) => {
               const p = pos[z]
-              return i === 0 ? `M${p.x} ${p.y}` : `L${p.x} ${p.y}`
+              return j === 0 ? `M${p.x} ${p.y}` : `L${p.x} ${p.y}`
             }).join(' ')
+            const pathId = i === 0 ? 'tc-active-path' : `tc-active-path-${i}`
             return (
-              <>
-                <path id="tc-active-path" d={tcPath} fill="none" stroke="none" />
-                {[0, 1, 2, 3].map(i => (
-                  <circle key={`tc-active-${i}`} r={3.5} fill="#00ccff" opacity={0.8} filter="url(#gl)">
-                    <animateMotion dur="6s" begin={`${i * 1.5}s`} repeatCount="indefinite">
-                      <mpath href="#tc-active-path" />
+              <React.Fragment key={`tc-active-${i}`}>
+                <path id={pathId} d={tcPath} fill="none" stroke="none" />
+                {[0, 1, 2, 3].map(pi => (
+                  <circle key={`tc-active-${i}-${pi}`} r={3.5 * k} fill="#00ccff" opacity={0.8} filter="url(#gl)">
+                    <animateMotion dur="6s" begin={`${pi * 1.5}s`} repeatCount="indefinite">
+                      <mpath href={`#${pathId}`} />
                     </animateMotion>
                     <animate attributeName="r" values="2;4.5;2" dur="3s" repeatCount="indefinite" />
                     <animate attributeName="opacity" values="0.4;1;0.4" dur="3s" repeatCount="indefinite" />
                   </circle>
                 ))}
-              </>
+              </React.Fragment>
             )
-          })()}
+          })}
         </g>
       )}
     </svg>
@@ -1022,25 +1034,8 @@ export const Projection = React.memo(function Projection({
 })
 
 // Internal sub-component for region labels
-function RegionLabels({ layout, showOrbits }: { layout: Layout; showOrbits: boolean }) {
-  if (layout === 'labyrinth') {
-    return (
-      <>
-        <text x={400} y={20} textAnchor="middle" fill="#44cc77" fontSize="9" opacity={0.4} fontFamily="monospace">WARP</text>
-        <text x={400} y={438} textAnchor="middle" fill="#00ccff" fontSize="9" opacity={0.25} fontFamily="monospace">TORQUE</text>
-        <text x={400} y={865} textAnchor="middle" fill="#aa6633" fontSize="9" opacity={0.4} fontFamily="monospace">PLEX</text>
-      </>
-    )
-  }
-  if (layout === 'ladder') {
-    return (
-      <>
-        <text x={175} y={280} textAnchor="end" fill="#44cc77" fontSize="8" opacity={0.35} fontFamily="monospace">WARP</text>
-        <text x={175} y={804} textAnchor="end" fill="#aa6633" fontSize="8" opacity={0.35} fontFamily="monospace">PLEX</text>
-      </>
-    )
-  }
-  if (layout === 'planetary') {
+function RegionLabels({ labels, planetary, showOrbits }: { labels: readonly RegionLabel[]; planetary: boolean; showOrbits: boolean }) {
+  if (planetary) {
     return (
       <>
         {showOrbits && [55, 95, 130, 165, 210, 255, 295, 330, 360].map(r => (
@@ -1056,8 +1051,12 @@ function RegionLabels({ layout, showOrbits }: { layout: Layout; showOrbits: bool
   }
   return (
     <>
-      <text x={335} y={45} textAnchor="middle" fill="#44cc77" fontSize="8" opacity={0.35} fontFamily="monospace">WARP</text>
-      <text x={400} y={930} textAnchor="middle" fill="#aa6633" fontSize="8" opacity={0.35} fontFamily="monospace">PLEX</text>
+      {labels.map((l, i) => (
+        <text key={i} x={l.x} y={l.y} textAnchor={l.anchor} fill={REGION_CLR[l.kind]}
+          fontSize={l.size} opacity={l.opacity} fontFamily="monospace" data-region-label="">
+          {l.text}
+        </text>
+      ))}
     </>
   )
 }

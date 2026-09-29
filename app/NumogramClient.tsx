@@ -17,6 +17,7 @@ import { withBasePath } from './lib/basePath'
 import { buildNumogramView } from './lib/numogramView'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel, zoneLabelsFor } from './lib/labelScheme'
 import { ALL_CHORDS_MAX_N, SVG_RICH_MAX_N } from './lib/tierBounds'
+import { DRAW_ORDER, FRAME_WIDTH, LABEL_SIZE, NODE_RADIUS, REGION_LABELS } from './presets/base10/layout-tables'
 
 // Presets
 import { BASE10 } from './presets/base10/numogram'
@@ -996,12 +997,10 @@ export default function NumogramPage() {
   const zoneOrder = useMemo(() => {
     if (layout === 'planetary') {
       // Depth-sort: lower y (farther) renders first, higher y (nearer) renders last
-      return [0,1,2,3,4,5,6,7,8,9].sort((a, b) => pos[a].y - pos[b].y)
+      return Array.from({ length: view.zoneCount }, (_, z) => z).sort((a, b) => pos[a].y - pos[b].y)
     }
-    if (layout === 'labyrinth') return [6, 3, 8, 7, 1, 2, 4, 5, 9, 0]
-    if (layout === 'ladder') return [4, 5, 3, 6, 2, 7, 1, 8, 0, 9]
-    return [6, 3, 2, 7, 5, 4, 1, 8, 9, 0]
-  }, [layout, pos])
+    return [...DRAW_ORDER[layout]]
+  }, [layout, pos, view])
 
   const gateCalcFocusName = hoverInfo?.type === 'gate'
     ? hoverInfo.gate.name
@@ -1165,7 +1164,17 @@ export default function NumogramPage() {
           }}>
             <Projection
               view={view}
-              layout={layout}
+              layoutId={layout}
+              routingStyle={layout === 'ladder' ? 'ladder' : layout === 'planetary' ? 'planetary' : 'default'}
+              presetRouting
+              width={FRAME_WIDTH}
+              nodeRadius={NODE_RADIUS}
+              labelSize={LABEL_SIZE}
+              strokeScale={1}
+              regionLabels={REGION_LABELS[layout]}
+              zoneLabels={zoneLabels}
+              labelsOn
+              gateMode="on"
               pos={pos}
               ctr={ctr}
               svgHeight={svgHeight}
