@@ -38,19 +38,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UI
 
-- [x] **UI-01
-**: The user can choose an even base via a base picker (odd input is refused with an explanation), notable-base chips (2, 4, 6, 8, 10, 12, 16, 22, 28, 64, 80, 82, 100, 1024; user amendment D-07, 2026-09-28), and sees a live summary (zones, Warp yes/no, Torque cycle lengths, demon counts)
-- [x] **UI-02
-**: The chosen base is carried in the URL as `?base=`; existing base-10 share links keep working; absurdly large bases are refused with a message instead of freezing the tab
-- [x] **UI-03
-**: Zone labels are in-base digits up to base 36 and decimal with a separator beyond, with custom-alphabet and xenotation options; the integer stays the identity in URLs, JSON and demon keys
+- [x] **UI-01**: The user can choose an even base via a base picker (odd input is refused with an explanation), notable-base chips (2, 4, 6, 8, 10, 12, 16, 22, 28, 64, 80, 82, 100, 1024; user amendment D-07, 2026-09-28), and sees a live summary (zones, Warp yes/no, Torque cycle lengths, demon counts)
+- [x] **UI-02**: The chosen base is carried in the URL as `?base=`; existing base-10 share links keep working; absurdly large bases are refused with a message instead of freezing the tab
+- [x] **UI-03**: Zone labels are in-base digits up to base 36 and decimal with a separator beyond, with custom-alphabet and xenotation options; the integer stays the identity in URLs, JSON and demon keys
 - [x] **UI-04**: The user can hover or pin a zone, syzygy, current or gate to highlight it and read its detail panel
-- [x] **UI-05
-**: A region legend table lists Plex, Warp and each Torque cycle with a stable id, and lets the user isolate or mute a region
+- [x] **UI-05**: A region legend table lists Plex, Warp and each Torque cycle with a stable id, and lets the user isolate or mute a region
 - [x] **UI-06**: The user can toggle layers (syzygies, currents, gates, demons) and zoom, pan and fit the diagram
 - [x] **UI-07**: The diagram is usable without a mouse or colour vision: keyboard traversal, ARIA labelling, non-colour cues, reduced-motion support, and a text view of the numogram with copy
-- [x] **UI-08
-**: Changing base sanitizes selection, history and animations (no stale zones from the previous base)
+- [x] **UI-08**: Changing base sanitizes selection, history and animations (no stale zones from the previous base)
 
 ### Demons
 
@@ -141,13 +136,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAY-04 | Phase 3 | Complete (03-03, 03-06, 03-08) |
 | REN-01 | Phase 3 | Complete (03-02, 03-09, 03-10) |
 | UI-01 | Phase 4 | Complete (04-06, 04-12, 04-16) |
-| UI-02 | Phase 4 | Pending |
-| UI-03 | Phase 4 | Pending |
+| UI-02 | Phase 4 | Complete (04-05, 04-07, 04-11, 04-12) |
+| UI-03 | Phase 4 | Complete (04-02, 04-05, 04-06, 04-09, 04-10, 04-12) |
 | UI-04 | Phase 4 | Complete (04-09, 04-10, 04-11) |
 | UI-05 | Phase 4 | Complete (04-13) |
 | UI-06 | Phase 4 | Complete (04-15) |
 | UI-07 | Phase 4 | Complete (04-07, 04-14, 04-15) |
-| UI-08 | Phase 4 | Pending |
+| UI-08 | Phase 4 | Complete (04-12) |
 | MIG-02 | Phase 4 | Complete (04-01, 04-04, 04-09, 04-10, 04-11, 04-16) |
 | DEM-01 | Phase 5 | Pending |
 | DEM-02 | Phase 5 | Pending |
