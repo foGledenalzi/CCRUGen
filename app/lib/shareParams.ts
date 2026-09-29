@@ -1,186 +1,201 @@
-import type { Layout, Layer, Region } from '../data/types'
+// The viewer's single URL codec (UI-02, D-13, D-21, todo 005). base is strict and user-visible when refused (D-06);
+// every other field is lenient per field so a hand-edited link still loads. Replaces the dead URL canonicalizer that
+// used to back the removed share-image route. Original CCRUG code (MIT, NOTICE section 1).
+import type { Layer } from '../data/types'
+import {
+  createNumogram,
+  validateBase,
+  DEFAULT_LAYOUT_PARAMS,
+  PACKERS,
+  type BaseCheck,
+  type Numogram,
+  type Packer,
+  type RenderTier,
+} from '../../engine/index'
+import { DEFAULT_LABEL_SCHEME, parseLabelScheme, type LabelScheme } from './labelScheme'
+import { defaultLayoutFor, isLayoutIdFor, type ViewLayoutId } from './layoutIds'
+import { parseRegionId, type RegionId } from './regions'
+import { tierOverrideFrom } from './tierBounds'
 
-const SHARE_PARAM_KEYS = [
-  'date',
-  'layers',
-  'layout',
-  'orbits',
-  'particles',
-  'region',
-  'selected',
-  'tc',
-] as const
+/** The layers a URL carries when `layers=` is absent entirely (the upstream viewer's unchanged default). */
+export const DEFAULT_LAYERS: readonly Layer[] = ['syzygies', 'currents', 'gates']
 
-const SHARE_PARAM_KEY_SET = new Set<string>(SHARE_PARAM_KEYS)
+/** `base=` must be digits-only and no longer than this before it is even read as a number (T-04-13). */
+export const BASE_PARAM_MAX_LENGTH = 16
 
-const ALLOWED_LAYOUTS = new Set<Layout>(['labyrinth', 'ladder', 'original', 'planetary'])
+/** The layer ids a `layers=` token may name; unknown tokens are dropped, not rejected (lenient-per-field). */
 const ALLOWED_LAYERS = new Set<Layer>(['syzygies', 'currents', 'gates', 'pandemonium'])
-const ALLOWED_REGIONS = new Set<Region>(['torque', 'warp', 'plex'])
 
-type ShareParamKey = (typeof SHARE_PARAM_KEYS)[number]
-type ShareParamMap = Partial<Record<ShareParamKey, string>>
-
-export interface CanonicalShareParams {
-  params: ShareParamMap
-  canonicalQuery: string
-  sortedParamKeys: string[]
-  sortedValues: string[]
+/** The whole viewer state a URL search string carries (UI-02, D-13, D-21, todo 005). */
+export interface ShareState {
+  readonly base: number
+  readonly layout: ViewLayoutId
+  readonly layers: readonly Layer[]
+  readonly selected: readonly number[]
+  readonly region: RegionId | null
+  readonly tc: boolean
+  readonly particles: boolean
+  readonly date: string
+  readonly orbits: boolean
+  readonly labels: LabelScheme
+  readonly isolate: readonly RegionId[]
+  readonly mute: readonly RegionId[]
+  readonly packer: Packer
+  readonly tier: RenderTier | null
 }
 
-type RawShareParams = URLSearchParams | Record<string, unknown>
-
-function normalizeRawInput(input: RawShareParams): Map<string, string> {
-  const entries = new Map<string, string>()
-
-  if (input instanceof URLSearchParams) {
-    input.forEach((v, k) => {
-      const key = k.trim()
-      const value = v.trim()
-      if (!key || !value) return
-      entries.set(key, value)
-    })
-    return entries
-  }
-
-  for (const [k, v] of Object.entries(input)) {
-    if (typeof v !== 'string') continue
-    const key = k.trim()
-    const value = v.trim()
-    if (!key || !value) continue
-    entries.set(key, value)
-  }
-  return entries
+/**
+ * A refused `base=` value (D-06, the one strict/user-visible field): `check` is the engine's typed reason, or null
+ * when the text was not even a plain decimal integer (malformed, too long, scientific notation, hex, trailing junk).
+ */
+export interface BaseRefusal {
+  readonly raw: string
+  readonly check: BaseCheck | null
 }
 
-function parseDigitSet(value: string): number[] | null {
-  if (!value) return null
-  const parts = value.split(',').map(p => p.trim()).filter(Boolean)
-  if (parts.length === 0 || parts.length > 10) return null
+export interface ParsedShare {
+  readonly state: ShareState
+  readonly baseRefusal: BaseRefusal | null
+}
 
+/** The state a fresh viewer starts from at `base` (default 10): the upstream 'original' preset at base 10, else 'ring'. */
+export function defaultShareState(base = 10): ShareState {
+  return {
+    base,
+    layout: defaultLayoutFor(base),
+    layers: DEFAULT_LAYERS,
+    selected: [],
+    region: null,
+    tc: false,
+    particles: false,
+    date: '',
+    orbits: true,
+    labels: DEFAULT_LABEL_SCHEME,
+    isolate: [],
+    mute: [],
+    packer: DEFAULT_LAYOUT_PARAMS.packer,
+    tier: null,
+  }
+}
+
+const BASE_DIGITS_RE = /^[0-9]+$/
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const MAX_ECHO = 40
+
+/** text as it may echo in a refusal record: whole up to MAX_ECHO characters, else its first MAX_ECHO plus '...' (T-04-13). */
+function clipRaw(text: string): string {
+  return text.length > MAX_ECHO ? `${text.slice(0, MAX_ECHO)}...` : text
+}
+
+function parseBase(params: URLSearchParams): { base: number; baseRefusal: BaseRefusal | null } {
+  const raw = params.get('base')
+  if (raw === null) return { base: 10, baseRefusal: null }
+  const trimmed = raw.trim()
+  if (!BASE_DIGITS_RE.test(trimmed) || trimmed.length > BASE_PARAM_MAX_LENGTH) {
+    return { base: 10, baseRefusal: { raw: clipRaw(trimmed), check: null } }
+  }
+  const check = validateBase(Number(trimmed))
+  if (check.ok) return { base: check.base, baseRefusal: null }
+  return { base: 10, baseRefusal: { raw: trimmed, check } }
+}
+
+function parseLayers(params: URLSearchParams): readonly Layer[] {
+  const raw = params.get('layers')
+  if (raw === null) return DEFAULT_LAYERS
+  const seen = new Set<Layer>()
+  const out: Layer[] = []
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim()
+    if (!ALLOWED_LAYERS.has(trimmed as Layer)) continue
+    const layer = trimmed as Layer
+    if (seen.has(layer)) continue
+    seen.add(layer)
+    out.push(layer)
+  }
+  return out
+}
+
+function parseSelected(params: URLSearchParams, base: number): readonly number[] {
+  const raw = params.get('selected')
+  if (raw === null || raw === '') return []
   const set = new Set<number>()
-  for (const p of parts) {
-    if (!/^\d+$/.test(p)) return null
-    const n = Number(p)
-    if (!Number.isInteger(n) || n < 0 || n > 9) return null
-    set.add(n)
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim()
+    if (trimmed === '') continue
+    const n = Number(trimmed)
+    if (Number.isInteger(n) && n >= 0 && n < base) set.add(n)
   }
-
-  if (set.size === 0) return null
   return Array.from(set).sort((a, b) => a - b)
 }
 
-function parseCsvTokens(value: string): string[] {
-  return value.split(',').map(part => part.trim()).filter(Boolean)
+function parseRegionList(raw: string | null, g: Numogram): readonly RegionId[] {
+  if (raw === null) return []
+  const set = new Set<RegionId>()
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim()
+    if (trimmed === '') continue
+    const id = parseRegionId(trimmed, g)
+    if (id !== null) set.add(id)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
 }
 
-function normalizeDate(value: string): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
-
-  const [yy, mm, dd] = value.split('-').map(Number)
-  if (!yy || !mm || !dd) return null
-  if (yy < 1900 || yy > 2100) return null
-
-  const dt = new Date(`${value}T12:00:00Z`)
-  if (Number.isNaN(dt.getTime())) return null
-  if (dt.getUTCFullYear() !== yy || dt.getUTCMonth() + 1 !== mm || dt.getUTCDate() !== dd) return null
-
-  return value
+function parseDate(raw: string | null): string {
+  if (raw === null || !DATE_RE.test(raw)) return ''
+  const parts = raw.split('-').map(Number)
+  const y = parts[0]
+  const m = parts[1]
+  const d = parts[2]
+  const dt = new Date(`${raw}T12:00:00Z`)
+  if (Number.isNaN(dt.getTime())) return ''
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() + 1 !== m || dt.getUTCDate() !== d) return ''
+  return raw
 }
 
-function normalizeBooleanFlag(value: string): '0' | '1' | null {
-  if (value === '0' || value === '1') return value
-  return null
+function parsePacker(raw: string | null): Packer {
+  if (raw !== null && (PACKERS as readonly string[]).includes(raw)) return raw as Packer
+  return DEFAULT_LAYOUT_PARAMS.packer
 }
 
-function fail(message: string): never {
-  throw new Error(message)
-}
+/**
+ * Reads a URL search string (or an existing URLSearchParams) into a ShareState. Never throws: `base` is the one
+ * strict field (D-06) — a refused value is reported in `baseRefusal` and the state falls back to base 10; every
+ * other field is lenient per field, so a hand-edited or stale link still loads in full (D-21). Unknown keys are
+ * ignored. `region`/`isolate`/`mute` only build a Numogram (`createNumogram`, cached) when one of them is present.
+ */
+export function parseShareParams(input: string | URLSearchParams): ParsedShare {
+  const params = typeof input === 'string' ? new URLSearchParams(input) : input
+  const { base, baseRefusal } = parseBase(params)
 
-export function canonicalizeShareParams(input: RawShareParams): CanonicalShareParams {
-  const raw = normalizeRawInput(input)
-  if (raw.size === 0) fail('No share params provided.')
+  const rawLayout = params.get('layout')
+  const layout: ViewLayoutId = rawLayout !== null && isLayoutIdFor(rawLayout, base) ? rawLayout : defaultLayoutFor(base)
 
-  raw.forEach((_value, key) => {
-    if (!SHARE_PARAM_KEY_SET.has(key)) {
-      fail(`Unsupported share param "${key}".`)
-    }
-  })
+  const layers = parseLayers(params)
+  const selected = parseSelected(params, base)
 
-  if (!raw.has('layout')) fail('Missing required share param "layout".')
-
-  const layout = raw.get('layout') as Layout
-  if (!ALLOWED_LAYOUTS.has(layout)) fail('Invalid layout value.')
-
-  const params: ShareParamMap = {
-    layout,
+  const rawRegion = params.get('region')
+  const rawIsolate = params.get('isolate')
+  const rawMute = params.get('mute')
+  let region: RegionId | null = null
+  let isolate: readonly RegionId[] = []
+  let mute: readonly RegionId[] = []
+  if (rawRegion !== null || rawIsolate !== null || rawMute !== null) {
+    const g = createNumogram(base)
+    if (rawRegion !== null) region = parseRegionId(rawRegion.trim(), g)
+    isolate = parseRegionList(rawIsolate, g)
+    mute = parseRegionList(rawMute, g)
   }
 
-  if (raw.has('selected')) {
-    const selected = parseDigitSet(raw.get('selected') || '')
-    if (!selected) fail('Invalid selected value. Must be unique digits in range 0-9.')
-    params.selected = selected.join(',')
-  }
-
-  if (raw.has('layers')) {
-    const tokens = parseCsvTokens(raw.get('layers') || '')
-    if (tokens.length === 0 || tokens.length > ALLOWED_LAYERS.size) {
-      fail('Invalid layers value.')
-    }
-    const normalized = Array.from(new Set(tokens))
-    for (const layer of normalized) {
-      if (!ALLOWED_LAYERS.has(layer as Layer)) {
-        fail(`Invalid layer "${layer}".`)
-      }
-    }
-    params.layers = normalized.sort((a, b) => a.localeCompare(b)).join(',')
-  }
-
-  if (raw.has('region')) {
-    const region = raw.get('region') as Region
-    if (!ALLOWED_REGIONS.has(region)) fail('Invalid region value.')
-    params.region = region
-  }
-
-  if (raw.has('tc')) {
-    const flag = normalizeBooleanFlag(raw.get('tc') || '')
-    if (!flag) fail('Invalid tc value.')
-    params.tc = flag
-  }
-
-  if (raw.has('particles')) {
-    const flag = normalizeBooleanFlag(raw.get('particles') || '')
-    if (!flag) fail('Invalid particles value.')
-    params.particles = flag
-  }
-
-  if (raw.has('date')) {
-    if (layout !== 'planetary') fail('Date is only valid for planetary layout.')
-    const normalizedDate = normalizeDate(raw.get('date') || '')
-    if (!normalizedDate) fail('Invalid date value.')
-    params.date = normalizedDate
-  }
-
-  if (raw.has('orbits')) {
-    if (layout !== 'planetary') fail('Orbits is only valid for planetary layout.')
-    const flag = normalizeBooleanFlag(raw.get('orbits') || '')
-    if (!flag) fail('Invalid orbits value.')
-    params.orbits = flag
-  }
-
-  const sortedParamKeys = Object.keys(params).sort((a, b) => a.localeCompare(b))
-  const canonical = new URLSearchParams()
-  for (const key of sortedParamKeys) {
-    canonical.set(key, params[key as ShareParamKey] as string)
-  }
-
-  const sortedValues = Array.from(
-    new Set(sortedParamKeys.map(key => params[key as ShareParamKey] as string))
-  ).sort((a, b) => a.localeCompare(b))
+  const tc = params.get('tc') === '1'
+  const particles = params.get('particles') === '1'
+  const orbits = params.get('orbits') !== '0'
+  const date = parseDate(params.get('date'))
+  const labels = parseLabelScheme(params.get('labels'))
+  const packer = parsePacker(params.get('packer'))
+  const tier = tierOverrideFrom(params.get('tier'))
 
   return {
-    params,
-    canonicalQuery: canonical.toString(),
-    sortedParamKeys,
-    sortedValues,
+    state: { base, layout, layers, selected, region, tc, particles, date, orbits, labels, isolate, mute, packer, tier },
+    baseRefusal,
   }
 }
