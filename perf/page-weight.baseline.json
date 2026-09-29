@@ -9,19 +9,19 @@
   "routes": {
     "/": {
       "htmlBytes": 4688,
-      "htmlGzip": 1769,
+      "htmlGzip": 1768,
       "jsBytes": 416830,
       "jsGzip": 128120,
-      "cssBytes": 19618,
-      "cssGzip": 4867
+      "cssBytes": 19671,
+      "cssGzip": 4878
     },
     "/numogram/": {
-      "htmlBytes": 81399,
-      "htmlGzip": 12120,
-      "jsBytes": 656664,
-      "jsGzip": 198439,
-      "cssBytes": 19618,
-      "cssGzip": 4867
+      "htmlBytes": 89913,
+      "htmlGzip": 13137,
+      "jsBytes": 659795,
+      "jsGzip": 198957,
+      "cssBytes": 19671,
+      "cssGzip": 4878
     }
   },
   "domNodes": {
@@ -242,6 +242,40 @@
             "htmlGzip": 12120,
             "jsGzip": 198439,
             "cssGzip": 4867
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-09-29",
+      "reason": "04-15: view toolbar (zoom/fit) plus a real collapsible Text panel (TextView) add markup to every load of /numogram/",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128120,
+            "cssGzip": 4867
+          },
+          "/numogram/": {
+            "htmlGzip": 12120,
+            "jsGzip": 198439,
+            "cssGzip": 4867
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1768,
+            "jsGzip": 128120,
+            "cssGzip": 4878
+          },
+          "/numogram/": {
+            "htmlGzip": 13137,
+            "jsGzip": 198957,
+            "cssGzip": 4878
           }
         },
         "domNodesTotal": 6405
