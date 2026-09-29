@@ -12,7 +12,7 @@ import {
   type Packer,
   type RenderTier,
 } from '../../engine/index'
-import { DEFAULT_LABEL_SCHEME, parseLabelScheme, type LabelScheme } from './labelScheme'
+import { DEFAULT_LABEL_SCHEME, formatLabelScheme, parseLabelScheme, type LabelScheme } from './labelScheme'
 import { defaultLayoutFor, isLayoutIdFor, type ViewLayoutId } from './layoutIds'
 import { parseRegionId, type RegionId } from './regions'
 import { tierOverrideFrom } from './tierBounds'
@@ -198,4 +198,55 @@ export function parseShareParams(input: string | URLSearchParams): ParsedShare {
     state: { base, layout, layers, selected, region, tc, particles, date, orbits, labels, isolate, mute, packer, tier },
     baseRefusal,
   }
+}
+
+export interface BuildShareParamsOptions {
+  /** Write `layout=` even when it equals the base's default (the share/clipboard link's own convention). */
+  readonly includeLayoutAlways?: boolean
+}
+
+/** The exact key sort `NumogramClient.tsx`'s existing `sortSearchParams` uses, so a rebuilt query is deterministic. */
+function sortedParams(params: URLSearchParams): URLSearchParams {
+  return new URLSearchParams(Array.from(params.entries()).sort(([a], [b]) => a.localeCompare(b)))
+}
+
+/**
+ * Builds the canonical `?...` query for `state`: every field is omitted at its default (D-08's existing "omit when
+ * default" convention, extended here to base/labels/isolate/mute/packer/tier), so a base-10 default-everything state
+ * builds an empty query and old base-10 share links keep working byte for byte (UI-02). Keys are always sorted with
+ * localeCompare, independent of the order fields are set in below.
+ */
+export function buildShareParams(state: ShareState, opts: BuildShareParamsOptions = {}): URLSearchParams {
+  const params = new URLSearchParams()
+
+  if (state.base !== 10) params.set('base', String(state.base))
+
+  const defaultLayout = defaultLayoutFor(state.base)
+  if (opts.includeLayoutAlways || state.layout !== defaultLayout) params.set('layout', state.layout)
+
+  if (state.selected.length > 0) params.set('selected', [...state.selected].sort((a, b) => a - b).join(','))
+
+  const sortedLayers = [...state.layers].sort()
+  const sortedDefaultLayers = [...DEFAULT_LAYERS].sort()
+  if (sortedLayers.join(',') !== sortedDefaultLayers.join(',')) params.set('layers', sortedLayers.join(','))
+
+  if (state.region !== null) params.set('region', state.region)
+  if (state.tc) params.set('tc', '1')
+  if (state.particles) params.set('particles', '1')
+
+  if (state.layout === 'planetary') {
+    if (state.date) params.set('date', state.date)
+    if (!state.orbits) params.set('orbits', '0')
+  }
+
+  const labelsValue = formatLabelScheme(state.labels)
+  if (labelsValue !== null) params.set('labels', labelsValue)
+
+  if (state.isolate.length > 0) params.set('isolate', [...state.isolate].sort((a, b) => a.localeCompare(b)).join(','))
+  if (state.mute.length > 0) params.set('mute', [...state.mute].sort((a, b) => a.localeCompare(b)).join(','))
+
+  if (state.packer !== DEFAULT_LAYOUT_PARAMS.packer) params.set('packer', state.packer)
+  if (state.tier !== null) params.set('tier', state.tier)
+
+  return sortedParams(params)
 }
