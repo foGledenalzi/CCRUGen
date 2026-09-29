@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-10-PLAN.md
-last_updated: "2026-09-29T06:03:50.499Z"
+stopped_at: Completed 04-11-PLAN.md
+last_updated: "2026-09-29T06:48:51.648Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 47
-  completed_plans: 41
-  percent: 87
+  completed_plans: 42
+  percent: 89
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 04 (base-picker-and-generator-ui) — EXECUTING
-Plan: 11 of 16
+Plan: 12 of 16
 Status: Ready to execute
 Last activity: 2026-09-29
 
-Progress: [█████████░] 87%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -94,6 +94,7 @@ Progress: [█████████░] 87%
 | Phase 04 P08 | 20min | 2 tasks | 7 files |
 | Phase 04 P09 | 55min | 2 tasks | 11 files |
 | Phase 04 P10 | 50min | 2 tasks | 12 files |
+| Phase 04 P11 | 160min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,8 @@ Recent decisions affecting current work:
 - [Phase 4 P08] Base-generic layout plumbing shipped (UI-06/UI-07 plumbing, not mounted): app/lib/viewLayouts.ts's layoutTarget(g, id, packer, planetaryPos) resolves one LayoutTarget for any base/layout-id/packer, base-10 presets returning the authored P_ORIGINAL/P_LABYRINTH/P_LADDER/FRAME_HEIGHT/DRAW_ORDER/REGION_LABELS tables by identity and ring/ladder/spiral/pairGraph at any base from resolveLayout/pairGraphLayout; app/lib/renderData.ts's engineRenderData adapts routeGates/routeCurrents into GateRender/CurrentRender records keyed by the view's own names, frameLayout re-positions a layout for a tween frame while sharing groups/zoneGroup/center by reference; app/hooks/useLayoutTween.ts generalizes useTween's 600ms easeInOutCubic interpolation to any LayoutTarget with a fromBaseRef guard that hard-jumps instead of interpolating across a base change (T-04-26); app/hooks/useReducedMotion.ts reads prefers-reduced-motion via matchMedia with a live change listener; three new icons (RingIcon, SpiralIcon, PairGraphIcon) added to NumogramIcons.tsx. Nothing mounted yet (NumogramClient.tsx and useTween.ts untouched, verified via git diff --quiet); 04-11 wires this in and deletes useTween.ts. UI-06 and UI-07 stay Pending (both span multiple plans; final covering plans are later in the phase). Full unit suite 1491 tests / 58 files green, npm run typecheck clean.
 - [Phase 4 P09] Base-generic Projection.tsx (MIG-02) shipped: no base-10 data imports remain, view/metrics/label props only (view: NumogramView, layoutId, routingStyle, presetRouting, width/nodeRadius/labelSize/strokeScale, regionLabels, zoneLabels, labelsOn, gateMode), node/stroke scale factors k=nodeRadius/21 and ss=strokeScale exactly 1 for the four base-10 presets; NumogramViewContext/useNumogramView (app/components/numogram/ViewContext.tsx) mounted in NumogramClient.tsx (base 10 only, 04-11 makes it follow the chosen base); plexExpr/syzMidBiased/syzTrianglePoints/xenotationByZone now take base/partner/zoneCount as parameters via the engine's digitsOf/formatNumeral instead of decimal or literal-9 base-10 assumptions; plexExpr deliberately keeps its pre-existing multi-step chain-drop shape at base 10 (plexExpr(28,10)='2+8=10=1') to match the frozen e2e/__behaviour__ baseline, which recorded the untouched viewer's actual output, not the plan's inherited-docstring example; per-walk React.Fragment (not a wrapping <g>) keeps the Time-Circuit layers byte-identical at the single-Torque-cycle base-10 case while supporting any Torque-cycle count; vitest.config.mts needed oxc.jsx:{runtime:'automatic'} (Vite 8 defaults to oxc over esbuild) so the new tests/app/projectionRender.test.ts could import Projection.tsx directly for a renderToStaticMarkup smoke proving bases 2..40 render via a procedural ring layout with no NaN/undefined; full npm run verify green (75 e2e + 5 skipped, 1537 unit tests in two timezones, page-weight OK without a baseline update at +4.5% raw/+4.8% gzip on /numogram/, inside tolerance); MIG-02/UI-03/UI-04 stay Pending (final covering plans 04-16/04-12/04-11 respectively, per this phase's established per-plan-requirements precedent)
 - [Phase 4 P10] Todo 003 finding 1 fixed with a red-then-green real-mouse Playwright regression (e2e/row-click-regression.spec.ts, page.mouse down/up, never .click()): the confirmed root cause was each list panel defining its row component inline and passing it as ItemDisplayComponent, so CyberPanel's onMouseDownCapture bring-to-front re-render recreated that component's identity and remounted the row before mouseup; SelectableListPanel now only accepts itemDisplay (a plain function called directly, no new component identity per render), and ItemDisplayComponent is deleted from the type so the bug cannot recur through this primitive. ZonesPanel/SyzygiesPanel/CurrentsPanel/GatesPanel, LayersPanel/LabelsPanel, InfoDisplay.tsx and PinnedBackground.tsx all now read base/view/zoneLabels/gateMode/svgRichMaxN/allChordsMaxN from useNumogramView() instead of importing app/data/{zones,syzygies,currents,gates,demons} directly; each detail sub-component branches on view.lore (not base===10) so base 10 keeps its exact text via zoneLabel()/formatNumeral(base-1,base) substitutions while a generic branch drops planets/lore descriptions/base-10-only footers; PanelUnavailable is the shared fallback when view is null. npm run verify exit 0 on the committed tree (page-weight baseline raised, /numogram/ +6.2KB raw/+5.6KB gzip, this plan's growth only); 60 goldens and the behaviour lore sweep unchanged. Todo 003 closed (moved to completed/): findings 2 (mobile overlap) and 3 (dead panel-collapse code) were already folded into 04-CONTEXT.md, not fixed here. UI-04/UI-03/MIG-02 stay Pending (final covering plans 04-11/04-12/04-16 respectively).
+- [Phase 4 P11] Viewer switched to the engine-driven generator: NumogramClient.tsx builds a LayoutTarget via layoutTarget(g, layout, packer, planetaryPos) and drives it through the base-generic useLayoutTween (useTween.ts deleted); base-10 presets still render through the authored base10GateRender/base10CurrentRender path (byte-identical to the frozen goldens), procedural ring/spiral and the pair graph route through the engine (engineRenderData, routePairGraph, PairGraphProjection); the layout switcher is generic (layoutIdsForBase(g.base)), so base 10 now offers 7 buttons (4 presets + ring/spiral/pairGraph), with CyberButton's new postBaseline prop (data-post-baseline) keeping the frozen 4-button/A-S-D-F behaviour-baseline contract intact for the original four
+- [Phase 4 P11] Base now comes from the single URL codec (UI-02, D-14..D-18): base/labelScheme/tierOverride/baseRefusal state; g = createNumogram(base), showDiagram = tierFor(base, tierOverride) === 'svg', view/zoneLabels/target all null above the tier (D-16, never build layout/routing/list structure for a huge base) and useLayoutTween runs on a cheap module-level FALLBACK_TARGET (base 10 'original') when there is nothing to show; hydration reads parseShareParams (a refusal is stored via refusalFromUrl for the 04-12 picker), replaceState sync and the share button both call the codec's buildShareParams from one currentShareState() helper; above the tier BigBaseSummary (refusal-style message + 4-metric card + bounded numogramText) replaces the pannable diagram. MIG-02 cleared from NumogramClient.tsx: zone loops use g.zoneCount, partners g.partner(z), Torque zones view.torqueZones/zonesOfRegion(g,'torque') (guarded by isRegionId, Rule 1 fix for a stale region after a base change since RegionsPanel.tsx is not yet base-generic itself), the 0-9 gate shortcut runs only if base===10 against view.gates; node scripts/check-repo.mjs --only base-ten now reports zero problems project-wide, but MIG-02 stays Pending until 04-16 promotes the gate to DEFAULT_CHECKS. e2e/url-codec.spec.ts (11 tests) and e2e/hover-pin.spec.ts (5 tests, UI-04 at base 28) both green; page-weight baseline raised (/numogram/ +37,038 bytes raw +6.2%, +12,365 gzip +6.9%, the engine layout/routing/pair-graph/tween/codec runtime now ships to every visitor); 60 goldens and the behaviour baseline unchanged. UI-04 is the only requirement marked complete by this plan (UI-02 needs the picker to show the refusal, 04-12; UI-06 needs the zoom/fit toolbar and its own e2e spec, 04-15)
 
 ### Pending Todos
 
@@ -187,8 +190,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-29T06:03:50.493Z
-Stopped at: Completed 04-10-PLAN.md
+Last session: 2026-09-29T06:48:51.640Z
+Stopped at: Completed 04-11-PLAN.md
 Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z

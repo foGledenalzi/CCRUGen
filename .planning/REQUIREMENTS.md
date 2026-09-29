@@ -40,7 +40,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **UI-01**: The user can choose an even base via a base picker (odd input is refused with an explanation), notable-base chips (2, 4, 6, 8, 10, 12, 16, 22, 28, 80, 82), and sees a live summary (zones, Warp yes/no, Torque cycle lengths, demon counts)
 - [ ] **UI-02**: The chosen base is carried in the URL as `?base=`; existing base-10 share links keep working; absurdly large bases are refused with a message instead of freezing the tab
 - [ ] **UI-03**: Zone labels are in-base digits up to base 36 and decimal with a separator beyond, with custom-alphabet and xenotation options; the integer stays the identity in URLs, JSON and demon keys
-- [ ] **UI-04**: The user can hover or pin a zone, syzygy, current or gate to highlight it and read its detail panel
+- [x] **UI-04**: The user can hover or pin a zone, syzygy, current or gate to highlight it and read its detail panel
 - [ ] **UI-05**: A region legend table lists Plex, Warp and each Torque cycle with a stable id, and lets the user isolate or mute a region
 - [ ] **UI-06**: The user can toggle layers (syzygies, currents, gates, demons) and zoom, pan and fit the diagram
 - [ ] **UI-07**: The diagram is usable without a mouse or colour vision: keyboard traversal, ARIA labelling, non-colour cues, reduced-motion support, and a text view of the numogram with copy
@@ -137,7 +137,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-01 | Phase 4 | Pending |
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 4 | Pending |
-| UI-04 | Phase 4 | Pending |
+| UI-04 | Phase 4 | Complete (04-09, 04-10, 04-11) |
 | UI-05 | Phase 4 | Pending |
 | UI-06 | Phase 4 | Pending |
 | UI-07 | Phase 4 | Pending |
