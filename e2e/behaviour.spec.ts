@@ -109,7 +109,7 @@ async function driveLayout(page: Page, L: { name: string; qs: string }, origin: 
 
   // marker-contract guard (T-04-01): marking any pre-existing region fails the spec, so the skip in
   // behaviour-collect.ts can never be used to hide an element that already existed at capture time.
-  const markedRegions = await page.evaluate(names => {
+  const markedRegions = await page.evaluate((names: string[]) => {
     const bad: string[] = []
     for (const h of Array.from(document.querySelectorAll('header'))) {
       const t = (h.textContent || '').replace(/\s+/g, ' ').trim()
@@ -342,7 +342,7 @@ async function driveMobile(page: Page, origin: string): Promise<Baseline> {
   await page.goto('/numogram/')
   await settle(page, 'original', origin)
   const stages: Stages = { initial: await snapshot(page, origin) }
-  const markedRegions = await page.evaluate(names => {
+  const markedRegions = await page.evaluate((names: string[]) => {
     const bad: string[] = []
     for (const h of Array.from(document.querySelectorAll('header'))) {
       const t = (h.textContent || '').replace(/\s+/g, ' ').trim()
