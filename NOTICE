@@ -9,7 +9,7 @@ This NOTICE is authoritative on which terms apply to which files.
    code; see section 3 for the goldens), perf/, .github/, vitest.config.mts,
    playwright.config.ts, .gitattributes, everything under scripts/,
    app/lib/basePath.ts, app/components/navigation/LegacyQueryRedirect.tsx,
-   app/presets/base10/ except lore.ts and layout-tables.ts (the base-10 engine adapter and layout presets),
+   app/presets/base10/ except lore.ts, layout-tables.ts and routes.ts (the base-10 engine adapter and layout presets),
    the CCRUG mark public/ccrug-mark.svg (also used as app/icon.svg), README.md,
    and the layout, naming and export code added in later phases.
 
@@ -26,6 +26,8 @@ This NOTICE is authoritative on which terms apply to which files.
      app/presets/base10/layout-tables.ts (the authored base-10 layout coordinates, draw orders, frame heights and
        region-label positions, copied in Phase 3 from app/data/positions.ts, app/NumogramClient.tsx,
        app/hooks/useTween.ts and app/components/projection/Projection.tsx)
+     app/presets/base10/routes.ts (the authored base-10 gate and current route geometry, moved in Phase 4
+       from app/NumogramClient.tsx)
    and the inherited configuration files next.config.js, tsconfig.json,
    package.json, postcss.config.js, tailwind.config.ts, .eslintrc.json,
    .gitignore and .claude/launch.json. The generated dist/ output, when
