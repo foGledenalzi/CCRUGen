@@ -28,6 +28,7 @@ import { buildShareParams, DEFAULT_LAYERS, parseShareParams } from './lib/shareP
 import type { ShareState } from './lib/shareParams'
 import { refusalFromUrl } from './lib/basePicker'
 import { numogramText } from './lib/numogramText'
+import { sessionAfterBaseSwitch } from './lib/baseSwitch'
 
 // Presets
 import { BASE10 } from './presets/base10/numogram'
@@ -48,6 +49,7 @@ import { CyberButtonGroup as ButtonSet } from './components/ui/CyberButtonGroup'
 import { CyberPanel as Panel } from './components/ui/CyberPanel'
 import { Projection } from './components/projection/Projection'
 import { PairGraphProjection } from './components/projection/PairGraphProjection'
+import { BasePicker } from './components/numogram/BasePicker'
 import { BigBaseSummary } from './components/numogram/BigBaseSummary'
 import { InfoDisplay } from './components/info/InfoDisplay'
 import { PinnedBackground } from './components/info/PinnedBackground'
@@ -94,6 +96,7 @@ const INFO_PANEL_WIDTH = 320
 const MAX_HISTORY_ENTRIES = 80
 
 type HistorySnapshot = {
+  base: number
   layout: ViewLayoutId
   layers: Layer[]
   selZones: number[]
@@ -104,6 +107,8 @@ type HistorySnapshot = {
   planetDate: string
   orbiting: boolean
   labelVisibility: LabelVisibility
+  labels: LabelScheme
+  packer: Packer
 }
 
 function toggleTerminalSelection(prev: Set<number>, terminals: Iterable<number>): Set<number> {
@@ -132,7 +137,6 @@ export default function NumogramPage() {
   const [base, setBase] = useState(10)
   const [labelScheme, setLabelScheme] = useState<LabelScheme>(DEFAULT_LABEL_SCHEME)
   const [tierOverride, setTierOverride] = useState<RenderTier | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- baseRefusal is read by the base picker mounted in 04-12; this plan only stores it
   const [baseRefusal, setBaseRefusal] = useState<string | null>(null)
   const [layers, setLayers] = useState<Set<Layer>>(() => new Set<Layer>(['syzygies', 'currents', 'gates']))
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
@@ -259,6 +263,7 @@ export default function NumogramPage() {
   }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, packer, tierOverride])
 
   const snapshotState = useCallback((): HistorySnapshot => ({
+    base,
     layout,
     layers: Array.from(layers).sort((a, b) => a.localeCompare(b)),
     selZones: Array.from(selZones).sort((a, b) => a - b),
@@ -273,13 +278,19 @@ export default function NumogramPage() {
       xenotation: labelVisibility.xenotation,
       planets: labelVisibility.planets,
     },
-  }), [layout, layers, selZones, hlRegion, tcActive, particlesOn, showOrbits, planetDate, orbiting, labelVisibility])
+    labels: labelScheme,
+    packer,
+  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, showOrbits, planetDate, orbiting, labelVisibility, labelScheme, packer])
 
   const snapshotKey = useCallback((snapshot: HistorySnapshot): string => {
     return JSON.stringify(snapshot)
   }, [])
 
   const applySnapshot = useCallback((snapshot: HistorySnapshot) => {
+    // UI-08: a snapshot from a different base can never be restored (its zone/region ids don't exist at the current
+    // base) — commitBase always clears both history stacks on a switch, so this is a defensive guard, not the
+    // primary mechanism.
+    if (snapshot.base !== base) return
     if (layout !== snapshot.layout) {
       if (layout === 'pairGraph' || snapshot.layout === 'pairGraph') jumpToTarget()
       else switchLayout()
@@ -298,6 +309,8 @@ export default function NumogramPage() {
       xenotation: snapshot.labelVisibility.xenotation,
       planets: snapshot.labelVisibility.planets,
     })
+    setLabelScheme(snapshot.labels)
+    setPacker(snapshot.packer)
 
     if (snapshot.layout === 'planetary') {
       if (snapshot.planetDate) {
@@ -306,7 +319,46 @@ export default function NumogramPage() {
         setPlanetaryAngles(PLANETARY_DEFAULT_ANGLE)
       }
     }
-  }, [layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting])
+  }, [base, layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting])
+
+  // UI-08: the base picker's one commit path. Everything base-shaped resets in a single batched event-handler call
+  // (React batches all these setters into one render with the new base) so no intermediate render ever shows a
+  // selection, region highlight or history entry belonging to the previous base.
+  const commitBase = useCallback((n: number) => {
+    if (n === base) return
+    const next = sessionAfterBaseSwitch(
+      { layout, selected: [...selZones], hlRegion, tcActive, orbiting, pinned: pinnedInfo !== null },
+      n,
+    )
+    jumpToTarget()
+    historyCurrentRef.current = null
+    setUndoStack([])
+    setRedoStack([])
+    pendingShareSelectionRef.current = null
+    currentOrientationRef.current = {}
+    setHoverInfo(null)
+    setPinnedInfo(null)
+    setSelZones(new Set())
+    setHlRegion(null)
+    setTcActive(false)
+    setOrbiting(false)
+    setLayout(next.layout)
+    setBaseRefusal(null)
+    setCanvasPan({ x: 0, y: 0 })
+    setZoom(1)
+    setZoomOrigin({ x: 50, y: 50 })
+    setBase(n)
+  }, [
+    base, layout, selZones, hlRegion, tcActive, orbiting, pinnedInfo, jumpToTarget,
+    setCanvasPan, setZoom, setZoomOrigin, setOrbiting,
+  ])
+
+  // Packer changes tween the diagram when the tier allows it (todo 005): capture the current positions as the
+  // tween's start before the packer itself changes, the same call order handleSwitchLayout already uses.
+  const onPackerChange = useCallback((next: Packer) => {
+    switchLayout()
+    setPacker(next)
+  }, [switchLayout])
 
   // Keep orbit start date in sync
   useEffect(() => {
@@ -820,7 +872,9 @@ export default function NumogramPage() {
   const panelHeaderLeft = isMobile ? 8 : DESKTOP_PANEL_LEFT_X
   const panelHeaderWidth = isMobile
     ? mobilePanelWidth
-    : (DESKTOP_PANEL_RIGHT_X + PANEL_WIDTH - DESKTOP_PANEL_LEFT_X)
+    // +96 (04-12): room for the header base picker (UI-01) beside Undo/Redo/Share without covering the layout
+    // switcher's fixed ButtonSet at 1280px (384 -> 480px desktop).
+    : (DESKTOP_PANEL_RIGHT_X + PANEL_WIDTH - DESKTOP_PANEL_LEFT_X + 96)
 
   const onPanelHeight = useCallback((panelId: string, height: number) => {
     if (!isMobile && !isDesktop) return
@@ -1274,7 +1328,18 @@ export default function NumogramPage() {
           titleHref="/numogram"
           description={base === 10 ? 'Decimal Labyrinth' : `Base ${base}`}
           actions={(
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
+              <BasePicker
+                base={base}
+                summary={summary}
+                externalRefusal={baseRefusal}
+                onCommitBase={commitBase}
+                labelScheme={labelScheme}
+                onLabelSchemeChange={setLabelScheme}
+                packer={packer}
+                onPackerChange={onPackerChange}
+                packerVisible={layout === 'ring' || layout === 'pairGraph'}
+              />
               <button
                 className="px-1.5 py-1"
                 style={{
