@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { deriveBase10Oracle } from '../tests/oracle/deriveBase10'
 
 const OUT = resolve('engine/test/fixtures/base10.golden.json')
-if (!existsSync(resolve('app/data/zones.ts'))) {
+if (!existsSync(resolve('app/data/types.ts'))) {
   console.error('capture-base10-oracle: run from the repository root')
   process.exit(2)
 }

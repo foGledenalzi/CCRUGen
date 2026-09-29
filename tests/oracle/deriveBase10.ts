@@ -4,9 +4,9 @@
 // App-side helper: it imports app code by relative path so that engine/ never imports app/.
 // Nothing in the derivation depends on the date, the timezone or the locale.
 
-import { ALL_DEMONS, TC } from '../../app/data/demons'
-import { CURRENTS } from '../../app/data/currents'
-import { GATE_LIST } from '../../app/data/gates'
+import { ALL_DEMONS } from '../../app/presets/base10/demons'
+import { CURRENTS } from '../../app/presets/base10/currents'
+import { GATE_LIST } from '../../app/presets/base10/gates'
 import {
   CENTER,
   P_LABYRINTH,
@@ -17,11 +17,10 @@ import {
   PLANETARY_DEFAULT_ANGLE,
   PLANETARY_RADIUS,
   PLANETARY_SIZE,
-} from '../../app/data/positions'
-import { SYZYGIES } from '../../app/data/syzygies'
+} from '../../app/presets/base10/layouts'
+import { SYZYGIES } from '../../app/presets/base10/syzygies'
 import type { Layout, Pos, Region } from '../../app/data/types'
-import { ZONE_REGION } from '../../app/data/zones'
-import { TC_CURRENTS, TC_EDGES, TC_SYZYGIES } from '../../app/lib/constants'
+import { TC, TC_CURRENTS, TC_EDGES, TC_SYZYGIES, ZONE_REGION } from '../../app/presets/base10/regions'
 import { computePlanetaryPositions } from '../../app/lib/planetary'
 
 export type Pair = [number, number]

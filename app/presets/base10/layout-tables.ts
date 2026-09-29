@@ -1,7 +1,8 @@
 // Upstream-derived base-10 layout data. Not relicensed by this repository; see NOTICE section 2.
-// Tables copied verbatim in plan 03-05 from app/data/positions.ts (coordinates), app/NumogramClient.tsx (draw orders,
-// lines 1307-1315), app/hooks/useTween.ts (frame heights, line 42) and app/components/projection/Projection.tsx
-// (region labels, lines 1022-1061); those files keep their own copies until Phase 4.
+// Tables copied verbatim in plan 03-05 from the pre-migration base-10 positions seam (coordinates; deleted in plan
+// 04-16, MIG-02), app/NumogramClient.tsx (draw orders, lines 1307-1315), app/hooks/useTween.ts (frame heights, line
+// 42) and app/components/projection/Projection.tsx (region labels, lines 1022-1061); those files keep their own
+// copies until Phase 4.
 import type { Layout, Pos } from '../../data/types'
 import type { RegionLabel } from '../../../engine/layout/types'
 

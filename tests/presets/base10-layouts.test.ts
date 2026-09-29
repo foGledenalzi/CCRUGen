@@ -1,21 +1,10 @@
 // Base-10 layout presets test (LAY-02, D-05, plan 03-05): proves BASE10_LAYOUT_SPECS in app/presets/base10/layouts.ts
 // reproduce the frozen numeric oracle (engine/test/fixtures/base10.golden.json) and the frozen DOM/behaviour goldens
 // exactly, and that the upstream-authored layout data is correctly licensed. Never regenerates a frozen file.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { createNumogram } from '../../engine/index'
-import {
-  CENTER as SEAM_CENTER,
-  P_LABYRINTH as SEAM_P_LABYRINTH,
-  P_LADDER as SEAM_P_LADDER,
-  P_ORIGINAL as SEAM_P_ORIGINAL,
-  PLANETARY_CX as SEAM_PLANETARY_CX,
-  PLANETARY_CY as SEAM_PLANETARY_CY,
-  PLANETARY_DEFAULT_ANGLE as SEAM_PLANETARY_DEFAULT_ANGLE,
-  PLANETARY_RADIUS as SEAM_PLANETARY_RADIUS,
-  PLANETARY_SIZE as SEAM_PLANETARY_SIZE,
-} from '../../app/data/positions'
 import {
   CENTER,
   P_LABYRINTH,
@@ -175,16 +164,9 @@ describe('numeric oracle', () => {
     }
   })
 
-  it('the nine names imported from app/data/positions.ts are the same objects/numbers as layout-tables.ts (seam identity)', () => {
-    expect(SEAM_P_ORIGINAL).toBe(P_ORIGINAL)
-    expect(SEAM_P_LABYRINTH).toBe(P_LABYRINTH)
-    expect(SEAM_P_LADDER).toBe(P_LADDER)
-    expect(SEAM_PLANETARY_CX).toBe(PLANETARY_CX)
-    expect(SEAM_PLANETARY_CY).toBe(PLANETARY_CY)
-    expect(SEAM_PLANETARY_RADIUS).toBe(PLANETARY_RADIUS)
-    expect(SEAM_PLANETARY_DEFAULT_ANGLE).toBe(PLANETARY_DEFAULT_ANGLE)
-    expect(SEAM_PLANETARY_SIZE).toBe(PLANETARY_SIZE)
-    expect(SEAM_CENTER).toBe(CENTER)
+  it('the old app/data positions seam no longer exists (MIG-02, plan 04-16): consumers read layouts.ts/layout-tables.ts directly', () => {
+    const DATA_DIR = '../../app/data/'
+    expect(existsSync(ROOT(DATA_DIR + 'positions.ts'))).toBe(false)
   })
 })
 

@@ -1,5 +1,5 @@
 import type { Pos } from '../data/types'
-import { PLANETARY_CX, PLANETARY_CY, PLANETARY_RADIUS } from '../data/positions'
+import { PLANETARY_CX, PLANETARY_CY, PLANETARY_RADIUS } from '../presets/base10/layouts'
 
 export const ORBITAL_PERIOD: Record<number, number> = {
   0: Infinity, 1: 0.24, 2: 0.62, 3: 1, 4: 1.88, 5: 11.86, 6: 29.46, 7: 84.01, 8: 164.8, 9: 248.1,

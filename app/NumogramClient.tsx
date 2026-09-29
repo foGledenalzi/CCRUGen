@@ -4,7 +4,6 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 
 // Data
 import type { Layout, Layer, Pos, HoverInfo, LabelVisibility } from './data/types'
-import { PLANETARY_DEFAULT_ANGLE, PLANETARY_SIZE } from './data/positions'
 
 // Engine (base-generic layout plumbing, 04-11)
 import { createNumogram, routePairGraph } from '../engine/index'
@@ -33,6 +32,7 @@ import { sessionAfterBaseSwitch } from './lib/baseSwitch'
 // Presets
 import { BASE10 } from './presets/base10/numogram'
 import { base10CurrentRender, base10GateRender } from './presets/base10/routes'
+import { PLANETARY_DEFAULT_ANGLE, PLANETARY_SIZE } from './presets/base10/layouts'
 
 // Hooks
 import { useOrbitalAnimation } from './hooks/useOrbitalAnimation'

@@ -1,17 +1,7 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { CURRENTS as SEAM_CURRENTS } from '../../app/data/currents'
-import { ALL_DEMONS as SEAM_ALL_DEMONS, TC as SEAM_TC } from '../../app/data/demons'
-import { GATE_LIST as SEAM_GATES } from '../../app/data/gates'
-import { SYZYGIES as SEAM_SYZYGIES } from '../../app/data/syzygies'
 import type { Region } from '../../app/data/types'
-import { ZONE_REGION as SEAM_ZONE_REGION } from '../../app/data/zones'
-import {
-  TC_CURRENTS as SEAM_TC_CURRENTS,
-  TC_EDGES as SEAM_TC_EDGES,
-  TC_SYZYGIES as SEAM_TC_SYZYGIES,
-} from '../../app/lib/constants'
 import { CURRENTS, legacyCurrentFrom } from '../../app/presets/base10/currents'
 import { ALL_DEMONS, legacyKind, type LegacyDemonKind } from '../../app/presets/base10/demons'
 import { GATE_LIST } from '../../app/presets/base10/gates'
@@ -86,10 +76,6 @@ describe('syzygies', () => {
     }
   })
 
-  it('are the very array the app/data seam exports (the consumers keep their import)', () => {
-    expect(SEAM_SYZYGIES).toBe(SYZYGIES)
-  })
-
 })
 
 describe('currents', () => {
@@ -153,9 +139,6 @@ describe('currents', () => {
     CURRENTS.forEach((c, i) => expect(c.from, c.name).toBe(legacyCurrentFrom(PAIR_IDS[i] as number)))
   })
 
-  it('are the very array the app/data seam exports (the consumers keep their import)', () => {
-    expect(SEAM_CURRENTS).toBe(CURRENTS)
-  })
 })
 
 describe('gates', () => {
@@ -217,9 +200,6 @@ describe('gates', () => {
     })
   })
 
-  it('are the very array the app/data seam exports (the consumers keep their import)', () => {
-    expect(SEAM_GATES).toBe(GATE_LIST)
-  })
 })
 
 describe('regions', () => {
@@ -288,13 +268,6 @@ describe('regions', () => {
     for (const c of CURRENTS.filter((cur) => TC_CURRENTS.has(cur.name))) expect(TC.has(c.from), c.name).toBe(true)
   })
 
-  it('are the very objects the seams export (the consumers keep their imports)', () => {
-    expect(SEAM_ZONE_REGION).toBe(ZONE_REGION)
-    expect(SEAM_TC).toBe(TC)
-    expect(SEAM_TC_EDGES).toBe(TC_EDGES)
-    expect(SEAM_TC_SYZYGIES).toBe(TC_SYZYGIES)
-    expect(SEAM_TC_CURRENTS).toBe(TC_CURRENTS)
-  })
 })
 
 describe('demons', () => {
@@ -438,8 +411,23 @@ describe('demons', () => {
     }
   })
 
-  it('are the very array the app/data seam exports (the consumers keep their import)', () => {
-    expect(SEAM_ALL_DEMONS).toBe(ALL_DEMONS)
+})
+
+describe('the base-10 data seams are gone (MIG-02, plan 04-16)', () => {
+  const APP_DATA_DIR = fileURLToPath(new URL('../../app/data/', import.meta.url))
+  const DELETED_SEAMS = ['zones.ts', 'syzygies.ts', 'currents.ts', 'gates.ts', 'demons.ts', 'positions.ts']
+
+  it('app/data/{zones,syzygies,currents,gates,demons,positions}.ts no longer exist; only types.ts remains', () => {
+    for (const f of DELETED_SEAMS) expect(existsSync(APP_DATA_DIR + f), `app/data/${f}`).toBe(false)
+    expect(existsSync(APP_DATA_DIR + 'types.ts')).toBe(true)
+    expect(readdirSync(APP_DATA_DIR)).toEqual(['types.ts'])
+  })
+
+  it('app/lib/constants.ts no longer re-exports the Torque time-circuit constants', () => {
+    const text = readFileSync(fileURLToPath(new URL('../../app/lib/constants.ts', import.meta.url)), 'utf8')
+    expect(text).not.toContain('TC_EDGES')
+    expect(text).not.toContain('TC_CURRENTS')
+    expect(text).not.toContain('TC_SYZYGIES')
   })
 })
 
@@ -467,7 +455,8 @@ describe('adapter and seam files (NOTICE section 1: original MIT code) hold no C
   const gateLore = Object.values(GATE_LORE).flatMap((l) => [l.desc, l.detail])
   // Demon names are lore too (one short word each): a quoted literal of any of the 45 is hard-coded lore.
   const demonNames = Object.values(DEMON_NAMES)
-  // Zone prose (app/data/zones.ts is the seam that exports it); short fields like a planet name are not searched for.
+  // Zone prose (app/presets/base10/lore.ts is where it lives; the old app/data zones seam that used to re-export it
+  // was deleted in plan 04-16); short fields like a planet name are not searched for.
   const zoneLore = Object.values(ZONE_META)
     .flatMap((z) => [z.desc, z.lemurian, z.centauri])
     .filter((s) => s.length >= 20)
@@ -502,16 +491,15 @@ describe('adapter and seam files (NOTICE section 1: original MIT code) hold no C
     return hits
   }
 
-  it('scans every adapter file and every data seam (only lore.ts and routes.ts are exempt)', () => {
+  it('scans every adapter file and the remaining data/lib files (only lore.ts and routes.ts are exempt)', () => {
     for (const f of ['syzygies.ts', 'currents.ts', 'gates.ts', 'numogram.ts', 'regions.ts', 'demons.ts']) {
       expect(ADAPTER_FILES).toContain(`presets/base10/${f}`)
     }
     expect(ADAPTER_FILES).not.toContain('presets/base10/lore.ts')
     expect(ADAPTER_FILES).not.toContain('presets/base10/routes.ts')
-    for (const f of ['currents.ts', 'demons.ts', 'gates.ts', 'syzygies.ts', 'zones.ts']) {
-      expect(SEAM_FILES).toContain(`data/${f}`)
-    }
-    expect(SEAM_FILES).toContain('lib/constants.ts')
+    // The six base-10 data seams (zones, syzygies, currents, gates, demons, positions) were deleted in plan 04-16
+    // (MIG-02): only types.ts remains under app/data/, plus app/lib/constants.ts.
+    expect(SEAM_FILES).toEqual(['data/types.ts', 'lib/constants.ts'])
     expect(lore.length).toBe(10)
     expect(currentLore.length).toBe(5)
     expect(gateLore.length).toBe(20)

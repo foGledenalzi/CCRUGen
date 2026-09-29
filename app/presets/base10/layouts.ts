@@ -22,8 +22,8 @@ import {
   REGION_LABELS,
 } from './layout-tables'
 
-// Re-export of the nine upstream table constants: the same bindings imported above, forwarded so app/data/positions.ts
-// can become a thin pass-through seam (D-05) without positions.ts touching layout-tables.ts directly.
+// Re-export of the nine upstream table constants: the same bindings imported above, forwarded to the app code that
+// used to reach them through the now-deleted base-10 positions seam (D-05, removed in plan 04-16, MIG-02).
 export { P_ORIGINAL, P_LABYRINTH, P_LADDER, PLANETARY_CX, PLANETARY_CY, PLANETARY_RADIUS, PLANETARY_DEFAULT_ANGLE, PLANETARY_SIZE, CENTER }
 
 function assertBase10(g: Numogram, id: string): void {
@@ -83,7 +83,7 @@ function buildLadder(g: Numogram): EngineLayout {
 
 /**
  * Planetary positions are computed inline from the angle/radius tables (the formula of app/lib/planetary.ts):
- * importing that module would create a cycle once app/data/positions.ts becomes a seam over this file.
+ * importing that module would create a cycle, since app/lib/planetary.ts itself imports these tables from here.
  */
 function buildPlanetary(g: Numogram): EngineLayout {
   assertBase10(g, 'planetary')

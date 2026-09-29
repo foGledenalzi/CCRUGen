@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { CURRENTS } from '../../app/data/currents'
+import { CURRENTS } from '../../app/presets/base10/currents'
 import { CURRENT_LORE, GATE_LORE, SYZYGY_LORE, ZONE_META } from '../../app/presets/base10/lore'
 import { ROOT } from '../../scripts/golden-manifest.mjs'
 
@@ -10,7 +10,7 @@ import { ROOT } from '../../scripts/golden-manifest.mjs'
 // desc and detail, each current desc and label, each syzygy desc and each non-empty zone desc and lemurian must
 // occur as a substring of some recorded string. The lore is read from the single lore module
 // (app/presets/base10/lore.ts, D-06) and the baseline file read-only. The current labels (8-1=7 style) are
-// viewer structure, not lore text, so they still come from the app/data/currents seam until it is engine-derived.
+// viewer structure, not lore text, so they come straight from the base-10 currents adapter (D-02).
 
 const BASELINE = path.join(ROOT, 'e2e', '__behaviour__', 'original.json')
 

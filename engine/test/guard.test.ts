@@ -55,7 +55,8 @@ describe('ESLint engine boundary', () => {
     ['export * from a bare module', "export * from 'react'", 'no-restricted-syntax'],
     ['named re-export from a bare module', "export { useState } from 'react'", 'no-restricted-syntax'],
     ['dynamic import of a bare module', "export const load = () => import('react')", 'no-restricted-syntax'],
-    ['relative import of app/', "import { ZONE_REGION } from '../../app/data/zones'\nexport const a = ZONE_REGION", 'import/no-restricted-paths'],
+    // Resolves to a real file (app/lib/constants.ts, MIG-02 plan 04-16): import/no-restricted-paths ignores unresolved paths.
+    ['relative import of app/', "import { REGION_CLR } from '../../app/lib/constants'\nexport const a = REGION_CLR", 'import/no-restricted-paths'],
     // WR-04: any relative import that climbs out of engine/ is a violation, not only app/ and workers/.
     // These three resolve to real files, which import/no-restricted-paths needs (it ignores unresolved paths).
     ['relative import of tests/', "import { deriveBase10 } from '../../tests/oracle/deriveBase10'\nexport const a = deriveBase10", 'import/no-restricted-paths'],
