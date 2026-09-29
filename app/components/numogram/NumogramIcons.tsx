@@ -135,3 +135,36 @@ export function ShareIcon({ clr }: IconProps) {
     </svg>
   )
 }
+
+export function RingIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke={clr} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+      <circle cx="12" cy="12" r="4.5" stroke={clr} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+      <circle cx="12" cy="3" r="1.2" fill={clr} opacity="0.6" />
+    </svg>
+  )
+}
+
+export function SpiralIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 12 C12 10.5 13.5 10.5 13.5 12 C13.5 14 10.5 14 10.5 12 C10.5 9 15 9 15 12 C15 16 9 16 9 12 C9 7.5 16.5 7.5 16.5 12 C16.5 18 7.5 18 7.5 12 C7.5 6 18 6 18 12"
+        stroke={clr} strokeWidth="1.1" strokeLinecap="round" fill="none"
+      />
+      <circle cx="12" cy="12" r="1" fill={clr} opacity="0.6" />
+    </svg>
+  )
+}
+
+export function PairGraphIcon({ clr }: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="4" width="7" height="4" rx="2" stroke={clr} strokeWidth="1.1" fill="none" />
+      <rect x="14" y="4" width="7" height="4" rx="2" stroke={clr} strokeWidth="1.1" fill="none" />
+      <rect x="8.5" y="16" width="7" height="4" rx="2" stroke={clr} strokeWidth="1.1" fill="none" />
+      <path d="M10 6 H14 M18 8 L14 16 M10 16 L6 8" stroke={clr} strokeWidth="1.1" strokeLinecap="round" opacity="0.6" />
+    </svg>
+  )
+}
