@@ -126,7 +126,7 @@ export interface TierTable {
 // ---- selection helpers (D-07, D-09, D-13) ----
 
 /** The tier for n zones: an explicit override wins, else svg -> canvas -> headless by the table's boundaries. */
-export function selectTier(n: number, table: TierTable, override?: RenderTier): RenderTier {
+export function selectTier(n: number, table: Pick<TierTable, 'boundaries'>, override?: RenderTier): RenderTier {
   if (override !== undefined) return override
   if (n <= table.boundaries.svgRichMaxN.n) return 'svg'
   const canvasMax = table.boundaries.canvasMaxN
@@ -135,7 +135,7 @@ export function selectTier(n: number, table: TierTable, override?: RenderTier): 
 }
 
 /** A `tier=` URL value as a RenderTier, or null when the diagnostic override is off or the value is not allowed (D-13, T-03-05). */
-export function parseTierOverride(value: string | null | undefined, table: TierTable): RenderTier | null {
+export function parseTierOverride(value: string | null | undefined, table: Pick<TierTable, 'tierOverrideParam'>): RenderTier | null {
   if (value === null || value === undefined) return null
   if (!table.tierOverrideParam.enabled) return null
   if (!table.tierOverrideParam.values.includes(value)) return null
@@ -144,17 +144,17 @@ export function parseTierOverride(value: string | null | undefined, table: TierT
 }
 
 /** Whether a layout switch of n zones may animate rather than cut instantly (D-09). */
-export function tweenAllowed(n: number, table: TierTable): boolean {
+export function tweenAllowed(n: number, table: Pick<TierTable, 'boundaries'>): boolean {
   return n <= table.boundaries.layoutTweenMaxN.n
 }
 
 /** Whether a zone label may be drawn, given its on-screen node radius in pixels (D-07). */
-export function labelsVisible(onScreenRadiusPx: number, table: TierTable): boolean {
+export function labelsVisible(onScreenRadiusPx: number, table: Pick<TierTable, 'boundaries'>): boolean {
   return onScreenRadiusPx >= table.boundaries.labelVisibleMinRadiusPx
 }
 
 /** How densely the gate layer draws at n zones: full, thinned, or off. */
-export function gateLayerMode(n: number, table: TierTable): 'on' | 'thin' | 'off' {
+export function gateLayerMode(n: number, table: Pick<TierTable, 'boundaries'>): 'on' | 'thin' | 'off' {
   if (n <= table.boundaries.gatesFullMaxN) return 'on'
   if (n <= table.boundaries.gatesThinMaxN) return 'thin'
   return 'off'
