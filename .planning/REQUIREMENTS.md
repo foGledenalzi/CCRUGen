@@ -26,7 +26,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Migration
 
 - [x] **MIG-01**: The base-10 viewer's syzygies, currents, gates, demons and regions are derived from the engine and joined with lore by id, with DOM goldens byte-identical to the pre-refactor viewer
-- [ ] **MIG-02**: No hard-coded 10-zone constants remain (CI grep gate for `9 - z`, `[1, 2, 4, 5, 7, 8]`, `n <= 9`), and bases 2-40 smoke-render with no NaN or undefined
+- [x] **MIG-02
+**: No hard-coded 10-zone constants remain (CI grep gate for `9 - z`, `[1, 2, 4, 5, 7, 8]`, `n <= 9`), and bases 2-40 smoke-render with no NaN or undefined
 
 ### Layout
 
@@ -37,7 +38,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UI
 
-- [ ] **UI-01**: The user can choose an even base via a base picker (odd input is refused with an explanation), notable-base chips (2, 4, 6, 8, 10, 12, 16, 22, 28, 64, 80, 82, 100, 1024; user amendment D-07, 2026-09-28), and sees a live summary (zones, Warp yes/no, Torque cycle lengths, demon counts)
+- [x] **UI-01
+**: The user can choose an even base via a base picker (odd input is refused with an explanation), notable-base chips (2, 4, 6, 8, 10, 12, 16, 22, 28, 64, 80, 82, 100, 1024; user amendment D-07, 2026-09-28), and sees a live summary (zones, Warp yes/no, Torque cycle lengths, demon counts)
 - [x] **UI-02
 **: The chosen base is carried in the URL as `?base=`; existing base-10 share links keep working; absurdly large bases are refused with a message instead of freezing the tab
 - [x] **UI-03
@@ -138,7 +140,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAY-03 | Phase 3 | Complete (03-01, 03-03, 03-04, 03-06, 03-07, 03-08) |
 | LAY-04 | Phase 3 | Complete (03-03, 03-06, 03-08) |
 | REN-01 | Phase 3 | Complete (03-02, 03-09, 03-10) |
-| UI-01 | Phase 4 | Pending |
+| UI-01 | Phase 4 | Complete (04-06, 04-12, 04-16) |
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 4 | Pending |
 | UI-04 | Phase 4 | Complete (04-09, 04-10, 04-11) |
@@ -146,7 +148,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-06 | Phase 4 | Complete (04-15) |
 | UI-07 | Phase 4 | Complete (04-07, 04-14, 04-15) |
 | UI-08 | Phase 4 | Pending |
-| MIG-02 | Phase 4 | Pending |
+| MIG-02 | Phase 4 | Complete (04-01, 04-04, 04-09, 04-10, 04-11, 04-16) |
 | DEM-01 | Phase 5 | Pending |
 | DEM-02 | Phase 5 | Pending |
 | DEM-03 | Phase 5 | Pending |

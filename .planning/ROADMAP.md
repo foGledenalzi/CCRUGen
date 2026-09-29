@@ -131,7 +131,7 @@ Plans:
 - [x] 04-13-PLAN.md - Region legend for any base with isolate and mute in both diagrams, URL and history (wave 7)
 - [x] 04-14-PLAN.md - Keyboard traversal, ARIA names, focus ring and reduced motion; accessibility e2e (wave 8)
 - [x] 04-15-PLAN.md - Collapsible panels, Text panel, zoom/fit toolbar; layers-zoom e2e (wave 9)
-- [ ] 04-16-PLAN.md - MIG-02 closeout: seams deleted, base-ten gate default, bases 2-40 smoke, D-07 wording, todos, full gate (wave 10)
+- [x] 04-16-PLAN.md - MIG-02 closeout: seams deleted, base-ten gate default, bases 2-40 smoke, D-07 wording, todos, full gate (wave 10)
 **UI hint**: yes
 **Research**: Targeted, run `/gsd-research-phase` for the label scheme beyond base 36 (decision plus font/glyph coverage tests). The URL codec is standard.
 **Notes**: `base` becomes a required argument everywhere so unmigrated call sites fail to compile; a single URL codec replaces the three existing parsers (omit `base` when 10, strict even-integer validation, layout validated against base, legacy-URL fixture corpus, `tc=1` maps to the union of Torque zones). Bases above the SVG tier's measured limit show the summary and text view plus a visible message until the Canvas tier arrives in Phase 6. Settle once here: label separator, `region=` URL syntax, `digits` scheme values, Torque letter/number display. Text view, region legend and pair-graph toggle are confirmed v1 scope.
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
-| 4. Base Picker and Generator UI | 15/16 | In Progress | - |
+| 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |

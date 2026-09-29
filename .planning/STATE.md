@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 04-15-PLAN.md
-last_updated: "2026-09-29T18:04:21.891Z"
+status: verifying
+stopped_at: Completed 04-16-PLAN.md (Phase 4 complete, 16/16)
+last_updated: "2026-09-29T18:45:39.737Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 47
-  completed_plans: 46
-  percent: 98
+  completed_plans: 47
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 04 — base-picker-and-generator-ui
+**Current focus:** Phase 04 — base-picker-and-generator-ui (complete; next is `/gsd-verify-work 4`)
 
 ## Current Position
 
-Phase: 04 (base-picker-and-generator-ui) — EXECUTING
+Phase: 04 (base-picker-and-generator-ui) — COMPLETE
 Plan: 16 of 16
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-29
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -99,6 +99,7 @@ Progress: [██████████] 98%
 | Phase 04 P13 | 55min | 2 tasks | 9 files |
 | Phase 04 P14 | 40min | 2 tasks | 11 files |
 | Phase 04 P15 | 55min | 2 tasks | 7 files |
+| Phase 04 P16 | 35min | 3 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -167,12 +168,12 @@ Recent decisions affecting current work:
 - [Phase 4 P13] Region legend generalized (UI-05, D-19..D-24): RegionsPanel.tsx now lists regionRows(g) for any base (Torque cycles in canonical order, then Warp, then Plex) with independent 24px Isolate/Mute icon buttons per row (aria-pressed, data-post-baseline so the frozen behaviour-baseline text sweep is unaffected); Projection.tsx's zoneStates prop drives one hide/dim rule reused across zones, syzygies, currents, gates, demons, both particle layers and the Time Circuit overlay, reusing the existing dim-opacity constants rather than inventing new levels; NumogramClient.tsx computes one zoneStateArr threaded to Projection (zoneStates) and PairGraphProjection (pairStates, keyed by pair id = low zone); isolate=/mute= extend the URL codec, undo/redo history and app/lib/baseSwitch.ts's UI-08 reset; base 10's exact row text, hover lore and DOM goldens/behaviour baseline stayed byte-identical (view.lore branch, icon-only postBaseline buttons); e2e/region-legend.spec.ts (6 tests) covers base 64 (order/labels/isolate/multi-isolate/mute-wins/independence/reload), base 12 (stale-id drop), base 10 (unchanged text) and base 28's pair graph; page-weight baseline raised (+4,148 bytes raw/+523 gzip); UI-05 is the final covering plan, marked Complete
 - [Phase 4 P14] Roving-tabindex keyboard model (UI-07): Projection.tsx and PairGraphProjection.tsx are one Tab stop each, with a focusOrder array recomputed each render by mirroring each layer's own existing render filter exactly (zones ascending, hidden-filtered, then syzygies, currents, gates; pair graph: pairs in pair-id order), tabIndex={0} only on the active key, Enter/Space activating via svgRef.current.querySelector + CSS.escape; every focusable element gets role=button, an in-base aria-label, aria-pressed and data-post-baseline (so the frozen behaviour-baseline svg-interactive counter stays 0); muted (mute=) elements are excluded from the traversal, dimmed (isolate complement) elements stay in it; [data-focus-key]:focus-visible in globals.css is the only new CSS, invisible to the 60 frozen DOM goldens (role/tabindex/aria-*/data-* ignored); reducedMotion is hoisted once in NumogramClient via useReducedMotion() and threaded to useOrbitalAnimation (rAF short-circuit, orbit Button disabled) and Projection (particle layer, selection-triggered particle flow, Time-Circuit carriers all gated, static edges/paths unaffected); e2e/accessibility.spec.ts (12 tests, chromium-utc) proves 84-element traversal/wraparound at base 28, ARIA names, keyboard activation, muted-order exclusion, visible focus, reduced motion and the base-10-only digit shortcut; Rule 1 fix: a CSS comment's literal aria-*/data-* text embedded a */ token that closed the comment early and broke next build's cssnano minifier, reworded to avoid it; UI-07 stays Pending (final covering plan 04-15 mounts the text view into the normal viewer)
 - [Phase 4 P15] Real collapsible panels (todo 003 finding 3, UI-07): CyberPanel.tsx's collapseDirection="vertical" wired for real on all seven side panels plus the new Text panel (postBaseline prop, accessible chevron with aria-label/aria-expanded, open body scrolls via overflowY:auto instead of clipping); the dead mobile auto-collapse effect is deleted (panels start open at every width, users fold them with the chevrons); a Text panel mounts TextView (numogramText + Copy numogram text) at every interactive base, hidden above the SVG tier where BigBaseSummary already carries the text view; ViewControls.tsx gives zoom in/out/fit as keyboard-focusable buttons with a live zoom-percent readout, fit frames every non-muted zone via fitSelectionToView; e2e/layers-zoom.spec.ts (10 tests) proves UI-06 at base 28 (layer toggle counts including Pandemonium's exactly-364 non-syzygetic demon chords, computed independently from the engine) and base 100 (Pandemonium N/A above the demon-chord ceiling); page-weight baseline raised (/numogram/ +8,514 bytes raw htmlBytes, +3,131 jsBytes, this plan's growth only); 60 goldens and the behaviour baseline unchanged; UI-06 and UI-07 both marked Complete (UI-06's only plan, UI-07's final covering plan after 04-07 and 04-14)
+- [Phase 4 P16] MIG-02 closed: the six app/data base-10 seams and the app/lib/constants.ts TC re-export are deleted; the base-ten grep gate is now a default check in npm run verify (13 checks total); e2e/smoke-bases.spec.ts proves every even base 2-40 plus ladder/spiral/pairGraph at 2, 4, 6, 28 render with no NaN/undefined; page weight settled with no baseline raise (bundle shrank slightly); D-07 chip wording finalized in REQUIREMENTS.md/ROADMAP.md matching app/lib/basePicker.ts's NOTABLE_BASES; todos 003 (already closed) verified and 005 (packer choice) closed with a Resolution trace; todo 004's MIG-02 item closed. Full npm run verify green (1542 unit tests x2 timezones, 176 e2e + 106 skipped, 60 goldens and 5 behaviour specs unchanged). Phase 4 complete: 16/16 plans, all eight UI requirements plus MIG-02 marked Complete. CLAUDE.md's line about five thin seams remaining until Phase 4/MIG-02 is now stale (flagged for the orchestrator, not edited).
 
 ### Pending Todos
 
 - 002 (P3): Phase 1 code review findings deferred, not fixed in Phase 1
-- 004 (P3): Phase 2 code review findings deferred, not fixed in Phase 2 (IN-02, IN-03, IN-05, IN-07, MIG-02)
-- 005 (P3): Expose packer choice (shelf vs. spiral) in the Phase 4 generator UI — user's Phase 3 sign-off request (2026-09-27)
+- 004 (P3): Phase 2 code review findings deferred, not fixed in Phase 2 (IN-02, IN-03, IN-05, IN-07; MIG-02 closed in Phase 4 plan 04-16)
 
 ### Blockers/Concerns
 
@@ -199,8 +200,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-29T18:04:21.883Z
-Stopped at: Completed 04-15-PLAN.md
+Last session: 2026-09-29T18:45:39.730Z
+Stopped at: Completed 04-16-PLAN.md (Phase 4 complete, 16/16)
 Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z
