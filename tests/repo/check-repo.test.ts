@@ -1,10 +1,11 @@
-import { spawnSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   BASE_TEN_EXEMPT,
+  DEFAULT_CHECKS,
   FORBIDDEN_OUT,
   LF_DIRS,
   LORE_FILES,
@@ -433,6 +434,22 @@ describe('findHardcodedBaseTen', () => {
       'app/a.ts:2: torque zones [1, 2, 4, 5, 7, 8]',
       'app/b.tsx:1: zone total={10}',
     ])
+  })
+})
+
+describe('base-ten is a default check (MIG-02, plan 04-16)', () => {
+  it('DEFAULT_CHECKS contains base-ten', () => {
+    expect(DEFAULT_CHECKS).toContain('base-ten')
+  })
+
+  it('passes on the real app/ tree (MIG-02 gate, plan 04-16)', () => {
+    const tracked = execFileSync('git', ['ls-files', '-z', 'app'], { cwd: ROOT, encoding: 'utf8' })
+      .split('\0')
+      .filter(Boolean)
+      .filter((f) => /\.(ts|tsx)$/.test(f))
+    const files = tracked.map((f) => ({ path: f, text: readFileSync(path.join(ROOT, ...f.split('/')), 'utf8') }))
+    expect(files.length).toBeGreaterThan(0)
+    expect(findHardcodedBaseTen(files)).toEqual([])
   })
 })
 

@@ -2,10 +2,10 @@
 // Repository policy guard (FND-01, FND-02, FND-05, D-04). Exit 1 on any failed check.
 //   node scripts/check-repo.mjs [--only a,b] [--clean-tree] [--static-out]
 //
-// Default checks: reference, origin, junk, license, notice, lore, goldens, lf, gitattributes, workflow.
+// Default checks: reference, origin, junk, license, notice, lore, goldens, lf, gitattributes, workflow, base-ten.
 // Extra checks (only when flagged): --clean-tree (build/test left no tracked file modified, frozen oracle
 // dirs pristine) and --static-out (the exported out/ tree is clean). base-ten (MIG-02's hard-coded 10-zone
-// grep gate) is runnable with --only base-ten but is not yet a default check (becomes one in plan 04-16).
+// grep gate) became a default check in plan 04-16.
 // --only restricts the run to the named checks (any of the thirteen).
 //
 // Zero dependencies, ESM. git is always run without a shell, and only local read commands are used: this
@@ -354,7 +354,7 @@ const CHECKS = {
   'static-out': () => scanStaticOut(path.join(ROOT, 'out')),
   'base-ten': () => findHardcodedBaseTen(appSourceFiles()),
 }
-export const DEFAULT_CHECKS = ['reference', 'origin', 'junk', 'license', 'notice', 'lore', 'goldens', 'lf', 'gitattributes', 'workflow']
+export const DEFAULT_CHECKS = ['reference', 'origin', 'junk', 'license', 'notice', 'lore', 'goldens', 'lf', 'gitattributes', 'workflow', 'base-ten']
 
 // ----- CLI -----
 
