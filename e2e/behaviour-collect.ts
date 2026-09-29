@@ -4,6 +4,13 @@
 // Only text, attribute and computed-style facts are recorded, so a baseline captured on one OS holds on
 // another: nothing here depends on installed fonts or on pixel positions. Visibility is decided from computed
 // style alone (display, visibility, opacity and a zero height or max-height on a clipping element).
+//
+// Marker contract (Phase 4, plan 04-01): UI added after this baseline was frozen (2026-09-26) carries the
+// attribute data-post-baseline on its root element. The collector skips every node inside such a subtree
+// (visible text, interactive rows, the projection svg interactive count, popovers and header detection). No
+// element carried the attribute when the frozen JSON was captured, so the skip is a no-op for everything the
+// baseline records: the frozen files stay a strict oracle and are never regenerated. New UI is verified by its
+// own specs.
 
 export const PANELS = ['Layers', 'Labels', 'Zones', 'Regions', 'Syzygies', 'Currents', 'Gates', 'Selection'] as const
 
@@ -17,6 +24,7 @@ export interface CollectResult {
 
 export function collect(panels: readonly string[]): CollectResult {
   const norm = (s: string | null | undefined): string => (s || '').replace(/\s+/g, ' ').trim()
+  const postBaseline = (el: Element | null): boolean => !!el && el.closest('[data-post-baseline]') !== null
 
   // ---- visibility from computed style only
   const effCache = new Map<Element, boolean>()
@@ -45,7 +53,7 @@ export function collect(panels: readonly string[]): CollectResult {
       const t = norm(n.nodeValue)
       if (!t) continue
       const p = n.parentElement
-      if (!p || p.closest('svg')) continue
+      if (!p || p.closest('svg') || postBaseline(p)) continue
       if (!eff(p)) continue
       parts.push(t)
     }
@@ -62,12 +70,12 @@ export function collect(panels: readonly string[]): CollectResult {
     return null
   }
   const regions: Record<string, Element | null> = {}
-  for (const h of Array.from(document.querySelectorAll('header'))) {
+  for (const h of Array.from(document.querySelectorAll('header')).filter(h => !postBaseline(h))) {
     const t = norm(h.textContent)
     const root = fixedAncestor(h)
     if (root && panels.includes(t)) regions[t] = root
   }
-  const pageHeader = Array.from(document.querySelectorAll('header')).find(h => !panels.includes(norm(h.textContent)))
+  const pageHeader = Array.from(document.querySelectorAll('header')).filter(h => !postBaseline(h)).find(h => !panels.includes(norm(h.textContent)))
   regions.header = pageHeader ? pageHeader.closest('div.fixed') : null
   regions.topbar = document.querySelector('div.fixed.top-0')
   regions.footer = document.querySelector('div[class*="bottom-2"]')
@@ -89,6 +97,7 @@ export function collect(panels: readonly string[]): CollectResult {
   let svgInteractive = 0
   const interactive: string[] = []
   for (const el of Array.from(document.querySelectorAll<HTMLElement>(SEL))) {
+    if (postBaseline(el)) continue
     if (el.closest('svg[viewBox^="0 0 800 "]')) {
       svgInteractive++
       continue
@@ -121,7 +130,7 @@ export function collect(panels: readonly string[]): CollectResult {
   // ---- visible text per region, popovers and every other page text outside the projection svg
   const texts: Record<string, string | null> = {}
   for (const k of Object.keys(regions)) texts[k] = visibleText(regions[k] ?? null)
-  texts.popovers = Array.from(document.querySelectorAll('div[class*="z-[95]"]')).map(visibleText).join(' || ')
+  texts.popovers = Array.from(document.querySelectorAll('div[class*="z-[95]"]')).filter(d => !postBaseline(d)).map(visibleText).join(' || ')
   const named = Object.values(regions).filter((r): r is Element => !!r)
   {
     const parts: string[] = []
@@ -130,7 +139,7 @@ export function collect(panels: readonly string[]): CollectResult {
     while ((n = w.nextNode())) {
       const t = norm(n.nodeValue)
       const p = n.parentElement
-      if (!t || !p || p.closest('svg') || p.closest('script, style, noscript')) continue
+      if (!t || !p || p.closest('svg') || p.closest('script, style, noscript') || postBaseline(p)) continue
       if (named.some(r => r.contains(p))) continue
       if (!eff(p)) continue
       parts.push(t)

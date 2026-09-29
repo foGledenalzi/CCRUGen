@@ -11,6 +11,8 @@ import { baselineAction, diffBaseline, normalizeDeep } from './behaviour-compare
 // on any OS. A baseline is written only by BEHAVIOUR_CAPTURE=1 when its file is missing (it never overwrites);
 // a correction is a NEW dated set from a checkout of the pre-swap viewer, never -u.
 
+// Marker contract (Phase 4, plan 04-01): locators below exclude [data-post-baseline] subtrees; see
+// behaviour-collect.ts for the full contract.
 const SVG = 'svg[viewBox^="0 0 800 "]'
 const HEIGHT: Record<string, number> = { original: 940, labyrinth: 880, ladder: 870 } // svgHeight targets in app/hooks/useTween.ts
 const PLANETARY_HEIGHT = 800
@@ -99,14 +101,30 @@ async function driveLayout(page: Page, L: { name: string; qs: string }, origin: 
   const R = async <T>(name: string, read: () => Promise<T>) => { B(name, await stable(read)) }
   const snap = () => snapshot(page, origin)
   const search = () => page.evaluate(() => location.search)
-  const popovers = () => page.evaluate(() => Array.from(document.querySelectorAll('div[class*="z-[95]"]')).map(d => (d.textContent ?? '').trim()).join('||'))
+  const popovers = () => page.evaluate(() => Array.from(document.querySelectorAll('div[class*="z-[95]"]:not([data-post-baseline])')).map(d => (d.textContent ?? '').trim()).join('||'))
   const modalCount = () => page.locator('div[class*="z-[84]"]').count()
   const away = async () => { await page.mouse.move(700, 500); await stable(popovers) }
 
   stages.initial = await snap()
 
+  // marker-contract guard (T-04-01): marking any pre-existing region fails the spec, so the skip in
+  // behaviour-collect.ts can never be used to hide an element that already existed at capture time.
+  const markedRegions = await page.evaluate(names => {
+    const bad: string[] = []
+    for (const h of Array.from(document.querySelectorAll('header'))) {
+      const t = (h.textContent || '').replace(/\s+/g, ' ').trim()
+      if (names.includes(t) && h.closest('[data-post-baseline]')) bad.push(t)
+    }
+    const svg = document.querySelector('svg[viewBox^="0 0 800 "]')
+    if (svg && svg.closest('[data-post-baseline]')) bad.push('svg')
+    const hdr = Array.from(document.querySelectorAll('header')).find(h => !names.includes((h.textContent || '').replace(/\s+/g, ' ').trim()) && !h.closest('[data-post-baseline]'))
+    if (!hdr) bad.push('page header')
+    return bad
+  }, [...PANELS])
+  expect(markedRegions).toEqual([])
+
   // hover readouts on the layout buttons
-  const layoutButtons = page.locator('div.fixed.top-0 button').filter({ hasText: /^[ASDF]$/ })
+  const layoutButtons = page.locator('div.fixed.top-0 button:not([data-post-baseline])').filter({ hasText: /^[ASDF]$/ })
   const nBtn = await layoutButtons.count()
   const hoverLabels: string[] = []
   for (let i = 0; i < nBtn; i++) {
@@ -164,7 +182,7 @@ async function driveLayout(page: Page, L: { name: string; qs: string }, origin: 
   const stripLayout = (s: { interactive: string[]; texts: unknown; open: unknown }) => JSON.stringify({ i: s.interactive, t: s.texts, o: s.open })
   const initialKey = stripLayout(stages.initial as { interactive: string[]; texts: unknown; open: unknown })
   for (const name of TOGGLEABLE) {
-    const btn = panel(page, name).locator('header button').first()
+    const btn = panel(page, name).locator('header button:not([data-post-baseline])').first()
     if ((await btn.count()) === 0) {
       B(`panel ${name}: has NO open/close toggle in the rendered DOM`, true)
       continue
@@ -324,14 +342,27 @@ async function driveMobile(page: Page, origin: string): Promise<Baseline> {
   await page.goto('/numogram/')
   await settle(page, 'original', origin)
   const stages: Stages = { initial: await snapshot(page, origin) }
+  const markedRegions = await page.evaluate(names => {
+    const bad: string[] = []
+    for (const h of Array.from(document.querySelectorAll('header'))) {
+      const t = (h.textContent || '').replace(/\s+/g, ' ').trim()
+      if (names.includes(t) && h.closest('[data-post-baseline]')) bad.push(t)
+    }
+    const svg = document.querySelector('svg[viewBox^="0 0 800 "]')
+    if (svg && svg.closest('[data-post-baseline]')) bad.push('svg')
+    const hdr = Array.from(document.querySelectorAll('header')).find(h => !names.includes((h.textContent || '').replace(/\s+/g, ' ').trim()) && !h.closest('[data-post-baseline]'))
+    if (!hdr) bad.push('page header')
+    return bad
+  }, [...PANELS])
+  expect(markedRegions).toEqual([])
   const behaviours: Behaviour[] = []
-  const hasToggle = (await panel(page, 'Layers').locator('header button').count()) > 0
+  const hasToggle = (await panel(page, 'Layers').locator('header button:not([data-post-baseline])').count()) > 0
   behaviours.push({ name: 'has panel toggle', value: hasToggle })
   if (hasToggle) {
     for (const name of ['Layers', 'Zones']) {
-      await panel(page, name).locator('header button').first().click()
+      await panel(page, name).locator('header button:not([data-post-baseline])').first().click()
       stages[`open:${name}`] = await snapshot(page, origin)
-      await panel(page, name).locator('header button').first().click()
+      await panel(page, name).locator('header button:not([data-post-baseline])').first().click()
       await snapshot(page, origin)
     }
   }
