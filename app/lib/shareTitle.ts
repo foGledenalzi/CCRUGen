@@ -1,7 +1,7 @@
-import type { Layout } from '../data/types'
+import type { ViewLayoutId } from './layoutIds'
 
 type ShareTitleInput = {
-  layout: Layout
+  layout: ViewLayoutId
   selectedIds: number[]
   layers?: string
   particles?: boolean | '0' | '1'

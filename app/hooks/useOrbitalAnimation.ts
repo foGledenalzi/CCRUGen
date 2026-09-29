@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import type { Layout } from '../data/types'
 import { ORBITAL_PERIOD } from '../lib/planetary'
 
-export function useOrbitalAnimation(layout: Layout, defaultAngles: Record<number, number>) {
+/** `layout` is any view layout id (base-generic, 04-11): only ever compared against 'planetary', never evaluated. */
+export function useOrbitalAnimation(layout: string, defaultAngles: Record<number, number>) {
   const [planetaryAngles, setPlanetaryAngles] = useState(defaultAngles)
   const [orbiting, setOrbiting] = useState(false)
   const animRef = useRef<number>(0)

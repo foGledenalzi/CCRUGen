@@ -12,6 +12,8 @@ type CyberButtonProps = {
   onMouseEnter?: () => void
   onMouseLeave?: () => void
   className?: string
+  /** Marks this button as new-since-the-frozen-behaviour-baseline chrome (data-post-baseline, Phase 4 plan 04-01). */
+  postBaseline?: boolean
   children: React.ReactNode
 }
 
@@ -25,6 +27,7 @@ export function CyberButton({
   onMouseEnter,
   onMouseLeave,
   className = '',
+  postBaseline = false,
   children,
 }: CyberButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -69,6 +72,7 @@ export function CyberButton({
     <button
       ref={buttonRef}
       type="button"
+      data-post-baseline={postBaseline ? '' : undefined}
       onClick={onClick}
       disabled={disabled}
       onMouseEnter={onMouseEnter}
