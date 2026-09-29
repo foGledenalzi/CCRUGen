@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import type { Layer, Pos, HoverInfo, GateRender, CurrentRender, LabelVisibility, CurrentData } from '../../data/types'
 import { PLANETARY_CX, PLANETARY_CY, PLANETARY_SIZE } from '../../presets/base10/layouts'
 import { REGION_CLR } from '../../lib/constants'
@@ -11,7 +11,7 @@ import type { NumogramView } from '../../lib/numogramView'
 import type { ViewLayoutId } from '../../lib/layoutIds'
 import type { RegionLabel, RoutingStyle } from '../../../engine/index'
 import { formatNumeral } from '../../../engine/index'
-import { elementState, ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../lib/regions'
+import { elementState, regionLabel, ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../lib/regions'
 
 interface ProjectionProps {
   view: NumogramView
@@ -58,6 +58,9 @@ export const Projection = React.memo(function Projection({
   currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, onHoverInfo, onPinInfo, onZoneNodeClick,
 }: ProjectionProps) {
 
+  const [focusKey, setFocusKey] = useState<string | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+
   const isPlanetary = routingStyle === 'planetary'
   const k = nodeRadius / 21
   const ss = strokeScale
@@ -103,8 +106,110 @@ export const Projection = React.memo(function Projection({
       : { from: t.end, to: t.start }
   }
 
+  // Roving-tabindex keyboard model (UI-07): the order mirrors each render filter below exactly, so a hidden
+  // (muted) element is never in the traversal while a dimmed (isolated-out) one still is.
+  const zoneFocusKeys = Array.from({ length: view.zoneCount }, (_, z) => z)
+    .filter(z => zs(z) !== ZONE_HIDDEN)
+    .map(z => `zone:${z}`)
+  const syzygyFocusKeys = layers.has('syzygies')
+    ? view.syzygies
+        .filter(s => !tcActive || view.torqueSyzygies.some(t => t[0] === s.a && t[1] === s.b))
+        .filter(s => stateOf([s.a, s.b]) !== ZONE_HIDDEN)
+        .map(s => `syzygy:${s.a}:${s.b}`)
+    : []
+  const currentFocusKeys = layers.has('currents')
+    ? view.currents
+        .filter(c => !tcActive || view.torqueCurrentNames.has(c.name))
+        .filter(c => currentRenderData[c.name] !== undefined)
+        .filter(c => stateOf([c.from, view.partner(c.from), currentDest(c)]) !== ZONE_HIDDEN)
+        .map(c => `current:${c.name}`)
+    : []
+  const gateFocusKeys = layers.has('gates') && !tcActive && gateMode !== 'off'
+    ? view.gates
+        .filter(gt => gateRenderData[gt.name] !== undefined)
+        .filter(gt => stateOf([gt.from, gt.to]) !== ZONE_HIDDEN)
+        .map(gt => `gate:${gt.name}`)
+    : []
+  const focusOrder = [...zoneFocusKeys, ...syzygyFocusKeys, ...currentFocusKeys, ...gateFocusKeys]
+  const activeKey = focusKey !== null && focusOrder.includes(focusKey) ? focusKey : (focusOrder[0] ?? null)
+
+  const moveFocus = (nextKey: string) => {
+    setFocusKey(nextKey)
+    const el = svgRef.current?.querySelector(`[data-focus-key="${CSS.escape(nextKey)}"]`)
+    ;(el as SVGElement | null)?.focus()
+  }
+
+  const activateFocused = (key: string) => {
+    if (key.startsWith('zone:')) {
+      const z = Number(key.slice('zone:'.length))
+      onPinInfo({ type: 'zone', zone: z })
+      onZoneNodeClick(z)
+      return
+    }
+    if (key.startsWith('syzygy:')) {
+      const [aStr, bStr] = key.slice('syzygy:'.length).split(':')
+      const s = view.syzygies.find(sy => sy.a === Number(aStr) && sy.b === Number(bStr))
+      if (s) onPinInfo({ type: 'syzygy', data: s })
+      return
+    }
+    if (key.startsWith('current:')) {
+      const name = key.slice('current:'.length)
+      const c = view.currents.find(cur => cur.name === name)
+      if (c) onPinInfo({ type: 'current', data: c })
+      return
+    }
+    if (key.startsWith('gate:')) {
+      const name = key.slice('gate:'.length)
+      const gt = view.gates.find(gg => gg.name === name)
+      if (gt) onPinInfo({ type: 'gate', gate: gt })
+    }
+  }
+
+  const onDiagramKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    const currentKey = (e.target as Element).getAttribute?.('data-focus-key')
+    if (!currentKey) return
+    const idx = focusOrder.indexOf(currentKey)
+    if (idx === -1) return
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault()
+        moveFocus(focusOrder[(idx + 1) % focusOrder.length]!)
+        break
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault()
+        moveFocus(focusOrder[(idx - 1 + focusOrder.length) % focusOrder.length]!)
+        break
+      case 'Home':
+        e.preventDefault()
+        moveFocus(focusOrder[0]!)
+        break
+      case 'End':
+        e.preventDefault()
+        moveFocus(focusOrder[focusOrder.length - 1]!)
+        break
+      case 'Enter':
+      case ' ':
+        e.preventDefault()
+        activateFocused(currentKey)
+        break
+      default:
+        break
+    }
+  }
+
   return (
-    <svg viewBox={`0 0 ${width} ${svgHeight}`} className="w-[580px] flex-shrink-0" style={{ overflow: 'visible' }} data-diagram="zones">
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${width} ${svgHeight}`}
+      className="w-[580px] flex-shrink-0"
+      style={{ overflow: 'visible' }}
+      data-diagram="zones"
+      role="group"
+      aria-label={`Numogram, base ${view.base}, ${view.zoneCount} zones. Arrow keys move between elements, Enter selects.`}
+      onKeyDown={onDiagramKeyDown}
+    >
       <defs>
         <filter id="gl"><feGaussianBlur stdDeviation="3" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         <filter id="gl2"><feGaussianBlur stdDeviation="5" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
@@ -209,7 +314,7 @@ export const Projection = React.memo(function Projection({
 
         if (rd.type === 'loop') {
           return (
-            <g key={g.name} data-gate={g.name}>
+            <g key={g.name} data-gate={g.name} data-focus-key={`gate:${g.name}`} data-post-baseline="" role="button" tabIndex={`gate:${g.name}` === activeKey ? 0 : -1} aria-label={`Gate ${g.name}: zone ${zoneLabels[g.from]} to zone ${zoneLabels[g.to]}`} aria-pressed={selectedCount === terminalCount} onFocus={() => { setFocusKey(`gate:${g.name}`); onHoverInfo({ type: 'gate', gate: g }) }} onBlur={() => onHoverInfo(null)}>
               <path d={rd.loop} fill="none" stroke="#cc44ff"
                 strokeWidth={sw} strokeDasharray={`${3 * ss} ${2 * ss}`} opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
                 style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -221,7 +326,7 @@ export const Projection = React.memo(function Projection({
 
         if (rd.type === 'single') {
           return (
-            <g key={g.name} data-gate={g.name}>
+            <g key={g.name} data-gate={g.name} data-focus-key={`gate:${g.name}`} data-post-baseline="" role="button" tabIndex={`gate:${g.name}` === activeKey ? 0 : -1} aria-label={`Gate ${g.name}: zone ${zoneLabels[g.from]} to zone ${zoneLabels[g.to]}`} aria-pressed={selectedCount === terminalCount} onFocus={() => { setFocusKey(`gate:${g.name}`); onHoverInfo({ type: 'gate', gate: g }) }} onBlur={() => onHoverInfo(null)}>
               <path d={rd.path} fill="none" stroke="#cc44ff"
                 strokeWidth={sw} strokeDasharray={`${5 * ss} ${3 * ss}`} opacity={opacity} markerEnd="url(#arr-g)" filter={flt}
                 style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -262,7 +367,7 @@ export const Projection = React.memo(function Projection({
         }
 
         return (
-          <g key={g.name} data-gate={g.name}>
+          <g key={g.name} data-gate={g.name} data-focus-key={`gate:${g.name}`} data-post-baseline="" role="button" tabIndex={`gate:${g.name}` === activeKey ? 0 : -1} aria-label={`Gate ${g.name}: zone ${zoneLabels[g.from]} to zone ${zoneLabels[g.to]}`} aria-pressed={selectedCount === terminalCount} onFocus={() => { setFocusKey(`gate:${g.name}`); onHoverInfo({ type: 'gate', gate: g }) }} onBlur={() => onHoverInfo(null)}>
             <path d={rd.legA} fill="none" stroke="#cc44ff" strokeWidth={sw * 0.8}
               strokeDasharray={`${3 * ss} ${3 * ss}`} opacity={opacity * 0.7} filter={flt}
               style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -315,7 +420,7 @@ export const Projection = React.memo(function Projection({
 
             if (rd.type === 'single') {
               return (
-                <g key={c.name} data-current={c.name}>
+                <g key={c.name} data-current={c.name} data-focus-key={`current:${c.name}`} data-post-baseline="" role="button" tabIndex={`current:${c.name}` === activeKey ? 0 : -1} aria-label={`Current ${c.name}: ${c.label}`} aria-pressed={terminals.every(tz => selZones.has(tz))} onFocus={() => { setFocusKey(`current:${c.name}`); onHoverInfo({ type: 'current', data: c }) }} onBlur={() => onHoverInfo(null)}>
                   <path d={rd.path} fill="none" stroke="#22ee66" strokeWidth={sw}
                     opacity={opacity} markerEnd="url(#arr-c)" filter={flt}
                     style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -362,7 +467,7 @@ export const Projection = React.memo(function Projection({
             if (rd.type === 'loop') {
               const partialLeg = partialZone !== null ? pickClosestPathHalf([rd.legA, rd.legB], partialZone) : null
               return (
-                <g key={c.name} data-current={c.name}>
+                <g key={c.name} data-current={c.name} data-focus-key={`current:${c.name}`} data-post-baseline="" role="button" tabIndex={`current:${c.name}` === activeKey ? 0 : -1} aria-label={`Current ${c.name}: ${c.label}`} aria-pressed={terminals.every(tz => selZones.has(tz))} onFocus={() => { setFocusKey(`current:${c.name}`); onHoverInfo({ type: 'current', data: c }) }} onBlur={() => onHoverInfo(null)}>
                   <path d={rd.legA} fill="none" stroke="#22ee66" strokeWidth={sw * 0.7}
                     opacity={opacity * 0.7} filter={flt}
                     style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -412,7 +517,7 @@ export const Projection = React.memo(function Projection({
 
             const partialLeg = partialZone !== null ? pickClosestPathHalf([rd.legA, rd.legB], partialZone) : null
             return (
-              <g key={c.name} data-current={c.name}>
+              <g key={c.name} data-current={c.name} data-focus-key={`current:${c.name}`} data-post-baseline="" role="button" tabIndex={`current:${c.name}` === activeKey ? 0 : -1} aria-label={`Current ${c.name}: ${c.label}`} aria-pressed={terminals.every(tz => selZones.has(tz))} onFocus={() => { setFocusKey(`current:${c.name}`); onHoverInfo({ type: 'current', data: c }) }} onBlur={() => onHoverInfo(null)}>
                 <path d={rd.legA} fill="none" stroke="#22ee66" strokeWidth={sw * 0.7}
                   opacity={opacity * 0.7} filter={flt}
                   style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
@@ -541,11 +646,19 @@ export const Projection = React.memo(function Projection({
         const endT = dist > 0 ? 1 - r / dist : 1
         const span = endT - startT
         const numDots = Math.max(3, Math.min(10, Math.round(dist / (30 * k))))
+        const syzygyFocusKey = `syzygy:${s.a}:${s.b}`
+        const syzygyBothSelected = selectedCount === 2
 
         return (
-          <g key={`s-${s.a}:${s.b}`} data-syzygy={`${s.a}:${s.b}`} style={{ cursor: 'pointer' }}
+          <g key={`s-${s.a}:${s.b}`} data-syzygy={`${s.a}:${s.b}`} data-focus-key={syzygyFocusKey} data-post-baseline="" style={{ cursor: 'pointer' }}
+            role="button"
+            tabIndex={syzygyFocusKey === activeKey ? 0 : -1}
+            aria-label={`Syzygy ${zoneLabels[s.a]}::${zoneLabels[s.b]}`}
+            aria-pressed={syzygyBothSelected}
             onMouseEnter={() => onHoverInfo({ type: 'syzygy', data: s })}
             onMouseLeave={() => onHoverInfo(null)}
+            onFocus={() => { setFocusKey(syzygyFocusKey); onHoverInfo({ type: 'syzygy', data: s }) }}
+            onBlur={() => onHoverInfo(null)}
             onClick={() => onPinInfo({ type: 'syzygy', data: s })}
           >
             <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="transparent" strokeWidth={14 * ss} />
@@ -583,6 +696,8 @@ export const Projection = React.memo(function Projection({
         const act = selZones.has(z)
         const hl = hlZones.has(z)
         const region = view.zoneKind[z]
+        const zoneFocusKey = `zone:${z}`
+        const zoneAriaLabel = `Zone ${zoneLabels[z]}, ${regionLabel(view.zoneRegion[z])}${act ? ', selected' : ''}`
         const meta = view.lore ? view.lore.zoneMeta[z] : null
         const xenotation = formatXenotationForDisplay(z)
         const nodeR = isPlanetary ? PLANETARY_SIZE[z] : nodeRadius
@@ -597,10 +712,16 @@ export const Projection = React.memo(function Projection({
         const regionDotY = p.y + nodeR + 10 * k + (lowerLabels.length > 0 ? lowerLabels.length * 8 * k + 2 * k : 0)
 
         return (
-          <g key={z} data-zone={z} style={{ cursor: 'pointer' }}
+          <g key={z} data-zone={z} data-focus-key={zoneFocusKey} data-post-baseline="" style={{ cursor: 'pointer' }}
+            role="button"
+            tabIndex={zoneFocusKey === activeKey ? 0 : -1}
+            aria-label={zoneAriaLabel}
+            aria-pressed={act}
             opacity={zs(z) === ZONE_DIMMED ? 0.2 : undefined}
             onMouseEnter={() => onHoverInfo({ type: 'zone', zone: z })}
             onMouseLeave={() => onHoverInfo(null)}
+            onFocus={() => { setFocusKey(zoneFocusKey); onHoverInfo({ type: 'zone', zone: z }) }}
+            onBlur={() => onHoverInfo(null)}
             onClick={() => {
               onPinInfo({ type: 'zone', zone: z })
               onZoneNodeClick(z)

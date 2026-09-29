@@ -11,6 +11,7 @@ import {
   isRegionId,
   parseRegionId,
   regionFilterActive,
+  regionLabel,
   regionOfZone,
   regionRows,
   sanitizeRegionFilter,
@@ -59,6 +60,18 @@ describe('regionRows', () => {
     expect(g.warp).toBeNull()
     expect(isRegionId('warp', g)).toBe(false)
     expect(regionRows(g).map(r => r.id)).not.toContain('warp')
+  })
+})
+
+describe('regionLabel (UI-07, keyboard/ARIA names)', () => {
+  it('the umbrella and single-cycle forms, plus plex and warp', () => {
+    expect(regionLabel('torque')).toBe('Torque')
+    expect(regionLabel('torque:0')).toBe(`Torque ${torqueLabel(0)}`)
+    expect(regionLabel('torque:0')).toBe('Torque A')
+    expect(regionLabel('torque:26')).toBe(`Torque ${torqueLabel(26)}`)
+    expect(regionLabel('torque:26')).toBe('Torque 27')
+    expect(regionLabel('plex')).toBe('Plex')
+    expect(regionLabel('warp')).toBe('Warp')
   })
 })
 

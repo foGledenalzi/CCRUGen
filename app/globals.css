@@ -149,3 +149,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .ui-pill-input-entry::placeholder {
   color: rgba(148, 163, 184, 0.7);
 }
+
+/* Diagram keyboard focus ring (UI-07): role, tabindex and aria-/data- attributes are ignored by the frozen DOM
+   goldens, so this is pure CSS with no new element or class in either projection svg. */
+[data-focus-key]:focus {
+  outline: none;
+}
+
+[data-focus-key]:focus-visible {
+  outline: 2px solid #10ff50;
+  outline-offset: 2px;
+}

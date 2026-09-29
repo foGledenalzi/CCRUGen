@@ -69,6 +69,21 @@ export function parseRegionId(value: string | null | undefined, g: Numogram): Re
   return isRegionId(value, g) ? value : null
 }
 
+/**
+ * The display label of a region id (UI-07: the accessible name built into the diagram's keyboard/ARIA layer,
+ * D-24): 'torque' -> 'Torque', 'torque:<i>' -> `Torque ${torqueLabel(i)}` (torqueLabel(26) is '27', so
+ * 'torque:26' reads 'Torque 27'), 'plex' -> 'Plex', 'warp' -> 'Warp'.
+ */
+export function regionLabel(id: RegionId): string {
+  if (id === 'plex') return 'Plex'
+  if (id === 'warp') return 'Warp'
+  if (id === 'torque') return 'Torque'
+  const match = TORQUE_INDEX_RE.exec(id)
+  const group = match?.[1]
+  if (match === null || group === undefined) throw new RangeError(`regionLabel: invalid region id ${JSON.stringify(id)}`)
+  return `Torque ${torqueLabel(Number(group))}`
+}
+
 /** The row id of the cycle `zone` belongs to. */
 export function regionOfZone(g: Numogram, zone: number): RegionId {
   const cycle = g.cycleOfZone(zone)
