@@ -123,7 +123,7 @@ Plans:
 - [x] 04-05-PLAN.md - Unified URL codec (strict base, lenient fields, isolate/mute/labels/packer) with the frozen-baseline legacy corpus (wave 2)
 - [x] 04-06-PLAN.md - BasePicker and LabelSchemeControls components with refusal copy and summary logic (wave 2)
 - [x] 04-07-PLAN.md - Bounded numogram text, text view with copy, big-base fallback, interactive pair graph (wave 2)
-- [ ] 04-08-PLAN.md - Layout targets, engine route adapter, base-generic tween and reduced-motion hooks, layout icons (wave 2)
+- [x] 04-08-PLAN.md - Layout targets, engine route adapter, base-generic tween and reduced-motion hooks, layout icons (wave 2)
 - [ ] 04-09-PLAN.md - Projection renders any base from the view model; in-base plexExpr; NumogramViewContext (wave 3)
 - [ ] 04-10-PLAN.md - Todo 003 real-mouse fix and context-driven panels, detail and pinned views (wave 4)
 - [ ] 04-11-PLAN.md - Engine-driven viewer: ?base= via the codec, procedural/pair-graph layouts, SVG-tier gate, MIG-02 in NumogramClient (wave 5)
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
-| 4. Base Picker and Generator UI | 7/16 | In Progress | - |
+| 4. Base Picker and Generator UI | 8/16 | In Progress | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-07-PLAN.md
-last_updated: "2026-09-29T02:24:39.687Z"
+stopped_at: Completed 04-08-PLAN.md
+last_updated: "2026-09-29T02:36:05.639Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 47
-  completed_plans: 38
-  percent: 81
+  completed_plans: 39
+  percent: 83
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 04 (base-picker-and-generator-ui) — EXECUTING
-Plan: 8 of 16
+Plan: 9 of 16
 Status: Ready to execute
 Last activity: 2026-09-29
 
-Progress: [████████░░] 81%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Progress: [████████░░] 81%
 | Phase 04 P05 | 16min | 2 tasks | 2 files |
 | Phase 04 P06 | 25min | 2 tasks | 4 files |
 | Phase 04 P07 | 13min | 2 tasks | 5 files |
+| Phase 04 P08 | 20min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,7 @@ Recent decisions affecting current work:
 - [Phase 4 P05] Unified URL codec shipped (UI-02 base=/refusal, D-13 labels=, D-21 isolate=/mute=, todo 005 packer=): app/lib/shareParams.ts replaces the dead canonicalizeShareParams with parseShareParams (base is the one strict field via engine validateBase, a BaseRefusal record instead of throwing; every other field lenient-per-field, region/isolate/mute validated against a lazily-built createNumogram(base)) and buildShareParams (omit-at-default extended to labels/isolate/mute/packer/tier, keys sorted with localeCompare matching NumogramClient.tsx's existing sortSearchParams); tests/app/shareParams.test.ts proves 40 URLs from the frozen e2e/__behaviour__ baseline round-trip byte-for-byte plus a fast-check property across bases 2/10/12/28/64 (51 tests, full suite 1437 green in both timezones). UI-02/UI-03/UI-05 stay Pending (final covering plans 04-12, 04-12, 04-13 respectively, per this phase's per-plan requirements frontmatter) mirroring the 04-01..04-04 precedent. The viewer itself switches to this codec in 04-11.
 - [Phase 4 P06] Base picker + label-scheme controls shipped (UI-01, UI-03, D-01..D-07, D-10, D-12): app/lib/basePicker.ts (evaluateCandidate regex-gates hex/scientific-notation/malformed text before validateBase; refusalMessage is one exhaustive switch over every UI-SPEC refusal reason, echoed via the engine's clipEcho; stepBase/sliderPosition clamp to the engine's range; summaryLine/typeCountsLine build the live summary and per-type demon breakdown) plus two standalone components, app/components/numogram/BasePicker.tsx (collapsed editable numeral + live summary/refusal, portal dropdown with stepper/slider/14 notable-base chips/type-counts/conditional packer toggle/label-scheme controls, 200ms debounced commit, Enter/Escape/outside-click handling, data-post-baseline on both roots) and LabelSchemeControls.tsx (Digits/Xeno/Custom radios with a derived mutually-exclusive checked state, 4 curated preset chips, as-you-type custom-alphabet validation capped at 5 glyph-risk warnings). Neither component is mounted yet (04-12 wires BasePicker into the header); requirements-completed left empty (UI-01's final covering plan is 04-16, UI-03's is 04-12, per the phase's established precedent). 26 new unit tests, npm run typecheck (tsc x4 + lint) clean.
 - [Phase 4 P07] Standalone text/fallback/pair-graph pieces shipped (UI-07, D-14..D-18): app/lib/numogramText.ts (numogramText/bigBaseMessage/TEXT_VIEW_ZONE_LIMIT=1024, bounded per T-04-21, ascending pair-id/zone-order listings, at most 12 truncated Torque lengths above the limit via summarize()), TextView.tsx (read-only monospace block, Copy numogram text / Copied 1.5s, reusing the header share button's color pattern) and BigBaseSummary.tsx (refusal message + 4-metric summary card + TextView, no show-anyway control, cutoff always a prop never a literal) plus app/components/projection/PairGraphProjection.tsx (interactive syzygy-collapsed pair-graph mirroring engine/scene/svgString.ts pairGraphToSvg, hover/pin/toggle, pairStates dim/hide channel for 04-13). 14 new unit tests, npm run typecheck (4x tsc + lint) and the full 1477-test suite green. None of the four artifacts are mounted yet (04-11 wires them into the viewer); UI-07 and UI-02 both span multiple plans so requirements-completed stays empty (final covering plans 04-15 and 04-12 respectively).
+- [Phase 4 P08] Base-generic layout plumbing shipped (UI-06/UI-07 plumbing, not mounted): app/lib/viewLayouts.ts's layoutTarget(g, id, packer, planetaryPos) resolves one LayoutTarget for any base/layout-id/packer, base-10 presets returning the authored P_ORIGINAL/P_LABYRINTH/P_LADDER/FRAME_HEIGHT/DRAW_ORDER/REGION_LABELS tables by identity and ring/ladder/spiral/pairGraph at any base from resolveLayout/pairGraphLayout; app/lib/renderData.ts's engineRenderData adapts routeGates/routeCurrents into GateRender/CurrentRender records keyed by the view's own names, frameLayout re-positions a layout for a tween frame while sharing groups/zoneGroup/center by reference; app/hooks/useLayoutTween.ts generalizes useTween's 600ms easeInOutCubic interpolation to any LayoutTarget with a fromBaseRef guard that hard-jumps instead of interpolating across a base change (T-04-26); app/hooks/useReducedMotion.ts reads prefers-reduced-motion via matchMedia with a live change listener; three new icons (RingIcon, SpiralIcon, PairGraphIcon) added to NumogramIcons.tsx. Nothing mounted yet (NumogramClient.tsx and useTween.ts untouched, verified via git diff --quiet); 04-11 wires this in and deletes useTween.ts. UI-06 and UI-07 stay Pending (both span multiple plans; final covering plans are later in the phase). Full unit suite 1491 tests / 58 files green, npm run typecheck clean.
 
 ### Pending Todos
 
@@ -182,8 +184,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-29T02:24:39.679Z
-Stopped at: Completed 04-07-PLAN.md
+Last session: 2026-09-29T02:36:05.631Z
+Stopped at: Completed 04-08-PLAN.md
 Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z
