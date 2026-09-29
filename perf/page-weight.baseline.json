@@ -12,16 +12,16 @@
       "htmlGzip": 1769,
       "jsBytes": 416830,
       "jsGzip": 128120,
-      "cssBytes": 18377,
-      "cssGzip": 4603
+      "cssBytes": 19273,
+      "cssGzip": 4783
     },
     "/numogram/": {
-      "htmlBytes": 70662,
-      "htmlGzip": 10719,
-      "jsBytes": 563909,
-      "jsGzip": 170556,
-      "cssBytes": 18377,
-      "cssGzip": 4603
+      "htmlBytes": 71476,
+      "htmlGzip": 10954,
+      "jsBytes": 598261,
+      "jsGzip": 180068,
+      "cssBytes": 19273,
+      "cssGzip": 4783
     }
   },
   "domNodes": {
@@ -106,6 +106,40 @@
             "htmlGzip": 10719,
             "jsGzip": 170556,
             "cssGzip": 4603
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-09-29",
+      "reason": "04-10: InfoDisplay/PinnedBackground/LayersPanel/LabelsPanel now read useNumogramView (base/view/zoneLabel/formatNumeral) instead of static base-10 imports, plus generic-base branches for UI-04/MIG-02; +6.2KB raw/+5.6KB gzip, within normal per-plan growth",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128120,
+            "cssGzip": 4603
+          },
+          "/numogram/": {
+            "htmlGzip": 10719,
+            "jsGzip": 170556,
+            "cssGzip": 4603
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128120,
+            "cssGzip": 4783
+          },
+          "/numogram/": {
+            "htmlGzip": 10954,
+            "jsGzip": 180068,
+            "cssGzip": 4783
           }
         },
         "domNodesTotal": 6405
