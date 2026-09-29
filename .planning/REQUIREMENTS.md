@@ -43,7 +43,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UI-03
 **: Zone labels are in-base digits up to base 36 and decimal with a separator beyond, with custom-alphabet and xenotation options; the integer stays the identity in URLs, JSON and demon keys
 - [x] **UI-04**: The user can hover or pin a zone, syzygy, current or gate to highlight it and read its detail panel
-- [ ] **UI-05**: A region legend table lists Plex, Warp and each Torque cycle with a stable id, and lets the user isolate or mute a region
+- [x] **UI-05
+**: A region legend table lists Plex, Warp and each Torque cycle with a stable id, and lets the user isolate or mute a region
 - [ ] **UI-06**: The user can toggle layers (syzygies, currents, gates, demons) and zoom, pan and fit the diagram
 - [ ] **UI-07**: The diagram is usable without a mouse or colour vision: keyboard traversal, ARIA labelling, non-colour cues, reduced-motion support, and a text view of the numogram with copy
 - [x] **UI-08
@@ -141,7 +142,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 4 | Pending |
 | UI-04 | Phase 4 | Complete (04-09, 04-10, 04-11) |
-| UI-05 | Phase 4 | Pending |
+| UI-05 | Phase 4 | Complete (04-13) |
 | UI-06 | Phase 4 | Pending |
 | UI-07 | Phase 4 | Pending |
 | UI-08 | Phase 4 | Pending |
