@@ -1,9 +1,10 @@
 ---
 title: "Expose packer choice (shelf vs. spiral) in the Phase 4 generator UI"
-status: pending
+status: completed
 priority: P3
 source: "Phase 3 plan 03-08 contact-sheet sign-off (2026-09-27)"
 created: 2026-09-27
+completed: 2026-09-29
 theme: ui
 ---
 
@@ -33,3 +34,21 @@ rings always nest concentrically regardless of packer. Should reuse `engine/layo
 existing packer parameter — no new engine work should be needed, just UI plumbing and state
 (likely alongside whatever mechanism Phase 4 uses for other per-base display choices, and a
 candidate for URL state per the project's existing conventions).
+
+## Resolution
+
+Delivered across four Phase 4 plans:
+- **04-05**: the unified URL codec gained a `packer=` field (omitted at the `shelf` default, lenient
+  like every other non-`base` field).
+- **04-06**: `BasePicker.tsx` gained a conditional shelf/spiral packer toggle (shown only when the
+  chosen base has 4 or more Torque cycles, where the packer choice is visible at all).
+- **04-08**: `app/lib/viewLayouts.ts`'s `layoutTarget` threads the packer through to `resolveLayout`
+  (the ring layout) and `pairGraphLayout`, so both diagrams honour the user's choice, not just the
+  primary ring view.
+- **04-12**: the packer toggle was mounted live in the header next to the base picker, wired into
+  undo/redo history and `?packer=`, with `onPackerChange` calling `switchLayout()` first so rings
+  tween into their new packing when the tier allows it.
+
+No engine change was needed anywhere in this chain, confirming the original note: the packer only
+ever affects where separate ring clusters sit on the canvas, never a ring's zones, syzygies, flow
+or demons.

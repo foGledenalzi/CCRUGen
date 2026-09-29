@@ -17,7 +17,7 @@ Track the Phase 2 review findings that were consciously not fixed before closing
 - **IN-03** (`engine/core/numogram.ts`): `cycleAt(id)` returns a new frozen view per call until `cycles` has been read, then shared ones, so identity depends on call history. Harmless (views compare by id); decide in Phase 3/4 when the layout consumes cycles.
 - **IN-05** (`engine/core/numogram.ts`): `numogramInternals` and its WeakMap are exported for engine siblings and tests only. Revisit if it stays unused outside tests.
 - **IN-07** (`e2e/behaviour.spec.ts`): all behaviour tests silently skip (exit 0) if the Playwright project `chromium-utc` is renamed. Add a guard that fails when zero behaviour tests ran, next time the Playwright config is touched.
-- **MIG-02** stays a Phase 4 requirement (remove the hard-coded 10-zone logic in components); the five thin pass-through files `app/data/*.ts` and the `app/lib/constants.ts` seam remain until then. `legacyCurrentFrom` keeps upstream's drawing convention so the SVG stays byte-identical; Phase 4 replaces it.
+- **MIG-02**: CLOSED in Phase 4 (04-16): the app/data seams and the constants re-export are deleted, the base-ten grep gate is a default check, legacyCurrentFrom remains only inside the base-10 preset drawing path.
 
 ## Acceptance Criteria
 

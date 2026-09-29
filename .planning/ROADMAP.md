@@ -108,7 +108,7 @@ Plans:
 **Depends on**: Phase 3
 **Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, UI-08, MIG-02
 **Success Criteria** (what must be TRUE):
-  1. The user picks a base by typing, stepping, sliding or clicking a notable-base chip (2, 4, 6, 8, 10, 12, 16, 22, 28, 80, 82); odd input is refused with an explanation; picking 28 shows 28 zones, Warp present, Torque cycles [9,3] and 378 demons; every even base from 2 to 40 renders with no NaN or undefined and a CI grep gate finds no hard-coded 10-zone constants
+  1. The user picks a base by typing, stepping, sliding or clicking a notable-base chip (2, 4, 6, 8, 10, 12, 16, 22, 28, 64, 80, 82, 100, 1024); odd input is refused with an explanation; picking 28 shows 28 zones, Warp present, Torque cycles [9,3] and 378 demons; every even base from 2 to 40 renders with no NaN or undefined and a CI grep gate finds no hard-coded 10-zone constants
   2. `?base=28` reloads to the same view, existing base-10 share links keep working, an absurdly large base is refused with a message instead of freezing the tab, and switching base leaves no stale selection, undo history or animation from the previous base
   3. Zone labels are in-base digits up to base 36 and decimal with a separator beyond, with custom-alphabet and xenotation options, while URLs, JSON and demon keys keep the integer identity
   4. Hovering or pinning a zone, syzygy, current or gate highlights it and opens its detail panel; a region legend table lists Plex, Warp and each Torque cycle with a stable id and lets the user isolate or mute a region; layers toggle and the diagram zooms, pans and fits

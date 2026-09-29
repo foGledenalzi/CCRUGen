@@ -37,7 +37,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UI
 
-- [ ] **UI-01**: The user can choose an even base via a base picker (odd input is refused with an explanation), notable-base chips (2, 4, 6, 8, 10, 12, 16, 22, 28, 80, 82), and sees a live summary (zones, Warp yes/no, Torque cycle lengths, demon counts)
+- [ ] **UI-01**: The user can choose an even base via a base picker (odd input is refused with an explanation), notable-base chips (2, 4, 6, 8, 10, 12, 16, 22, 28, 64, 80, 82, 100, 1024; user amendment D-07, 2026-09-28), and sees a live summary (zones, Warp yes/no, Torque cycle lengths, demon counts)
 - [x] **UI-02
 **: The chosen base is carried in the URL as `?base=`; existing base-10 share links keep working; absurdly large bases are refused with a message instead of freezing the tab
 - [x] **UI-03
