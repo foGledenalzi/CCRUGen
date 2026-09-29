@@ -58,9 +58,9 @@ interface SelectableListPanelBaseProps<T> {
   getItemStyle?: (item: T, index: number) => React.CSSProperties | undefined
 }
 
-type SelectableListPanelRendererProps<T> =
-  | { itemDisplay: (props: SelectableListDisplayProps<T>) => React.ReactNode; ItemDisplayComponent?: never }
-  | { itemDisplay?: never; ItemDisplayComponent: React.ComponentType<SelectableListDisplayProps<T>> }
+interface SelectableListPanelRendererProps<T> {
+  itemDisplay: (props: SelectableListDisplayProps<T>) => React.ReactNode
+}
 
 type SelectableListPanelProps<T> = SelectableListPanelBaseProps<T> & SelectableListPanelRendererProps<T>
 
@@ -77,15 +77,11 @@ export function SelectableListPanel<T>(props: SelectableListPanelProps<T>) {
     getItemOpacity,
     getItemClassName,
     getItemStyle,
+    itemDisplay,
   } = props
 
-  const renderItem = ({ item, index }: SelectableListDisplayProps<T>): React.ReactNode => {
-    if ('itemDisplay' in props && props.itemDisplay) {
-      return props.itemDisplay({ item, index })
-    }
-    const ItemDisplay = props.ItemDisplayComponent
-    return <ItemDisplay item={item} index={index} />
-  }
+  const renderItem = ({ item, index }: SelectableListDisplayProps<T>): React.ReactNode =>
+    itemDisplay({ item, index })
 
   return (
     <PanelList className={className}>
@@ -105,6 +101,13 @@ export function SelectableListPanel<T>(props: SelectableListPanelProps<T>) {
       ))}
       {footer}
     </PanelList>
+  )
+}
+
+/** Shown by a panel instead of building a list it cannot afford: the context view is null above the SVG tier. */
+export function PanelUnavailable({ max }: { max: number }) {
+  return (
+    <div data-post-baseline="" className="px-3 pb-2.5 text-[9px] text-gray-500">Available up to {max} zones.</div>
   )
 }
 

@@ -2,9 +2,9 @@
 
 import React from 'react'
 import type { HoverInfo } from '../../data/types'
-import { ZONE_CLR } from '../../data/zones'
-import { SYZYGIES } from '../../data/syzygies'
-import { SelectableListPanel, PanelColorBar, type SelectableListDisplayProps } from './shared'
+import { formatNumeral } from '../../../engine/index'
+import { useNumogramView } from '../numogram/ViewContext'
+import { PanelColorBar, PanelUnavailable, SelectableListPanel } from './shared'
 
 interface SyzygiesPanelProps {
   selZones: Set<number>
@@ -14,6 +14,9 @@ interface SyzygiesPanelProps {
 }
 
 export function SyzygiesPanel({ selZones, hlZones, onToggleSyzygyPair, onHoverInfo }: SyzygiesPanelProps) {
+  const { base, view, zoneLabels, svgRichMaxN } = useNumogramView()
+  if (!view || !zoneLabels) return <PanelUnavailable max={svgRichMaxN} />
+
   type SyzygyItem = {
     a: number
     b: number
@@ -23,7 +26,7 @@ export function SyzygiesPanel({ selZones, hlZones, onToggleSyzygyPair, onHoverIn
     isSelected: boolean
     isSemiSelected: boolean
   }
-  const items: SyzygyItem[] = SYZYGIES.map(s => ({
+  const items: SyzygyItem[] = view.syzygies.map(s => ({
     ...s,
     ...(() => {
       const selectedCount = (selZones.has(s.a) ? 1 : 0) + (selZones.has(s.b) ? 1 : 0)
@@ -37,18 +40,6 @@ export function SyzygiesPanel({ selZones, hlZones, onToggleSyzygyPair, onHoverIn
     })(),
   }))
 
-  const SyzygyItemDisplay = ({ item }: SelectableListDisplayProps<SyzygyItem>) => (
-    <>
-      <div className="flex gap-0.5 flex-shrink-0">
-        <PanelColorBar color={ZONE_CLR[item.a]} active={item.isSelected || item.isSemiSelected || item.isHighlighted} />
-        <PanelColorBar color={ZONE_CLR[item.b]} active={item.isSelected || item.isSemiSelected || item.isHighlighted} />
-      </div>
-      <span className="text-gray-400 text-[10px]">{item.a}::{item.b}</span>
-      <span className="text-gray-600 text-[8px] italic">{item.demon}</span>
-      <span className="text-[8px] text-gray-700 ml-auto">{item.b - item.a}</span>
-    </>
-  )
-
   return (
     <SelectableListPanel
       items={items}
@@ -57,7 +48,17 @@ export function SyzygiesPanel({ selZones, hlZones, onToggleSyzygyPair, onHoverIn
       onItemMouseEnter={item => onHoverInfo({ type: 'syzygy', data: item })}
       onItemMouseLeave={() => onHoverInfo(null)}
       getItemOpacity={item => (item.isSelected ? 1 : item.isSemiSelected ? 0.8 : item.isHighlighted ? 0.65 : 0.5)}
-      ItemDisplayComponent={SyzygyItemDisplay}
+      itemDisplay={({ item }) => (
+        <>
+          <div className="flex gap-0.5 flex-shrink-0">
+            <PanelColorBar color={view.zoneColors[item.a] as string} active={item.isSelected || item.isSemiSelected || item.isHighlighted} />
+            <PanelColorBar color={view.zoneColors[item.b] as string} active={item.isSelected || item.isSemiSelected || item.isHighlighted} />
+          </div>
+          <span className="text-gray-400 text-[10px]">{zoneLabels[item.a]}::{zoneLabels[item.b]}</span>
+          <span className="text-gray-600 text-[8px] italic">{item.demon}</span>
+          <span className="text-[8px] text-gray-700 ml-auto">{formatNumeral(item.b - item.a, base)}</span>
+        </>
+      )}
     />
   )
 }
