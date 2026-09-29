@@ -9,19 +9,19 @@
   "routes": {
     "/": {
       "htmlBytes": 4688,
-      "htmlGzip": 1769,
+      "htmlGzip": 1770,
       "jsBytes": 416830,
       "jsGzip": 128120,
-      "cssBytes": 19273,
-      "cssGzip": 4783
+      "cssBytes": 19350,
+      "cssGzip": 4799
     },
     "/numogram/": {
-      "htmlBytes": 71476,
-      "htmlGzip": 10954,
-      "jsBytes": 598261,
-      "jsGzip": 180068,
-      "cssBytes": 19273,
-      "cssGzip": 4783
+      "htmlBytes": 73214,
+      "htmlGzip": 11126,
+      "jsBytes": 635299,
+      "jsGzip": 192433,
+      "cssBytes": 19350,
+      "cssGzip": 4799
     }
   },
   "domNodes": {
@@ -140,6 +140,40 @@
             "htmlGzip": 10954,
             "jsGzip": 180068,
             "cssGzip": 4783
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-09-29",
+      "reason": "04-11: the viewer now bundles the engine layouts, routing, pair graph, tween and URL codec (Phase 4 engine-driven generator)",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128120,
+            "cssGzip": 4783
+          },
+          "/numogram/": {
+            "htmlGzip": 10954,
+            "jsGzip": 180068,
+            "cssGzip": 4783
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1770,
+            "jsGzip": 128120,
+            "cssGzip": 4799
+          },
+          "/numogram/": {
+            "htmlGzip": 11126,
+            "jsGzip": 192433,
+            "cssGzip": 4799
           }
         },
         "domNodesTotal": 6405
