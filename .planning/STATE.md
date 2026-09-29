@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-09-29T00:48:40.326Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-09-29T01:10:03.859Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 47
-  completed_plans: 33
-  percent: 70
+  completed_plans: 34
+  percent: 72
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 04 (base-picker-and-generator-ui) — EXECUTING
-Plan: 3 of 16
+Plan: 4 of 16
 Status: Ready to execute
 Last activity: 2026-09-29
 
-Progress: [███████░░░] 70%
+Progress: [███████░░░] 72%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [███████░░░] 70%
 | Phase 03 P10 | 153min | 3 tasks | 5 files |
 | Phase 04 P01 | 30min | 2 tasks | 4 files |
 | Phase 04 P02 | 10min | 2 tasks | 6 files |
+| Phase 04 P03 | 15 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,7 @@ Recent decisions affecting current work:
 - [Phase 4 P01] Marker contract (data-post-baseline) lets Phase 4 add new interactive chrome without regenerating the frozen behaviour baseline; behaviour.spec.ts asserts no pre-existing region (PANELS header, page header, projection svg) is ever marked, so the skip cannot hide existing UI
 - [Phase 4 P01] MIG-02 grep gate findHardcodedBaseTen shipped as an opt-in check-repo check (node scripts/check-repo.mjs --only base-ten), not yet in DEFAULT_CHECKS; worklist recorded (NumogramClient.tsx, Projection.tsx, InfoDisplay.tsx, Currents/Gates/ZonesPanel.tsx, useTween.ts, geometry.ts, shareParams.ts, xenotation.ts) matching 04-RESEARCH.md Priority 3; plan 04-16 promotes it to a default check
 - [Phase 4 P02] Pure label-scheme library shipped (UI-03, D-08..D-13): app/lib/customAlphabet.ts (MAX_ALPHABET=1024, four curated presets base62/base64url/ascii/latin1 all shipped per D-10, checkAlphabetChars/validateAlphabet typed reasons with the UI-SPEC's exact copy, FORBIDDEN = \p{Cc}\p{Cf}\p{Z}\p{M}\p{Cs}\p{Co}\p{Cn} covering bidi/control/combining/private-use per T-04-04), app/lib/glyphCoverage.ts (injectable GlyphCanvas, canvas-vs-PUA-reference heuristic memoized per character, null canvas always 'ok'), app/lib/labelScheme.ts (formatZoneLabel/zoneLabelsFor built on the engine's formatNumeral and xenotation.ts's formatXenotationForDisplay, never re-implemented; a short preset/custom alphabet always falls back to the numeral, never a wrong label; formatLabelScheme/parseLabelScheme/labelSchemeKey give labels= a lenient round-tripping URL form); 50 unit tests in tests/app/ (new vitest oracle-project directory), npm run typecheck clean; UI-03 spans six plans (04-02, 04-05, 04-06, 04-09, 04-10, 04-12) so REQUIREMENTS.md stays Pending until 04-12
+- [Phase 4 P03] Base-generic data layer shipped: app/lib/regions.ts (RegionId/RegionRow, regionRows/isRegionId/parseRegionId/regionOfZone/zonesOfRegion from the engine's Cycle[], never a single-Torque assumption; independent isolate/mute RegionFilter with zoneStates/elementState per D-19/D-22/D-23/D-24), app/lib/layoutIds.ts (VIEW_LAYOUT_IDS/BASE10_PRESET_LAYOUT_IDS, layoutIdsForBase/defaultLayoutFor/isLayoutIdFor/isPresetLayoutId/LAYOUT_LABELS/layoutShortcut, decided from the base number alone since the base-10 presets support() check is exactly base===10), app/lib/tierBounds.ts (TIER_VIEW scoped to boundaries/tierOverrideParam only, never the full ~84 KB TIER_TABLE, backed by a type-only widening of engine/scene/tiers.ts's selectTier/parseTierOverride/tweenAllowed/labelsVisible/gateLayerMode to Pick<TierTable, ...>), app/lib/numogramView.ts (buildNumogramView returns the base-10 preset objects by identity, toBe not toEqual, and structural lists with in-base numerals and no lore at every other even base; summarize is safe at any base, tested to 65536, reading at most 12 Torque cycles via cycleAt plus the demon space's O(1) count/typeCounts). 79 new unit tests (129 total in tests/app/), 1373 total oracle+engine tests green, npm run typecheck clean. UI-01, UI-05 and MIG-02 are NOT marked complete in REQUIREMENTS.md by this plan (it ships only the data layer they depend on) — final covering plans are 04-16, 04-13 and 04-16 respectively, mirroring the 04-02/UI-03 precedent.
 
 ### Pending Todos
 
@@ -172,8 +174,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-29T00:48:40.319Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-09-29T01:10:03.851Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
 
 **Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z

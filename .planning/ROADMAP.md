@@ -118,7 +118,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md - Guards: data-post-baseline marker contract for the frozen behaviour baseline, MIG-02 grep gate as an opt-in check (wave 1)
 - [x] 04-02-PLAN.md - Label-scheme library: digits/xeno/presets/custom alphabet validation, glyph heuristic, labels= URL form (wave 1)
-- [ ] 04-03-PLAN.md - Region ids and isolate/mute model, view layout ids, tier-table accessor, numogram view model and summary (wave 1)
+- [x] 04-03-PLAN.md - Region ids and isolate/mute model, view layout ids, tier-table accessor, numogram view model and summary (wave 1)
 - [ ] 04-04-PLAN.md - Base-10 route geometry moves to app/presets/base10/routes.ts with golden parity and NOTICE (wave 2)
 - [ ] 04-05-PLAN.md - Unified URL codec (strict base, lenient fields, isolate/mute/labels/packer) with the frozen-baseline legacy corpus (wave 2)
 - [ ] 04-06-PLAN.md - BasePicker and LabelSchemeControls components with refusal copy and summary logic (wave 2)
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 1. Foundations and Safety Net | 8/8 | Complete    | 2026-09-26 |
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
-| 4. Base Picker and Generator UI | 2/16 | In Progress | - |
+| 4. Base Picker and Generator UI | 3/16 | In Progress | - |
 | 5. Demons Layer | 0/TBD | Not started | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
