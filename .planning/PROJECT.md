@@ -39,14 +39,14 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - ✓ Procedural layout for any even base: deterministic ring layout (nested up to 3 Torque cycles, packed beyond via the user-chosen shelf packer, spiral kept selectable), plus ladder and Barker-spiral alternatives, verified for every even base 2 to 400; base 10 keeps its four authored layouts as `LayoutSpec` presets proven equal to the frozen oracle and DOM goldens — Validated in Phase 3: Procedural Layout and Ceiling Spike
 - ✓ Syzygy-collapsed pair-graph view: every Torque cycle drawn as a clean ring of pair nodes (hi::lo), verified including base 64's six rings — Validated in Phase 3
 - ✓ Ceiling spike: real four-profile (native GPU, software raster, 4x/6x CPU-throttled) measurement on the maintainer's hardware, 144 rows, user-reviewed and approved threshold table (`engine/scene/tier-table.json`) with shipped boundaries derived from the conservative throttled profile, WebGL contingency decided (no), degrade path defined (SVG to Canvas to headless, no arbitrary hard cap) — Validated in Phase 3
+- ✓ Base picker + generator UI: choose an even base via a base picker (type/step/slide/click a notable-base chip; odd input refused with an explanation), live summary (zones, Warp yes/no, Torque cycle lengths, demon count), `?base=` URL-shareable with existing base-10 links preserved and absurdly large bases refused with a message instead of freezing the tab — Validated in Phase 4: Base Picker and Generator UI
+- ✓ Zone labelling for large bases: in-base digits up to base 36, decimal with a separator beyond, curated and free-typed custom alphabets with glyph-coverage validation, plus xenotation option; the integer stays the identity in URLs, JSON and demon keys — Validated in Phase 4
+- ✓ Legibility and access: region legend table (Plex, Warp, each Torque cycle) with a stable id and independent isolate/mute; keyboard traversal (roving tabindex), ARIA labelling, non-colour cues, reduced-motion support, and a text view with a copy button — Validated in Phase 4 (the pair-graph view itself was validated in Phase 3)
 
 ### Active
 
-- [ ] **Renderer generalization**: replace the 10-zone assumptions in Projection/NumogramClient with engine-driven rendering; tiered by size (rich interactive SVG for small bases, Canvas/LOD for large, headless SVG/JSON for huge) — the measured thresholds now exist (Phase 3's `tier-table.json`); this requirement is building the tiered renderers that consume them (Phase 4, 6)
-- [ ] **Base picker + generator UI**: choose an even base, see summary (zones, regions, torque cycle lengths, demon count), live diagram, URL-shareable `?base=`
-- [ ] **Zone labelling for large bases**: in-base digits (0-9,a-z) up to base-36, a defined scheme beyond (decimal / glyph set), plus xenotation option
+- [ ] **Renderer generalization**: replace the 10-zone assumptions in Projection/NumogramClient with engine-driven rendering; tiered by size (rich interactive SVG for small bases, Canvas/LOD for large, headless SVG/JSON for huge) — the measured thresholds now exist (Phase 3's `tier-table.json`); the SVG tier was generalized and the six base-10 data seams deleted in Phase 4 (Validated, above); Canvas/LOD and headless tiers remain for Phase 6
 - [ ] **Demons layer**: all T(n-1) demons with net-span, mesh number and type (including an explicit cross-Torque chronodemon subtype); virtualized/on-demand so it never freezes the page at high base
-- [ ] **Legibility and access**: region legend table with stable Torque ids and isolate/mute, and a text view with keyboard traversal, ARIA and non-colour cues (the pair-graph view itself is validated, above)
 - [ ] **Naming builder**: user assigns a sound/phoneme per zone (seeded auto-generator for any base; CCRU zone phonemes for base-10 preset), demon names derived from net-span sounds, editable, importable/exportable as JSON
 - [ ] **Export**: self-contained SVG file, PNG, and engine-data JSON for the current numogram
 - [ ] **Ceiling spike**: benchmark zones/paths/demons vs frame time and memory per renderer tier; document the measured thresholds and degrade gracefully past them (no arbitrary hard cap)
@@ -132,4 +132,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-28 after Phase 3 completion*
+*Last updated: 2026-09-29 after Phase 4 completion*
