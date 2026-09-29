@@ -19,6 +19,16 @@ export const selectionHeading = (page: Page) =>
   panel(page, 'Selection').locator('span').filter({ hasText: /Selected Elements/ }).first()
 
 /**
+ * A CyberRadio's wrapping `<label>` (by its exact visible text), clickable in place of `getByLabel`/`getByRole`:
+ * the radio `<input>` itself is `sr-only` (visually 1px, positioned under its own decorative indicator `<span>`),
+ * so Playwright's actionability check on the input directly reports the indicator "intercepts pointer events" and
+ * times out. Clicking the label relies on the native HTML label-forwards-click-to-its-control behaviour instead.
+ */
+export function radioLabel(page: Page, text: string): Locator {
+  return page.locator('label').filter({ hasText: new RegExp(`^${text}$`) })
+}
+
+/**
  * Stub navigator.share (undefined) and navigator.clipboard (an in-memory store) so a spec can exercise the share
  * flow identically on every OS without touching the developer machine's clipboard or share sheet. Mirrors
  * e2e/behaviour.spec.ts's openPage init script.

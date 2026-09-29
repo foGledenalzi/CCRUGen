@@ -66,6 +66,12 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
     if (!dirty) setCandidate(String(base))
   }, [base, dirty])
 
+  // Re-sync the shown refusal to externalRefusal whenever it changes elsewhere (a refused `?base=` reported only
+  // after the URL-hydration effect runs post-mount, undo/redo, ...), same mid-edit guard as candidate above (UI-02).
+  React.useEffect(() => {
+    if (!dirty) setRefusal(externalRefusal)
+  }, [externalRefusal, dirty])
+
   // The 200 ms live-preview debounce (D-04): every keystroke/drag tick updates `candidate` immediately, but the
   // pure validator only runs — and only then commits — after the visitor pauses.
   React.useEffect(() => {
@@ -118,11 +124,21 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
     setDirty(false)
   }
 
-  /** Closes on focus leaving both the collapsed control and the portal dropdown. */
-  function handleContainerBlur(e: React.FocusEvent): void {
-    const next = e.relatedTarget as Node | null
-    if (next && (rootRef.current?.contains(next) || dropdownRef.current?.contains(next))) return
-    setOpen(false)
+  /**
+   * Closes on focus leaving both the collapsed control and the portal dropdown. Deferred to the next tick rather
+   * than reading `e.relatedTarget` synchronously: clicking a CyberRadio/CyberCheckbox pill (an `sr-only` input
+   * inside a `<label>`, D-12/todo 005's label-scheme and packer controls) is not itself a focusable mousedown
+   * target, so the browser blurs the previously focused element with `relatedTarget = null` first and only focuses
+   * the radio afterwards as part of the click's own label-forwarding default action — reading `relatedTarget`
+   * synchronously would see `null` and close the dropdown out from under that same click, before it could ever
+   * land on the radio. Checking `document.activeElement` after a tick sees the click's real outcome instead.
+   */
+  function handleContainerBlur(): void {
+    window.setTimeout(() => {
+      const active = document.activeElement as Node | null
+      if (active && (rootRef.current?.contains(active) || dropdownRef.current?.contains(active))) return
+      setOpen(false)
+    }, 0)
   }
 
   React.useEffect(() => {
