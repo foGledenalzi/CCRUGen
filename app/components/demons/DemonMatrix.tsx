@@ -6,17 +6,25 @@ import type { DemonRef } from '../../../engine/index'
 import { useNumogramView } from '../numogram/ViewContext'
 import { Pill } from '../ui/Pill'
 import { legacyKind } from '../../presets/base10/demons'
-import { KIND_COLOR, KIND_LABEL, LEGACY_KINDS } from '../../lib/demonBrowser'
+import { KIND_COLOR, KIND_LABEL, LEGACY_KINDS, SUBTYPE_LABEL, netSpanLabel } from '../../lib/demonBrowser'
 import {
   buildPalette,
+  cellAtPixel,
+  cellCenter,
+  cellRect,
   clampTransform,
+  ensureCellVisible,
   fitTransform,
   MATRIX_BG,
   MATRIX_EMPTY,
+  numodemonLine,
   panBy,
   rasterizeRows,
   rasterSize,
+  stepCursor,
+  syzygyLine,
   zoomAt,
+  type Cell,
   type MatrixTransform,
   type RasterJob,
 } from '../../lib/demonMatrix'
@@ -32,9 +40,11 @@ const PALETTE = buildPalette([KIND_COLOR.chrono, KIND_COLOR.amphi, KIND_COLOR.xe
 const KIND_INDEX = { chrono: 0, amphi: 1, xeno: 2, syzygy: 3 } as const
 
 const MIDDLE_DOT = String.fromCodePoint(0xb7)
+const SEP = ` ${MIDDLE_DOT} `
 const HINT = `drag to pan ${MIDDLE_DOT} scroll to zoom ${MIDDLE_DOT} click to pin`
 const WHEEL_COMMIT_DELAY_MS = 150
 const DRAG_THRESHOLD_PX = 3
+const DEFAULT_CURSOR: Cell = [1, 0]
 
 interface Size {
   readonly w: number
@@ -54,18 +64,26 @@ interface PinchState {
   distance: number
 }
 
+interface Tooltip {
+  readonly x: number
+  readonly y: number
+  readonly text: string
+  readonly color: string
+}
+
+/** `A::B · MESH · SubtypeLabel`, the one text format shared by the hover tooltip and the keyboard live region. */
+function demonText(d: DemonRef, zoneLabel: (z: number) => string): string {
+  return `${netSpanLabel(d.a, d.b, zoneLabel)}${SEP}${d.mesh}${SEP}${SUBTYPE_LABEL[d.subtype]}`
+}
+
 /** Math.min(100, Math.max(-100, v)): the same wheel-delta clamp useCanvasZoom uses before the exponential factor. */
 function clampWheelStep(v: number): number {
   return Math.min(100, Math.max(-100, v))
 }
 
 export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): JSX.Element {
-  const { g } = useNumogramView()
+  const { g, zoneLabel } = useNumogramView()
   const base = g.base
-  // Both wired up fully in Task 2 (hover/click resolve, keyboard pin); referenced now so the exported signature
-  // is stable across both tasks without an unused-variable lint error in between.
-  void selectedMesh
-  void onSelectDemon
 
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -81,6 +99,24 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
   const [committed, setCommitted] = useState<MatrixTransform>(() => fitTransform(base, 0, 0))
   const [rasterState, setRasterState] = useState<'drawing' | 'done'>('drawing')
   const [rasterMs, setRasterMs] = useState(0)
+  const [tooltip, setTooltip] = useState<Tooltip | null>(null)
+  const [focused, setFocused] = useState(false)
+  const [cursor, setCursor] = useState<Cell>(() => {
+    if (selectedMesh === null) return DEFAULT_CURSOR
+    try {
+      const [a, b] = g.demons.netSpanOf(selectedMesh)
+      return [a, b]
+    } catch {
+      return DEFAULT_CURSOR
+    }
+  })
+
+  // Guards every read of `cursor` against a base change that left a now out-of-range value behind: a > b < base.
+  const cursorValid = cursor[1] >= 0 && cursor[1] < cursor[0] && cursor[0] < base
+  const activeCursor: Cell = cursorValid ? cursor : DEFAULT_CURSOR
+  useEffect(() => {
+    if (!cursorValid) setCursor(DEFAULT_CURSOR)
+  }, [cursorValid])
 
   // "Latest ref" (not an effect): always the current live transform, for async callbacks (the wheel-commit timer)
   // that run outside the render cycle and would otherwise close over a stale value.
@@ -258,7 +294,22 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
       if (drag.moved > DRAG_THRESHOLD_PX) {
         setLive(t => panBy(t, dx, dy, base, size.w, size.h))
       }
+      return
     }
+
+    // Hover: no pointer is being tracked (no button held) -> resolve exactly from the live transform (T-05-25),
+    // never from the raster (the raster is a display cache; it can lag the live transform mid-gesture).
+    const cell = cellAtPixel(x, y, live, base)
+    if (cell === null) {
+      setTooltip(null)
+      return
+    }
+    const d = g.demons.ref(cell[0], cell[1])
+    setTooltip({ x: x + 12, y: y + 12, text: demonText(d, zoneLabel), color: KIND_COLOR[legacyKind(d.subtype)] })
+  }
+
+  function handlePointerLeave(): void {
+    setTooltip(null)
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>): void {
@@ -282,8 +333,17 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
       dragRef.current = null
       if (drag.moved > DRAG_THRESHOLD_PX) {
         setCommitted(liveRef.current)
+        return
       }
-      // A release with <= 3px of movement is a click; Task 2 resolves and selects the cell.
+      // A release with <= 3px of total movement is a click: resolve exactly from the live transform (T-05-25).
+      const rect = containerRef.current!.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const cell = cellAtPixel(x, y, liveRef.current, base)
+      if (cell !== null) {
+        setCursor(cell)
+        onSelectDemon(g.demons.ref(cell[0], cell[1]))
+      }
     }
   }
 
@@ -291,6 +351,63 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
     pointersRef.current.delete(e.pointerId)
     if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null
     pinchRef.current = null
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>): void {
+    const w = size.w
+    const h = size.h
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      const next = stepCursor(activeCursor, e.key, base)
+      setCursor(next)
+      const t = ensureCellVisible(live, next[0], next[1], base, w, h)
+      setLive(t)
+      setCommitted(t)
+      return
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onSelectDemon(g.demons.ref(activeCursor[0], activeCursor[1]))
+      return
+    }
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault()
+      const center = cellCenter(activeCursor[0], activeCursor[1], live)
+      const t = zoomAt(live, 2, center.x, center.y, base, w, h)
+      setLive(t)
+      setCommitted(t)
+      return
+    }
+    if (e.key === '-') {
+      e.preventDefault()
+      const center = cellCenter(activeCursor[0], activeCursor[1], live)
+      const t = zoomAt(live, 0.5, center.x, center.y, base, w, h)
+      setLive(t)
+      setCommitted(t)
+      return
+    }
+    if (e.key === '0') {
+      e.preventDefault()
+      const t = fitTransform(base, w, h)
+      setLive(t)
+      setCommitted(t)
+    }
+  }
+
+  const cursorText = demonText(g.demons.ref(activeCursor[0], activeCursor[1]), zoneLabel)
+
+  const syz = syzygyLine(live, base)
+  const numo = numodemonLine(live, base)
+  const cursorRect = cellRect(activeCursor[0], activeCursor[1], live)
+
+  let pinnedRect: { readonly x: number; readonly y: number; readonly size: number } | null = null
+  if (selectedMesh !== null) {
+    try {
+      const [pa, pb] = g.demons.netSpanOf(selectedMesh)
+      pinnedRect = cellRect(pa, pb, live)
+    } catch {
+      pinnedRect = null
+    }
   }
 
   return (
@@ -313,6 +430,10 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        onPointerLeave={handlePointerLeave}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
       >
         <canvas
           ref={canvasRef}
@@ -320,6 +441,68 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
           className="absolute left-0 top-0"
           style={{ transform: gestureTransform, transformOrigin: '0 0' }}
         />
+        <svg className="pointer-events-none absolute left-0 top-0" aria-hidden="true" width={size.w} height={size.h}>
+          <line
+            data-matrix-line="syzygy"
+            x1={syz.x1}
+            y1={syz.y1}
+            x2={syz.x2}
+            y2={syz.y2}
+            stroke="#e8e8e8"
+            strokeOpacity={0.55}
+            strokeDasharray="4 3"
+            strokeWidth={1}
+          />
+          {numo !== null && (
+            <line
+              data-matrix-line="numodemon"
+              x1={numo.x1}
+              y1={numo.y1}
+              x2={numo.x2}
+              y2={numo.y2}
+              stroke="#6b7280"
+              strokeOpacity={0.5}
+              strokeDasharray="1 3"
+              strokeWidth={1}
+            />
+          )}
+          {pinnedRect !== null && (
+            <rect
+              data-matrix-pinned=""
+              x={pinnedRect.x}
+              y={pinnedRect.y}
+              width={Math.max(pinnedRect.size, 3)}
+              height={Math.max(pinnedRect.size, 3)}
+              stroke="#10ff50"
+              fill="none"
+            />
+          )}
+          {focused && (
+            <rect
+              data-matrix-cursor=""
+              x={cursorRect.x}
+              y={cursorRect.y}
+              width={Math.max(cursorRect.size, 3)}
+              height={Math.max(cursorRect.size, 3)}
+              stroke="#10ff50"
+              strokeDasharray="2 2"
+              fill="none"
+            />
+          )}
+        </svg>
+        {tooltip !== null && (
+          <div
+            data-matrix-tooltip=""
+            role="tooltip"
+            className="pointer-events-none absolute whitespace-nowrap px-1.5 py-[2px] text-[10px]"
+            style={{ left: tooltip.x, top: tooltip.y, background: 'rgba(8,8,15,0.95)', border: `1px solid ${tooltip.color}88`, color: '#e5e7eb' }}
+          >
+            {tooltip.text}
+          </div>
+        )}
+        <div data-matrix-live="" aria-live="polite" className="sr-only">
+          {cursorText}
+        </div>
       </div>
       <div data-matrix-legend="" className="flex flex-wrap gap-2">
         {LEGACY_KINDS.map(k => (
