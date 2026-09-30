@@ -220,3 +220,17 @@ export function FitIcon({ clr }: IconProps) {
     </svg>
   )
 }
+
+// Demons layer header entry point (05-05, DEM-02): a triangle of three linked nodes.
+export function DemonsIcon({ clr }: IconProps) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+      <path d="M7 7L17 7" stroke={clr} strokeWidth="1.1" opacity="0.6" />
+      <path d="M17 7L12 17" stroke={clr} strokeWidth="1.1" opacity="0.6" />
+      <path d="M12 17L7 7" stroke={clr} strokeWidth="1.1" opacity="0.6" />
+      <circle cx="7" cy="7" r="2" fill={clr} />
+      <circle cx="17" cy="7" r="2" fill={clr} />
+      <circle cx="12" cy="17" r="2" fill={clr} />
+    </svg>
+  )
+}

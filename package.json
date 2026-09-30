@@ -37,6 +37,7 @@
     "verify": "npm run check:repo && npm run typecheck && npm run test && npm run test:tz && npm run test:e2e:basepath && npm run build && npm run check:weight && npm run test:e2e && node scripts/check-repo.mjs --clean-tree --static-out"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "3.14.13",
     "next": "14.2.35",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.0",
