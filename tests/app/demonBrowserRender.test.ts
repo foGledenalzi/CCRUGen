@@ -62,7 +62,9 @@ describe('DemonBrowser: server render (base 28, filter chrono)', () => {
     expect(markup).toContain('data-facet="syzygetic-chrono"')
     expect(markup).toContain('data-count="12"')
     expect(markup).toContain('aria-label="Search demons"')
-    expect(markup).toContain('maxlength="64"')
+    // renderToStaticMarkup writes the JSX prop name literally (maxLength); only an actual browser's HTML
+    // parser lowercases it to maxlength (the DOM-contract form checked by e2e specs against a live page).
+    expect(markup).toContain('maxLength="64"')
     expect(markup).toContain('placeholder="mesh number or a::b"')
     expect(markup).toContain('role="grid"')
     expect(markup).toContain('aria-rowcount="277"')
