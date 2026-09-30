@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-09-30T02:37:36.645Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-09-30T02:54:21.499Z"
 last_activity: 2026-09-30
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 59
-  completed_plans: 48
-  percent: 81
+  completed_plans: 49
+  percent: 83
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 05 (demons-layer) — EXECUTING
-Plan: 2 of 12
+Plan: 3 of 12
 Status: Ready to execute
 Last activity: 2026-09-30
 
-Progress: [████████░░] 81%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -102,6 +102,7 @@ Progress: [████████░░] 81%
 | Phase 04 P15 | 55min | 2 tasks | 7 files |
 | Phase 04 P16 | 35min | 3 tasks | 25 files |
 | Phase 05 P01 | 20min | 2 tasks | 4 files |
+| Phase 05 P02 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,8 @@ Recent decisions affecting current work:
 - [Phase 4 P15] Real collapsible panels (todo 003 finding 3, UI-07): CyberPanel.tsx's collapseDirection="vertical" wired for real on all seven side panels plus the new Text panel (postBaseline prop, accessible chevron with aria-label/aria-expanded, open body scrolls via overflowY:auto instead of clipping); the dead mobile auto-collapse effect is deleted (panels start open at every width, users fold them with the chevrons); a Text panel mounts TextView (numogramText + Copy numogram text) at every interactive base, hidden above the SVG tier where BigBaseSummary already carries the text view; ViewControls.tsx gives zoom in/out/fit as keyboard-focusable buttons with a live zoom-percent readout, fit frames every non-muted zone via fitSelectionToView; e2e/layers-zoom.spec.ts (10 tests) proves UI-06 at base 28 (layer toggle counts including Pandemonium's exactly-364 non-syzygetic demon chords, computed independently from the engine) and base 100 (Pandemonium N/A above the demon-chord ceiling); page-weight baseline raised (/numogram/ +8,514 bytes raw htmlBytes, +3,131 jsBytes, this plan's growth only); 60 goldens and the behaviour baseline unchanged; UI-06 and UI-07 both marked Complete (UI-06's only plan, UI-07's final covering plan after 04-07 and 04-14)
 - [Phase 4 P16] MIG-02 closed: the six app/data base-10 seams and the app/lib/constants.ts TC re-export are deleted; the base-ten grep gate is now a default check in npm run verify (13 checks total); e2e/smoke-bases.spec.ts proves every even base 2-40 plus ladder/spiral/pairGraph at 2, 4, 6, 28 render with no NaN/undefined; page weight settled with no baseline raise (bundle shrank slightly); D-07 chip wording finalized in REQUIREMENTS.md/ROADMAP.md matching app/lib/basePicker.ts's NOTABLE_BASES; todos 003 (already closed) verified and 005 (packer choice) closed with a Resolution trace; todo 004's MIG-02 item closed. Full npm run verify green (1542 unit tests x2 timezones, 176 e2e + 106 skipped, 60 goldens and 5 behaviour specs unchanged). Phase 4 complete: 16/16 plans, all eight UI requirements plus MIG-02 marked Complete. CLAUDE.md's line about five thin seams remaining until Phase 4/MIG-02 is now stale (flagged for the orchestrator, not edited).
 - [Phase 5 P01] Demon data layer shipped (DEM-01, DEM-02, DEM-05): app/lib/demonBrowser.ts's facetModel/facetCount read g.demons.typeCounts()/counts() directly (closed forms, base 28 = 378/276/96/6 cross-Torque 108, base 666 = 221445/220116/1328/1 cross-Torque 199884), never view.demons and never a loop over demons; DemonRowSource ({count, at(k)}) unifies the full space, group()/subtype() selections, a zone's incident() demons and a single pinned demon behind rowSourceFor/concatSources/orderedSource/incidentSource/singleSource, with rankOfMesh/rankOf finding any demon's row under any filter/sort/direction in O(log count) (proven for all 378 x 11 x 2 x 2 combinations at base 28) and windowCount/windowAt/windowFor capping a rendered window at BROWSER_WINDOW_ROWS=250,000 rows (safe-integer-bounded at the 2^26 demon count 2251799780130816); demonName/demonNameTable/legacyDemon join app/presets/base10/lore.ts's DEMON_NAMES by mesh id, proven against all 45 entries of the frozen oracle, null at every other base
+- [Phase 5 P02] Demon matrix math shipped (DEM-04): app/lib/demonMatrix.ts is a pure module (zero engine/React/DOM imports, classification and palette injected as parameters) with fitTransform/clampTransform/zoomAt/panBy (pan/zoom clamped to [fitScale, max(64px, fitScale)], viewport centre always inside the matrix square), cellAtPixel/cellCenter/cellRect (exact pixel<->cell resolve, proven by fast-check to base 2^26 including an explicit 67108863::67108862 corner case at 64px/cell, the ONLY path hover/click/keyboard may use per T-05-05), stepCursor (keyboard traversal confined to the a > b triangle), ensureCellVisible, syzygyLine/numodemonLine (explicit diagonal overlays against thin-feature aliasing, research Pitfall 3), and rasterSize/buildPalette/rasterizeRows (backing store capped at 1.5M px and DPR 2 per T-05-04, point-sampled fill via row-copy plus same-cell caching proven pixel-by-pixel correct against g.demons.ref and cost-bounded by viewport pixels at base 666 vs base 2^20 on an identical buffer); numodemonLine's base-4 guard deliberately written as base < 4 to avoid the base-ten grep gate's half-base-bound pattern; both tasks' TDD RED commits failed for the expected reason before GREEN, all 29 tests passed on first GREEN run, full npm run test (1611 tests) and typecheck/base-ten gate green
+- [Phase 5 P02] DEM-04 stays Pending in REQUIREMENTS.md: this plan ships only the pure math (transform, exact resolve, raster fill) that 05-07's DemonMatrix.tsx canvas component consumes; DEM-04's own text ("lets the user see and inspect every demon") is a UI-level requirement not satisfiable until 05-07 mounts a canvas, matching this project's established precedent for requirements spanning multiple plans
 
 ### Pending Todos
 
@@ -203,8 +206,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-30T02:37:36.636Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-09-30T02:54:02.049Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
