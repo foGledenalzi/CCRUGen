@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-09-30T03:15:55.744Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-09-30T23:22:55.645Z"
 last_activity: 2026-09-30
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 59
-  completed_plans: 51
-  percent: 86
+  completed_plans: 52
+  percent: 88
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 05 (demons-layer) — EXECUTING
-Plan: 5 of 12
+Plan: 6 of 12
 Status: Ready to execute
 Last activity: 2026-09-30
 
-Progress: [█████████░] 86%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -105,6 +105,7 @@ Progress: [█████████░] 86%
 | Phase 05 P02 | 12min | 2 tasks | 2 files |
 | Phase 05 P03 | 25min | 2 tasks | 2 files |
 | Phase 05 P04 | 10min | 2 tasks | 5 files |
+| Phase 05 P05 | 20min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -179,6 +180,7 @@ Recent decisions affecting current work:
 - [Phase 5 P02] DEM-04 stays Pending in REQUIREMENTS.md: this plan ships only the pure math (transform, exact resolve, raster fill) that 05-07's DemonMatrix.tsx canvas component consumes; DEM-04's own text ("lets the user see and inspect every demon") is a UI-level requirement not satisfiable until 05-07 mounts a canvas, matching this project's established precedent for requirements spanning multiple plans
 - [Phase 5 P03] Demon browser search shipped (DEM-02): app/lib/demonSearch.ts's clampQuery/parseZoneNumeral/parseDemonQuery parse a decimal mesh id, an in-base a::b net-span (either order, base<=36 letter digits or base>36 dot-separated decimal groups), or (base 10 only, count<=NAME_SEARCH_MAX_COUNT=50,000) a CCRU name exact/prefix match, regex-gated then try/catch around the engine's parseNumeral then range-checked, never throwing (proven against a fixed hostile-input list incl. 10,000-char floods and 50 U+202E characters); resolveDemonSearch maps a query to its row via filterContains/rankOf from 05-01, reporting a demon outside the active filter explicitly (never silently dropped) via a distinct outside-filter outcome; searchMessage/emptyFilterMessage produce byte-exact UI-SPEC copy (curly quotes/em dash built via String.fromCodePoint, echoes clipped through the engine's clipEcho); the syntax-vs-not-found split for a::b pairs runs the zone-numeral regex gate twice (directly for the classification, then inside parseZoneNumeral for the value) since parseZoneNumeral's number|null return collapses both failure modes by design. 36 new tests, full suite 1,647 green. DEM-02 stays Pending (spans 05-01/05-03/05-04/05-05/05-06/05-09/05-10/05-11, final covering plan later).
 - [Phase 5 P04] Shared DemonFocus model (app/lib/demonState.ts) shipped: zoneFocus/demonFocusOf (a>b normalized)/sameFocus consumed by both D-03 entry points, formatDemonFocus/parseDemonFocus/parseDemonFilter (never throw, DEMON_PARAM_MAX_LENGTH=40), focusDrawPlan/focusChordList bounded at FOCUS_CHORD_DRAW_MAX=4096 via strided incidentSource (proven <=4096 at base 2^20), demonsAfterBaseSwitch (UI-08 precedent: focus always clears, filter kept only with facetCount>0 at the new base), initialDemonTab. app/lib/shareParams.ts extended with demonFilter=/demonFocus=/demonsOpen=1 (D-07), each written/read independently so demonsOpen alone still round-trips (the UI-SPEC's tentative filter/focus coupling was rejected); currentShareState in NumogramClient.tsx gets 3 static defaults (05-10 wires live state). Legacy corpus, golden states and every existing shareParams field unchanged; full suite 1,681 tests green. DEM-02 (spans 05-01/05-03/05-04/05-05/05-06/05-09/05-10/05-11) and DEM-03 (spans 05-04/05-08/05-10) both stay Pending, final covering plan later.
+- [Phase 5 P05] @tanstack/react-virtual@3.14.13 installed (exact pin, T-05-16), lockfile regenerated with npm 10.9.3 so npm ci --dry-run passes under both npm 10 (CI) and npm 11 (local); DemonsIcon (12x12) added to NumogramIcons.tsx; DemonRowList shipped (app/components/demons/DemonRowList.tsx, not yet mounted): a reusable, windowed (BROWSER_WINDOW_ROWS=250,000, pager above it), keyboard-accessible four-column A::B/MESH/TYPE/NAME row list over any DemonRowSource from 05-01, sort headers with aria-sort, hover-to-preview/click-to-pin rows; useVirtualizer called with no explicit generics (TS infers HTMLDivElement from getScrollElement) to keep the literal 'useVirtualizer(' acceptance grep passing; server-render smoke (7 tests) proves the DOM contract at base 28, the sort-header contract, and the pager threshold (base 1024's 523,776 rows across 3 windows vs base 666's 221,445 in one window, no pager); TDD gates verified in git log (test f124cb2 before feat de4d28c). DEM-02 stays Pending (spans 05-01/05-03/05-04/05-05/05-06/05-09/05-10/05-11, final covering plan later). One unrelated flaky fast-check property in tests/app/demonMatrix.test.ts (05-03, 1-ULP floating-point boundary miss under a specific seed) found during a full suite run and logged to .planning/phases/05-demons-layer/deferred-items.md rather than fixed (out of this plan's scope).
 
 ### Pending Todos
 
@@ -210,8 +212,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-30T03:15:55.736Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-09-30T23:22:55.637Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
