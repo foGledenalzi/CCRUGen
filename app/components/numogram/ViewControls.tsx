@@ -3,17 +3,20 @@
 'use client'
 
 import React from 'react'
-import { FitIcon, ZoomInIcon, ZoomOutIcon } from './NumogramIcons'
+import { DemonsIcon, FitIcon, ZoomInIcon, ZoomOutIcon } from './NumogramIcons'
 
 const BTN_CLR = '#6b7280'
+const ACTIVE_CLR = '#10ff50'
 
 function ViewButton({
   onClick,
   label,
+  pressed,
   children,
 }: {
   onClick: () => void
   label: string
+  pressed?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -22,11 +25,12 @@ function ViewButton({
       onClick={onClick}
       aria-label={label}
       title={label}
+      aria-pressed={pressed}
       className="flex items-center justify-center px-1.5 py-1"
       style={{
-        color: BTN_CLR,
-        border: `1px solid rgba(107,114,128,0.35)`,
-        background: 'rgba(107,114,128,0.06)',
+        color: pressed === true ? ACTIVE_CLR : BTN_CLR,
+        border: `1px solid ${pressed === true ? 'rgba(16,255,80,0.35)' : 'rgba(107,114,128,0.35)'}`,
+        background: pressed === true ? 'rgba(16,255,80,0.08)' : 'rgba(107,114,128,0.06)',
         minWidth: 24,
         minHeight: 24,
       }}
@@ -41,11 +45,16 @@ export function ViewControls({
   onZoomIn,
   onZoomOut,
   onFit,
+  demonFocusMode,
+  onToggleDemonFocus,
 }: {
   zoom: number
   onZoomIn: () => void
   onZoomOut: () => void
   onFit: () => void
+  // Demon focus toggle (DEM-03, D-03): optional so every existing caller/test keeps rendering unchanged.
+  demonFocusMode?: boolean
+  onToggleDemonFocus?: () => void
 }) {
   return (
     <div
@@ -63,6 +72,11 @@ export function ViewControls({
       <ViewButton onClick={onFit} label="Fit diagram to view">
         <FitIcon clr={BTN_CLR} />
       </ViewButton>
+      {onToggleDemonFocus && (
+        <ViewButton onClick={onToggleDemonFocus} label="Demon focus" pressed={demonFocusMode === true}>
+          <DemonsIcon clr={demonFocusMode ? ACTIVE_CLR : BTN_CLR} />
+        </ViewButton>
+      )}
       <span aria-live="polite" className="text-[8px] text-gray-500">{Math.round(zoom * 100)}%</span>
     </div>
   )

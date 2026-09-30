@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useRef, useState } from 'react'
-import type { Layer, Pos, HoverInfo, GateRender, CurrentRender, LabelVisibility, CurrentData } from '../../data/types'
+import type { Layer, Pos, HoverInfo, GateRender, CurrentRender, LabelVisibility, CurrentData, Demon } from '../../data/types'
 import { PLANETARY_CX, PLANETARY_CY, PLANETARY_SIZE } from '../../presets/base10/layouts'
 import { REGION_CLR } from '../../lib/constants'
 import { curveAway, syzMidBiased, syzTrianglePoints, midpoint } from '../../lib/geometry'
@@ -12,6 +12,7 @@ import type { ViewLayoutId } from '../../lib/layoutIds'
 import type { RegionLabel, RoutingStyle } from '../../../engine/index'
 import { formatNumeral } from '../../../engine/index'
 import { elementState, regionLabel, ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../lib/regions'
+import { KIND_COLOR } from '../../lib/demonBrowser'
 
 interface ProjectionProps {
   view: NumogramView
@@ -48,6 +49,8 @@ interface ProjectionProps {
   // UI-07: prefers-reduced-motion gate for the orbit/particle rAF and SMIL animation (the CSS-only
   // @media (prefers-reduced-motion: reduce) block in globals.css cannot reach these). Static edges stay.
   reducedMotion: boolean
+  // Demon focus (DEM-03, D-03): a zone's demons or one demon as chords; null/undefined renders nothing (frozen goldens stay byte-identical).
+  focusChords?: readonly Demon[] | null
   onHoverInfo: (info: HoverInfo | null) => void
   onPinInfo: (info: HoverInfo) => void
   onZoneNodeClick: (zone: number) => void
@@ -58,7 +61,7 @@ export const Projection = React.memo(function Projection({
   regionLabels, zoneLabels, labelsOn, gateMode,
   pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
   tcActive, showOrbits, planetaryPos, zoneOrder, zoneStates, gateRenderData,
-  currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, reducedMotion, onHoverInfo, onPinInfo, onZoneNodeClick,
+  currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, reducedMotion, focusChords = null, onHoverInfo, onPinInfo, onZoneNodeClick,
 }: ProjectionProps) {
 
   const [focusKey, setFocusKey] = useState<string | null>(null)
@@ -290,6 +293,27 @@ export const Projection = React.memo(function Projection({
           </g>
         )
       })}
+
+      {/* Demon focus layer (DEM-03): drawn over the dimmed diagram, independent of the Pandemonium layer and its allChordsMaxN gate (D-04) */}
+      {focusChords && focusChords.length > 0 && (
+        <g data-demon-focus-layer="" data-post-baseline="">
+          {focusChords.map(d => {
+            const st = stateOf([d.a, d.b])
+            if (st === ZONE_HIDDEN) return null
+            const clr = KIND_COLOR[d.kind as keyof typeof KIND_COLOR] ?? KIND_COLOR.syzygy
+            const pathD = curveAway(pos[d.a], pos[d.b], ctr.x, ctr.y, 0.25)
+            return (
+              <g key={`df-${d.a}:${d.b}`} data-demon-focus={`${d.a}:${d.b}`}>
+                <path d={pathD} fill="none" stroke={clr} strokeWidth={1.2 * ss} opacity={st === ZONE_DIMMED ? 0.15 : 0.75} style={{ pointerEvents: 'none' }} />
+                <path d={pathD} fill="none" stroke="transparent" strokeWidth={10 * ss} style={{ cursor: 'pointer' }}
+                  onMouseEnter={() => onHoverInfo({ type: 'demon', demon: d })}
+                  onMouseLeave={() => onHoverInfo(null)}
+                  onClick={() => onPinInfo({ type: 'demon', demon: d })} />
+              </g>
+            )
+          })}
+        </g>
+      )}
 
       {/* Gates layer */}
       {layers.has('gates') && !tcActive && gateMode !== 'off' && view.gates.map(g => {
