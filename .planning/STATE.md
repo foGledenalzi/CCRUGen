@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-09-30T02:27:27.857Z"
-last_activity: 2026-09-30 -- Phase 05 execution started
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-09-30T02:37:36.645Z"
+last_activity: 2026-09-30
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 59
-  completed_plans: 47
-  percent: 80
+  completed_plans: 48
+  percent: 81
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 05 (demons-layer) — EXECUTING
-Plan: 1 of 12
-Status: Executing Phase 05
-Last activity: 2026-09-30 -- Phase 05 execution started
+Plan: 2 of 12
+Status: Ready to execute
+Last activity: 2026-09-30
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 81%
 
 ## Performance Metrics
 
@@ -101,6 +101,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04 P14 | 40min | 2 tasks | 11 files |
 | Phase 04 P15 | 55min | 2 tasks | 7 files |
 | Phase 04 P16 | 35min | 3 tasks | 25 files |
+| Phase 05 P01 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -170,6 +171,7 @@ Recent decisions affecting current work:
 - [Phase 4 P14] Roving-tabindex keyboard model (UI-07): Projection.tsx and PairGraphProjection.tsx are one Tab stop each, with a focusOrder array recomputed each render by mirroring each layer's own existing render filter exactly (zones ascending, hidden-filtered, then syzygies, currents, gates; pair graph: pairs in pair-id order), tabIndex={0} only on the active key, Enter/Space activating via svgRef.current.querySelector + CSS.escape; every focusable element gets role=button, an in-base aria-label, aria-pressed and data-post-baseline (so the frozen behaviour-baseline svg-interactive counter stays 0); muted (mute=) elements are excluded from the traversal, dimmed (isolate complement) elements stay in it; [data-focus-key]:focus-visible in globals.css is the only new CSS, invisible to the 60 frozen DOM goldens (role/tabindex/aria-*/data-* ignored); reducedMotion is hoisted once in NumogramClient via useReducedMotion() and threaded to useOrbitalAnimation (rAF short-circuit, orbit Button disabled) and Projection (particle layer, selection-triggered particle flow, Time-Circuit carriers all gated, static edges/paths unaffected); e2e/accessibility.spec.ts (12 tests, chromium-utc) proves 84-element traversal/wraparound at base 28, ARIA names, keyboard activation, muted-order exclusion, visible focus, reduced motion and the base-10-only digit shortcut; Rule 1 fix: a CSS comment's literal aria-*/data-* text embedded a */ token that closed the comment early and broke next build's cssnano minifier, reworded to avoid it; UI-07 stays Pending (final covering plan 04-15 mounts the text view into the normal viewer)
 - [Phase 4 P15] Real collapsible panels (todo 003 finding 3, UI-07): CyberPanel.tsx's collapseDirection="vertical" wired for real on all seven side panels plus the new Text panel (postBaseline prop, accessible chevron with aria-label/aria-expanded, open body scrolls via overflowY:auto instead of clipping); the dead mobile auto-collapse effect is deleted (panels start open at every width, users fold them with the chevrons); a Text panel mounts TextView (numogramText + Copy numogram text) at every interactive base, hidden above the SVG tier where BigBaseSummary already carries the text view; ViewControls.tsx gives zoom in/out/fit as keyboard-focusable buttons with a live zoom-percent readout, fit frames every non-muted zone via fitSelectionToView; e2e/layers-zoom.spec.ts (10 tests) proves UI-06 at base 28 (layer toggle counts including Pandemonium's exactly-364 non-syzygetic demon chords, computed independently from the engine) and base 100 (Pandemonium N/A above the demon-chord ceiling); page-weight baseline raised (/numogram/ +8,514 bytes raw htmlBytes, +3,131 jsBytes, this plan's growth only); 60 goldens and the behaviour baseline unchanged; UI-06 and UI-07 both marked Complete (UI-06's only plan, UI-07's final covering plan after 04-07 and 04-14)
 - [Phase 4 P16] MIG-02 closed: the six app/data base-10 seams and the app/lib/constants.ts TC re-export are deleted; the base-ten grep gate is now a default check in npm run verify (13 checks total); e2e/smoke-bases.spec.ts proves every even base 2-40 plus ladder/spiral/pairGraph at 2, 4, 6, 28 render with no NaN/undefined; page weight settled with no baseline raise (bundle shrank slightly); D-07 chip wording finalized in REQUIREMENTS.md/ROADMAP.md matching app/lib/basePicker.ts's NOTABLE_BASES; todos 003 (already closed) verified and 005 (packer choice) closed with a Resolution trace; todo 004's MIG-02 item closed. Full npm run verify green (1542 unit tests x2 timezones, 176 e2e + 106 skipped, 60 goldens and 5 behaviour specs unchanged). Phase 4 complete: 16/16 plans, all eight UI requirements plus MIG-02 marked Complete. CLAUDE.md's line about five thin seams remaining until Phase 4/MIG-02 is now stale (flagged for the orchestrator, not edited).
+- [Phase 5 P01] Demon data layer shipped (DEM-01, DEM-02, DEM-05): app/lib/demonBrowser.ts's facetModel/facetCount read g.demons.typeCounts()/counts() directly (closed forms, base 28 = 378/276/96/6 cross-Torque 108, base 666 = 221445/220116/1328/1 cross-Torque 199884), never view.demons and never a loop over demons; DemonRowSource ({count, at(k)}) unifies the full space, group()/subtype() selections, a zone's incident() demons and a single pinned demon behind rowSourceFor/concatSources/orderedSource/incidentSource/singleSource, with rankOfMesh/rankOf finding any demon's row under any filter/sort/direction in O(log count) (proven for all 378 x 11 x 2 x 2 combinations at base 28) and windowCount/windowAt/windowFor capping a rendered window at BROWSER_WINDOW_ROWS=250,000 rows (safe-integer-bounded at the 2^26 demon count 2251799780130816); demonName/demonNameTable/legacyDemon join app/presets/base10/lore.ts's DEMON_NAMES by mesh id, proven against all 45 entries of the frozen oracle, null at every other base
 
 ### Pending Todos
 
@@ -201,9 +203,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 5 UI-SPEC approved
-Resume file: --resume-file
+Last session: 2026-09-30T02:37:36.636Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
