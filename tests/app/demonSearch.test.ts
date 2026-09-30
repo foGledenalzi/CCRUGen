@@ -6,12 +6,16 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { createNumogram } from '../../engine/index'
+import { DEFAULT_DEMON_SORT, rowSourceFor } from '../../app/lib/demonBrowser'
 import {
   NAME_SEARCH_MAX_COUNT,
   SEARCH_MAX_LENGTH,
   clampQuery,
+  emptyFilterMessage,
   parseDemonQuery,
   parseZoneNumeral,
+  resolveDemonSearch,
+  searchMessage,
   type DemonQuery,
 } from '../../app/lib/demonSearch'
 
@@ -173,5 +177,129 @@ describe('parseDemonQuery: hostile input never throws', () => {
       expect(result).toBeDefined()
       expect(validKinds).toContain((result as DemonQuery).kind)
     }
+  })
+})
+
+// ── Task 2: resolution to a row and UI-SPEC status copy ─────────────────────
+
+describe('resolveDemonSearch: found', () => {
+  it('a mesh query resolves to its row under the active filter/sort', () => {
+    const demon108 = g666.demons.at(108)
+    const outcome = resolveDemonSearch('108', g666, demon108.subtype, DEFAULT_DEMON_SORT)
+    expect(outcome.kind).toBe('found')
+    if (outcome.kind !== 'found') throw new Error('expected found')
+    expect(outcome.demon.mesh).toBe(108)
+    const source = rowSourceFor(g666, demon108.subtype, 'mesh')
+    expect(source.at(outcome.index).mesh).toBe(108)
+  })
+
+  it('an a::b query under no filter resolves to its ascending-mesh index', () => {
+    const outcome = resolveDemonSearch('15::3', g666, null, DEFAULT_DEMON_SORT)
+    expect(outcome.kind).toBe('found')
+    if (outcome.kind !== 'found') throw new Error('expected found')
+    expect(outcome.index).toBe(108)
+  })
+
+  it('descending direction flips the index', () => {
+    const outcome = resolveDemonSearch('0', g28, null, { key: 'mesh', direction: 'desc' })
+    expect(outcome.kind).toBe('found')
+    if (outcome.kind !== 'found') throw new Error('expected found')
+    expect(outcome.index).toBe(377)
+  })
+
+  it('a name query resolves to its row', () => {
+    const outcome = resolveDemonSearch('lurgo', g10, null, DEFAULT_DEMON_SORT)
+    expect(outcome.kind).toBe('found')
+    if (outcome.kind !== 'found') throw new Error('expected found')
+    expect(outcome.demon.mesh).toBe(0)
+    expect(outcome.index).toBe(0)
+  })
+})
+
+describe('resolveDemonSearch: outside-filter', () => {
+  it('a demon that exists but fails the active filter is reported explicitly, never silently dropped', () => {
+    const demon = g28.demons.ref(1, 0)
+    expect(demon.type).not.toBe('chrono') // sanity: 1::0 is amphi at base 28, per the plan's worked example
+    const outcome = resolveDemonSearch('1::0', g28, 'chrono', DEFAULT_DEMON_SORT)
+    expect(outcome.kind).toBe('outside-filter')
+    if (outcome.kind !== 'outside-filter') throw new Error('expected outside-filter')
+    expect(outcome.demon.mesh).toBe(demon.mesh)
+    expect(outcome.echo).toBe('1::0')
+  })
+})
+
+describe('resolveDemonSearch: not-found / syntax / empty', () => {
+  it('not-found carries the clipped echo', () => {
+    const outcome = resolveDemonSearch('221445', g666, null, DEFAULT_DEMON_SORT)
+    expect(outcome).toEqual({ kind: 'not-found', echo: '221445' })
+  })
+
+  it('syntax carries the clipped echo', () => {
+    const outcome = resolveDemonSearch('1e3', g666, null, DEFAULT_DEMON_SORT)
+    expect(outcome).toEqual({ kind: 'syntax', echo: '1e3' })
+  })
+
+  it('empty input resolves to empty', () => {
+    expect(resolveDemonSearch('', g666, null, DEFAULT_DEMON_SORT)).toEqual({ kind: 'empty' })
+  })
+
+  it('a 100-character syntax input echoes at most 43 characters (40 + "...")', () => {
+    const input = 'x'.repeat(50) + '!'.repeat(50) // not a valid mesh/pair/name shape
+    const outcome = resolveDemonSearch(input, g666, null, DEFAULT_DEMON_SORT)
+    expect(outcome.kind).toBe('syntax')
+    if (outcome.kind !== 'syntax') throw new Error('expected syntax')
+    expect(outcome.echo.length).toBe(43)
+    expect(outcome.echo.endsWith('...')).toBe(true)
+  })
+
+  it('never throws for hostile input, at any filter', () => {
+    for (const text of HOSTILE_INPUTS) {
+      expect(() => resolveDemonSearch(text, g666, null, DEFAULT_DEMON_SORT)).not.toThrow()
+      expect(() => resolveDemonSearch(text, g666, 'chrono', DEFAULT_DEMON_SORT)).not.toThrow()
+    }
+  })
+})
+
+describe('searchMessage', () => {
+  it('not-found: exact UI-SPEC copy with curly quotes', () => {
+    const message = searchMessage({ kind: 'not-found', echo: '221445' }, null, 221445)
+    expect(message).toEqual({
+      heading: 'No demon found for “221445”.',
+      body: 'Search by mesh number (e.g. 42) or net-span (e.g. 12::3).',
+    })
+  })
+
+  it('syntax: exact UI-SPEC copy with an ASCII apostrophe in "Couldn\'t" and an em dash', () => {
+    const message = searchMessage({ kind: 'syntax', echo: '1e3' }, null, 221445)
+    expect(message).toEqual({
+      heading: "Couldn't parse “1e3” — try a mesh number (e.g. 108) or an a::b pair (e.g. 12::3).",
+      body: '',
+    })
+    expect(message?.heading.includes("Couldn't")).toBe(true)
+  })
+
+  it('outside-filter: exact UI-SPEC copy with the unambiguous filter label', () => {
+    const demon = g28.demons.ref(1, 0)
+    const message = searchMessage({ kind: 'outside-filter', demon, echo: '1::0' }, 'chrono', 378)
+    expect(message).toEqual({
+      heading: '“1::0” is not in the Chrono filter.',
+      body: 'Clear the Chrono filter to see all 378 demons.',
+    })
+  })
+
+  it('found and empty produce no status message', () => {
+    const demon = g666.demons.at(0)
+    expect(searchMessage({ kind: 'found', demon, index: 0 }, null, 221445)).toBeNull()
+    expect(searchMessage({ kind: 'empty' }, null, 221445)).toBeNull()
+  })
+})
+
+describe('emptyFilterMessage', () => {
+  it('exact UI-SPEC copy with the unambiguous filter label and a locale-formatted count', () => {
+    const message = emptyFilterMessage('warp-amphi', 221445)
+    expect(message).toEqual({
+      heading: 'No demons match this filter',
+      body: 'Clear the Warp amphi filter to see all 221,445 demons.',
+    })
   })
 })
