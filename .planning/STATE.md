@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-09-30T03:05:32.688Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-09-30T03:15:55.744Z"
 last_activity: 2026-09-30
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 59
-  completed_plans: 50
-  percent: 85
+  completed_plans: 51
+  percent: 86
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 05 (demons-layer) — EXECUTING
-Plan: 4 of 12
+Plan: 5 of 12
 Status: Ready to execute
 Last activity: 2026-09-30
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -104,6 +104,7 @@ Progress: [█████████░] 85%
 | Phase 05 P01 | 20min | 2 tasks | 4 files |
 | Phase 05 P02 | 12min | 2 tasks | 2 files |
 | Phase 05 P03 | 25min | 2 tasks | 2 files |
+| Phase 05 P04 | 10min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,7 @@ Recent decisions affecting current work:
 - [Phase 5 P02] Demon matrix math shipped (DEM-04): app/lib/demonMatrix.ts is a pure module (zero engine/React/DOM imports, classification and palette injected as parameters) with fitTransform/clampTransform/zoomAt/panBy (pan/zoom clamped to [fitScale, max(64px, fitScale)], viewport centre always inside the matrix square), cellAtPixel/cellCenter/cellRect (exact pixel<->cell resolve, proven by fast-check to base 2^26 including an explicit 67108863::67108862 corner case at 64px/cell, the ONLY path hover/click/keyboard may use per T-05-05), stepCursor (keyboard traversal confined to the a > b triangle), ensureCellVisible, syzygyLine/numodemonLine (explicit diagonal overlays against thin-feature aliasing, research Pitfall 3), and rasterSize/buildPalette/rasterizeRows (backing store capped at 1.5M px and DPR 2 per T-05-04, point-sampled fill via row-copy plus same-cell caching proven pixel-by-pixel correct against g.demons.ref and cost-bounded by viewport pixels at base 666 vs base 2^20 on an identical buffer); numodemonLine's base-4 guard deliberately written as base < 4 to avoid the base-ten grep gate's half-base-bound pattern; both tasks' TDD RED commits failed for the expected reason before GREEN, all 29 tests passed on first GREEN run, full npm run test (1611 tests) and typecheck/base-ten gate green
 - [Phase 5 P02] DEM-04 stays Pending in REQUIREMENTS.md: this plan ships only the pure math (transform, exact resolve, raster fill) that 05-07's DemonMatrix.tsx canvas component consumes; DEM-04's own text ("lets the user see and inspect every demon") is a UI-level requirement not satisfiable until 05-07 mounts a canvas, matching this project's established precedent for requirements spanning multiple plans
 - [Phase 5 P03] Demon browser search shipped (DEM-02): app/lib/demonSearch.ts's clampQuery/parseZoneNumeral/parseDemonQuery parse a decimal mesh id, an in-base a::b net-span (either order, base<=36 letter digits or base>36 dot-separated decimal groups), or (base 10 only, count<=NAME_SEARCH_MAX_COUNT=50,000) a CCRU name exact/prefix match, regex-gated then try/catch around the engine's parseNumeral then range-checked, never throwing (proven against a fixed hostile-input list incl. 10,000-char floods and 50 U+202E characters); resolveDemonSearch maps a query to its row via filterContains/rankOf from 05-01, reporting a demon outside the active filter explicitly (never silently dropped) via a distinct outside-filter outcome; searchMessage/emptyFilterMessage produce byte-exact UI-SPEC copy (curly quotes/em dash built via String.fromCodePoint, echoes clipped through the engine's clipEcho); the syntax-vs-not-found split for a::b pairs runs the zone-numeral regex gate twice (directly for the classification, then inside parseZoneNumeral for the value) since parseZoneNumeral's number|null return collapses both failure modes by design. 36 new tests, full suite 1,647 green. DEM-02 stays Pending (spans 05-01/05-03/05-04/05-05/05-06/05-09/05-10/05-11, final covering plan later).
+- [Phase 5 P04] Shared DemonFocus model (app/lib/demonState.ts) shipped: zoneFocus/demonFocusOf (a>b normalized)/sameFocus consumed by both D-03 entry points, formatDemonFocus/parseDemonFocus/parseDemonFilter (never throw, DEMON_PARAM_MAX_LENGTH=40), focusDrawPlan/focusChordList bounded at FOCUS_CHORD_DRAW_MAX=4096 via strided incidentSource (proven <=4096 at base 2^20), demonsAfterBaseSwitch (UI-08 precedent: focus always clears, filter kept only with facetCount>0 at the new base), initialDemonTab. app/lib/shareParams.ts extended with demonFilter=/demonFocus=/demonsOpen=1 (D-07), each written/read independently so demonsOpen alone still round-trips (the UI-SPEC's tentative filter/focus coupling was rejected); currentShareState in NumogramClient.tsx gets 3 static defaults (05-10 wires live state). Legacy corpus, golden states and every existing shareParams field unchanged; full suite 1,681 tests green. DEM-02 (spans 05-01/05-03/05-04/05-05/05-06/05-09/05-10/05-11) and DEM-03 (spans 05-04/05-08/05-10) both stay Pending, final covering plan later.
 
 ### Pending Todos
 
@@ -208,8 +210,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-30T03:05:32.679Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-09-30T03:15:55.736Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
