@@ -208,3 +208,176 @@ export function legacyDemon(d: DemonRef, base: number): Demon {
     kind: legacyKind(d.subtype),
   }
 }
+
+// ── Row sources, sort, rank and window paging (DEM-02) ──────────────────────
+
+export type DemonSortKey = 'mesh' | 'type'
+export type SortDirection = 'asc' | 'desc'
+export interface DemonSort {
+  readonly key: DemonSortKey
+  readonly direction: SortDirection
+}
+export const DEFAULT_DEMON_SORT: DemonSort = Object.freeze({ key: 'mesh', direction: 'asc' })
+
+/** Two-method shape every full space and every filtered selection implements identically: never materialized. */
+export interface DemonRowSource {
+  readonly count: number
+  at(k: number): DemonRef
+}
+
+// Rows one virtualized window may hold; 250,000 x 22px = 5.5M px stays under every browser's element-height cap
+// and bounds TanStack Virtual's own O(count) geometry cache (T-05-17); base 666 (221,445) fits in one window.
+export const BROWSER_WINDOW_ROWS = 250_000
+export const ROW_HEIGHT_PX = 22 // UI-SPEC fixed row height
+
+function checkRowIndex(k: number, count: number, label: string): number {
+  if (!Number.isInteger(k) || k < 0 || k >= count) {
+    throw new RangeError(`${label}: index ${k} outside [0, ${count})`)
+  }
+  return k
+}
+
+/** The parts (in order) a 'type' sort concatenates: every subtype (null), a type's subtypes, or one subtype alone. */
+function typeSortParts(filter: DemonFilter | null): readonly DemonSubtype[] {
+  if (filter === null) return DEMON_SUBTYPES
+  if (isDemonType(filter)) return SUBTYPES_OF[filter]
+  return [filter]
+}
+
+/**
+ * The row source backing the browser/facet/rank logic for `filter` under sort key `key`. Mesh key: the engine's own
+ * selection object by identity (null -> g.demons, a type -> g.demons.group(type), a subtype -> g.demons.subtype(s)).
+ * Type key: the filter's subtypes concatenated in SUBTYPES_OF order (a lone subtype returns g.demons.subtype(s)
+ * directly rather than a 1-part concatSources wrapper). Only ever calls group()/subtype() with a name that has
+ * already passed isDemonType/isDemonSubtype (T-05-01).
+ */
+export function rowSourceFor(g: Numogram, filter: DemonFilter | null, key: DemonSortKey): DemonRowSource {
+  if (key === 'mesh') {
+    if (filter === null) return g.demons
+    if (isDemonType(filter)) return g.demons.group(filter)
+    return g.demons.subtype(filter)
+  }
+  const parts = typeSortParts(filter)
+  const only = parts.length === 1 ? parts[0] : undefined
+  if (only !== undefined) return g.demons.subtype(only)
+  return concatSources(parts.map(subtype => g.demons.subtype(subtype)))
+}
+
+/** count = sum of part counts; at(k) delegates exactly one underlying at() call, after one range check. */
+export function concatSources(parts: readonly DemonRowSource[]): DemonRowSource {
+  const count = parts.reduce((sum, part) => sum + part.count, 0)
+  return {
+    count,
+    at(k: number): DemonRef {
+      checkRowIndex(k, count, 'concatSources')
+      let offset = k
+      for (const part of parts) {
+        if (offset < part.count) return part.at(offset)
+        offset -= part.count
+      }
+      throw new RangeError(`concatSources: index ${k} outside [0, ${count})`)
+    },
+  }
+}
+
+/** Ascending mesh order is native (`source` itself); descending is index arithmetic only, no separate sort code path. */
+export function orderedSource(source: DemonRowSource, direction: SortDirection): DemonRowSource {
+  if (direction === 'asc') return source
+  const count = source.count
+  return {
+    count,
+    at(k: number): DemonRef {
+      checkRowIndex(k, count, 'orderedSource')
+      return source.at(count - 1 - k)
+    },
+  }
+}
+
+/** The n-1 demons incident to `zone`, other zone ascending, O(1) per at(k) via g.demons.ref (never enumerated). */
+export function incidentSource(g: Numogram, zone: number): DemonRowSource {
+  const count = g.base - 1
+  return {
+    count,
+    at(k: number): DemonRef {
+      checkRowIndex(k, count, 'incidentSource')
+      return g.demons.ref(zone, k < zone ? k : k + 1)
+    },
+  }
+}
+
+/** A one-row source wrapping a single already-known demon (e.g. a browser-to-diagram single-demon focus). */
+export function singleSource(d: DemonRef): DemonRowSource {
+  return {
+    count: 1,
+    at(k: number): DemonRef {
+      checkRowIndex(k, 1, 'singleSource')
+      return d
+    },
+  }
+}
+
+/**
+ * The row of `mesh` in `source` (mesh-ordered, per DemonSelection's documented ascending-mesh-order contract), or
+ * null when absent: binary search over source.at(k).mesh, O(log count), never a linear scan.
+ */
+export function rankOfMesh(source: DemonRowSource, mesh: number): number | null {
+  let lo = 0
+  let hi = source.count - 1
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1
+    const m = source.at(mid).mesh
+    if (m === mesh) return mid
+    if (m < mesh) lo = mid + 1
+    else hi = mid - 1
+  }
+  return null
+}
+
+/**
+ * The row of demon `d` under `filter`/`sort`, or null when `d` is outside the filter. Mesh key: rankOfMesh over the
+ * mesh-ordered source. Type key: the sum of the preceding parts' counts (closed-form .count reads, never enumerated)
+ * plus rankOfMesh within d's own subtype. Descending direction flips the ascending rank via count - 1 - r.
+ */
+export function rankOf(g: Numogram, filter: DemonFilter | null, sort: DemonSort, d: DemonRef): number | null {
+  if (!filterContains(filter, d)) return null
+  let ascending: number | null
+  if (sort.key === 'mesh') {
+    ascending = rankOfMesh(rowSourceFor(g, filter, 'mesh'), d.mesh)
+  } else {
+    let offset = 0
+    for (const subtype of typeSortParts(filter)) {
+      if (subtype === d.subtype) break
+      offset += g.demons.subtype(subtype).count
+    }
+    const within = rankOfMesh(g.demons.subtype(d.subtype), d.mesh)
+    ascending = within === null ? null : offset + within
+  }
+  if (ascending === null) return null
+  if (sort.direction === 'asc') return ascending
+  return rowSourceFor(g, filter, sort.key).count - 1 - ascending
+}
+
+export interface BrowserWindow {
+  readonly start: number
+  readonly size: number
+  readonly count: number
+}
+
+/** The number of 250,000-row windows `count` rows need; at least 1 even when count is 0. */
+export function windowCount(count: number): number {
+  return Math.max(1, Math.ceil(count / BROWSER_WINDOW_ROWS))
+}
+
+/** The window at `page` (clamped to [0, windowCount(count) - 1]): start = page * W, size = min(W, count - start). */
+export function windowAt(count: number, page: number): BrowserWindow {
+  const pages = windowCount(count)
+  const clamped = Math.min(Math.max(page, 0), pages - 1)
+  const start = clamped * BROWSER_WINDOW_ROWS
+  const size = count === 0 ? 0 : Math.min(BROWSER_WINDOW_ROWS, count - start)
+  return { start, size, count }
+}
+
+/** The window containing row `index` of `count` total rows. */
+export function windowFor(count: number, index: number): BrowserWindow {
+  return windowAt(count, Math.floor(index / BROWSER_WINDOW_ROWS))
+}
