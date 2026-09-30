@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
+status: executing
 stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-09-30T02:21:36.169Z"
-last_activity: 2026-09-29
+last_updated: "2026-09-30T02:27:27.857Z"
+last_activity: 2026-09-30 -- Phase 05 execution started
 progress:
   total_phases: 8
   completed_phases: 4
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 04 — base-picker-and-generator-ui (complete; next is `/gsd-verify-work 4`)
+**Current focus:** Phase 05 — demons-layer
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-29
+Phase: 05 (demons-layer) — EXECUTING
+Plan: 1 of 12
+Status: Executing Phase 05
+Last activity: 2026-09-30 -- Phase 05 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
