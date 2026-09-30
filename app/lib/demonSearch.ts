@@ -117,3 +117,82 @@ export function parseDemonQuery(raw: string, g: Numogram): DemonQuery {
 
   return { kind: 'syntax' }
 }
+
+// ── Resolution to a row, and the exact UI-SPEC status copy ──────────────────
+
+export type SearchOutcome =
+  | { readonly kind: 'empty' }
+  | { readonly kind: 'found'; readonly demon: DemonRef; readonly index: number } // index in the ordered (filter + sort + direction) source
+  | { readonly kind: 'outside-filter'; readonly demon: DemonRef; readonly echo: string }
+  | { readonly kind: 'not-found'; readonly echo: string }
+  | { readonly kind: 'syntax'; readonly echo: string }
+
+export interface StatusMessage {
+  readonly heading: string
+  readonly body: string
+}
+
+// Built as data (String.fromCodePoint), never as typed escapes in source (STATE Phase 2 P07 gotcha: the file-write
+// tool decodes typed unicode escapes into raw characters, which then look identical to the correct text on screen
+// but are easy to corrupt with an editor that "fixes" curly quotes).
+const LQ = String.fromCodePoint(0x201c) // “
+const RQ = String.fromCodePoint(0x201d) // ”
+const DASH = String.fromCodePoint(0x2014) // —
+
+/** clipEcho(clampQuery(raw).trim()): a pasted megabyte never becomes a megabyte of message text (T-05-11). */
+function echoOf(raw: string): string {
+  return clipEcho(clampQuery(raw).trim())
+}
+
+/**
+ * Resolves a search query to a row under filter/sort (T-05-08): parses raw, looks the demon up by mesh/net-span/name,
+ * reports it as outside-filter when filterContains(filter, demon) is false (a demon that exists is never silently
+ * dropped), else returns its rank via rankOf (non-null by construction, since filterContains already passed). Never
+ * throws: every mesh/pair/name query has already been range-checked by parseDemonQuery.
+ */
+export function resolveDemonSearch(raw: string, g: Numogram, filter: DemonFilter | null, sort: DemonSort): SearchOutcome {
+  const query = parseDemonQuery(raw, g)
+  if (query.kind === 'empty') return { kind: 'empty' }
+  const echo = echoOf(raw)
+  if (query.kind === 'syntax') return { kind: 'syntax', echo }
+  if (query.kind === 'not-found') return { kind: 'not-found', echo }
+
+  const demon: DemonRef = query.kind === 'pair' ? g.demons.ref(query.a, query.b) : g.demons.at(query.mesh)
+  if (!filterContains(filter, demon)) return { kind: 'outside-filter', demon, echo }
+
+  const index = rankOf(g, filter, sort, demon)
+  if (index === null) throw new RangeError('resolveDemonSearch: rankOf returned null for a demon that passed filterContains')
+  return { kind: 'found', demon, index }
+}
+
+/** The exact UI-SPEC status copy for outcome, or null for 'found'/'empty' (no status line to show). */
+export function searchMessage(outcome: SearchOutcome, filter: DemonFilter | null, total: number): StatusMessage | null {
+  switch (outcome.kind) {
+    case 'empty':
+    case 'found':
+      return null
+    case 'not-found':
+      return {
+        heading: `No demon found for ${LQ}${outcome.echo}${RQ}.`,
+        body: 'Search by mesh number (e.g. 42) or net-span (e.g. 12::3).',
+      }
+    case 'syntax':
+      return {
+        heading: `Couldn't parse ${LQ}${outcome.echo}${RQ} ${DASH} try a mesh number (e.g. 108) or an a::b pair (e.g. 12::3).`,
+        body: '',
+      }
+    case 'outside-filter':
+      return {
+        heading: `${LQ}${outcome.echo}${RQ} is not in the ${filterLabel(filter)} filter.`,
+        body: `Clear the ${filterLabel(filter)} filter to see all ${total.toLocaleString('en-US')} demons.`,
+      }
+  }
+}
+
+/** The exact UI-SPEC copy for a filtered browser with zero rows: the filter excludes every demon at this base. */
+export function emptyFilterMessage(filter: DemonFilter | null, total: number): StatusMessage {
+  return {
+    heading: 'No demons match this filter',
+    body: `Clear the ${filterLabel(filter)} filter to see all ${total.toLocaleString('en-US')} demons.`,
+  }
+}
