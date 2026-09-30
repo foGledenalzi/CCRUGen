@@ -266,6 +266,9 @@ export default function NumogramPage() {
     mute: [...regionFilter.mute],
     packer,
     tier: tierOverride,
+    demonFilter: null,
+    demonFocus: null,
+    demonsOpen: false,
   }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, regionFilter, packer, tierOverride])
 
   const snapshotState = useCallback((): HistorySnapshot => ({

@@ -1,6 +1,8 @@
-// The viewer's single URL codec (UI-02, D-13, D-21, todo 005). base is strict and user-visible when refused (D-06);
-// every other field is lenient per field so a hand-edited link still loads. Replaces the dead URL canonicalizer that
-// used to back the removed share-image route. Original CCRUG code (MIT, NOTICE section 1).
+// The viewer's single URL codec (UI-02, D-13, D-21, D-07, todo 005). base is strict and user-visible when refused
+// (D-06); every other field is lenient per field so a hand-edited link still loads. D-07 adds demonFilter=/
+// demonFocus=/demonsOpen=1, each written and read independently of the others (never coupled) so the codec's
+// parse(build(state)) === state round trip holds for every field combination. Replaces the dead URL canonicalizer
+// that used to back the removed share-image route. Original CCRUG code (MIT, NOTICE section 1).
 import type { Layer } from '../data/types'
 import {
   createNumogram,
@@ -12,6 +14,8 @@ import {
   type Packer,
   type RenderTier,
 } from '../../engine/index'
+import type { DemonFilter } from './demonBrowser'
+import { formatDemonFocus, parseDemonFilter, parseDemonFocus, type DemonFocus } from './demonState'
 import { DEFAULT_LABEL_SCHEME, formatLabelScheme, parseLabelScheme, type LabelScheme } from './labelScheme'
 import { defaultLayoutFor, isLayoutIdFor, type ViewLayoutId } from './layoutIds'
 import { parseRegionId, type RegionId } from './regions'
@@ -42,6 +46,9 @@ export interface ShareState {
   readonly mute: readonly RegionId[]
   readonly packer: Packer
   readonly tier: RenderTier | null
+  readonly demonFilter: DemonFilter | null
+  readonly demonFocus: DemonFocus | null
+  readonly demonsOpen: boolean
 }
 
 /**
@@ -75,6 +82,9 @@ export function defaultShareState(base = 10): ShareState {
     mute: [],
     packer: DEFAULT_LAYOUT_PARAMS.packer,
     tier: null,
+    demonFilter: null,
+    demonFocus: null,
+    demonsOpen: false,
   }
 }
 
@@ -194,8 +204,32 @@ export function parseShareParams(input: string | URLSearchParams): ParsedShare {
   const packer = parsePacker(params.get('packer'))
   const tier = tierOverrideFrom(params.get('tier'))
 
+  // D-07: validated before any engine call (T-05-12) — an unknown filter name never reaches group()/subtype(), and
+  // range checks against `base` alone (never a Numogram) keep this lenient-per-field like every other param.
+  const demonFilter = parseDemonFilter(params.get('demonFilter'))
+  const demonFocus = parseDemonFocus(params.get('demonFocus'), base)
+  const demonsOpen = params.get('demonsOpen') === '1'
+
   return {
-    state: { base, layout, layers, selected, region, tc, particles, date, orbits, labels, isolate, mute, packer, tier },
+    state: {
+      base,
+      layout,
+      layers,
+      selected,
+      region,
+      tc,
+      particles,
+      date,
+      orbits,
+      labels,
+      isolate,
+      mute,
+      packer,
+      tier,
+      demonFilter,
+      demonFocus,
+      demonsOpen,
+    },
     baseRefusal,
   }
 }
@@ -247,6 +281,12 @@ export function buildShareParams(state: ShareState, opts: BuildShareParamsOption
 
   if (state.packer !== DEFAULT_LAYOUT_PARAMS.packer) params.set('packer', state.packer)
   if (state.tier !== null) params.set('tier', state.tier)
+
+  // D-07: each written independently of the others' presence (never "only when a filter or focus is active"),
+  // so parse(build(state)) === state holds for every field combination, including demonsOpen alone.
+  if (state.demonFilter !== null) params.set('demonFilter', state.demonFilter)
+  if (state.demonFocus !== null) params.set('demonFocus', formatDemonFocus(state.demonFocus))
+  if (state.demonsOpen) params.set('demonsOpen', '1')
 
   return sortedParams(params)
 }
