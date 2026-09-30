@@ -7,8 +7,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { createNumogram, PACKERS, type RenderTier } from '../../engine/index'
+import { createNumogram, DEMON_SUBTYPES, DEMON_TYPES, PACKERS, type RenderTier } from '../../engine/index'
 import { ALPHABET_PRESET_IDS } from '../../app/lib/customAlphabet'
+import { demonFocusOf, zoneFocus, type DemonFocus } from '../../app/lib/demonState'
 import type { LabelScheme } from '../../app/lib/labelScheme'
 import { layoutIdsForBase } from '../../app/lib/layoutIds'
 import { regionRows } from '../../app/lib/regions'
@@ -57,6 +58,9 @@ describe('parseShareParams', () => {
       mute: [],
       packer: 'shelf',
       tier: null,
+      demonFilter: null,
+      demonFocus: null,
+      demonsOpen: false,
     })
   })
 
@@ -195,10 +199,36 @@ describe('parseShareParams', () => {
       '?isolate=' + encodeURIComponent('__proto__,constructor'),
       '?labels=' + encodeURIComponent('custom:' + String.fromCodePoint(0x202e).repeat(50)),
       '?selected=' + Array.from({ length: 500 }, (_, i) => i).join(','),
+      '?demonFocus=' + '9'.repeat(5000),
+      '?demonFilter=' + encodeURIComponent('constructor'),
+      '?demonFocus=%E2%80%AE',
     ]
     for (const input of hostiles) {
       expect(() => parseShareParams(input)).not.toThrow()
     }
+  })
+
+  it('reads demonFilter=/demonFocus=/demonsOpen= together (D-07)', () => {
+    const { state } = parseShareParams('?base=28&demonFilter=cross-torque-chrono&demonFocus=12%3A%3A3&demonsOpen=1')
+    expect(state.demonFilter).toBe('cross-torque-chrono')
+    expect(state.demonFocus).toEqual({ kind: 'demon', a: 12, b: 3 })
+    expect(state.demonsOpen).toBe(true)
+  })
+
+  it('demonFocus reads a zone token and drops an out-of-range zone', () => {
+    expect(parseShareParams('?base=28&demonFocus=z%3A12').state.demonFocus).toEqual({ kind: 'zone', zone: 12 })
+    expect(parseShareParams('?base=28&demonFocus=z%3A28').state.demonFocus).toBeNull()
+  })
+
+  it('demonFilter drops an unknown or hostile name', () => {
+    expect(parseShareParams('?demonFilter=bogus').state.demonFilter).toBeNull()
+    expect(parseShareParams('?demonFilter=__proto__').state.demonFilter).toBeNull()
+  })
+
+  it('demonsOpen only ever reads the literal "1"', () => {
+    expect(parseShareParams('?demonsOpen=true').state.demonsOpen).toBe(false)
+    expect(parseShareParams('?demonsOpen=1').state.demonsOpen).toBe(true)
+    expect(parseShareParams('').state.demonsOpen).toBe(false)
   })
 })
 
@@ -242,6 +272,20 @@ describe('buildShareParams', () => {
     const q = buildShareParams(state).toString()
     const keys = Array.from(new URLSearchParams(q).keys())
     expect(keys).toEqual([...keys].sort((a, b) => a.localeCompare(b)))
+  })
+
+  it('demonFilter/demonFocus/demonsOpen are omitted at default and written independently (D-07)', () => {
+    expect(buildShareParams(defaultShareState(10)).toString()).toBe('')
+
+    const withFilter = { ...defaultShareState(28), demonFilter: 'chrono' as const }
+    expect(buildShareParams(withFilter).toString()).toBe('base=28&demonFilter=chrono')
+
+    const withFocusAndOpen = { ...defaultShareState(28), demonFocus: zoneFocus(12), demonsOpen: true }
+    expect(buildShareParams(withFocusAndOpen).toString()).toBe('base=28&demonFocus=z%3A12&demonsOpen=1')
+
+    // demonsOpen alone, with no filter or focus, still round-trips (never coupled to filter/focus presence).
+    const openOnly = { ...defaultShareState(28), demonsOpen: true }
+    expect(buildShareParams(openOnly).toString()).toBe('base=28&demonsOpen=1')
   })
 })
 
@@ -362,6 +406,17 @@ describe('round trip', () => {
     ...ALPHABET_PRESET_IDS.map((preset) => ({ mode: 'preset', preset }) as LabelScheme),
   ]
 
+  const DEMON_FILTERS = [...DEMON_TYPES, ...DEMON_SUBTYPES] as const
+
+  function demonFocusArb(base: number): fc.Arbitrary<DemonFocus> {
+    const zoneArb = fc.integer({ min: 0, max: base - 1 }).map((zone) => zoneFocus(zone))
+    const pairArb = fc
+      .tuple(fc.integer({ min: 0, max: base - 1 }), fc.integer({ min: 0, max: base - 1 }))
+      .filter(([a, b]) => a !== b)
+      .map(([a, b]) => demonFocusOf({ a, b }))
+    return fc.oneof(zoneArb, pairArb)
+  }
+
   function arbitraryState(base: number): fc.Arbitrary<ShareState> {
     const g = createNumogram(base)
     const regionIds = regionRows(g).map((r) => r.id)
@@ -380,6 +435,9 @@ describe('round trip', () => {
         mute: fc.uniqueArray(regionIdArb, { maxLength: regionIds.length }),
         packer: fc.constantFrom(...PACKERS),
         tier: fc.constantFrom(...TIERS),
+        demonFilter: fc.option(fc.constantFrom(...DEMON_FILTERS), { nil: null }),
+        demonFocus: fc.option(demonFocusArb(base), { nil: null }),
+        demonsOpen: fc.boolean(),
       })
       .map(
         (partial): ShareState => ({
@@ -397,6 +455,9 @@ describe('round trip', () => {
           mute: [...partial.mute].sort((a, b) => a.localeCompare(b)),
           packer: partial.packer,
           tier: partial.tier,
+          demonFilter: partial.demonFilter,
+          demonFocus: partial.demonFocus,
+          demonsOpen: partial.demonsOpen,
         }),
       )
   }
@@ -418,6 +479,9 @@ describe('round trip', () => {
           expect(parsed.mute).toEqual(state.mute)
           expect(parsed.packer).toBe(state.packer)
           expect(parsed.tier).toBe(state.tier)
+          expect(parsed.demonFilter).toBe(state.demonFilter)
+          expect(parsed.demonFocus).toEqual(state.demonFocus)
+          expect(parsed.demonsOpen).toBe(state.demonsOpen)
           if (state.layout === 'planetary') {
             expect(parsed.date).toBe(state.date)
             expect(parsed.orbits).toBe(state.orbits)
