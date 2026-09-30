@@ -151,3 +151,114 @@ export function numodemonLine(t: MatrixTransform, base: number): Segment | null 
   const p2 = cellCenter(base - 1, 1, t)
   return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y }
 }
+
+// ── Raster sizing, palette and the base-independent row rasterizer (Task 2) ─
+
+export const MATRIX_MAX_RASTER_PX = 1_500_000
+export const MATRIX_MAX_DPR = 2
+export const MATRIX_KIND_ORDER = ['chrono', 'amphi', 'xeno', 'syzygy'] as const
+export const MATRIX_BG = '#08080f' // UI-SPEC secondary rgba(8,8,15): outside the matrix square
+export const MATRIX_EMPTY = '#0d0d16' // inside the square, b >= a (no demon)
+export const PALETTE_BG = 4
+export const PALETTE_EMPTY = 5
+
+/**
+ * Backing-pixel size for a CSS viewport at device-pixel-ratio `dpr`: ratio capped at MATRIX_MAX_DPR and further
+ * reduced so width*height never exceeds MATRIX_MAX_RASTER_PX (T-05-04). Invalid/non-positive CSS sizes give a 0x0
+ * raster rather than NaN dimensions.
+ */
+export function rasterSize(
+  cssW: number,
+  cssH: number,
+  dpr: number,
+): { readonly width: number; readonly height: number; readonly ratio: number } {
+  if (!Number.isFinite(cssW) || !Number.isFinite(cssH) || cssW <= 0 || cssH <= 0) {
+    return { width: 0, height: 0, ratio: 1 }
+  }
+  let ratio = Math.min(Math.max(dpr, 1) || 1, MATRIX_MAX_DPR)
+  if (cssW * cssH * ratio * ratio > MATRIX_MAX_RASTER_PX) {
+    ratio = Math.sqrt(MATRIX_MAX_RASTER_PX / (cssW * cssH))
+  }
+  return { width: Math.floor(cssW * ratio), height: Math.floor(cssH * ratio), ratio }
+}
+
+/** '#rrggbb' -> [r, g, b, 255] bytes, concatenated in order; anything else throws RangeError. */
+export function buildPalette(hexes: readonly string[]): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(hexes.length * 4)
+  for (let i = 0; i < hexes.length; i++) {
+    const match = /^#([0-9a-fA-F]{6})$/.exec(hexes[i])
+    if (match === null) throw new RangeError(`buildPalette: invalid hex color ${JSON.stringify(hexes[i])}`)
+    const value = parseInt(match[1], 16)
+    out[i * 4] = (value >> 16) & 0xff
+    out[i * 4 + 1] = (value >> 8) & 0xff
+    out[i * 4 + 2] = value & 0xff
+    out[i * 4 + 3] = 255
+  }
+  return out
+}
+
+export interface RasterJob {
+  readonly t: MatrixTransform // CSS-px transform the raster is committed to
+  readonly base: number
+  readonly width: number // backing pixels
+  readonly height: number
+  readonly ratio: number // backing px per CSS px
+  readonly classify: (a: number, b: number) => number // palette index 0..3 for a valid cell a > b
+  readonly palette: Uint8ClampedArray // >= 6 RGBA entries
+  readonly out: Uint8ClampedArray // width * height * 4 bytes (ImageData.data)
+}
+
+/**
+ * Point-samples one classification per backing pixel (research A2) into `job.out`, rows [rowStart, rowEnd). Returns
+ * the number of `classify` calls made — bounded by the number of backing pixels touched, never by `base` or by the
+ * demon count. Two no-classify shortcuts keep the cost bounded at any zoom: a whole row is byte-copied from the row
+ * above when both map to the same grid row `b` (`copyWithin`), and consecutive same-`a` pixels within a row reuse
+ * the previous pixel's palette index. The thin syzygy/numodemon diagonals are drawn as overlays elsewhere
+ * (syzygyLine/numodemonLine, Pitfall 3), never recovered from this raster.
+ */
+export function rasterizeRows(job: RasterJob, rowStart: number, rowEnd: number): number {
+  const { t, base, width, height, ratio, classify, palette, out } = job
+  let classifyCalls = 0
+  const yStart = Math.max(0, rowStart)
+  const yEnd = Math.min(height, rowEnd)
+  let prevB: number | null = null
+
+  for (let y = yStart; y < yEnd; y++) {
+    const cssY = (y + 0.5) / ratio
+    const b = Math.floor((cssY - t.ty) / t.scale)
+
+    if (y - 1 >= rowStart && prevB !== null && b === prevB) {
+      out.copyWithin(y * width * 4, (y - 1) * width * 4, y * width * 4)
+      prevB = b
+      continue
+    }
+
+    let lastA = -1
+    let lastIndex = -1
+    for (let x = 0; x < width; x++) {
+      const cssX = (x + 0.5) / ratio
+      const a = Math.floor((cssX - t.tx) / t.scale)
+      let index: number
+      if (a < 0 || a >= base || b < 0 || b >= base) {
+        index = PALETTE_BG
+      } else if (a <= b) {
+        index = PALETTE_EMPTY
+      } else if (a === lastA) {
+        index = lastIndex
+      } else {
+        index = classify(a, b)
+        classifyCalls++
+      }
+      lastA = a
+      lastIndex = index
+      const o = (y * width + x) * 4
+      out[o] = palette[index * 4]
+      out[o + 1] = palette[index * 4 + 1]
+      out[o + 2] = palette[index * 4 + 2]
+      out[o + 3] = palette[index * 4 + 3]
+    }
+    prevB = b
+  }
+
+  return classifyCalls
+}
