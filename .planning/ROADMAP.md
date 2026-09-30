@@ -151,7 +151,7 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md - Demon browser data layer: taxonomy, closed-form facet model, kind colors, base-10 name join, row sources, rank, window paging (wave 1)
 - [x] 05-02-PLAN.md - Matrix math: transform, exact pixel-to-cell resolve, zoom/pan clamps, cursor stepping, bounded row rasterizer, diagonal overlays (wave 1)
-- [ ] 05-03-PLAN.md - Search: defensive mesh / a::b / base-10 name parsing, resolution to a row under filter and sort, UI-SPEC status copy (wave 2)
+- [x] 05-03-PLAN.md - Search: defensive mesh / a::b / base-10 name parsing, resolution to a row under filter and sort, UI-SPEC status copy (wave 2)
 - [ ] 05-04-PLAN.md - Shared demon focus model, bounded focus chord list, base-switch rule, demonFilter/demonFocus/demonsOpen in the URL codec (wave 2)
 - [ ] 05-05-PLAN.md - TanStack Virtual install (exact pin, npm-10 lockfile), DemonsIcon, windowed virtualized DemonRowList (wave 2)
 - [ ] 05-06-PLAN.md - Browser tab: facet chips as the filter, search, sortable virtualized list, empty/status states (wave 3)
@@ -234,7 +234,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
-| 5. Demons Layer | 2/12 | In progress | - |
+| 5. Demons Layer | 3/12 | In progress | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |

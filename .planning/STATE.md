@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-09-30T02:54:21.499Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-09-30T03:05:32.688Z"
 last_activity: 2026-09-30
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 59
-  completed_plans: 49
-  percent: 83
+  completed_plans: 50
+  percent: 85
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 05 (demons-layer) — EXECUTING
-Plan: 3 of 12
+Plan: 4 of 12
 Status: Ready to execute
 Last activity: 2026-09-30
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -103,6 +103,7 @@ Progress: [████████░░] 83%
 | Phase 04 P16 | 35min | 3 tasks | 25 files |
 | Phase 05 P01 | 20min | 2 tasks | 4 files |
 | Phase 05 P02 | 12min | 2 tasks | 2 files |
+| Phase 05 P03 | 25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -175,6 +176,7 @@ Recent decisions affecting current work:
 - [Phase 5 P01] Demon data layer shipped (DEM-01, DEM-02, DEM-05): app/lib/demonBrowser.ts's facetModel/facetCount read g.demons.typeCounts()/counts() directly (closed forms, base 28 = 378/276/96/6 cross-Torque 108, base 666 = 221445/220116/1328/1 cross-Torque 199884), never view.demons and never a loop over demons; DemonRowSource ({count, at(k)}) unifies the full space, group()/subtype() selections, a zone's incident() demons and a single pinned demon behind rowSourceFor/concatSources/orderedSource/incidentSource/singleSource, with rankOfMesh/rankOf finding any demon's row under any filter/sort/direction in O(log count) (proven for all 378 x 11 x 2 x 2 combinations at base 28) and windowCount/windowAt/windowFor capping a rendered window at BROWSER_WINDOW_ROWS=250,000 rows (safe-integer-bounded at the 2^26 demon count 2251799780130816); demonName/demonNameTable/legacyDemon join app/presets/base10/lore.ts's DEMON_NAMES by mesh id, proven against all 45 entries of the frozen oracle, null at every other base
 - [Phase 5 P02] Demon matrix math shipped (DEM-04): app/lib/demonMatrix.ts is a pure module (zero engine/React/DOM imports, classification and palette injected as parameters) with fitTransform/clampTransform/zoomAt/panBy (pan/zoom clamped to [fitScale, max(64px, fitScale)], viewport centre always inside the matrix square), cellAtPixel/cellCenter/cellRect (exact pixel<->cell resolve, proven by fast-check to base 2^26 including an explicit 67108863::67108862 corner case at 64px/cell, the ONLY path hover/click/keyboard may use per T-05-05), stepCursor (keyboard traversal confined to the a > b triangle), ensureCellVisible, syzygyLine/numodemonLine (explicit diagonal overlays against thin-feature aliasing, research Pitfall 3), and rasterSize/buildPalette/rasterizeRows (backing store capped at 1.5M px and DPR 2 per T-05-04, point-sampled fill via row-copy plus same-cell caching proven pixel-by-pixel correct against g.demons.ref and cost-bounded by viewport pixels at base 666 vs base 2^20 on an identical buffer); numodemonLine's base-4 guard deliberately written as base < 4 to avoid the base-ten grep gate's half-base-bound pattern; both tasks' TDD RED commits failed for the expected reason before GREEN, all 29 tests passed on first GREEN run, full npm run test (1611 tests) and typecheck/base-ten gate green
 - [Phase 5 P02] DEM-04 stays Pending in REQUIREMENTS.md: this plan ships only the pure math (transform, exact resolve, raster fill) that 05-07's DemonMatrix.tsx canvas component consumes; DEM-04's own text ("lets the user see and inspect every demon") is a UI-level requirement not satisfiable until 05-07 mounts a canvas, matching this project's established precedent for requirements spanning multiple plans
+- [Phase 5 P03] Demon browser search shipped (DEM-02): app/lib/demonSearch.ts's clampQuery/parseZoneNumeral/parseDemonQuery parse a decimal mesh id, an in-base a::b net-span (either order, base<=36 letter digits or base>36 dot-separated decimal groups), or (base 10 only, count<=NAME_SEARCH_MAX_COUNT=50,000) a CCRU name exact/prefix match, regex-gated then try/catch around the engine's parseNumeral then range-checked, never throwing (proven against a fixed hostile-input list incl. 10,000-char floods and 50 U+202E characters); resolveDemonSearch maps a query to its row via filterContains/rankOf from 05-01, reporting a demon outside the active filter explicitly (never silently dropped) via a distinct outside-filter outcome; searchMessage/emptyFilterMessage produce byte-exact UI-SPEC copy (curly quotes/em dash built via String.fromCodePoint, echoes clipped through the engine's clipEcho); the syntax-vs-not-found split for a::b pairs runs the zone-numeral regex gate twice (directly for the classification, then inside parseZoneNumeral for the value) since parseZoneNumeral's number|null return collapses both failure modes by design. 36 new tests, full suite 1,647 green. DEM-02 stays Pending (spans 05-01/05-03/05-04/05-05/05-06/05-09/05-10/05-11, final covering plan later).
 
 ### Pending Todos
 
@@ -206,8 +208,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-30T02:54:02.049Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-09-30T03:05:32.679Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
