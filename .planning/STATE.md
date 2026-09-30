@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: planning
 stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-09-29T23:13:48.373Z"
+last_updated: "2026-09-30T02:21:36.169Z"
 last_activity: 2026-09-29
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 47
+  total_plans: 59
   completed_plans: 47
-  percent: 50
+  percent: 80
 ---
 
 # Project State
@@ -205,5 +205,5 @@ Last session: --stopped-at
 Stopped at: Phase 5 UI-SPEC approved
 Resume file: --resume-file
 
-**Planned Phase:** 04 (base-picker-and-generator-ui) — 16 plans — 2026-09-28T14:50:07.974Z
+**Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
