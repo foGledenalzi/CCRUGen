@@ -3,9 +3,19 @@
 // keyboard resolve a cell (T-05-05) — proven here to hold exactly, independent of what any raster paints.
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
+import { createNumogram } from '../../engine/index'
+import { legacyKind } from '../../app/presets/base10/demons'
 import {
+  MATRIX_BG,
+  MATRIX_EMPTY,
+  MATRIX_KIND_ORDER,
   MATRIX_MAX_CELL_PX,
+  MATRIX_MAX_DPR,
+  MATRIX_MAX_RASTER_PX,
   MATRIX_PAD_PX,
+  PALETTE_BG,
+  PALETTE_EMPTY,
+  buildPalette,
   cellAtPixel,
   cellCenter,
   cellRect,
@@ -15,11 +25,14 @@ import {
   fitTransform,
   numodemonLine,
   panBy,
+  rasterSize,
+  rasterizeRows,
   stepCursor,
   syzygyLine,
   zoomAt,
   type CursorKey,
   type MatrixTransform,
+  type RasterJob,
 } from '../../app/lib/demonMatrix'
 
 describe('fitScale / fitTransform', () => {
@@ -267,5 +280,145 @@ describe('syzygyLine / numodemonLine', () => {
     const num4 = numodemonLine(t4, 4)
     const cell31 = cellCenter(3, 1, t4)
     expect(num4).toEqual({ x1: cell31.x, y1: cell31.y, x2: cell31.x, y2: cell31.y })
+  })
+})
+
+// ── Raster sizing, palette and the base-independent row rasterizer (Task 2) ─
+
+describe('rasterSize', () => {
+  it('matches the documented examples', () => {
+    expect(rasterSize(800, 700, 1)).toEqual({ width: 800, height: 700, ratio: 1 })
+    expect(rasterSize(400, 300, 2)).toEqual({ width: 800, height: 600, ratio: 2 })
+  })
+
+  it('caps the backing store at MATRIX_MAX_RASTER_PX by lowering ratio below the requested dpr', () => {
+    const r = rasterSize(1100, 900, 2)
+    expect(r.ratio).toBeLessThan(2)
+    expect(r.width * r.height).toBeLessThanOrEqual(MATRIX_MAX_RASTER_PX)
+    expect(r.width).toBe(Math.floor(1100 * r.ratio))
+  })
+
+  it('returns a 0x0 raster for non-positive or non-finite CSS sizes', () => {
+    expect(rasterSize(0, 700, 1)).toEqual({ width: 0, height: 0, ratio: 1 })
+    expect(rasterSize(NaN, 700, 1)).toEqual({ width: 0, height: 0, ratio: 1 })
+  })
+
+  it('never returns a ratio above MATRIX_MAX_DPR (dpr 3 is capped)', () => {
+    expect(MATRIX_MAX_DPR).toBe(2)
+    expect(rasterSize(400, 300, 3).ratio).toBeLessThanOrEqual(MATRIX_MAX_DPR)
+  })
+})
+
+describe('buildPalette', () => {
+  it('encodes six colors as 24 RGBA bytes; byte 0..3 matches #00ccff', () => {
+    const palette = buildPalette(['#00ccff', '#cc8833', '#cc3333', '#e8e8e8', MATRIX_BG, MATRIX_EMPTY])
+    expect(palette).toHaveLength(24)
+    expect(Array.from(palette.slice(0, 4))).toEqual([0, 204, 255, 255])
+  })
+
+  it('throws RangeError on an invalid hex', () => {
+    expect(() => buildPalette(['#zzz'])).toThrow(RangeError)
+  })
+})
+
+describe('MATRIX_KIND_ORDER', () => {
+  it('is chrono, amphi, xeno, syzygy; palette index 4 is background, 5 is the empty lower triangle', () => {
+    expect(MATRIX_KIND_ORDER).toEqual(['chrono', 'amphi', 'xeno', 'syzygy'])
+    expect(PALETTE_BG).toBe(4)
+    expect(PALETTE_EMPTY).toBe(5)
+  })
+})
+
+describe('rasterizeRows', () => {
+  const palette = buildPalette(['#00ccff', '#cc8833', '#cc3333', '#e8e8e8', MATRIX_BG, MATRIX_EMPTY])
+
+  it('every backing pixel matches the palette entry of the cell its centre falls in (checked pixel by pixel)', () => {
+    const base = 28
+    const g = createNumogram(base)
+    const width = 40
+    const height = 30
+    const ratio = 1
+    const t = fitTransform(base, width, height)
+    const out = new Uint8ClampedArray(width * height * 4)
+    const classify = (a: number, b: number) => MATRIX_KIND_ORDER.indexOf(legacyKind(g.demons.ref(a, b).subtype))
+    const job: RasterJob = { t, base, width, height, ratio, classify, palette, out }
+    rasterizeRows(job, 0, height)
+
+    for (let y = 0; y < height; y++) {
+      const cssY = (y + 0.5) / ratio
+      const b = Math.floor((cssY - t.ty) / t.scale)
+      for (let x = 0; x < width; x++) {
+        const cssX = (x + 0.5) / ratio
+        const a = Math.floor((cssX - t.tx) / t.scale)
+        let index: number
+        if (a < 0 || a >= base || b < 0 || b >= base) index = PALETTE_BG
+        else if (a <= b) index = PALETTE_EMPTY
+        else index = MATRIX_KIND_ORDER.indexOf(legacyKind(g.demons.ref(a, b).subtype))
+        const o = (y * width + x) * 4
+        expect(Array.from(out.slice(o, o + 4))).toEqual(Array.from(palette.slice(index * 4, index * 4 + 4)))
+      }
+    }
+  })
+
+  it('classify call count is bounded by pixel count, not by base (base 666 and base 2^20 on the same 64x48 buffer)', () => {
+    const width = 64
+    const height = 48
+    const ratio = 1
+    for (const base of [666, 1048576]) {
+      const g = createNumogram(base)
+      const t = fitTransform(base, width, height)
+      const out = new Uint8ClampedArray(width * height * 4)
+      let calls = 0
+      const classify = (a: number, b: number) => {
+        calls++
+        return MATRIX_KIND_ORDER.indexOf(legacyKind(g.demons.ref(a, b).subtype))
+      }
+      const job: RasterJob = { t, base, width, height, ratio, classify, palette, out }
+      const returned = rasterizeRows(job, 0, height)
+      expect(returned).toBeLessThanOrEqual(width * height)
+      expect(calls).toBe(returned)
+    }
+  })
+
+  it('zoomed in, the row-copy plus same-cell cache bounds calls to (w/scale+2)*(h/scale+2)', () => {
+    const base = 1000
+    const width = 200
+    const height = 160
+    const ratio = 1
+    const scale = 20
+    // anchor well inside the a > b triangle (a in ~[40,49], b in ~[5,12]) so the bound is exercised, not vacuous
+    const t: MatrixTransform = { scale, tx: -800, ty: -100 }
+    const out = new Uint8ClampedArray(width * height * 4)
+    let calls = 0
+    const classify = (a: number, b: number) => {
+      calls++
+      expect(a).toBeGreaterThan(b)
+      return 0
+    }
+    const job: RasterJob = { t, base, width, height, ratio, classify, palette, out }
+    rasterizeRows(job, 0, height)
+    expect(calls).toBeGreaterThan(0)
+    expect(calls).toBeLessThanOrEqual((width / scale + 2) * (height / scale + 2))
+  })
+
+  it('rasterizeRows(job, 10, 20) writes only rows 10..19; rows 0..9 and 20+ stay 0 in a fresh buffer', () => {
+    const base = 28
+    const g = createNumogram(base)
+    const width = 40
+    const height = 30
+    const ratio = 1
+    const t = fitTransform(base, width, height)
+    const out = new Uint8ClampedArray(width * height * 4)
+    const classify = (a: number, b: number) => MATRIX_KIND_ORDER.indexOf(legacyKind(g.demons.ref(a, b).subtype))
+    const job: RasterJob = { t, base, width, height, ratio, classify, palette, out }
+    rasterizeRows(job, 10, 20)
+
+    for (let y = 0; y < height; y++) {
+      const rowStart = y * width * 4
+      const rowBytes = out.slice(rowStart, rowStart + width * 4)
+      const allZero = rowBytes.every(v => v === 0)
+      if (y < 10 || y >= 20) expect(allZero).toBe(true)
+      else expect(allZero).toBe(false)
+    }
   })
 })
