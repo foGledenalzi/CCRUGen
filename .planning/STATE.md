@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-08-PLAN.md
-last_updated: "2026-10-01T00:02:35.951Z"
+stopped_at: Completed 05-09-PLAN.md
+last_updated: "2026-10-01T00:21:32.192Z"
 last_activity: 2026-10-01
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 59
-  completed_plans: 55
-  percent: 93
+  completed_plans: 56
+  percent: 95
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 05 (demons-layer) — EXECUTING
-Plan: 9 of 12
+Plan: 10 of 12
 Status: Ready to execute
 Last activity: 2026-10-01
 
-Progress: [█████████░] 93%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -109,6 +109,7 @@ Progress: [█████████░] 93%
 | Phase 05 P07 | 20min | 2 tasks | 2 files |
 | Phase 05 P06 | 35min | 2 tasks | 3 files |
 | Phase 05 P08 | 25min | 2 tasks | 5 files |
+| Phase 05 P09 | 18min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,7 @@ Recent decisions affecting current work:
 - [Phase 5 P06] DemonFacets (2-level disclosure closed-form chips, D-05) and DemonBrowser (facets + search + sortable virtualized list + empty/status states) shipped: reads g directly (never view.demons), works identically at base 666; a fresh search hit auto-reveals its row, Enter re-reveals it, filter/sort changes remount DemonRowList; renderToStaticMarkup writes maxLength literally (only a live browser lowercases it to maxlength) so the RED test's DOM-contract assertion was corrected to match actual SSR output, not the component. DEM-01/DEM-02/DEM-05 stay Pending (DEM-02 still needs 05-09/05-10/05-11).
 - DEM-03 focus-chord layer in Projection.tsx is additive-only: focusChords defaults to null and the render branch adds no DOM when unset, proven byte-identical against the frozen base-10 goldens/behaviour baseline via npm run test:swap
 - DemonFocusView's compact chord canvas reuses curveAway via Path2D (not Projection.tsx's SVG DOM), so the Focus tab works at bases with no diagram tier such as base 666
+- [Phase 5 P09] DemonsOverlay.tsx (D-01) shipped: scales ShortcutsModal's shell (z-[80], below its 84) into the dedicated Browser/Focus/Matrix overlay with a Total Metric, shared detail pane (DemonInfo), focus trap and modal key isolation (T-05-30/T-05-31); reads only g/base/summary from useNumogramView (never view) so it works identically at base 666; only the active tab mounts. CyberButton gains optional role/selected/id/controls tab semantics (all default undefined, markup-identity proven unchanged for every existing call site); BigBaseSummary's Metric is exported; InfoDisplay's DemonInfo is exported and no longer returns null when view is null, reading g.demons.ref(a,b) for authoritative MESH/TYPE rows in both the lore and generic branches (T-05-32). Both tasks' tests were authored together in one shared RED commit (tests/app/demonsOverlayRender.test.ts is listed under both tasks); each task's implementation then got its own GREEN commit. DEM-01..DEM-05 all stay Pending (05-10 mounts the overlay into NumogramClient.tsx; 05-11/05-12 add e2e coverage).
 
 ### Pending Todos
 
@@ -219,8 +221,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-01T00:02:35.940Z
-Stopped at: Completed 05-08-PLAN.md
+Last session: 2026-10-01T00:21:32.183Z
+Stopped at: Completed 05-09-PLAN.md
 Resume file: None
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
