@@ -10,6 +10,8 @@ import { demonList, demonRow, demonsDialog, facet, openDemons, searchDemons } fr
 
 test.beforeEach(({}, info) => test.skip(info.project.name !== 'chromium-utc', 'Phase 5 UI specs run once (UTC context)'))
 
+const EN_DASH = String.fromCodePoint(0x2013)
+
 test('base 28 facets show closed-form counts incl. the cross-Torque sub-facet', async ({ page }) => {
   const g = createNumogram(28)
   const typeCounts = g.demons.typeCounts()
@@ -144,4 +146,99 @@ test('clicking a row pins it in the detail pane', async ({ page }) => {
   await expect(detail).toContainText('MESH')
   await expect(detail).toContainText('69')
   await expect(detail).toContainText('Cyclic chrono')
+})
+
+test('base 10 shows the canonical CCRU names in the browser and the detail pane', async ({ page }) => {
+  await openViewer(page, '')
+  await openDemons(page)
+
+  await expect(demonRow(page, 'browser', 0).locator('[data-col="name"]')).toHaveText('Lurgo')
+
+  await searchDemons(page, '44')
+  const row44 = demonRow(page, 'browser', 44)
+  await expect(row44.locator('[data-col="name"]')).toHaveText('Ummnu')
+  await expect(row44.locator('[data-col="ab"]')).toHaveText('9::8')
+
+  await searchDemons(page, 'tuk')
+  await expect(demonsDialog(page).locator('[data-demon-row][data-active="true"]')).toHaveAttribute('data-demon-row', '11')
+
+  const row0 = demonRow(page, 'browser', 0)
+  await row0.click()
+  const detail = demonsDialog(page).locator('aside[data-demon-detail]')
+  await expect(detail).toContainText('Lurgo')
+  await expect(demonList(page, 'browser').locator('[role="columnheader"][data-col="name"]')).toBeVisible()
+})
+
+test('other bases keep an empty NAME column', async ({ page }) => {
+  await openViewer(page, 'base=28')
+  await openDemons(page)
+
+  await expect(demonList(page, 'browser').locator('[role="columnheader"][data-col="name"]')).toBeVisible()
+  const nameCells = demonList(page, 'browser').locator('[role="gridcell"][data-col="name"]')
+  expect(await nameCells.count()).toBeGreaterThan(0)
+  for (const text of await nameCells.allTextContents()) {
+    expect(text).toBe('')
+  }
+})
+
+test('filter and open state survive a reload', async ({ page }) => {
+  await openViewer(page, 'base=28&demonsOpen=1&demonFilter=cross-torque-chrono')
+  await expect(demonsDialog(page)).toBeVisible()
+  await expect(facet(page, 'cross-torque-chrono')).toHaveAttribute('aria-pressed', 'true')
+  await expect(demonList(page, 'browser')).toHaveAttribute('aria-rowcount', '109')
+
+  await openViewer(page, 'base=28&demonsOpen=1&demonFilter=bogus')
+  await expect(demonsDialog(page)).toBeVisible()
+  await expect(facet(page, 'all')).toHaveAttribute('aria-pressed', 'true')
+
+  await openViewer(page, 'base=28&demonFilter=chrono')
+  await expect(demonsDialog(page)).toHaveCount(0)
+  await openDemons(page)
+  await expect(facet(page, 'chrono')).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('the overlay closes by Escape, backdrop and close button, and restores focus', async ({ page }) => {
+  await openViewer(page, 'base=28')
+  await openDemons(page)
+  await expect(demonsDialog(page)).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(demonsDialog(page)).toBeHidden()
+  await expect(page).not.toHaveURL(/demonsOpen/)
+  await expect(page.locator('button[aria-label="Browse demons"]')).toBeFocused()
+
+  await openDemons(page)
+  await page.locator('button[aria-label="Close demons"]').click({ position: { x: 5, y: 5 } })
+  await expect(demonsDialog(page)).toBeHidden()
+
+  await openDemons(page)
+  await demonsDialog(page).getByRole('button', { name: 'close' }).click()
+  await expect(demonsDialog(page)).toBeHidden()
+})
+
+test('shortcuts do not leak through the modal', async ({ page }) => {
+  await openViewer(page, '')
+  await openDemons(page)
+
+  await demonList(page, 'browser').focus()
+  await page.keyboard.press('s')
+
+  await expect(page).not.toHaveURL(/layout=labyrinth/)
+  await expect(demonsDialog(page)).toBeVisible()
+})
+
+test('base 1024 windows 523,776 rows', async ({ page }) => {
+  const g = createNumogram(1024)
+  expect(g.demons.count).toBe(523776)
+
+  await openViewer(page, 'base=1024')
+  const dialog = await openDemons(page)
+
+  // `[data-demon-pager]` is a sibling of the `[data-demon-list]` grid (DemonRowList.tsx), not a descendant.
+  const pager = dialog.locator('[data-demon-pager]')
+  await expect(pager).toContainText(`Rows 1${EN_DASH}250,000 of 523,776`)
+
+  await searchDemons(page, '400000')
+  await expect(pager).toContainText(`Rows 250,001${EN_DASH}500,000 of 523,776`)
+  await expect(demonRow(page, 'browser', 400000)).toBeVisible()
 })
