@@ -49,7 +49,7 @@ export function LayersPanel({ layers, toggleLayer, particlesOn, onToggleParticle
       return `${n} gates: zone k channels to the in-base digital root of its triangular cumulation T(k).${suffix}`
     }
     return pandemoniumUnavailable
-      ? `Demon chords are drawn up to ${allChordsMaxN} zones (legibility limit).`
+      ? `Demon chords are drawn up to ${allChordsMaxN} zones (legibility limit). Use Browse demons (header) for focus, matrix and search.`
       : `${(n * (n - 1)) / 2} demons: every pair of distinct zones.`
   }
 

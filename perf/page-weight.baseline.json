@@ -9,19 +9,19 @@
   "routes": {
     "/": {
       "htmlBytes": 4688,
-      "htmlGzip": 1768,
+      "htmlGzip": 1765,
       "jsBytes": 416830,
       "jsGzip": 128120,
-      "cssBytes": 19671,
-      "cssGzip": 4878
+      "cssBytes": 20550,
+      "cssGzip": 5085
     },
     "/numogram/": {
-      "htmlBytes": 89913,
-      "htmlGzip": 13137,
-      "jsBytes": 659795,
-      "jsGzip": 198957,
-      "cssBytes": 19671,
-      "cssGzip": 4878
+      "htmlBytes": 91347,
+      "htmlGzip": 13294,
+      "jsBytes": 726294,
+      "jsGzip": 218587,
+      "cssBytes": 20550,
+      "cssGzip": 5085
     }
   },
   "domNodes": {
@@ -276,6 +276,40 @@
             "htmlGzip": 13137,
             "jsGzip": 198957,
             "cssGzip": 4878
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-10-01",
+      "reason": "Phase 5 plan 05-10: demons layer mounted (TanStack Virtual, demons overlay, browser, focus view, matrix)",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1768,
+            "jsGzip": 128120,
+            "cssGzip": 4878
+          },
+          "/numogram/": {
+            "htmlGzip": 13137,
+            "jsGzip": 198957,
+            "cssGzip": 4878
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1765,
+            "jsGzip": 128120,
+            "cssGzip": 5085
+          },
+          "/numogram/": {
+            "htmlGzip": 13294,
+            "jsGzip": 218587,
+            "cssGzip": 5085
           }
         },
         "domNodesTotal": 6405

@@ -770,13 +770,18 @@ export default function NumogramPage() {
   }, [g])
 
   const onZoneNodeClick = useCallback((zone: number) => {
+    if (demonFocusMode) {
+      setDemonFocus(prev => (sameFocus(prev, zoneFocus(zone)) ? null : zoneFocus(zone)))
+      setDemonTab('focus')
+      return
+    }
     setSelZones(prev => {
       const next = new Set(prev)
       if (next.has(zone)) next.delete(zone)
       else next.add(zone)
       return next
     })
-  }, [])
+  }, [demonFocusMode])
 
   useEffect(() => {
     const currentSnapshot = snapshotState()
@@ -991,6 +996,13 @@ export default function NumogramPage() {
     [view, g, regionFilter],
   )
 
+  // Demon focus chords (DEM-03, D-03): drawn into the diagram only when one exists and a diagram is mounted (bounded
+  // at FOCUS_CHORD_DRAW_MAX via focusChordList); null renders nothing (Projection's focusChords prop is additive-only).
+  const focusChords = useMemo(
+    () => (view && demonFocus ? focusChordList(g, demonFocus) : null),
+    [view, demonFocus, g],
+  )
+
   // UI-06: fit every visible (non-muted) zone into view, keyboard-reachable via the ViewControls toolbar.
   const fitAll = useCallback(() => {
     const zones = Array.from({ length: g.zoneCount }, (_, z) => z).filter(z => !zoneStateArr || zoneStateArr[z] !== 0)
@@ -1006,6 +1018,7 @@ export default function NumogramPage() {
       return new Set<number>([hoverInfo.gate.from, hoverInfo.gate.to])
     }
     const s = new Set<number>(selZones)
+    for (const z of focusZones(demonFocus)) s.add(z)
     if (hoverInfo) {
       switch (hoverInfo.type) {
         case 'zone': s.add(hoverInfo.zone); break
@@ -1018,7 +1031,7 @@ export default function NumogramPage() {
       }
     }
     return s
-  }, [hoverInfo, selZones, hlRegion, tcActive, view, g])
+  }, [hoverInfo, selZones, hlRegion, tcActive, view, g, demonFocus])
 
   const selectedInfos = useMemo<HoverInfo[]>(() => {
     if (selZones.size === 0 || !view) return []
@@ -1375,6 +1388,7 @@ export default function NumogramPage() {
                   labelVisibility={labelVisibility}
                   particlesOn={particlesOn}
                   reducedMotion={reducedMotion}
+                  focusChords={focusChords}
                   onHoverInfo={onHoverInfo}
                   onPinInfo={onPinInfo}
                   onZoneNodeClick={onZoneNodeClick}
@@ -1469,6 +1483,22 @@ export default function NumogramPage() {
                 aria-label="Share current state"
               >
                 <ShareIcon clr={shareCopied ? '#10ff50' : '#6b7280'} />
+              </button>
+              <button
+                type="button"
+                data-post-baseline=""
+                className="px-1.5 py-1"
+                style={{
+                  color: demonsOpen ? '#10ff50' : '#6b7280',
+                  border: `1px solid ${demonsOpen ? 'rgba(16,255,80,0.35)' : 'rgba(107,114,128,0.35)'}`,
+                  background: demonsOpen ? 'rgba(16,255,80,0.08)' : 'rgba(107,114,128,0.06)',
+                }}
+                onClick={() => setDemonsOpen(o => !o)}
+                title="Browse demons"
+                aria-label="Browse demons"
+                aria-pressed={demonsOpen}
+              >
+                <DemonsIcon clr={demonsOpen ? '#10ff50' : '#6b7280'} />
               </button>
             </div>
           )}
@@ -1634,7 +1664,14 @@ export default function NumogramPage() {
       </Panel>
 
       {showDiagram && (
-        <ViewControls zoom={zoom} onZoomIn={() => setZoom(zoom * 1.25)} onZoomOut={() => setZoom(zoom / 1.25)} onFit={fitAll} />
+        <ViewControls
+          zoom={zoom}
+          onZoomIn={() => setZoom(zoom * 1.25)}
+          onZoomOut={() => setZoom(zoom / 1.25)}
+          onFit={fitAll}
+          demonFocusMode={demonFocusMode}
+          onToggleDemonFocus={onToggleDemonFocus}
+        />
       )}
 
       <button
@@ -1650,6 +1687,24 @@ export default function NumogramPage() {
       </button>
 
       <SourcesFooter />
+
+      {demonsOpen && (
+        <DemonsOverlay
+          isMobile={isMobile}
+          tab={demonTab}
+          onTabChange={setDemonTab}
+          filter={demonFilter}
+          onFilterChange={setDemonFilter}
+          focus={demonFocus}
+          onFocusChange={onDemonFocusChange}
+          showDiagram={showDiagram}
+          hoverInfo={hoverInfo}
+          pinnedInfo={pinnedInfo}
+          onHoverInfo={onHoverInfo}
+          onPinInfo={onPinInfo}
+          onClose={onCloseDemons}
+        />
+      )}
 
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
