@@ -49,11 +49,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Demons
 
-- [ ] **DEM-01**: The demons layer shows type facets with closed-form counts at any base, including cross-Torque sub-facets
-- [ ] **DEM-02**: A virtualized demon browser supports sort, filter, and search by `a::b` or mesh number over C(n,2) rows without rendering them all
-- [ ] **DEM-03**: Focus mode draws one zone's n-1 demons as chords, and a selected demon draws its own chord
-- [ ] **DEM-04**: A triangular demon matrix with pick-by-pixel lets the user see and inspect every demon at large n
-- [ ] **DEM-05**: Base 10 shows its 45 canonical CCRU demon names
+- [x] **DEM-01**: The demons layer shows type facets with closed-form counts at any base, including cross-Torque sub-facets
+- [x] **DEM-02**: A virtualized demon browser supports sort, filter, and search by `a::b` or mesh number over C(n,2) rows without rendering them all
+- [x] **DEM-03**: Focus mode draws one zone's n-1 demons as chords, and a selected demon draws its own chord
+- [x] **DEM-04**: A triangular demon matrix with pick-by-pixel lets the user see and inspect every demon at large n
+- [x] **DEM-05**: Base 10 shows its 45 canonical CCRU demon names
 
 ### Rendering and Ceiling
 
@@ -144,11 +144,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-07 | Phase 4 | Complete (04-07, 04-14, 04-15) |
 | UI-08 | Phase 4 | Complete (04-12) |
 | MIG-02 | Phase 4 | Complete (04-01, 04-04, 04-09, 04-10, 04-11, 04-16) |
-| DEM-01 | Phase 5 | Pending |
-| DEM-02 | Phase 5 | Pending |
-| DEM-03 | Phase 5 | Pending |
-| DEM-04 | Phase 5 | Pending |
-| DEM-05 | Phase 5 | Pending |
+| DEM-01 | Phase 5 | Complete (05-01, 05-06, 05-09, 05-10) |
+| DEM-02 | Phase 5 | Complete (05-01, 05-03, 05-04, 05-05, 05-06, 05-09, 05-10) |
+| DEM-03 | Phase 5 | Complete (05-04, 05-08, 05-10) |
+| DEM-04 | Phase 5 | Complete (05-02, 05-07, 05-10) |
+| DEM-05 | Phase 5 | Complete (05-01, 05-06, 05-09, 05-10) |
 | REN-02 | Phase 6 | Pending |
 | REN-03 | Phase 6 | Pending |
 | NAM-01 | Phase 7 | Pending |
