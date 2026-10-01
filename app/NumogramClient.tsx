@@ -28,6 +28,12 @@ import type { ShareState } from './lib/shareParams'
 import { refusalFromUrl } from './lib/basePicker'
 import { numogramText } from './lib/numogramText'
 import { sessionAfterBaseSwitch } from './lib/baseSwitch'
+import type { DemonFilter } from './lib/demonBrowser'
+import { legacyDemon } from './lib/demonBrowser'
+import {
+  demonsAfterBaseSwitch, focusChordList, focusZones, initialDemonTab, zoneFocus, sameFocus,
+  type DemonFocus, type DemonTab,
+} from './lib/demonState'
 
 // Presets
 import { BASE10 } from './presets/base10/numogram'
@@ -65,9 +71,10 @@ import { GatesPanel } from './components/panels/GatesPanel'
 import {
   OriginalIcon, LabyrinthIcon, LadderIcon, PlanetaryIcon, RingIcon, SpiralIcon, PairGraphIcon,
   OrbitIcon, TodayIcon, ResetIcon, OrbitsIcon,
-  UndoIcon, RedoIcon, ShareIcon,
+  UndoIcon, RedoIcon, ShareIcon, DemonsIcon,
 } from './components/numogram/NumogramIcons'
 import { ShortcutsModal } from './components/numogram/ShortcutsModal'
+import { DemonsOverlay } from './components/demons/DemonsOverlay'
 import { SourcesFooter } from './components/numogram/SourcesFooter'
 import { CyberPageHeader } from './components/ui/CyberPageHeader'
 import { NumogramViewContext } from './components/numogram/ViewContext'
@@ -164,6 +171,11 @@ export default function NumogramPage() {
   const [currentsOpen, setCurrentsOpen] = useState(true)
   const [gatesOpen, setGatesOpen] = useState(true)
   const [textOpen, setTextOpen] = useState(false)
+  const [demonsOpen, setDemonsOpen] = useState(false)
+  const [demonTab, setDemonTab] = useState<DemonTab>('browser')
+  const [demonFilter, setDemonFilter] = useState<DemonFilter | null>(null)
+  const [demonFocus, setDemonFocus] = useState<DemonFocus | null>(null)
+  const [demonFocusMode, setDemonFocusMode] = useState(false)
 
   const svgWrapRef = useRef<HTMLDivElement>(null)
   const selectionAdditiveRef = useRef(false)
@@ -266,10 +278,13 @@ export default function NumogramPage() {
     mute: [...regionFilter.mute],
     packer,
     tier: tierOverride,
-    demonFilter: null,
-    demonFocus: null,
-    demonsOpen: false,
-  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, regionFilter, packer, tierOverride])
+    demonFilter,
+    demonFocus,
+    demonsOpen,
+  }), [
+    base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, regionFilter,
+    packer, tierOverride, demonFilter, demonFocus, demonsOpen,
+  ])
 
   const snapshotState = useCallback((): HistorySnapshot => ({
     base,
@@ -348,6 +363,7 @@ export default function NumogramPage() {
       },
       n,
     )
+    const nextDemons = demonsAfterBaseSwitch({ filter: demonFilter, focus: demonFocus }, createNumogram(n))
     jumpToTarget()
     historyCurrentRef.current = null
     setUndoStack([])
@@ -366,10 +382,13 @@ export default function NumogramPage() {
     setCanvasPan({ x: 0, y: 0 })
     setZoom(1)
     setZoomOrigin({ x: 50, y: 50 })
+    setDemonFilter(nextDemons.filter)
+    setDemonFocus(null)
+    setDemonFocusMode(false)
     setBase(n)
   }, [
     base, layout, selZones, hlRegion, tcActive, orbiting, pinnedInfo, regionFilter, jumpToTarget,
-    setCanvasPan, setZoom, setZoomOrigin, setOrbiting,
+    setCanvasPan, setZoom, setZoomOrigin, setOrbiting, demonFilter, demonFocus,
   ])
 
   // Packer changes tween the diagram when the tier allows it (todo 005): capture the current positions as the
@@ -467,6 +486,21 @@ export default function NumogramPage() {
     setHoverInfo(null)
     setPinnedInfo(null)
   }, [])
+
+  // Demon focus (DEM-03, D-03): shared between the diagram's zone clicks and the overlay's Browser/Focus/Matrix tabs.
+  const onDemonFocusChange = useCallback((next: DemonFocus | null) => {
+    setDemonFocus(next)
+    if (next !== null) setDemonFocusMode(true)
+  }, [])
+  const onToggleDemonFocus = useCallback(() => {
+    if (demonFocusMode) {
+      setDemonFocusMode(false)
+      setDemonFocus(null)
+    } else {
+      setDemonFocusMode(true)
+    }
+  }, [demonFocusMode])
+  const onCloseDemons = useCallback(() => setDemonsOpen(false), [])
 
   const fitSelectionToView = useCallback((zones: number[]) => {
     if (zones.length === 0) return
@@ -596,6 +630,18 @@ export default function NumogramPage() {
     setLabelScheme(state.labels)
     setPacker(state.packer)
     setTierOverride(state.tier)
+    setDemonFilter(state.demonFilter)
+    setDemonFocus(state.demonFocus)
+    setDemonFocusMode(state.demonFocus !== null)
+    setDemonsOpen(state.demonsOpen)
+    setDemonTab(initialDemonTab(state.demonFocus))
+    if (state.demonFocus?.kind === 'demon') {
+      const gForDemonFocus = createNumogram(state.base)
+      setPinnedInfo({
+        type: 'demon',
+        demon: legacyDemon(gForDemonFocus.demons.ref(state.demonFocus.a, state.demonFocus.b), state.base),
+      })
+    }
 
     // Pending fit zones (only within the SVG tier: D-16, never build region zones for a huge base).
     let pendingZones: number[] | null = null
@@ -841,7 +887,8 @@ export default function NumogramPage() {
           setShortcutsOpen(false)
           return
         }
-        setSelZones(new Set())
+        if (demonsOpen) { setDemonsOpen(false); return }
+        setSelZones(new Set()); setDemonFocus(null)
         return
       }
 
@@ -861,7 +908,7 @@ export default function NumogramPage() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [layout, planetDate, base, view, onSelectGate, onUndo, onRedo, shortcutsOpen])
+  }, [layout, planetDate, base, view, onSelectGate, onUndo, onRedo, shortcutsOpen, demonsOpen])
 
   useEffect(() => {
     const dateFieldVisible = layout === 'planetary' && !!planetDate
