@@ -156,7 +156,7 @@ Plans:
 - [x] 05-05-PLAN.md - TanStack Virtual install (exact pin, npm-10 lockfile), DemonsIcon, windowed virtualized DemonRowList (wave 2)
 - [x] 05-06-PLAN.md - Browser tab: facet chips as the filter, search, sortable virtualized list, empty/status states (wave 3)
 - [x] 05-07-PLAN.md - Matrix tab: progressive canvas raster, pan/zoom/pinch, exact hover tooltip, click and keyboard pin (wave 2)
-- [ ] 05-08-PLAN.md - Focus rendering: Projection focus-chord layer (no DOM when unset), Demon focus toolbar toggle, Focus tab without a diagram (wave 3)
+- [x] 05-08-PLAN.md - Focus rendering: Projection focus-chord layer (no DOM when unset), Demon focus toolbar toggle, Focus tab without a diagram (wave 3)
 - [ ] 05-09-PLAN.md - Demons overlay shell with tabs and detail pane; DemonInfo works without a view and shows mesh/type (wave 4)
 - [ ] 05-10-PLAN.md - Viewer wiring: header entry point at every base, focus mode both ways, URL sync, base-switch reset, page weight (wave 5)
 - [ ] 05-11-PLAN.md - E2E: facets, virtualization, sort, search, base-10 names, URL state, overlay dismissal, base-1024 windowing (wave 6)
@@ -234,7 +234,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
-| 5. Demons Layer | 7/12 | In progress | - |
+| 5. Demons Layer | 8/12 | In progress | - |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |

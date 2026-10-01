@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-06-PLAN.md
-last_updated: "2026-09-30T23:45:57.678Z"
-last_activity: 2026-09-30
+stopped_at: Completed 05-08-PLAN.md
+last_updated: "2026-10-01T00:02:35.951Z"
+last_activity: 2026-10-01
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 59
-  completed_plans: 54
-  percent: 92
+  completed_plans: 55
+  percent: 93
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 05 (demons-layer) — EXECUTING
-Plan: 8 of 12
+Plan: 9 of 12
 Status: Ready to execute
-Last activity: 2026-09-30
+Last activity: 2026-10-01
 
-Progress: [█████████░] 92%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -108,6 +108,7 @@ Progress: [█████████░] 92%
 | Phase 05 P05 | 20min | 2 tasks | 6 files |
 | Phase 05 P07 | 20min | 2 tasks | 2 files |
 | Phase 05 P06 | 35min | 2 tasks | 3 files |
+| Phase 05 P08 | 25min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -185,6 +186,8 @@ Recent decisions affecting current work:
 - [Phase 5 P05] @tanstack/react-virtual@3.14.13 installed (exact pin, T-05-16), lockfile regenerated with npm 10.9.3 so npm ci --dry-run passes under both npm 10 (CI) and npm 11 (local); DemonsIcon (12x12) added to NumogramIcons.tsx; DemonRowList shipped (app/components/demons/DemonRowList.tsx, not yet mounted): a reusable, windowed (BROWSER_WINDOW_ROWS=250,000, pager above it), keyboard-accessible four-column A::B/MESH/TYPE/NAME row list over any DemonRowSource from 05-01, sort headers with aria-sort, hover-to-preview/click-to-pin rows; useVirtualizer called with no explicit generics (TS infers HTMLDivElement from getScrollElement) to keep the literal 'useVirtualizer(' acceptance grep passing; server-render smoke (7 tests) proves the DOM contract at base 28, the sort-header contract, and the pager threshold (base 1024's 523,776 rows across 3 windows vs base 666's 221,445 in one window, no pager); TDD gates verified in git log (test f124cb2 before feat de4d28c). DEM-02 stays Pending (spans 05-01/05-03/05-04/05-05/05-06/05-09/05-10/05-11, final covering plan later). One unrelated flaky fast-check property in tests/app/demonMatrix.test.ts (05-03, 1-ULP floating-point boundary miss under a specific seed) found during a full suite run and logged to .planning/phases/05-demons-layer/deferred-items.md rather than fixed (out of this plan's scope).
 - [Phase 5 P07] DemonMatrix.tsx shipped (DEM-04, D-06): a plain <canvas> (no WebGL) with a progressive <= 8ms/frame point-sampled raster over 05-02's demonMatrix.ts math (rasterizeRows/cellAtPixel/zoomAt/panBy/stepCursor/syzygyLine/numodemonLine), CSS-transforming the stale bitmap during a drag/wheel/pinch gesture and recomputing on commit (mirrors the main diagram's panMs/oneTimePaintMs split); hover/click/keyboard all resolve exactly from the live transform via g.demons.ref, never the raster (T-05-25); explicit SVG diagonal overlays for the syzygy/numodemon lines (Pitfall 3) plus pinned/cursor outline rects; works identically at base 666 where view is null (reads g only). DEM-04 stays Pending (05-09 mounts this component into the demons overlay's Matrix tab, per this phase's multi-plan-requirement precedent).
 - [Phase 5 P06] DemonFacets (2-level disclosure closed-form chips, D-05) and DemonBrowser (facets + search + sortable virtualized list + empty/status states) shipped: reads g directly (never view.demons), works identically at base 666; a fresh search hit auto-reveals its row, Enter re-reveals it, filter/sort changes remount DemonRowList; renderToStaticMarkup writes maxLength literally (only a live browser lowercases it to maxlength) so the RED test's DOM-contract assertion was corrected to match actual SSR output, not the component. DEM-01/DEM-02/DEM-05 stay Pending (DEM-02 still needs 05-09/05-10/05-11).
+- DEM-03 focus-chord layer in Projection.tsx is additive-only: focusChords defaults to null and the render branch adds no DOM when unset, proven byte-identical against the frozen base-10 goldens/behaviour baseline via npm run test:swap
+- DemonFocusView's compact chord canvas reuses curveAway via Path2D (not Projection.tsx's SVG DOM), so the Focus tab works at bases with no diagram tier such as base 666
 
 ### Pending Todos
 
@@ -216,8 +219,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-30T23:45:57.669Z
-Stopped at: Completed 05-06-PLAN.md
+Last session: 2026-10-01T00:02:35.940Z
+Stopped at: Completed 05-08-PLAN.md
 Resume file: None
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
