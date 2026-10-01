@@ -55,12 +55,12 @@ describe('CyberButton: markup identity (T-05-31)', () => {
     '<button type="button" class="relative uppercase transition-all px-2.5 py-2 text-[11px] tracking-[0.12em] bg-[#10ff50]/[0.08]  " style="box-shadow:inset 0 -1px 0 rgba(16,255,80,0.4)"><span class="pointer-events-none absolute right-1 top-0.5 text-[7px] leading-none" style="color:#10ff50">Z</span>A</button>'
 
   it('a default CyberButton renders byte-identical markup to before this plan', () => {
-    const markup = renderToStaticMarkup(createElement(CyberButton, {}, 'A'))
+    const markup = renderToStaticMarkup(createElement(CyberButton, { children: 'A' }))
     expect(markup).toBe(DEFAULT_MARKUP)
   })
 
   it('an active CyberButton with a shortcut renders byte-identical markup to before this plan', () => {
-    const markup = renderToStaticMarkup(createElement(CyberButton, { active: true, shortcut: 'z' }, 'A'))
+    const markup = renderToStaticMarkup(createElement(CyberButton, { active: true, shortcut: 'z', children: 'A' }))
     expect(markup).toBe(ACTIVE_MARKUP)
   })
 })
@@ -68,7 +68,7 @@ describe('CyberButton: markup identity (T-05-31)', () => {
 describe('CyberButton: new tab semantics', () => {
   it('role=tab, selected=true: role, aria-selected=true, id, aria-controls, tabindex=0', () => {
     const markup = renderToStaticMarkup(
-      createElement(CyberButton, { role: 'tab', selected: true, id: 'x', controls: 'y' }, 'A'),
+      createElement(CyberButton, { role: 'tab', selected: true, id: 'x', controls: 'y', children: 'A' }),
     )
     expect(markup).toContain('role="tab"')
     expect(markup).toContain('aria-selected="true"')
@@ -79,7 +79,7 @@ describe('CyberButton: new tab semantics', () => {
 
   it('role=tab, selected=false: tabindex=-1', () => {
     const markup = renderToStaticMarkup(
-      createElement(CyberButton, { role: 'tab', selected: false, id: 'x', controls: 'y' }, 'A'),
+      createElement(CyberButton, { role: 'tab', selected: false, id: 'x', controls: 'y', children: 'A' }),
     )
     expect(markup).toContain('aria-selected="false"')
     expect(markup).toContain('tabindex="-1"')

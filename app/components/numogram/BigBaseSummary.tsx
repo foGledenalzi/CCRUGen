@@ -9,7 +9,7 @@ import { bigBaseMessage } from '../../lib/numogramText'
 import type { NumogramSummary } from '../../lib/numogramView'
 import { TextView } from './TextView'
 
-function Metric({ label, value }: { label: string; value: string }) {
+export function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-[8px] uppercase tracking-[0.3em] text-gray-400">{label}</div>

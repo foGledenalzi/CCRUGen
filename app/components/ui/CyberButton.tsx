@@ -14,6 +14,12 @@ type CyberButtonProps = {
   className?: string
   /** Marks this button as new-since-the-frozen-behaviour-baseline chrome (data-post-baseline, Phase 4 plan 04-01). */
   postBaseline?: boolean
+  /** Tab semantics (Phase 5 plan 09, T-05-31): all four default to undefined, so every existing call site emits
+   * exactly the same DOM as before this change (the markup-identity test pins this). */
+  role?: 'tab'
+  selected?: boolean
+  id?: string
+  controls?: string
   children: React.ReactNode
 }
 
@@ -28,6 +34,10 @@ export function CyberButton({
   onMouseLeave,
   className = '',
   postBaseline = false,
+  role,
+  selected,
+  id,
+  controls,
   children,
 }: CyberButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -73,6 +83,11 @@ export function CyberButton({
       ref={buttonRef}
       type="button"
       data-post-baseline={postBaseline ? '' : undefined}
+      role={role}
+      aria-selected={role === 'tab' ? !!selected : undefined}
+      id={id}
+      aria-controls={controls}
+      tabIndex={role === 'tab' ? (selected ? 0 : -1) : undefined}
       onClick={onClick}
       disabled={disabled}
       onMouseEnter={onMouseEnter}

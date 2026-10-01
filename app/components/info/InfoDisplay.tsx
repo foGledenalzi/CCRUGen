@@ -5,6 +5,8 @@ import type { HoverInfo } from '../../data/types'
 import { REGION_CLR } from '../../lib/constants'
 import { plexExpr } from '../../lib/numogram'
 import { formatNumeral } from '../../../engine/index'
+import { zoneColorFor } from '../../lib/numogramView'
+import { SUBTYPE_LABEL } from '../../lib/demonBrowser'
 import { PanelGroup } from '../panels/PanelGroup'
 import type { PanelGroupItem } from '../panels/PanelGroup'
 import { GlitchText } from '../ui/GlitchText'
@@ -285,15 +287,19 @@ function GateInfo({ data }: { data: HoverInfo & { type: 'gate' } }) {
 
 // ── Demon Info ─────────────────────────────────────────────────
 
-function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
+export function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
   const d = data.demon
-  const { base, view, zoneLabel } = useNumogramView()
-  if (!view) return null
+  const { base, g, view, zoneLabel } = useNumogramView()
+  // Authoritative mesh/subtype (T-05-32): never from the caller-supplied legacy shape, O(1) regardless of base.
+  const ref = g.demons.ref(d.a, d.b)
   const kindClr = d.kind === 'chrono' ? '#00ccff'
     : d.kind === 'xeno' ? '#cc3333'
     : d.kind === 'amphi' ? '#cc8833' : '#e8e8e8'
+  // Base-10 keeps its viewer-authored zone colors; every other base (including one above the SVG tier, view===null)
+  // falls back to the region-identity color derived straight from the engine (T-05-32: no silent empty detail).
+  const zoneClr = (z: number) => (view ? (view.zoneColors[z] as string) : zoneColorFor(g.cycleOfZone(z).kind))
 
-  if (view.lore) {
+  if (view?.lore) {
     const kindDesc = d.kind === 'chrono'
       ? 'CHRONODEMON — both zones within Time Circuit'
       : d.kind === 'xeno'
@@ -311,11 +317,13 @@ function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
         <div className="text-[7px] tracking-[0.12em]" style={{ color: `${kindClr}bb` }}>{kindDesc}</div>
         <SectionFrame color={kindClr}>
           <div className="text-[9px]">
-            <span style={{ color: view.zoneColors[d.a] }}>Zone {zoneLabel(d.a)}</span>
+            <span style={{ color: zoneClr(d.a) }}>Zone {zoneLabel(d.a)}</span>
             <span className="text-gray-700"> ({view.lore.zoneMeta[d.a]?.planet}) {'—'} </span>
-            <span style={{ color: view.zoneColors[d.b] }}>Zone {zoneLabel(d.b)}</span>
+            <span style={{ color: zoneClr(d.b) }}>Zone {zoneLabel(d.b)}</span>
             <span className="text-gray-700"> ({view.lore.zoneMeta[d.b]?.planet})</span>
           </div>
+          <DataRow label="MESH" value={String(ref.mesh)} color={kindClr} />
+          <DataRow label="TYPE" value={SUBTYPE_LABEL[ref.subtype]} color={kindClr} />
         </SectionFrame>
       </div>
     )
@@ -339,10 +347,12 @@ function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
       <div className="text-[7px] tracking-[0.12em]" style={{ color: `${kindClr}bb` }}>{kindDesc}</div>
       <SectionFrame color={kindClr}>
         <div className="text-[9px]">
-          <span style={{ color: view.zoneColors[d.a] }}>Zone {zoneLabel(d.a)}</span>
+          <span style={{ color: zoneClr(d.a) }}>Zone {zoneLabel(d.a)}</span>
           <span className="text-gray-700"> {'—'} </span>
-          <span style={{ color: view.zoneColors[d.b] }}>Zone {zoneLabel(d.b)}</span>
+          <span style={{ color: zoneClr(d.b) }}>Zone {zoneLabel(d.b)}</span>
         </div>
+        <DataRow label="MESH" value={String(ref.mesh)} color={kindClr} />
+        <DataRow label="TYPE" value={SUBTYPE_LABEL[ref.subtype]} color={kindClr} />
       </SectionFrame>
     </div>
   )
