@@ -58,8 +58,7 @@ describe('DemonFocusView: base 666 (no diagram), zone focus', () => {
     expect(markup).toContain('data-chord-count="665"')
     expect(markup).toContain('data-chord-stride="1"')
     expect(markup).toContain('data-focus-summary')
-    expect(markup).toContain('Zone 12')
-    expect(markup).toContain('665 demons')
+    expect(markup).toContain('Zone 12 · 665 demons')
     expect(markup).toContain('data-clear-focus')
     expect(markup).toContain('clear focus')
     expect(markup).toContain('role="grid"')
@@ -93,7 +92,7 @@ describe('DemonFocusView: base 28, demon focus', () => {
   it('12::3 -> data-chord-count="1", summary "c::3 · mesh 69 · Cyclic chrono", aria-rowcount="2"', () => {
     const markup = renderFocusView(g, { focus: demonFocusOf({ a: 12, b: 3 }) })
     expect(markup).toContain('data-chord-count="1"')
-    expect(markup).toContain(`c::3 ${String.fromCodePoint(0xb7)} mesh 69 ${String.fromCodePoint(0xb7)} Cyclic chrono`)
+    expect(markup).toContain('c::3 · mesh 69 · Cyclic chrono')
     expect(markup).toContain('aria-rowcount="2"')
   })
 })
