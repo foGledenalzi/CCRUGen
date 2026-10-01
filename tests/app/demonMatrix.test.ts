@@ -78,10 +78,15 @@ describe('clampTransform', () => {
           const base = halfBase * 2
           const t0 = fitTransform(base, w, h)
           const t1 = panBy(t0, dx, dy, base, w, h)
-          expect(t1.tx).toBeLessThanOrEqual(w / 2)
-          expect(t1.tx + base * t1.scale).toBeGreaterThanOrEqual(w / 2)
-          expect(t1.ty).toBeLessThanOrEqual(h / 2)
-          expect(t1.ty + base * t1.scale).toBeGreaterThanOrEqual(h / 2)
+          // The property is "the viewport centre stays inside the matrix square", not exact floating-point
+          // equality at the boundary: clampNum's (h/2 - base*scale) + base*scale is not always bit-identical to
+          // h/2 under IEEE 754, so a tiny epsilon absorbs the occasional 1-ULP miss (deferred-items.md, found
+          // during 05-05, fixed here as 05-12 is the phase-closing plan and this test is a Phase 5 file).
+          const EPS = 1e-9
+          expect(t1.tx).toBeLessThanOrEqual(w / 2 + EPS)
+          expect(t1.tx + base * t1.scale).toBeGreaterThanOrEqual(w / 2 - EPS)
+          expect(t1.ty).toBeLessThanOrEqual(h / 2 + EPS)
+          expect(t1.ty + base * t1.scale).toBeGreaterThanOrEqual(h / 2 - EPS)
         },
       ),
       { numRuns: 300 },
