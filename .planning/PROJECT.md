@@ -42,11 +42,11 @@ If the math is wrong or the diagram is unreadable, nothing else matters.
 - ✓ Base picker + generator UI: choose an even base via a base picker (type/step/slide/click a notable-base chip; odd input refused with an explanation), live summary (zones, Warp yes/no, Torque cycle lengths, demon count), `?base=` URL-shareable with existing base-10 links preserved and absurdly large bases refused with a message instead of freezing the tab — Validated in Phase 4: Base Picker and Generator UI
 - ✓ Zone labelling for large bases: in-base digits up to base 36, decimal with a separator beyond, curated and free-typed custom alphabets with glyph-coverage validation, plus xenotation option; the integer stays the identity in URLs, JSON and demon keys — Validated in Phase 4
 - ✓ Legibility and access: region legend table (Plex, Warp, each Torque cycle) with a stable id and independent isolate/mute; keyboard traversal (roving tabindex), ARIA labelling, non-colour cues, reduced-motion support, and a text view with a copy button — Validated in Phase 4 (the pair-graph view itself was validated in Phase 3)
+- ✓ Demons layer: closed-form type/subtype facets (including the cross-Torque chronodemon sub-facet) at any base; a virtualized browser over all T(n-1) demons (proven live to 221,445 rows at base 666 and 523,776 at base 1024, DOM never holding more than the visible rows) with sort, filter and search by `a::b` or mesh number; a bidirectional focus mode (zone-click or demon-pick draws the matching chord(s)); a triangular pick-by-pixel matrix with exact hover/click resolve at every zoom level; base 10's 45 canonical CCRU demon names surfaced in both the browser and the detail panel. Works identically at bases with no SVG diagram mounted (e.g. base 666, above the measured `svgRichMaxN`), since every surface reads the engine's demon space directly rather than the tier-gated view — Validated in Phase 5: Demons Layer
 
 ### Active
 
 - [ ] **Renderer generalization**: replace the 10-zone assumptions in Projection/NumogramClient with engine-driven rendering; tiered by size (rich interactive SVG for small bases, Canvas/LOD for large, headless SVG/JSON for huge) — the measured thresholds now exist (Phase 3's `tier-table.json`); the SVG tier was generalized and the six base-10 data seams deleted in Phase 4 (Validated, above); Canvas/LOD and headless tiers remain for Phase 6
-- [ ] **Demons layer**: all T(n-1) demons with net-span, mesh number and type (including an explicit cross-Torque chronodemon subtype); virtualized/on-demand so it never freezes the page at high base
 - [ ] **Naming builder**: user assigns a sound/phoneme per zone (seeded auto-generator for any base; CCRU zone phonemes for base-10 preset), demon names derived from net-span sounds, editable, importable/exportable as JSON
 - [ ] **Export**: self-contained SVG file, PNG, and engine-data JSON for the current numogram
 - [ ] **Ceiling spike**: benchmark zones/paths/demons vs frame time and memory per renderer tier; document the measured thresholds and degrade gracefully past them (no arbitrary hard cap)
@@ -132,4 +132,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-29 after Phase 4 completion*
+*Last updated: 2026-09-30 after Phase 5 completion*
