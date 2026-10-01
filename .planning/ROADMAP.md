@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Engine Core and Base-10 Migration** - Pure tested engine for any even base, then the base-10 viewer re-derived from it with byte-identical output (completed 2026-09-27)
 - [x] **Phase 3: Procedural Layout and Ceiling Spike** - Deterministic legible layouts for any base, base-10 presets, pair-graph view, and the measured renderer threshold table (completed 2026-09-28)
 - [x] **Phase 4: Base Picker and Generator UI** - Interactive SVG viewer for any even base with URL state, labels, region legend, accessibility and text view (completed 2026-09-29)
-- [ ] **Phase 5: Demons Layer** - Facets, virtualized browser, focus chords, triangular matrix and canonical base-10 names for all C(n,2) demons
+- [x] **Phase 5: Demons Layer** - Facets, virtualized browser, focus chords, triangular matrix and canonical base-10 names for all C(n,2) demons (completed 2026-09-30)
 - [ ] **Phase 6: Canvas Tier and Worker** - Canvas rendering for large bases, worker-offloaded computation and graceful degradation past the measured ceiling
 - [ ] **Phase 7: Naming Builder** - Per-zone sound table, seeded generator, derived demon names, JSON import/export and the CCRU base-10 preset
 - [ ] **Phase 8: Export, CLI and Hardening** - SVG/PNG/JSON export, headless CLI, performance and accessibility checks, cross-platform CI and glossary
@@ -160,7 +160,7 @@ Plans:
 - [x] 05-09-PLAN.md - Demons overlay shell with tabs and detail pane; DemonInfo works without a view and shows mesh/type (wave 4)
 - [x] 05-10-PLAN.md - Viewer wiring: header entry point at every base, focus mode both ways, URL sync, base-switch reset, page weight (wave 5)
 - [x] 05-11-PLAN.md - E2E: facets, virtualization, sort, search, base-10 names, URL state, overlay dismissal, base-1024 windowing (wave 6)
-- [ ] 05-12-PLAN.md - E2E: focus mode both ways and at base 666, exact matrix picks at two zoom levels, raster timings, full verify gate (wave 7)
+- [x] 05-12-PLAN.md - E2E: focus mode both ways and at base 666, exact matrix picks at two zoom levels, raster timings, full verify gate (wave 7)
 **UI hint**: yes
 **Research**: YES, run `/gsd-research-phase` for the demon matrix LOD and tiling at n >= ~4k (viewport-resolution raster with dominant-subtype binning).
 **Notes**: Never one DOM or canvas primitive per demon; all-chords "web" mode is offered only below the spike's density limit (Phase 3 measured allChordsMaxN = 80: a legibility ceiling from edge overlap, not a speed limit — nesting the zone layout further does not help, since the web draws every pairwise demon connection regardless of node position). At base 666, 99.4% of demons are chronodemons, so a type filter alone does not make the set browsable; hence focus mode, matrix and search. Two techniques to extend legible density past the measured cap, both flagged during Phase 3's ceiling-spike discussion (2026-09-27) for consideration here: **focus mode already covers filtering** (criterion 3: selecting a zone or demon draws only its own chord(s), not the whole web); **edge bundling** (grouping chords with similar source/destination into bundled paths to cut visual crossing density) is not yet scoped and should be evaluated as an option for the all-chords view beyond n=80, alongside or instead of raising the density limit itself. The virtualized browser uses TanStack Virtual over `at(mesh)`; name-based search only when the count is at most ~50k. Compute here runs inline; worker offload for very large n lands in Phase 6.
@@ -234,7 +234,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 2. Engine Core and Base-10 Migration | 13/13 | Complete    | 2026-09-27 |
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
-| 5. Demons Layer | 11/12 | In progress | - |
+| 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
 | 6. Canvas Tier and Worker | 0/TBD | Not started | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |
