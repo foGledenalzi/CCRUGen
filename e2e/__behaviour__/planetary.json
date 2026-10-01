@@ -69,11 +69,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | ON | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -86,7 +82,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -175,11 +171,7 @@
     "Selection | button | \"Zone 5\" | visible",
     "Selection | button | \"Remove Zone 5\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | ON | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -192,7 +184,7 @@
     "Selection": "Selection | Selected Elements (1) | clear | Numogram | ▸ | Zone 5 | x | ▾ | Zone 5 | torque | Jupiter (Sol-5) | Hyperborean or Wendigo mythology. Missing time and alien abduction. Inner-eye of the Barker spiral. | SYZ | 4+5=9 (Katak) | PARTICLE | ktt | MESH_TAG | 0031 | PHASE_CT | 32 | DOOR | Tokhatto — the Hyperborean Door | GATE | Gt-15 | → | Zone | 6 | Fifth Gate | LEMURIAN ETHNOGRAPHY | Upland rain forests of the Tak Nma. Hybrid bird-reptile forms — flying worms, bat-monsters and barking snakes. | PHASE-5 LEMURS (32) | 5::0 Tokhatto | 5::1 Tukkamu | 5::2 Kuttadid | 5::3 Tikkitix | 5::4 Katak | 9 | DEMONS IN PANDEMONIUM",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -281,11 +273,7 @@
     "Selection | button | \"Zone 5\" | visible",
     "Selection | button | \"Remove Zone 5\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -298,7 +286,7 @@
     "Selection": "Selection | Selected Elements (1) | clear | Numogram | ▸ | Zone 5 | x | ▾ | Zone 5 | torque | Jupiter (Sol-5) | Hyperborean or Wendigo mythology. Missing time and alien abduction. Inner-eye of the Barker spiral. | SYZ | 4+5=9 (Katak) | PARTICLE | ktt | MESH_TAG | 0031 | PHASE_CT | 32 | DOOR | Tokhatto — the Hyperborean Door | GATE | Gt-15 | → | Zone | 6 | Fifth Gate | LEMURIAN ETHNOGRAPHY | Upland rain forests of the Tak Nma. Hybrid bird-reptile forms — flying worms, bat-monsters and barking snakes. | PHASE-5 LEMURS (32) | 5::0 Tokhatto | 5::1 Tukkamu | 5::2 Kuttadid | 5::3 Tikkitix | 5::4 Katak | 9 | DEMONS IN PANDEMONIUM",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -387,11 +375,7 @@
     "Selection | button | \"Zone 5\" | visible",
     "Selection | button | \"Remove Zone 5\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | ON | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -404,7 +388,7 @@
     "Selection": "Selection | Selected Elements (1) | clear | Numogram | ▸ | Zone 5 | x | ▾ | Zone 5 | torque | Jupiter (Sol-5) | Hyperborean or Wendigo mythology. Missing time and alien abduction. Inner-eye of the Barker spiral. | SYZ | 4+5=9 (Katak) | PARTICLE | ktt | MESH_TAG | 0031 | PHASE_CT | 32 | DOOR | Tokhatto — the Hyperborean Door | GATE | Gt-15 | → | Zone | 6 | Fifth Gate | LEMURIAN ETHNOGRAPHY | Upland rain forests of the Tak Nma. Hybrid bird-reptile forms — flying worms, bat-monsters and barking snakes. | PHASE-5 LEMURS (32) | 5::0 Tokhatto | 5::1 Tukkamu | 5::2 Kuttadid | 5::3 Tikkitix | 5::4 Katak | 9 | DEMONS IN PANDEMONIUM",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -493,11 +477,7 @@
     "Selection | button | \"Zone 5\" | visible",
     "Selection | button | \"Remove Zone 5\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -510,7 +490,7 @@
     "Selection": "Selection | Selected Elements (1) | clear | Numogram | ▸ | Zone 5 | x | ▾ | Zone 5 | torque | Jupiter (Sol-5) | Hyperborean or Wendigo mythology. Missing time and alien abduction. Inner-eye of the Barker spiral. | SYZ | 4+5=9 (Katak) | PARTICLE | ktt | MESH_TAG | 0031 | PHASE_CT | 32 | DOOR | Tokhatto — the Hyperborean Door | GATE | Gt-15 | → | Zone | 6 | Fifth Gate | LEMURIAN ETHNOGRAPHY | Upland rain forests of the Tak Nma. Hybrid bird-reptile forms — flying worms, bat-monsters and barking snakes. | PHASE-5 LEMURS (32) | 5::0 Tokhatto | 5::1 Tukkamu | 5::2 Kuttadid | 5::3 Tikkitix | 5::4 Katak | 9 | DEMONS IN PANDEMONIUM",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -599,11 +579,7 @@
     "Selection | button | \"Zone 5\" | visible",
     "Selection | button | \"Remove Zone 5\" | visible",
     "Selection | button | \"Expand item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -616,7 +592,7 @@
     "Selection": "Selection | Selected Elements (1) | clear | Numogram | ▸ | Zone 5 | x | ▸",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -702,11 +678,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -719,7 +691,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -805,11 +777,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -822,7 +790,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -944,11 +912,7 @@
     "Selection | button | \"Zone 9\" | visible",
     "Selection | button | \"Remove Zone 9\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | ON",
@@ -961,7 +925,7 @@
     "Selection": "Selection | Selected Elements (12) | clear | Numogram | ▸ | Gt-00 | x | ▸ | Gt-03 | x | ▸ | Gt-06 | x | ▸ | Gt-21 | x | ▸ | Gt-45 | x | ▸ | Warp Current | x | ▸ | Plex Current | x | ▸ | Zone 0 | x | ▸ | Zone 2 | x | ▸ | Zone 3 | x | ▸ | Zone 6 | x | ▸ | Zone 9 | x | ▾ | Zone 9 | plex | Pluto (Sol-9) | Cthellloid metallic ocean of the earth's iron core. The outermost reaches the innermost — Plutonic looping. | SYZ | 0+9=9 (Uttunul) | PARTICLE | tn | MU_TANTRA | Sacral spine | MESH_TAG | 0511 | PHASE_CT | 512 | DOOR | Uttunul — the Ultimate Door | GATE | Gt-45 | → | Zone | 9 | Gate of Pandemonium | LEMURIAN ETHNOGRAPHY | Anticipated by H.P. Lovecraft as Yuggoth. City of the Worms — Tchukululok. | PHASE-9 LEMURS (512) | 9::0 Uttunul | 9::1 Tuttagool | 9::2 Unnunddo | 9::3 Ununuttix | 9::4 Unnunaka | 9::5 Tukutu | 9::6 Unnutchi | 9::7 Nuttubab | 9::8 Ummnu | 9 | DEMONS IN PANDEMONIUM",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -1047,11 +1011,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | ON",
@@ -1064,7 +1024,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -1149,11 +1109,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | ON",
@@ -1166,7 +1122,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -1252,11 +1208,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | ON",
@@ -1269,7 +1221,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -1355,11 +1307,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | ON",
@@ -1372,7 +1320,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -1458,11 +1406,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | ON",
@@ -1475,7 +1419,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,
@@ -1561,11 +1505,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | OFF | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | ON",
@@ -1578,7 +1518,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG | Decimal Labyrinth",
     "topbar": "A | S | D | F | Z | X | C | V",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,

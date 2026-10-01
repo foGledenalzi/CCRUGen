@@ -64,11 +64,7 @@
     "Selection | button | \"clear\" | disabled | visible",
     "Selection | button | \"Numogram\" | visible",
     "Selection | button | \"Collapse item\" | visible",
-    "shortcutsTrigger | button | \"shortcuts\" | visible",
-    "footer | a | \"Source 1\" | href=http://www.ccru.net/declab.htm | visible",
-    "footer | a | \"Source 2\" | href=https://socialecologies.wordpress.com/2025/08/17/the-numogram-diagram-time-circuits-and-acceleration/ | visible",
-    "footer | a | \"Source 3\" | href=https://oh4.co/site/numogrammaticism.html | visible",
-    "footer | a | \"Source 4\" | href=https://drive.google.com/file/d/1ReZnkaZxsdNgEFghEZqDvpDoxhhTWHQ6/view?usp=drive_link | visible"
+    "shortcutsTrigger | button | \"shortcuts\" | visible"
    ],
    "texts": {
     "Layers": "Layers | Syzygies | ON | Currents | ON | Gates | ON | Pandemonium | OFF | Particles | OFF",
@@ -81,7 +77,7 @@
     "Selection": "Selection | Selected Elements | clear | Numogram | ▾ | The Numogram is a decimal labyrinth: ten zones (0-9), paired syzygies that sum to nine, and pathways that map transitions through the system. | Currents track differential flows across syzygetic pairs. Gates track culminations (triangular sums), then reduce multi-digit values by summation to determine the connecting source. | Use hover and selection to inspect zones, currents, gates, and demons as a navigational map of recursive time and drift between torque, warp, and plex. | Controls: click + drag to select, alt + drag to move, scroll to zoom, digits to toggle gates, ASDF to change view. | Click empty space to return here.",
     "header": "CCRUG",
     "topbar": "A | S | D | F",
-    "footer": "sources | [ | 1 | ] | [ | 2 | ] | [ | 3 | ] | [ | 4 | ]",
+    "footer": null,
     "shortcutsTrigger": "shortcuts",
     "shortcutsModal": null,
     "splash": null,

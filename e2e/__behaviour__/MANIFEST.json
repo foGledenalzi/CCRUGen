@@ -3,15 +3,15 @@
   "strictDir": "e2e/__behaviour__",
   "sets": [
     {
-      "set": "2026-09-26-behaviour-baseline",
-      "date": "2026-09-26",
-      "reason": "Behaviour and text baseline (D-15) of the viewer before any Phase 2 data-source swap or lore move: 4 layouts + 390x800, panel text, hover popovers, lore sweep, Selection panel, URL after each action, undo/redo, shortcuts, share (stubbed clipboard); text and attribute/computed-style facts only; captured from HEAD with app/ identical to f7d6689",
+      "set": "2026-10-01-sources-footer-removed",
+      "date": "2026-10-01",
+      "reason": "SourcesFooter.tsx (inherited from upstream lumpenspace/ccru, added Feb 2026 before this fork, never part of this project's own phase work) was removed per user UI feedback: it was flagged as leftover upstream paneling. This supersedes the 2026-09-26-behaviour-baseline set, whose frozen files' footer field and interactive-element counts captured that component's text and 4 source links, which no longer exist. The original set's recorded hashes and reason remain visible in git history (see e2e/__behaviour__/MANIFEST.json before this commit). All five files were re-diffed field-by-field against the prior baseline before recapture: only the footer field (now null) and interactive-array length (-4, matching the 4 removed links) changed; every panel, zone, region, syzygy, current, gate and Selection text stayed byte-identical.",
       "files": {
-        "e2e/__behaviour__/labyrinth.json": "100fb3e4f44196a6245e3bcca94dcb5dd15b62f0fe14b39c686644188ec2bf1c",
-        "e2e/__behaviour__/ladder.json": "7aa1d37319df60a4bb7857fd1254b725d0c679c73b59fe2064152ab6d50527f5",
-        "e2e/__behaviour__/mobile.json": "7af4d1204523a7c91d43a7b799cae16c577467c759c7416d5249d3cc0e413589",
-        "e2e/__behaviour__/original.json": "b3f3f2961b83c95c6df74ea88ed3cb9b74bfa53fcd4be7f2c77adaecac4450b1",
-        "e2e/__behaviour__/planetary.json": "fb25713ae41c79fcc8b17adfc655329ed4bdc52b5a26075b70e34cee44a54255"
+        "e2e/__behaviour__/labyrinth.json": "bf64cd0267804041c9f40c81b23faddc4c797281e84a82acf9a22661c6519841",
+        "e2e/__behaviour__/ladder.json": "a43474e1b008a60b71aba853916d8d04e302cd149c0a3ceef489f5c902c44322",
+        "e2e/__behaviour__/mobile.json": "e76e7197b5707332084ae9bad21d356bbef29619ccaadd22408a53c601ee8ba6",
+        "e2e/__behaviour__/original.json": "ecc6f10cafe82ded6478a6db17b415cce9f56414b5847824f59680aeac02594f",
+        "e2e/__behaviour__/planetary.json": "91240ff14f4831db83004a8506163144b8c16a65d8e925de5912b28c41ea0f9f"
       }
     }
   ]

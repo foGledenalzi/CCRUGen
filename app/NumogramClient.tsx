@@ -75,7 +75,6 @@ import {
 } from './components/numogram/NumogramIcons'
 import { ShortcutsModal } from './components/numogram/ShortcutsModal'
 import { DemonsOverlay } from './components/demons/DemonsOverlay'
-import { SourcesFooter } from './components/numogram/SourcesFooter'
 import { CyberPageHeader } from './components/ui/CyberPageHeader'
 import { NumogramViewContext } from './components/numogram/ViewContext'
 import type { NumogramViewContextValue } from './components/numogram/ViewContext'
@@ -85,7 +84,7 @@ import type { NumogramViewContextValue } from './components/numogram/ViewContext
    ═══════════════════════════════════════════════════════════════ */
 
 const MOBILE_SELECTOR_BREAKPOINT = 820
-const PANEL_GROUP_ORDER = ['layers', 'labels', 'zones', 'regions', 'syz', 'currents', 'gates', 'text'] as const
+const PANEL_GROUP_ORDER = ['layers', 'labels', 'zones', 'regions', 'syz', 'currents', 'gates', 'text', 'info'] as const
 type PanelId = (typeof PANEL_GROUP_ORDER)[number]
 const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
   layers: 34,
@@ -96,6 +95,7 @@ const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
   currents: 34,
   gates: 34,
   text: 34,
+  info: 34,
 }
 const DESKTOP_PANEL_BASE_Y = 64
 const DESKTOP_PANEL_GAP = 18
@@ -1618,12 +1618,11 @@ export default function NumogramPage() {
       <Panel
         id="info"
         title="Selection"
-        position={isMobile
-          ? { x: 8, y: viewport.h > 0 ? Math.max(64, viewport.h - 320) : 64 }
-          : panelPositions.info}
+        position={isMobile ? mobilePanelPositions.info : panelPositions.info}
         width={infoPanelWidth}
         zIndex={panelZ.info}
         draggable={!isMobile}
+        onHeightChange={onPanelHeight}
         onActivate={activatePanel}
         onDragStart={startDrag}
         showToggle={false}
@@ -1685,8 +1684,6 @@ export default function NumogramPage() {
       >
         shortcuts
       </button>
-
-      <SourcesFooter />
 
       {demonsOpen && (
         <DemonsOverlay
