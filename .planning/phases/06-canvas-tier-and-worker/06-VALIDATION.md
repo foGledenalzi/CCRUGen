@@ -41,8 +41,42 @@ Sampling bases: 10, 28, 64, 100, 200 (SVG tier, synchronous, unchanged); 28 and 
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
+| 06-01-T1 | 06-01 | 1 | REN-02, REN-03 | T-06-07, T-06-01a | ceiling is data; validator rejects each bad interactiveMaxN | unit (engine) | `npx vitest run engine/test/tiers.select.test.ts engine/test/tiers.schema.test.ts --project engine` | extend existing | ⬜ pending |
+| 06-01-T2 | 06-01 | 1 | REN-02, REN-03 | T-06-07b | shaper carries and clamps the ceiling; app reads it by property access | unit | `npx vitest run tests/spike/shape.test.ts tests/app/tierBounds.test.ts --project oracle` | extend existing | ⬜ pending |
+| 06-02-T1 | 06-02 | 2 | REN-02 | T-06-15, T-06-13 | route parser whitelist; distinct buffers | unit (engine) | `npx vitest run engine/test/scene.canvasScene.test.ts --project engine` | Wave 0 (06-02) | ⬜ pending |
+| 06-02-T2 | 06-02 | 2 | REN-02 | T-06-16 | pair scene; base mismatch rejected | unit (engine) | `npx vitest run engine/test/scene.canvasScene.test.ts --project engine` | Wave 0 (06-02) | ⬜ pending |
+| 06-03-T1 | 06-03 | 1 | REN-02 | T-06-18 | Page keys clamp; no unbounded loop | unit | `npx vitest run tests/app/canvasKeyboard.test.ts --project oracle` | Wave 0 (06-03) | ⬜ pending |
+| 06-03-T2 | 06-03 | 1 | REN-02 | T-06-17 | non-finite input ignored; immutable state | unit | `npx vitest run tests/app/canvasInteraction.test.ts --project oracle` | Wave 0 (06-03) | ⬜ pending |
+| 06-04-T1 | 06-04 | 3 | REN-03 | T-06-14 | lore-free summary; text bounded by the ceiling | unit | `npx vitest run tests/app/numogramText.test.ts tests/app/numogramView.test.ts --project oracle` | extend existing | ⬜ pending |
+| 06-04-T2 | 06-04 | 3 | REN-03 | T-06-01, T-06-08, T-06-13, T-06-14 | no scene above the ceiling; guarded protocol; lore-free import graph | unit | `npx vitest run tests/app/workerCore.test.ts tests/app/demonState.test.ts --project oracle` | Wave 0 (06-04) | ⬜ pending |
+| 06-05-T1 | 06-05 | 3 | REN-02 | T-06-02 | backing store bounded by table area limit and DPR 3 | unit | `npx vitest run tests/app/canvasView.test.ts --project oracle` | Wave 0 (06-05) | ⬜ pending |
+| 06-05-T2 | 06-05 | 3 | REN-02 | T-06-19 | 12 px nearest-wins pick equals brute force | unit (+ fast-check, mutants) | `npx vitest run tests/app/canvasPick.test.ts --project oracle` | Wave 0 (06-05) | ⬜ pending |
+| 06-06-T1 | 06-06 | 2 | REN-02 | T-06-11 | first NumogramClient edit leaves the oracles unchanged | typecheck + oracle gate | `npm run typecheck && npm run test:swap` | existing | ⬜ pending |
+| 06-06-T2 | 06-06 | 2 | REN-02 | T-06-20 | no 4000-row lists at the Canvas tier | SSR smoke | `npx vitest run tests/app/canvasPanelsRender.test.ts --project oracle` | Wave 0 (06-06) | ⬜ pending |
+| 06-06-T3 | 06-06 | 2 | REN-02 | T-06-01b | Regions panel never forces the lazy numogram | SSR smoke + oracle gate | `npx vitest run tests/app/canvasPanelsRender.test.ts --project oracle && npm run test:swap` | Wave 0 (06-06) | ⬜ pending |
+| 06-07-T1 | 06-07 | 4 | REN-03 | T-06-03, T-06-21, T-06-01c | latest-wins delivery; bounded queue; bounded fallback | unit (+ fast-check, mutants) | `npx vitest run tests/app/workerClient.test.ts --project oracle` | Wave 0 (06-07) | ⬜ pending |
+| 06-07-T2 | 06-07 | 4 | REN-03 | T-06-04 | same-origin literal worker; no raw .ts in out/ | typecheck + build | `npm run typecheck && npx vitest run tests/app/workerClient.test.ts --project oracle && npm run build` | Wave 0 (06-07) | ⬜ pending |
+| 06-08-T1 | 06-08 | 4 | REN-02 | T-06-05, T-06-22 | fillText only; no repaint per hover | unit (recording context) | `npx vitest run tests/app/canvasDraw.test.ts --project oracle` | Wave 0 (06-08) | ⬜ pending |
+| 06-08-T2 | 06-08 | 4 | REN-02 | T-06-10 | fidelity downgrade bounds overlay cost | unit (recording context) | `npx vitest run tests/app/canvasDraw.test.ts --project oracle` | Wave 0 (06-08) | ⬜ pending |
+| 06-09-T1 | 06-09 | 3 | REN-03 | T-06-23 | pending switch cannot be reverted by the picker | SSR smoke | `npx vitest run tests/app/basePickerRender.test.ts tests/app/basePicker.test.ts --project oracle` | Wave 0 (06-09) | ⬜ pending |
+| 06-09-T2 | 06-09 | 3 | REN-02 | T-06-09 | Selection list O(k) and capped | unit | `npx vitest run tests/app/selectionList.test.ts --project oracle` | Wave 0 (06-09) | ⬜ pending |
+| 06-09-T3 | 06-09 | 3 | REN-03 | T-06-01d | URL never builds a numogram above the ceiling (natural tier; override keeps codec behaviour) | unit (module spy) | `npx vitest run tests/app/shareParamsHeadless.test.ts tests/app/shareParams.test.ts --project oracle` | Wave 0 (06-09) | ⬜ pending |
+| 06-10-T1 | 06-10 | 5 | REN-02 | T-06-24 | pick filters respect mute/layers/gate modes | unit | `npx vitest run tests/app/canvasDiagramModel.test.ts --project oracle` | Wave 0 (06-10) | ⬜ pending |
+| 06-10-T2 | 06-10 | 5 | REN-02 | T-06-02b, T-06-05b | bounded store; no innerHTML | SSR smoke | `npx vitest run tests/app/canvasDiagramRender.test.ts tests/app/canvasDiagramModel.test.ts --project oracle && npm run typecheck` | Wave 0 (06-10) | ⬜ pending |
+| 06-11-T1 | 06-11 | 6 | REN-02, REN-03 | T-06-25, T-06-01, T-06-11 | over-limit copy from data; scene-less result above the ceiling renders headless; lazy headless g; SVG path byte-identical | SSR smoke + typecheck + oracle gate | `npx vitest run tests/app/bigBaseSummary.test.ts tests/app/numogramText.test.ts --project oracle && npm run typecheck && npm run test:swap` | Wave 0 (06-11) | ⬜ pending |
+| 06-11-T2 | 06-11 | 6 | REN-02, REN-03 | T-06-01, T-06-03, T-06-11 | whole-record requests; atomic latest swap; deferred hydration; no headless main-thread build | typecheck + oracle gate | `npm run typecheck && node scripts/check-repo.mjs --only base-ten && npm run test:swap` | existing | ⬜ pending |
+| 06-11-T3 | 06-11 | 6 | REN-02, REN-03 | T-06-25 | old-fallback specs rewritten, never skipped | e2e | `npm run build && npx playwright test e2e/url-codec.spec.ts e2e/base-picker.spec.ts e2e/demons-browser.spec.ts e2e/demons-focus.spec.ts e2e/demons-matrix.spec.ts --project=chromium-utc` | rewrite existing | ⬜ pending |
+| 06-12-T1 | 06-12 | 7 | REN-02 | T-06-11 | toolbar/fit on canvas; SVG props unchanged | typecheck + oracle gate | `npm run typecheck && npm run test:swap` | existing | ⬜ pending |
+| 06-12-T2 | 06-12 | 7 | REN-02 | T-06-26 | tier, parity, LOD, picks, on-demand gate, fidelity in Chromium | e2e | `npm run build && npx playwright test e2e/canvas-tier.spec.ts --project=chromium-utc` | Wave 0 (06-12) | ⬜ pending |
+| 06-12-T3 | 06-12 | 7 | REN-02 | T-06-12 | budget raised only with --reason | page weight + full e2e | `npm run build && node scripts/page-weight.mjs check && npm run test:e2e` | existing | ⬜ pending |
+| 06-13-T1 | 06-13 | 8 | REN-02 | T-06-27 | narrow windows and touch | e2e | `npm run build && npx playwright test e2e/canvas-interaction.spec.ts --project=chromium-utc` | Wave 0 (06-13) | ⬜ pending |
+| 06-13-T2 | 06-13 | 8 | REN-02 | T-06-28 | keyboard model and announcements | e2e | `npm run build && npx playwright test e2e/canvas-interaction.spec.ts --project=chromium-utc` | Wave 0 (06-13) | ⬜ pending |
+| 06-14-T1 | 06-14 | 8 | REN-03 | T-06-03, T-06-01 | stale results discarded; 2^26 responsive; fallbacks | e2e (+ heartbeat guard, mutant) | `npm run build && npx playwright test e2e/worker.spec.ts --project=chromium-utc` | Wave 0 (06-14) | ⬜ pending |
+| 06-14-T2 | 06-14 | 8 | REN-03 | T-06-04, T-06-06 | worker from own chunk path at root and /ccrug, offline; lore-free chunk | e2e + script | `npm run build && node scripts/worker-chunks.mjs && npx playwright test e2e/static-export.spec.ts && npm run test:e2e:basepath` | extend existing | ⬜ pending |
+| 06-15-T1 | 06-15 | 9 | REN-02, REN-03 | T-06-11, T-06-06 | full gate with oracles untouched | full suite | `MSYS_NO_PATHCONV=1 npm run verify` | existing | ⬜ pending |
+| 06-15-T2 | 06-15 | 9 | REN-02, REN-03 | T-06-29 | manual-only checks signed off | manual checkpoint | `grep -c "Manual-Only Verifications" .planning/phases/06-canvas-tier-and-worker/06-VALIDATION.md` | existing | ⬜ pending |
 
-*Populated from the plans once they exist. The requirement-to-test map from `06-RESEARCH.md` (REN-02: tier selection, scene, view transform, pick, draw, keyboard, interaction, DOM contract, parity, narrow windows; REN-03: worker core, worker client, exported-site worker at root and `/ccrug`, stale results, responsiveness at 2^26, ceiling message) is the source for every row.*
+*Filled at planning time from the 15 Phase 6 plans (one row per task). "Wave 0 (06-NN)" means the test file is created by that plan alongside the code it covers. Plan 06-15 flips the statuses and the sign-off.*
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -59,6 +93,12 @@ Sampling bases: 10, 28, 64, 100, 200 (SVG tier, synchronous, unchanged); 28 and 
 - [ ] `tests/app/canvasDiagramRender.test.ts` — Canvas DOM contract, SSR smoke (REN-02)
 - [ ] `tests/app/workerCore.test.ts` and `tests/app/workerClient.test.ts` — pure core and latest-wins client (REN-03)
 - [ ] `tests/app/bigBaseSummary.test.ts` — ceiling message and degradation copy (REN-03)
+- [ ] `tests/app/canvasDiagramModel.test.ts` — pick filters, targets, callout, frameOf (REN-02, 06-10)
+- [ ] `tests/app/canvasPanelsRender.test.ts` — Canvas panel notes, Layers/Shortcuts copy, Regions read order (REN-02, 06-06)
+- [ ] `tests/app/basePickerRender.test.ts` — computing state and persistent status carrier (REN-03, 06-09)
+- [ ] `tests/app/selectionList.test.ts` — O(k) order merge and cap (REN-02, 06-09)
+- [ ] `tests/app/shareParamsHeadless.test.ts` — no main-thread numogram above the ceiling (REN-03, 06-09)
+- [ ] `scripts/worker-chunks.mjs` — worker chunk sizes and lore-free check (REN-03, 06-14)
 - [ ] `e2e/canvas-tier.spec.ts`, `e2e/canvas-interaction.spec.ts`, `e2e/worker.spec.ts`, a worker test added to `e2e/static-export.spec.ts`, and a Canvas-aware wait helper next to `openViewer` in `e2e/viewer-helpers.ts`
 - [ ] No framework install needed (no new dependency)
 

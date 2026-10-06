@@ -395,6 +395,7 @@ For the checker, the planner's acceptance criteria and the UI auditor:
 4. `TEXT_VIEW_ZONE_LIMIT` is 1024, so for bases 1025 to 4000 the Text panel carries only header lines. Recommended: let the worker build the full listing and make the limit follow the shipped ceiling (data), so the non-visual fallback is complete at every Canvas base. If the limit stays, the keyboard model is the only complete non-visual route for 1025 to 4000.
 5. 150 ms grace, 0.5 dim, 8px tap slop, 6px caption floor, 1.5px node floor, zoom ceiling formula (clamped to 100) are `[default]` values.
 6. `tier=canvas` combined with an authored base-10 preset layout falls back to SVG for that preset (diagnostic only, not specified further).
+7. Highlighted Canvas edges use a solid stroke; the SVG tier's partial-selection gradients (a gate or current with only some terminals selected) are SVG-tier only `[default]`, recorded at planning (06-08) and listed for review at verification (06-15).
 
 ---
 

@@ -538,17 +538,23 @@ Engine and view (native Node): see P1. Spike table rows for the shipped profile 
 | A8 | A `webpackChunkName` magic comment would give the worker chunk a stable name | not tested | If used, test it; the plan can assert the URL shape (`/_next/static/chunks/*.js`) instead |
 | A9 | The measured benchmark proxies (gpu 1x; `--disable-gpu` + CDP 6x) approximate the shipped `sw-6x` profile | Measured Costs | Real low-end devices may differ; probes are for sizing only |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Main-thread `g` above the ceiling.**
    - Known: `ViewContext.g` is non-null and read by seven components (five of them inside the Demons overlay); main-thread `createNumogram(2^26)` is 625 ms.
    - Unclear: type change (`g: Numogram | null`) versus a lazy getter resolved before the overlay mounts.
    - Recommendation: keep `g` non-null for tiers svg and canvas; for headless build it lazily on first overlay open or demon focus, and make `commitBase` and URL hydration not touch it (P6). Ask the user only if a 0.6 s one-time overlay-open delay at 2^26 is unacceptable.
+   - RESOLVED: lazy headless `g` through a context getter, never built on commit or hydration; the Regions panel never reads it before its early return (06-06 Task 3, 06-11 Task 1 and Task 2; orchestrator decision 5).
 2. **UI-SPEC scale rule versus fit (P8).** Recommendation: fit-relative zoom; confirm in plan checking that the UI-SPEC "Scale rule" is superseded.
+   - RESOLVED: fit-relative zoom, `fitScale = min(W / width, H / height)`, zoom ceiling from the fitted radius (06-05; orchestrator decision 2).
 3. **Gesture stretching (A2) and context dimming (A3).** Both are performance-driven readings of the UI-SPEC; the plan should record them as `[default]` decisions.
+   - RESOLVED: both recorded as `[default]` decisions: layer-opacity dimming with highlighted edges on the overlay (06-08) and gesture-time bitmap stretch with re-raster on gesture end (06-10).
 4. **`TEXT_VIEW_ZONE_LIMIT` (UI-SPEC decision 4).** Recommendation: follow the ceiling (text at 4000 is 358 KB, 7 ms) so the non-visual fallback is complete at every Canvas base; worker builds it.
+   - RESOLVED: `TEXT_VIEW_ZONE_LIMIT = INTERACTIVE_MAX_N` (data) and the worker builds the full text (06-04 Task 1; orchestrator decision 1).
 5. **`ShortcutsModal` and keyboard model split.** The SVG tier keeps its flat roving order; the Canvas tier follows the UI-SPEC model. Confirm the qualifier text "Up to {svgRichMaxN} zones" for the existing line.
+   - RESOLVED: the existing Diagram line is qualified "Up to {svgRichMaxN} zones" and a new "Above {svgRichMaxN} zones" line describes the Canvas model, both reading the cutoff from the context (06-06 Task 3).
 6. **Worker chunk size reporting.** `check:weight` cannot see it; decide whether to log it in the plan summary or extend the script.
+   - RESOLVED: logged in the 06-07 summary and reported by the new `scripts/worker-chunks.mjs` (sizes plus a lore-free check) in 06-14; check:weight is not extended.
 
 ## Environment Availability
 

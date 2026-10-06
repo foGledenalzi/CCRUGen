@@ -175,7 +175,24 @@ Plans:
   3. Switching to a large base keeps the page responsive because computation runs in a Web Worker, and rapid base changes never show a stale result
   4. Beyond the measured ceiling the app shows a visible message and offers headless export instead of freezing
   5. The exported static site, with and without a `basePath`, computes base 28 through the worker offline
-**Plans**: TBD
+**Plans**: 15 plans in 9 waves
+
+Plans:
+- [ ] 06-01-PLAN.md - Shipped ceiling as data: boundaries.interactiveMaxN, selectTier/interactiveCeiling, validator rules, shaper carry-forward, INTERACTIVE_MAX_N (wave 1)
+- [ ] 06-02-PLAN.md - Engine Canvas scene: typed arrays, route curves, syzygy trimming, pick segments for ring/ladder/spiral and the pair graph (wave 2)
+- [ ] 06-03-PLAN.md - Pure input models: Canvas keyboard traversal and announcements, pointer state machine and wheel factor (wave 1)
+- [ ] 06-04-PLAN.md - Worker contract and pure core: lore-free summary, text limit follows the ceiling, over-limit copy, protocol, buildResult (wave 3)
+- [ ] 06-05-PLAN.md - Canvas view transform (fit-relative zoom, footprint, backing store) and the 12 px nearest-wins pick index (wave 3)
+- [ ] 06-06-PLAN.md - View contract tier/ceiling fields (first NumogramClient edit, test:swap), Canvas panel notes, Layers/Shortcuts copy, Regions read order (wave 2)
+- [ ] 06-07-PLAN.md - Latest-wins WorkerClient with main-thread fallback, worker shell, React hook; export build proves the chunk (wave 4)
+- [ ] 06-08-PLAN.md - Canvas drawing: static layers with parity values and LOD, overlay with on-demand edges, focus ring and fidelity downgrade (wave 4)
+- [ ] 06-09-PLAN.md - Large-base guards: picker computing state, O(k) capped Selection list, URL codec never builds a headless numogram (wave 3)
+- [ ] 06-10-PLAN.md - CanvasDiagram component and pure glue: layers, gestures, picking, keyboard, callout, live region (wave 5)
+- [ ] 06-11-PLAN.md - Viewer integration: render tier, worker requests and swap, deferred hydration, lazy headless g, over-limit view, rewritten old-fallback specs (wave 6)
+- [ ] 06-12-PLAN.md - Canvas chrome (toolbar, fit, shared-link fit) and e2e canvas-tier spec; page weight via --reason (wave 7)
+- [ ] 06-13-PLAN.md - E2E: narrow windows, touch gestures, keyboard traversal and announcements, isolate/mute at the Canvas tier (wave 8)
+- [ ] 06-14-PLAN.md - E2E: worker scope, stale results, computing state, 2^26 heartbeat, fallbacks, worker offline at root and /ccrug; worker chunk report (wave 8)
+- [ ] 06-15-PLAN.md - Phase gate: full verify, validation sign-off, manual screen-reader/touch/parity/narrow-window checkpoint (wave 9)
 **UI hint**: yes
 **Research**: YES, run `/gsd-research-phase` for Canvas picking (uniform-grid zone picking, id-buffer edge picking) and for worker bundling under Next 14 webpack in an export build (`trailingSlash`, `basePath`, same-origin worker).
 **Notes**: Both tiers sit behind one `NumogramViewProps` contract selected from the data table, not from hard-coded numbers. A WebGL (PixiJS 8) tier is built only if the Phase 3 spike said yes. This phase is independent of Phase 7 and the two may run in either order or in parallel.
