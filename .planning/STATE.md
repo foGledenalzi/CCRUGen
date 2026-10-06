@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-10-06T02:37:41.549Z"
+stopped_at: Phase 6 UI-SPEC approved
+last_updated: "2026-10-06T02:54:50.000Z"
 last_activity: 2026-10-05
 progress:
   total_phases: 8
@@ -228,9 +228,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-06T02:37:41.549Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-canvas-tier-and-worker/06-CONTEXT.md
+Last session: 2026-10-06T02:54:50.000Z
+Stopped at: Phase 6 UI-SPEC approved
+Resume file: .planning/phases/06-canvas-tier-and-worker/06-UI-SPEC.md
 
 **Planned Phase:** 05 (demons-layer) — 12 plans — 2026-09-30T02:21:36.162Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
