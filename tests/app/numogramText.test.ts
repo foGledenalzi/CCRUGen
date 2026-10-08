@@ -1,11 +1,24 @@
-// Tests for app/lib/numogramText.ts (UI-07 text view, D-14 big-base fallback). Bounded above
-// TEXT_VIEW_ZONE_LIMIT zones so a huge base can never freeze the tab through the text view.
+// Tests for app/lib/numogramText.ts (UI-07 text view, D-14 big-base fallback; Phase 6: the text limit follows the
+// shipped interactive ceiling and the over-limit copy exists as pure functions). Bounded above TEXT_VIEW_ZONE_LIMIT
+// zones so a huge base can never freeze the tab through the text view. Every threshold comes from the tier table.
 import { describe, expect, it } from 'vitest'
-import { createNumogram, formatGateName } from '../../engine/index'
+import { TIER_TABLE, createNumogram, formatGateName } from '../../engine/index'
 import { formatZoneLabel } from '../../app/lib/labelScheme'
-import { bigBaseMessage, numogramText, TEXT_VIEW_ZONE_LIMIT } from '../../app/lib/numogramText'
+import { SUMMARY_TORQUE_LIMIT, summarize as summarizeFromSummary } from '../../app/lib/summary'
+import { summarize as summarizeFromView } from '../../app/lib/numogramView'
+import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
+import {
+  bigBaseMessage,
+  numogramText,
+  overLimitMessage,
+  TEXT_VIEW_ZONE_LIMIT,
+  tierOverrideMessage,
+} from '../../app/lib/numogramText'
 
 const MINUS = String.fromCodePoint(0x2212)
+const EM_DASH = String.fromCodePoint(0x2014)
+
+const gateLines = (text: string): string[] => text.split('\n').filter(l => /^Gt-/.test(l))
 
 describe('numogramText: base 10 (identity labels)', () => {
   const text = numogramText(createNumogram(10), z => String(z))
@@ -74,25 +87,65 @@ describe('numogramText: xeno labels at base 10', () => {
   })
 })
 
-describe('numogramText: base 4096 (above TEXT_VIEW_ZONE_LIMIT)', () => {
-  const text = numogramText(createNumogram(4096), z => String(z))
+describe('numogramText: the first even base above the interactive ceiling', () => {
+  const above = INTERACTIVE_MAX_N + 2
+  const text = numogramText(createNumogram(above), z => String(z))
 
-  it('is bounded and carries the truncation message', () => {
-    expect(text).toContain('Zone, syzygy and gate listings are shown up to 1024 zones.')
+  it('is bounded and carries the truncation message built from TEXT_VIEW_ZONE_LIMIT', () => {
+    expect(text).toContain(`Zone, syzygy and gate listings are shown up to ${TEXT_VIEW_ZONE_LIMIT} zones.`)
     expect(text).not.toContain('Gt-')
     expect(text.length).toBeLessThan(4000)
   })
 
-  it('truncates Torque lengths past 12 with a "more" suffix', () => {
-    expect(text).toMatch(/, … \+\d+ more/)
-    expect(text.split('\n').find(l => l.startsWith('Torque cycles:'))?.split(',')).toHaveLength(13)
+  it('names the base in its header block', () => {
+    expect(text).toContain(`CCRUG numogram, base ${above}`)
   })
 })
 
-describe('numogramText: base 1024 (exactly TEXT_VIEW_ZONE_LIMIT)', () => {
-  it('lists exactly 1024 gate lines', () => {
+describe('numogramText: a base above the ceiling with more Torque cycles than the summary lists', () => {
+  // Found from data (createNumogram is cheap): the first even base past the ceiling whose Torque count exceeds the
+  // summary's own display limit, so this stays valid if the shipped ceiling moves.
+  const base = (() => {
+    for (let n = INTERACTIVE_MAX_N + 2; n < INTERACTIVE_MAX_N + 2000; n += 2) {
+      if (createNumogram(n).torqueCount > SUMMARY_TORQUE_LIMIT) return n
+    }
+    throw new Error('no base with enough Torque cycles found above the ceiling')
+  })()
+  const text = numogramText(createNumogram(base), z => String(z))
+
+  it('truncates Torque lengths past the summary limit with a "more" suffix', () => {
+    expect(text).toMatch(/, … \+\d+ more/)
+    expect(text.split('\n').find(l => l.startsWith('Torque cycles:'))?.split(',')).toHaveLength(SUMMARY_TORQUE_LIMIT + 1)
+  })
+})
+
+describe('numogramText: the limit sits exactly at the ceiling', () => {
+  it('lists exactly 1024 gate lines at base 1024', () => {
     const text = numogramText(createNumogram(1024), z => String(z))
-    expect(text.split('\n').filter(l => /^Gt-/.test(l))).toHaveLength(1024)
+    expect(gateLines(text)).toHaveLength(1024)
+  })
+
+  it('lists exactly INTERACTIVE_MAX_N gate lines at the ceiling base itself', () => {
+    const text = numogramText(createNumogram(INTERACTIVE_MAX_N), z => String(z))
+    expect(gateLines(text)).toHaveLength(INTERACTIVE_MAX_N)
+    expect(text).not.toContain('listings are shown up to')
+  })
+})
+
+describe('summarize after the move to a lore-free module', () => {
+  it('is the same function from summary.ts and from numogramView.ts', () => {
+    expect(summarizeFromSummary).toBe(summarizeFromView)
+  })
+
+  it('still reports the base-28 summary the viewer showed before the move', () => {
+    const s = summarizeFromSummary(createNumogram(28))
+    expect(s.base).toBe(28)
+    expect(s.zoneCount).toBe(28)
+    expect(s.hasWarp).toBe(true)
+    expect(s.torqueCount).toBe(2)
+    expect(s.torqueLengths).toEqual([9, 3])
+    expect(s.demonCount).toBe(378)
+    expect(s.typeCounts.chrono + s.typeCounts.amphi + s.typeCounts.xeno).toBe(378)
   })
 })
 
@@ -104,8 +157,49 @@ describe('bigBaseMessage', () => {
   })
 })
 
+describe('overLimitMessage (D-01, D-02)', () => {
+  it('matches the UI-SPEC copy verbatim', () => {
+    expect(overLimitMessage(4002, 4000)).toBe(
+      'Base 4002 is above the interactive limit of 4000. Showing the summary and text view. To draw it, use headless export.',
+    )
+  })
+
+  it('takes the cutoff as a parameter', () => {
+    expect(overLimitMessage(9000, 1234)).toContain('interactive limit of 1234')
+  })
+
+  it('reads the cutoff from the shipped ceiling when the caller passes it', () => {
+    expect(overLimitMessage(INTERACTIVE_MAX_N + 2, INTERACTIVE_MAX_N)).toContain(
+      `interactive limit of ${INTERACTIVE_MAX_N}.`,
+    )
+  })
+
+  it('writes the base as a plain integer, with no dash, exclamation mark or separator', () => {
+    const text = overLimitMessage(67108864, INTERACTIVE_MAX_N)
+    expect(text).toContain('Base 67108864 is above')
+    expect(text).not.toContain(EM_DASH)
+    expect(text).not.toContain('!')
+    expect(text).not.toMatch(/\d[,.\s]\d{3}\b/)
+  })
+})
+
+describe('tierOverrideMessage (diagnostic tier=headless within the limit)', () => {
+  it('matches the UI-SPEC copy verbatim', () => {
+    expect(tierOverrideMessage(28)).toBe('Tier override active. Showing the summary and text view for base 28.')
+  })
+
+  it('never claims the base is over the limit and has no dash or exclamation mark', () => {
+    const text = tierOverrideMessage(28)
+    expect(text).not.toContain('above')
+    expect(text).not.toContain('limit')
+    expect(text).not.toContain(EM_DASH)
+    expect(text).not.toContain('!')
+  })
+})
+
 describe('TEXT_VIEW_ZONE_LIMIT', () => {
-  it('is 1024', () => {
-    expect(TEXT_VIEW_ZONE_LIMIT).toBe(1024)
+  it("equals the table's interactive ceiling", () => {
+    expect(TEXT_VIEW_ZONE_LIMIT).toBe(INTERACTIVE_MAX_N)
+    expect(TEXT_VIEW_ZONE_LIMIT).toBe(TIER_TABLE.boundaries.interactiveMaxN?.n)
   })
 })
