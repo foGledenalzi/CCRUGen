@@ -2,6 +2,9 @@
 // hand-written fake worker and an on-demand scheduler, so the tests decide the order in which replies and scheduled
 // fallback jobs happen. No real Worker is ever constructed here (createNumogramWorker is exercised by the static checks
 // and by the production build, not in node).
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
@@ -15,7 +18,7 @@ import {
 } from '../../app/lib/worker/protocol'
 import { WorkerClient, type WorkerClientOptions, type WorkerLike } from '../../app/lib/worker/workerClient'
 
-// An arbitrary ceiling for the fallback tests; the app passes INTERACTIVE_MAX_N (checked in the last describe).
+// An arbitrary ceiling for the fallback tests; the app passes INTERACTIVE_MAX_N (wired in useNumogramWorker.ts, checked statically below).
 const FALLBACK_MAX = 200
 
 function req(base = 28): BuildRequest {
@@ -597,5 +600,158 @@ describe('WorkerClient: event sequences (T-06-03, T-06-21)', () => {
       }),
       { numRuns: 400 },
     )
+  })
+})
+
+// ---------------------------------------------------------------------------------------------------------------
+// The worker shell, the hook and the construction site, checked statically (no browser here; the bundle itself is
+// proven by `npm run build` plus 06-14's e2e).
+
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+const read = (rel: string): string => readFileSync(path.resolve(REPO, rel), 'utf8')
+
+const FORBIDDEN_DIRS = ['app/presets/', 'app/data/']
+const FORBIDDEN_FILES = ['app/lib/numogramView.ts', 'app/lib/demonBrowser.ts', 'app/lib/demonState.ts']
+const IMPORT_RES = [
+  /\bfrom\s+['"]([^'"]+)['"]/g,
+  /\bimport\s+['"]([^'"]+)['"]/g,
+  /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
+]
+
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1')
+}
+
+function resolveImport(fromFile: string, spec: string): string | null {
+  const base = path.resolve(path.dirname(fromFile), spec)
+  const candidates = [base, `${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts'), path.join(base, 'index.tsx')]
+  for (const c of candidates) if (existsSync(c) && /\.(tsx?|json)$/.test(c)) return c
+  return null
+}
+
+/** Relative imports of one file, as written. */
+function importsOf(rel: string): string[] {
+  const source = stripComments(read(rel))
+  const specs: string[] = []
+  for (const re of IMPORT_RES) {
+    re.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = re.exec(source)) !== null) specs.push(m[1] as string)
+  }
+  return specs
+}
+
+/** Every repo-relative file reachable through relative imports from `entry`. */
+function importGraph(entry: string): { files: string[]; unresolved: string[] } {
+  const seen = new Set<string>()
+  const unresolved: string[] = []
+  const stack = [path.resolve(REPO, entry)]
+  while (stack.length > 0) {
+    const file = stack.pop() as string
+    if (seen.has(file)) continue
+    seen.add(file)
+    if (file.endsWith('.json')) continue
+    for (const spec of importsOf(path.relative(REPO, file))) {
+      if (!spec.startsWith('.')) continue
+      const resolved = resolveImport(file, spec)
+      if (resolved === null) unresolved.push(`${path.relative(REPO, file)} -> ${spec}`)
+      else stack.push(resolved)
+    }
+  }
+  return { files: [...seen].map(f => path.relative(REPO, f).split(path.sep).join('/')).sort(), unresolved }
+}
+
+function sourceFilesUnder(rel: string): string[] {
+  const out: string[] = []
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (/\.tsx?$/.test(entry.name)) out.push(path.relative(REPO, full).split(path.sep).join('/'))
+    }
+  }
+  walk(path.resolve(REPO, rel))
+  return out.sort()
+}
+
+describe('workers/numogram.worker.ts (static)', () => {
+  it('forwards each message to handleRequest and transfers the scene buffers', () => {
+    const src = read('workers/numogram.worker.ts')
+    expect(src).toContain('postMessage(response, { transfer })')
+    expect(src).toContain('handleRequest(e.data)')
+    expect(src).not.toContain('type:') // classic worker: no options object anywhere (webpack rewrites it anyway)
+    expect(src).not.toContain('importScripts')
+  })
+
+  it('imports only the pure core', () => {
+    expect(importsOf('workers/numogram.worker.ts')).toEqual(['../app/lib/worker/buildResult'])
+  })
+
+  it('its import graph reaches no preset, no app/data file, none of the lore-carrying lib files and not the client', () => {
+    const graph = importGraph('workers/numogram.worker.ts')
+    expect(graph.unresolved).toEqual([])
+    expect(graph.files).toContain('app/lib/worker/buildResult.ts')
+    const forbidden = graph.files.filter(
+      f => FORBIDDEN_DIRS.some(d => f.startsWith(d)) || FORBIDDEN_FILES.includes(f) || f === 'app/lib/worker/workerClient.ts',
+    )
+    expect(forbidden).toEqual([])
+  })
+})
+
+describe('the Worker construction site (T-04 stray-URL hazard, T-06-04)', () => {
+  const app = sourceFilesUnder('app')
+  const workers = sourceFilesUnder('workers')
+  const CLIENT = 'app/lib/worker/workerClient.ts'
+
+  it('new Worker( appears in workerClient.ts exactly once, as the literal form with no options object', () => {
+    const src = read(CLIENT)
+    const calls = src.match(/new Worker\(/g) ?? []
+    expect(calls).toHaveLength(1)
+    expect(src).toContain("new Worker(new URL('../../../workers/numogram.worker.ts', import.meta.url))")
+    expect(src.match(/import\.meta\.url/g)).toHaveLength(1)
+  })
+
+  it('no other file under app/ or workers/ constructs a Worker or touches import.meta.url', () => {
+    const offenders = [...app, ...workers]
+      .filter(f => f !== CLIENT)
+      .filter(f => /new Worker\(|import\.meta\.url/.test(stripComments(read(f))))
+    expect(offenders).toEqual([])
+  })
+
+  it('the file the URL points at exists', () => {
+    expect(existsSync(path.resolve(REPO, 'workers/numogram.worker.ts'))).toBe(true)
+  })
+})
+
+describe('useNumogramWorker (static: there is no jsdom, the logic lives in WorkerClient)', () => {
+  const HOOK = 'app/lib/worker/useNumogramWorker.ts'
+  const src = stripComments(read(HOOK))
+
+  it('the only effect is the dispose cleanup: it creates no client and no Worker', () => {
+    expect(src.match(/\buseEffect\(/g)).toHaveLength(1)
+    const effect = src.slice(src.indexOf('useEffect('), src.indexOf('return useMemo'))
+    expect(effect).toContain('dispose()')
+    expect(effect).not.toContain('new WorkerClient')
+    expect(effect).not.toContain('createNumogramWorker')
+    expect(effect).not.toContain('Worker(')
+  })
+
+  it('wires the app values: the shipped ceiling, the shared core as fallback, one frame before the fallback runs', () => {
+    expect(src).toContain('fallbackMaxBase: INTERACTIVE_MAX_N')
+    expect(src).toContain('handleRequest(req).response')
+    expect(src).toContain("typeof Worker === 'undefined' ? null : createNumogramWorker()")
+    expect(src).toContain('requestAnimationFrame')
+    expect(src).toContain('setTimeout(job, 0)')
+  })
+
+  it('touches no window at render time and exposes only request and supersede', () => {
+    expect(src).not.toMatch(/\bwindow\b/)
+    expect(src).toMatch(/request: \(req, onResult\) =>/)
+    expect(src).toMatch(/supersede: \(\) =>/)
+  })
+
+  it('exports useNumogramWorker as a function', async () => {
+    const mod = await import('../../app/lib/worker/useNumogramWorker')
+    expect(typeof mod.useNumogramWorker).toBe('function')
   })
 })
