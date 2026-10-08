@@ -6,6 +6,7 @@ import { REGION_CLR } from '../../lib/constants'
 import { plexExpr } from '../../lib/numogram'
 import { formatNumeral } from '../../../engine/index'
 import { zoneColorFor } from '../../lib/numogramView'
+import { capSelection, mergeSelectionOrder } from '../../lib/selectionList'
 import { SUBTYPE_LABEL } from '../../lib/demonBrowser'
 import { PanelGroup } from '../panels/PanelGroup'
 import type { PanelGroupItem } from '../panels/PanelGroup'
@@ -480,25 +481,23 @@ export function InfoDisplay({
   const info = hoverInfo || pinnedInfo
   const selectedByKey = new Map(selectedInfos.map(si => [selectedInfoKey(si), si]))
   const selectedKeys = useMemo(() => selectedInfos.map(selectedInfoKey), [selectedInfos])
-  const [orderedKeys, setOrderedKeys] = useState<string[]>([])
+  const [orderedKeys, setOrderedKeys] = useState<readonly string[]>([])
 
   useEffect(() => {
     if (selectedInfos.length === 0) {
       setOrderedKeys([])
       return
     }
-    const valid = new Set(selectedKeys)
-    setOrderedKeys(prev => {
-      const kept = prev.filter(k => valid.has(k))
-      const appended = selectedKeys.filter(k => !kept.includes(k))
-      const next = [...kept, ...appended]
-      if (next.length === prev.length && next.every((k, i) => k === prev[i])) return prev
-      return next
-    })
+    // O(k) (Phase 6 P5): the previous per-key array search was O(k^2), about 14,000 entries on select-all at n = 4000.
+    // The merge hands back `prev` itself when nothing changed, so React bails out and there is no render loop.
+    setOrderedKeys(prev => mergeSelectionOrder(prev, selectedKeys))
   }, [selectedInfos.length, selectedKeys])
 
   if (selectedInfos.length > 0) {
-    const groupItems = orderedKeys.reduce<PanelGroupItem[]>((acc, key) => {
+    // At the Canvas and headless tiers only the first SELECTION_LIST_MAX entries are listed; the rest collapse into one
+    // line below (the SVG tier is never capped, so `hidden` is always 0 there and nothing changes).
+    const { shown, hidden } = capSelection(orderedKeys, ctx.tier)
+    const groupItems = shown.reduce<PanelGroupItem[]>((acc, key) => {
         const si = selectedByKey.get(key)
         if (!si) return acc
         const meta = selectedInfoMeta(si, ctx)
@@ -526,6 +525,11 @@ export function InfoDisplay({
           items={groupItems}
           openLastOnItemsChange
         />
+        {hidden > 0 && (
+          <div data-post-baseline="" data-selection-more="" className="px-1 pt-1 text-[10px] text-gray-500">
+            {`and ${hidden} more selected`}
+          </div>
+        )}
       </div>
     )
   }
