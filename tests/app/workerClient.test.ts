@@ -562,7 +562,8 @@ describe('WorkerClient: event sequences (T-06-03, T-06-21)', () => {
               r.worker.deliver(reply(ev.id, 10))
               break
             case 'crash':
-              if (crashedAt < 0) crashedAt = r.worker.posted.length
+              // A worker that was never created cannot crash: the event then reaches no handler.
+              if (crashedAt < 0 && r.stats.made > 0) crashedAt = r.worker.posted.length
               r.worker.crash()
               break
             case 'flush':
