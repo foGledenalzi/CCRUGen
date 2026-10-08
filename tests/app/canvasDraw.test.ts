@@ -9,6 +9,7 @@ import {
   buildZoneScene,
   createNumogram,
   pairGraphLayout,
+  parseRouteCurve,
   resolveLayout,
   routeCurrents,
   routeGates,
@@ -51,9 +52,10 @@ import {
 } from '../../app/lib/canvas/viewTransform'
 import { REGION_CLR } from '../../app/lib/constants'
 import { KIND_COLOR } from '../../app/lib/demonBrowser'
-import { syzTrianglePoints } from '../../app/lib/geometry'
+import { curveAway, syzTrianglePoints } from '../../app/lib/geometry'
 import { DEFAULT_LABEL_SCHEME, zoneLabelsFor } from '../../app/lib/labelScheme'
 import { buildNumogramView, type NumogramView } from '../../app/lib/numogramView'
+import { formatXenotationForDisplay } from '../../app/lib/xenotation'
 import { ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../app/lib/regions'
 import { labelsShown } from '../../app/lib/tierBounds'
 import type { Demon, Layer } from '../../app/data/types'
@@ -307,6 +309,12 @@ function stateFor(fx: Fx, over: Partial<DrawState> = {}): DrawState {
 }
 
 const scaleFor = (fx: Fx, t: CanvasTransform = IDENTITY_TRANSFORM): number => scaleOf(t, fx.frame, fx.w, fx.h)
+
+/** A transform at the given zoom that puts the world point (wx, wy) at the centre of the window. */
+function centerOn(fx: Fx, wx: number, wy: number, zoom: number): CanvasTransform {
+  const s = scaleFor(fx, { zoom, tx: 0, ty: 0 })
+  return { zoom, tx: -(wx - fx.frame.width / 2) * s, ty: -(wy - fx.frame.height / 2) * s }
+}
 const screenOf = (fx: Fx, wx: number, wy: number, t: CanvasTransform = IDENTITY_TRANSFORM): { x: number; y: number } =>
   toScreen(t, fx.frame, fx.w, fx.h, wx, wy)
 
@@ -944,6 +952,38 @@ describe('drawNodeLayer (zone layouts)', () => {
       expect(fontPx(e.style.font)).toBeCloseTo(6.5 * k * s, 9)
       expect(e.style.globalAlpha).toBeCloseTo(0.44, 12)
     }
+    // zone 7: the xenotation text, in the zone colour at suffix 70, 24 k below the centre
+    const seven = texts.find(e => e.args[0] === formatXenotationForDisplay(7)) as Ev
+    const at = screenOf(fx, fx.scene.x[7] as number, (fx.scene.y[7] as number) + 24 * k)
+    expect(seven.style.fillStyle).toBe(`${fx.view.zoneColors[7]}70`)
+    expect(nums(seven.args.slice(1))[0]).toBeCloseTo(at.x, 9)
+    expect(nums(seven.args.slice(1))[1]).toBeCloseTo(at.y, 9)
+  })
+
+  it('zoomed in, where the 1 px floor no longer binds, the idle zone stroke is 0.7 ss s, the current junction rim 0.8 ss s and the gate 0.7 ss s', () => {
+    const fx = zoneFx(28)
+    const zone = 5
+    const ss = fx.scene.strokeScale
+    const t = centerOn(fx, fx.scene.x[zone] as number, fx.scene.y[zone] as number, 3)
+    const s = scaleFor(fx, t)
+    expect(0.7 * ss * s).toBeGreaterThan(1)
+    const nodes = makeRecorder()
+    drawNodeLayer(nodes.env, stateFor(fx, { transform: t }), fx.index)
+    const rim = strokesOf(nodes.events).find(e => e.style.strokeStyle === `${fx.view.zoneColors[zone]}44`) as Ev
+    expect(rim.style.lineWidth).toBeCloseTo(0.7 * ss * s, 9)
+
+    const gates = makeRecorder()
+    drawGateLayer(gates.env, stateFor(fx, { transform: t }), fx.index)
+    const gate = strokesOf(gates.events).find(e => e.style.strokeStyle === '#cc44ff') as Ev
+    expect(gate.style.lineWidth).toBeCloseTo(0.7 * ss * s, 9)
+
+    const q = fx.g.pairOf(zone)
+    const tj = centerOn(fx, fx.scene.junctionX[q] as number, fx.scene.junctionY[q] as number, 3)
+    const sj = scaleFor(fx, tj)
+    const cur = makeRecorder()
+    drawCurrentLayer(cur.env, stateFor(fx, { transform: tj }), fx.index)
+    const juncRim = strokesOf(cur.events).find(e => e.style.strokeStyle === '#22ee66' && e.style.globalAlpha === 1 && opsOf(e, 'arc').length > 0) as Ev
+    expect(juncRim.style.lineWidth).toBeCloseTo(0.8 * ss * sj, 9)
   })
 
   it('draws the syzygy triangle (0.2) and the region dot (r = 2 k s, 0.3, region colour) at label level of detail', () => {
@@ -1335,17 +1375,24 @@ describe('drawOverlay: edges on demand (D-04)', () => {
 
   it('with the gate layer on, the gates that end in the hovered zone are drawn too', () => {
     const fx = zoneFx(28)
+    // a zone that some other zone's gate ends in
+    const zone = Array.from({ length: 28 }, (_, z) => z).find(z => Array.from({ length: 28 }, (_, w) => w).some(w => w !== z && fx.scene.gateTo[w] === z)) as number
+    expect(zone).toBeDefined()
     const rec = makeRecorder()
-    const report = drawOverlay(rec.env, overlayFor(fx, { gateMode: 'on', hlZones: new Set([0]) }), fx.index)
-    const gates = new Set<number>([0])
-    for (let w = 0; w < 28; w++) if (fx.scene.gateTo[w] === 0) gates.add(w)
+    const report = drawOverlay(rec.env, overlayFor(fx, { gateMode: 'on', hlZones: new Set([zone]) }), fx.index)
+    const gates = new Set<number>([zone])
+    for (let w = 0; w < 28; w++) if (fx.scene.gateTo[w] === zone) gates.add(w)
     expect(gates.size).toBeGreaterThan(1)
     const dashed = strokesOf(rec.events).filter(dashedGate)
     expect(dashed.reduce((n, e) => n + opsOf(e, 'quadraticCurveTo').length, 0)).toBe(gates.size)
     for (const w of gates) expect(drawnCurve(rec.events, fx, fx.scene.gateCurves, 6 * w, dashedGate)).toBe(true)
-    const currents = new Set<number>([fx.g.pairOf(0)])
-    for (let w = 0; w < fx.g.pairCount; w++) if (fx.scene.currentTo[w] === 0) currents.add(w)
+    const currents = new Set<number>([fx.g.pairOf(zone)])
+    for (let w = 0; w < fx.g.pairCount; w++) if (fx.scene.currentTo[w] === zone) currents.add(w)
     expect(report.highlightedEdges).toBe(1 + currents.size + gates.size)
+    // with the gate mode off the same zone draws only its own gate
+    const off = makeRecorder()
+    drawOverlay(off.env, overlayFor(fx, { gateMode: 'off', hlZones: new Set([zone]) }), fx.index)
+    expect(strokesOf(off.events).filter(dashedGate).reduce((n, e) => n + opsOf(e, 'quadraticCurveTo').length, 0)).toBe(1)
   })
 
   it('a muted zone draws nothing; an isolate-dimmed zone still gets its edges at the highlighted alpha', () => {
@@ -1769,6 +1816,233 @@ describe('drawOverlay: full fidelity decorations', () => {
   })
 })
 
+describe('drawOverlay: geometry details', () => {
+  it('a chord is the SVG tier route: curveAway from the layout centre with factor 0.25', () => {
+    const fx = zoneFx(28)
+    const a = 12
+    const b = 3
+    const route = curveAway(
+      { x: fx.scene.x[a] as number, y: fx.scene.y[a] as number },
+      { x: fx.scene.x[b] as number, y: fx.scene.y[b] as number },
+      fx.scene.centerX,
+      fx.scene.centerY,
+      0.25,
+    )
+    const expected = new Float64Array(6)
+    expect(parseRouteCurve(route, expected, 0)).toBe(true)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { focusChords: [{ a, b, name: 'x', kind: 'xeno' }] }), fx.index)
+    const [curve] = curvesOf(strokesOf(rec.events)[0] as Ev) as [number[]]
+    expect(sameCurve(curve, sceneCurve(fx, expected, 0))).toBe(true)
+  })
+
+  it('syzygy dots: the count is round(dist / 30 k), clamped to 3 .. 10', () => {
+    const fx = zoneFx(28, 'ladder')
+    const q = fx.g.pairOf(5)
+    const { lo, hi } = fx.g.pair(q)
+    const k = fx.scene.nodeRadius / 21
+    const dotsFor = (f: Fx): number => {
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(f, { layers: new Set<Layer>(['syzygies']), hlZones: new Set([5]) }), f.index)
+      const dots = fillsOf(rec.events).find(e => e.style.fillStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy) as Ev
+      return opsOf(dots, 'arc').length
+    }
+    // the real ladder rung is 9.33 spacings long: 9 dots
+    const dist = Math.hypot((fx.scene.x[hi] as number) - (fx.scene.x[lo] as number), (fx.scene.y[hi] as number) - (fx.scene.y[lo] as number))
+    expect(dist / (30 * k)).toBeCloseTo(9.333, 2)
+    expect(dotsFor(fx)).toBe(9)
+    // synthetic partners at chosen distances (the dots follow the scene's segment, the count follows the centres)
+    const apart = (spacings: number): Fx => {
+      const x = Float64Array.from(fx.scene.x)
+      const y = Float64Array.from(fx.scene.y)
+      x[hi] = (x[lo] as number) + spacings * 30 * k
+      y[hi] = y[lo] as number
+      return { ...fx, scene: { ...fx.scene, x, y } }
+    }
+    expect(dotsFor(apart(5.4))).toBe(5)
+    expect(dotsFor(apart(7.6))).toBe(8)
+    expect(dotsFor(apart(14))).toBe(10)
+    expect(dotsFor(apart(0))).toBe(3)
+    expect(dotsFor(apart(1.2))).toBe(3)
+  })
+
+  it('at a tiny scale the dots keep a 0.75 px radius, and their glow substitute is 1 px larger', () => {
+    const fx = zoneFx(4000)
+    expect((fx.scene.nodeRadius / 21) * scaleFor(fx)).toBeLessThan(0.1)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { layers: new Set<Layer>(['syzygies']), hlZones: new Set([10]) }), fx.index)
+    const dots = fillsOf(rec.events).find(e => e.style.fillStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy) as Ev
+    for (const o of opsOf(dots, 'arc')) expect(nums(o.args)[2]).toBe(0.75)
+    const under = fillsOf(rec.events).find(e => Math.abs(e.style.globalAlpha - 0.25 * HL.syzygy) < 1e-12) as Ev
+    for (const o of opsOf(under, 'arc')) expect(nums(o.args)[2]).toBe(1.75)
+  })
+
+  it('edge text sits where the SVG tier puts it: current name and label beside the junction, syzygy name off the midpoint, gate label on its meeting point', () => {
+    const fx = zoneFx(28)
+    const zone = 5
+    const q = fx.g.pairOf(zone)
+    const k = fx.scene.nodeRadius / 21
+    const s = scaleFor(fx)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', hlZones: new Set([zone]) }), fx.index)
+    const texts = ofType(rec.events, 'fillText')
+    const at = (text: string, font: string): Ev => texts.find(e => e.args[0] === text && e.style.font.startsWith(font)) as Ev
+
+    const dest = fx.scene.currentTo[q] as number
+    const jx = fx.scene.junctionX[q] as number
+    const jy = fx.scene.junctionY[q] as number
+    const dx = (fx.scene.x[dest] as number) - jx
+    const dy = (fx.scene.y[dest] as number) - jy
+    const len = Math.hypot(dx, dy) || 1
+    const tx = jx + (-dy / len) * 18 * k
+    const ty = jy + (dx / len) * 18 * k
+    const current = fx.index.currentByPair[q]
+    const name = at(current?.name as string, 'bold')
+    const nameAt = screenOf(fx, tx, ty - 3 * k)
+    expect(nums(name.args.slice(1))[0]).toBeCloseTo(nameAt.x, 9)
+    expect(nums(name.args.slice(1))[1]).toBeCloseTo(nameAt.y, 9)
+    expect(fontPx(name.style.font)).toBeCloseTo(8 * k * s, 9)
+    expect(name.style.textBaseline).toBe('alphabetic')
+    const label = at(current?.label as string, '')
+    const labelAt = screenOf(fx, tx, ty + 7 * k)
+    expect(nums(label.args.slice(1))[1]).toBeCloseTo(labelAt.y, 9)
+    expect(fontPx(label.style.font)).toBeCloseTo(6 * k * s, 9)
+    expect(label.style.globalAlpha).toBeCloseTo(0.6, 12)
+
+    const { lo, hi } = fx.g.pair(q)
+    const sx = (fx.scene.x[hi] as number) - (fx.scene.x[lo] as number)
+    const sy = (fx.scene.y[hi] as number) - (fx.scene.y[lo] as number)
+    const dist = Math.hypot(sx, sy) || 1
+    const mid = { x: ((fx.scene.x[lo] as number) + (fx.scene.x[hi] as number)) / 2, y: ((fx.scene.y[lo] as number) + (fx.scene.y[hi] as number)) / 2 }
+    const demon = at(fx.index.syzygyByPair[q]?.demon as string, 'italic')
+    const demonAt = screenOf(fx, mid.x + (-sy / dist) * 14 * k, mid.y + (sx / dist) * 14 * k)
+    expect(nums(demon.args.slice(1))[0]).toBeCloseTo(demonAt.x, 9)
+    expect(nums(demon.args.slice(1))[1]).toBeCloseTo(demonAt.y, 9)
+    expect(fontPx(demon.style.font)).toBeCloseTo(7 * k * s, 9)
+
+    const gate = texts.find(e => e.args[0] === fx.labels[zone] && e.style.fillStyle === '#cc44ff') as Ev
+    const gateAt = screenOf(fx, fx.scene.gateLabelX[zone] as number, fx.scene.gateLabelY[zone] as number)
+    expect(nums(gate.args.slice(1))[0]).toBeCloseTo(gateAt.x, 9)
+    expect(nums(gate.args.slice(1))[1]).toBeCloseTo(gateAt.y, 9)
+    expect(fontPx(gate.style.font)).toBeCloseTo(7 * k * s, 9)
+    // its background disc: #060609, radius 9 k s, on the same point
+    const bg = fillsOf(rec.events).find(e => e.style.fillStyle === '#060609') as Ev
+    const disc = nums((opsOf(bg, 'arc')[0] as { args: unknown[] }).args)
+    expect(disc[0]).toBeCloseTo(gateAt.x, 9)
+    expect(disc[1]).toBeCloseTo(gateAt.y, 9)
+    expect(disc[2]).toBeCloseTo(9 * k * s, 9)
+  })
+
+  it('the ladder has no gate meeting label (as in the SVG tier), but the other edge text stays', () => {
+    const fx = zoneFx(28, 'ladder')
+    const t = fitZones(fx.scene.x, fx.scene.y, [5], fx.frame, fx.w, fx.h)
+    expect(labelsShown(onScreenRadius(t, fx.frame, fx.w, fx.h))).toBe(true)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { transform: t, gateMode: 'off', hlZones: new Set([5]) }), fx.index)
+    const texts = ofType(rec.events, 'fillText')
+    expect(texts.some(e => e.style.fillStyle === '#cc44ff')).toBe(false)
+    expect(fillsOf(rec.events).some(e => e.style.fillStyle === '#060609')).toBe(false)
+    expect(texts.some(e => e.style.fillStyle === '#22ee66')).toBe(true)
+  })
+
+  it('a loop gate label also gets its outer ring (12 k s)', () => {
+    const fx = zoneFx(28)
+    const loop = Array.from({ length: 28 }, (_, z) => z).find(z => fx.scene.gateLoop[z] === 1) as number
+    const k = fx.scene.nodeRadius / 21
+    const s = scaleFor(fx)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', layers: new Set<Layer>(['gates']), hlZones: new Set([loop]) }), fx.index)
+    const ring = strokesOf(rec.events).find(e => e.style.strokeStyle === '#cc44ff66') as Ev
+    expect(ring).toBeDefined()
+    expect(nums((opsOf(ring, 'arc')[0] as { args: unknown[] }).args)[2]).toBeCloseTo(12 * k * s, 9)
+    expect(ring.style.globalAlpha).toBeCloseTo(0.8, 12)
+    const rim = strokesOf(rec.events).find(e => e.style.strokeStyle === '#cc44ff33') as Ev
+    expect(rim.style.lineWidth).toBeCloseTo(Math.max(1, 0.5 * fx.scene.strokeScale * s), 9)
+  })
+})
+
+describe('drawOverlay: widths without the floor, and muted or Time Circuit edges', () => {
+  it('zoomed in the chord is 1.2 ss s, the highlighted gate 1.2 ss s and the gate label rim 0.5 ss s wide', () => {
+    const fx = zoneFx(28)
+    const ss = fx.scene.strokeScale
+    const a = 12
+    const b = 3
+    const mx = ((fx.scene.x[a] as number) + (fx.scene.x[b] as number)) / 2
+    const my = ((fx.scene.y[a] as number) + (fx.scene.y[b] as number)) / 2
+    const t = centerOn(fx, mx, my, 3)
+    const s = scaleFor(fx, t)
+    expect(1.2 * ss * s).toBeGreaterThan(1)
+    const chord = makeRecorder()
+    drawOverlay(chord.env, overlayFor(fx, { transform: t, focusChords: [{ a, b, name: 'x', kind: 'xeno' }] }), fx.index)
+    expect((strokesOf(chord.events)[0] as Ev).style.lineWidth).toBeCloseTo(1.2 * ss * s, 9)
+
+    const loop = Array.from({ length: 28 }, (_, z) => z).find(z => fx.scene.gateLoop[z] === 1) as number
+    const tg = centerOn(fx, fx.scene.gateLabelX[loop] as number, fx.scene.gateLabelY[loop] as number, 3)
+    const sg = scaleFor(fx, tg)
+    const gate = makeRecorder()
+    drawOverlay(gate.env, overlayFor(fx, { transform: tg, gateMode: 'off', layers: new Set<Layer>(['gates']), hlZones: new Set([loop]) }), fx.index)
+    const dashed = strokesOf(gate.events).find(dashedGate) as Ev
+    expect(dashed.style.lineWidth).toBeCloseTo(1.2 * ss * sg, 9)
+    const rim = strokesOf(gate.events).find(e => e.style.strokeStyle === '#cc44ff33') as Ev
+    expect(rim.style.lineWidth).toBeCloseTo(0.5 * ss * sg, 9)
+    const label = ofType(gate.events, 'fillText').find(e => e.style.fillStyle === '#cc44ff') as Ev
+    expect(label.style.globalAlpha).toBeCloseTo(0.92, 12)
+  })
+
+  it('a pair with a muted partner draws no syzygy, and a gate whose destination is muted draws no gate', () => {
+    const fx = zoneFx(28)
+    const zone = 5
+    const partner = fx.g.partner(zone)
+    const syz = makeRecorder()
+    drawOverlay(syz.env, overlayFor(fx, { layers: new Set<Layer>(['syzygies']), zoneStates: statesWith(28, { [partner]: ZONE_HIDDEN }), hlZones: new Set([zone]) }), fx.index)
+    expect(fillsOf(syz.events).filter(e => e.style.fillStyle === '#e8e8e8')).toHaveLength(0)
+    expect(drawOverlay(makeRecorder().env, overlayFor(fx, { layers: new Set<Layer>(['syzygies']), zoneStates: statesWith(28, { [partner]: ZONE_HIDDEN }), hlZones: new Set([zone]) }), fx.index).highlightedEdges).toBe(0)
+
+    const dest = fx.scene.gateTo[zone] as number
+    expect(dest).not.toBe(zone)
+    const gate = makeRecorder()
+    const report = drawOverlay(gate.env, overlayFor(fx, { gateMode: 'off', layers: new Set<Layer>(['gates']), zoneStates: statesWith(28, { [dest]: ZONE_HIDDEN }), hlZones: new Set([zone]) }), fx.index)
+    expect(strokesOf(gate.events).filter(dashedGate)).toHaveLength(0)
+    expect(report.highlightedEdges).toBe(0)
+  })
+
+  it('while the Time Circuit is active a pair outside the Torque cycles draws neither syzygy nor current', () => {
+    const fx = zoneFx(28)
+    const outside = Array.from({ length: 28 }, (_, z) => z).find(z => fx.index.torqueSyzygy[fx.g.pairOf(z)] === 0) as number
+    const inside = Array.from({ length: 28 }, (_, z) => z).find(z => fx.index.torqueSyzygy[fx.g.pairOf(z)] === 1) as number
+    expect(outside).toBeDefined()
+    expect(fx.index.torqueCurrent[fx.g.pairOf(outside)]).toBe(0)
+    const none = makeRecorder()
+    const r0 = drawOverlay(none.env, overlayFor(fx, { tcActive: true, hlZones: new Set([outside]) }), fx.index)
+    const q = fx.g.pairOf(outside)
+    // only currents flowing into the zone can still belong to the Torque cycles
+    let into = 0
+    for (let w = 0; w < fx.g.pairCount; w++) if (fx.scene.currentTo[w] === outside && fx.index.torqueCurrent[w] === 1) into++
+    expect(r0.highlightedEdges).toBe(into)
+    expect(fillsOf(none.events).filter(e => e.style.fillStyle === '#e8e8e8')).toHaveLength(0)
+    expect(drawnCurve(none.events, fx, fx.scene.currentCurves, 18 * q + 12, isStem)).toBe(false)
+    const some = makeRecorder()
+    const r1 = drawOverlay(some.env, overlayFor(fx, { tcActive: true, hlZones: new Set([inside]) }), fx.index)
+    expect(r1.highlightedEdges).toBeGreaterThanOrEqual(2)
+    expect(fillsOf(some.events).filter(e => e.style.fillStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy)).toHaveLength(1)
+  })
+
+  it('an isolate-dimmed edge keeps its dots but gets no demon name', () => {
+    const fx = zoneFx(28)
+    const zone = 5
+    const names = (zoneStates: Uint8Array | null): string[] => {
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, { layers: new Set<Layer>(['syzygies']), zoneStates, hlZones: new Set([zone]) }), fx.index)
+      return ofType(rec.events, 'fillText')
+        .filter(e => e.style.font.startsWith('italic'))
+        .map(e => String(e.args[0]))
+    }
+    const demon = fx.index.syzygyByPair[fx.g.pairOf(zone)]?.demon as string
+    expect(names(null)).toContain(demon)
+    expect(names(statesWith(28, { [fx.g.partner(zone)]: ZONE_DIMMED }))).not.toContain(demon)
+  })
+})
+
 describe('drawOverlay: the fidelity switch (T-06-10)', () => {
   const everyZone = (n: number): Set<number> => new Set(Array.from({ length: n }, (_, z) => z))
 
@@ -1799,7 +2073,22 @@ describe('drawOverlay: the fidelity switch (T-06-10)', () => {
     const alphasOf = (color: string): number[] => [...new Set(strokesOf(rec.events).filter(e => e.style.strokeStyle === color).map(e => e.style.globalAlpha))]
     expect(alphasOf('#22ee66')).toEqual([HL.current])
     expect(alphasOf('#cc44ff')).toEqual([HL.gate])
-    expect(strokesOf(rec.events).some(e => e.style.strokeStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy)).toBe(true)
+    // no glow substitute in plain fidelity: the outer-ring underlay (alpha 0.25 x 0.3) is absent
+    expect(strokesOf(rec.events).some(e => Math.abs(e.style.globalAlpha - 0.25 * 0.3) < 1e-12)).toBe(false)
+    // the plain syzygy stays a dotted round-cap line, 2 px wide
+    const syz = strokesOf(rec.events).find(e => e.style.strokeStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy) as Ev
+    expect(syz.style.lineWidth).toBe(2)
+    expect(syz.style.lineCap).toBe('round')
+    expect(syz.style.lineDash[0]).toBeCloseTo(0.1, 12)
+    expect(syz.style.lineDash[1]).toBeCloseTo(3 * (fx.scene.nodeRadius / 21) * scaleFor(fx), 9)
+    // the plain gates stay dashed 5 / 3 and 3 / 2
+    const ss = fx.scene.strokeScale
+    const s = scaleFor(fx)
+    const dashes = strokesOf(rec.events)
+      .filter(e => e.style.strokeStyle === '#cc44ff')
+      .map(e => e.style.lineDash.map(v => Math.round((v / (ss * s)) * 1e6) / 1e6))
+    expect(dashes).toContainEqual([5, 3])
+    expect(dashes).toContainEqual([3, 2])
     expectAllFinite(rec)
   })
 
@@ -1822,6 +2111,8 @@ describe('drawOverlay: the fidelity switch (T-06-10)', () => {
     expect(report.highlightedEdges).toBeLessThanOrEqual(HIGHLIGHT_FULL_FIDELITY_MAX)
     expect(fillsOf(rec.events).filter(e => e.style.fillStyle === '#ffffff').length).toBeGreaterThan(0)
     expect(fillsOf(rec.events).filter(e => e.style.fillStyle === '#22ee66' && opsOf(e, 'closePath').length > 0).length).toBeGreaterThan(0)
+    // and the selected rings have their glow substitute (alpha 0.25 x 0.3)
+    expect(strokesOf(rec.events).some(e => Math.abs(e.style.globalAlpha - 0.25 * 0.3) < 1e-12)).toBe(true)
   })
 })
 
@@ -1885,6 +2176,25 @@ describe('drawOverlay: pair graph', () => {
     const chords = makeRecorder()
     expect(drawOverlay(chords.env, overlayFor(fx, { focusChords: [{ a: 1, b: 2, name: 'x', kind: 'chrono' }] }), fx.index).chords).toBe(0)
     expect(strokesOf(chords.events)).toHaveLength(0)
+  })
+
+  it('the pair graph switches fidelity at exactly HIGHLIGHT_FULL_FIDELITY_MAX highlighted arcs and loops', () => {
+    const fx = pairFx(4000)
+    const strings = (q: number): number => ((fx.scene.pairArc?.[q] ?? null) !== null ? 1 : 0) + ((fx.scene.pairLoop?.[q] ?? null) !== null ? 1 : 0)
+    const zones: number[] = []
+    let total = 0
+    for (let q = 0; total < HIGHLIGHT_FULL_FIDELITY_MAX; q++) {
+      zones.push(q) // the pair id is its lower member
+      total += strings(q)
+    }
+    expect(total).toBe(HIGHLIGHT_FULL_FIDELITY_MAX)
+    const at = (list: number[]): OverlayReport => drawOverlay(makeRecorder().env, overlayFor(fx, { hlZones: new Set(list) }), fx.index)
+    expect(at(zones)).toEqual({ highlightedEdges: HIGHLIGHT_FULL_FIDELITY_MAX, fidelity: 'full', chords: 0 })
+    let next = zones.length
+    while (strings(next) === 0) next++
+    const over = at([...zones, next])
+    expect(over.highlightedEdges).toBeGreaterThan(HIGHLIGHT_FULL_FIDELITY_MAX)
+    expect(over.fidelity).toBe('plain')
   })
 
   it('select-all at base 4000 on the pair graph is plain with a bounded number of strokes', () => {
