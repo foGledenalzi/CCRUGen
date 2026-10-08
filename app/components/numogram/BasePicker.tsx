@@ -36,6 +36,12 @@ export interface BasePickerProps {
   packer: Packer
   onPackerChange(packer: Packer): void
   packerVisible: boolean
+  /** The base being computed (worker tiers, Phase 6 D-07); defaults to `base`. The numeral, steppers, chips and debounce act on it. */
+  requestedBase?: number
+  /** True once a worker request has been in flight past the 150 ms grace: the summary slot shows the computing status instead of the summary line. */
+  computing?: boolean
+  /** Persistent sr-only status text: the computing line, then the ready line (checker recommendation 1). */
+  announcement?: string
 }
 
 export function BasePicker(props: BasePickerProps): JSX.Element {
@@ -49,9 +55,17 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
     packer,
     onPackerChange,
     packerVisible,
+    requestedBase,
+    computing = false,
+    announcement = '',
   } = props
 
-  const [candidate, setCandidate] = useState(() => String(base))
+  // While a worker request is pending `base` is still the DISPLAYED base, so every editable value and every commit
+  // runs against the requested one: the numeral never snaps back mid-computation (research P19, T-06-23). The header,
+  // the type counts and the label controls keep naming the displayed base until the swap.
+  const effectiveBase = requestedBase ?? base
+
+  const [candidate, setCandidate] = useState(() => String(effectiveBase))
   const [dirty, setDirty] = useState(false)
   const [refusal, setRefusal] = useState<string | null>(() => externalRefusal)
   const [open, setOpen] = useState(false)
@@ -63,8 +77,8 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
   // Re-sync the visible text to the committed base whenever it changes elsewhere (URL nav, undo/redo, ...), but
   // never while the visitor is mid-edit (D-04: their keystrokes are never clobbered by an external update).
   React.useEffect(() => {
-    if (!dirty) setCandidate(String(base))
-  }, [base, dirty])
+    if (!dirty) setCandidate(String(effectiveBase))
+  }, [effectiveBase, dirty])
 
   // Re-sync the shown refusal to externalRefusal whenever it changes elsewhere (a refused `?base=` reported only
   // after the URL-hydration effect runs post-mount, undo/redo, ...), same mid-edit guard as candidate above (UI-02).
@@ -82,11 +96,11 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
   }, [candidate, dirty])
 
   function evaluateNow(text: string): void {
-    const result = evaluateCandidate(text, base)
+    const result = evaluateCandidate(text, effectiveBase)
     if (result.kind === 'ok') {
       setRefusal(null)
       setDirty(false)
-      if (result.base !== base) onCommitBase(result.base)
+      if (result.base !== effectiveBase) onCommitBase(result.base)
     } else if (result.kind === 'refused') {
       setRefusal(result.message)
     }
@@ -97,7 +111,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
     setCandidate(String(n))
     setRefusal(null)
     setDirty(false)
-    if (n !== base) onCommitBase(n)
+    if (n !== effectiveBase) onCommitBase(n)
   }
 
   function openDropdown(): void {
@@ -119,7 +133,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
   function handleContainerKeyDown(e: React.KeyboardEvent): void {
     if (e.key !== 'Escape') return
     setOpen(false)
-    setCandidate(String(base))
+    setCandidate(String(effectiveBase))
     setRefusal(null)
     setDirty(false)
   }
@@ -172,7 +186,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
                 type="button"
                 aria-label="Decrease base by 2"
                 className="flex h-6 w-6 items-center justify-center border border-white/10 text-gray-300 hover:bg-white/[0.05]"
-                onClick={() => commitNow(stepBase(base, -1))}
+                onClick={() => commitNow(stepBase(effectiveBase, -1))}
               >
                 −
               </button>
@@ -183,7 +197,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
                 type="button"
                 aria-label="Increase base by 2"
                 className="flex h-6 w-6 items-center justify-center border border-white/10 text-gray-300 hover:bg-white/[0.05]"
-                onClick={() => commitNow(stepBase(base, 1))}
+                onClick={() => commitNow(stepBase(effectiveBase, 1))}
               >
                 +
               </button>
@@ -195,7 +209,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
               min={SLIDER_MIN}
               max={SLIDER_MAX}
               step={BASE_STEP}
-              value={sliderPosition(Number(candidate) || base)}
+              value={sliderPosition(Number(candidate) || effectiveBase)}
               className="w-full"
               style={{ accentColor: '#10ff50', height: 24 }}
               onChange={e => {
@@ -206,7 +220,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
 
             <div className="flex gap-1 overflow-x-auto">
               {NOTABLE_BASES.map(b => (
-                <CyberButton key={b} size="sm" active={b === base} onClick={() => commitNow(b)}>
+                <CyberButton key={b} size="sm" active={b === effectiveBase} onClick={() => commitNow(b)}>
                   {b}
                 </CyberButton>
               ))}
@@ -270,11 +284,22 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
           <span id={summaryId} role="status" className="truncate text-[10px] text-[#f87171]">
             {refusal}
           </span>
+        ) : computing ? (
+          // Computing (D-07): the summary span is replaced in place, same id and class, no role (the persistent
+          // carrier below does the announcing, so it is not read twice). A refusal above wins: failure is shown.
+          <span id={summaryId} data-computing="true" className="truncate text-[10px] text-gray-400">
+            {`Computing base ${effectiveBase}...`}
+          </span>
         ) : (
           <span id={summaryId} className="truncate text-[10px] text-gray-400">
             {summaryLine(summary)}
           </span>
         )}
+        {/* Persistent sr-only live carrier (checker recommendation 1): it exists before its text changes, so a
+            computing line then the ready line are announced reliably. */}
+        <span role="status" data-picker-status="" className="sr-only">
+          {announcement}
+        </span>
       </div>
       {dropdown}
     </div>
