@@ -182,7 +182,7 @@ Plans:
 - [x] 06-02-PLAN.md - Engine Canvas scene: typed arrays, route curves, syzygy trimming, pick segments for ring/ladder/spiral and the pair graph (wave 2)
 - [x] 06-03-PLAN.md - Pure input models: Canvas keyboard traversal and announcements, pointer state machine and wheel factor (wave 1)
 - [x] 06-04-PLAN.md - Worker contract and pure core: lore-free summary, text limit follows the ceiling, over-limit copy, protocol, buildResult (wave 3)
-- [ ] 06-05-PLAN.md - Canvas view transform (fit-relative zoom, footprint, backing store) and the 12 px nearest-wins pick index (wave 3)
+- [x] 06-05-PLAN.md - Canvas view transform (fit-relative zoom, footprint, backing store) and the 12 px nearest-wins pick index (wave 3)
 - [x] 06-06-PLAN.md - View contract tier/ceiling fields (first NumogramClient edit, test:swap), Canvas panel notes, Layers/Shortcuts copy, Regions read order (wave 2)
 - [ ] 06-07-PLAN.md - Latest-wins WorkerClient with main-thread fallback, worker shell, React hook; export build proves the chunk (wave 4)
 - [ ] 06-08-PLAN.md - Canvas drawing: static layers with parity values and LOD, overlay with on-demand edges, focus ring and fidelity downgrade (wave 4)
@@ -252,6 +252,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
-| 6. Canvas Tier and Worker | 5/15 | In Progress | - |
+| 6. Canvas Tier and Worker | 6/15 | In Progress | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |
