@@ -4325,6 +4325,11 @@
       "basedOn": "sw-6x",
       "rule": "highest n of the longest passing prefix of sw-6x tween frames (svg-rich up to svgRichMaxN, canvas above) with median <= 32 ms"
     },
+    "interactiveMaxN": {
+      "n": 4000,
+      "basedOn": "sw-6x",
+      "rule": "shipped interactive ceiling (Phase 6 D-01): the largest n measured for the canvas suite on the shipped profile (budgets.canvasTargetN), every canvas row inside budget; raise it only by re-measuring"
+    },
     "allChordsMaxN": {
       "n": 80,
       "rule": "last n of the longest prefix where under 30% of inked pixels are crossed by 4 or more chords (legibility, not speed)"

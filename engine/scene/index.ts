@@ -9,6 +9,7 @@ export {
   DEVICE_PROFILES,
   MEASURED_SUITES,
   selectTier,
+  interactiveCeiling,
   parseTierOverride,
   tweenAllowed,
   labelsVisible,

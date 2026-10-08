@@ -91,6 +91,8 @@ export interface TierBoundaries {
   readonly svgLeanMaxN: Boundary
   readonly canvasMaxN: Boundary | null // null = no ceiling found in the measured range
   readonly layoutTweenMaxN: Boundary
+  /** Shipped interactive ceiling (Phase 6 D-01): canvas from svgRichMaxN + 2 up to this n, headless above. Required for a measured table, optional so synthetic test tables keep their meaning. */
+  readonly interactiveMaxN?: Boundary
   readonly allChordsMaxN: { readonly n: number; readonly rule: string }
   readonly labelVisibleMinRadiusPx: number
   readonly gatesFullMaxN: number
@@ -125,12 +127,16 @@ export interface TierTable {
 
 // ---- selection helpers (D-07, D-09, D-13) ----
 
+/** The largest n drawn interactively (canvas): the smaller of the measured canvasMaxN and the shipped interactiveMaxN; Infinity when neither is set. */
+export function interactiveCeiling(table: Pick<TierTable, 'boundaries'>): number {
+  return Math.min(table.boundaries.canvasMaxN?.n ?? Infinity, table.boundaries.interactiveMaxN?.n ?? Infinity)
+}
+
 /** The tier for n zones: an explicit override wins, else svg -> canvas -> headless by the table's boundaries. */
 export function selectTier(n: number, table: Pick<TierTable, 'boundaries'>, override?: RenderTier): RenderTier {
   if (override !== undefined) return override
   if (n <= table.boundaries.svgRichMaxN.n) return 'svg'
-  const canvasMax = table.boundaries.canvasMaxN
-  if (canvasMax === null || n <= canvasMax.n) return 'canvas'
+  if (n <= interactiveCeiling(table)) return 'canvas'
   return 'headless'
 }
 
@@ -341,6 +347,7 @@ export function validateTierTable(t: TierTable): string[] {
     ['svgLeanMaxN', t.boundaries.svgLeanMaxN],
     ['canvasMaxN', t.boundaries.canvasMaxN],
     ['layoutTweenMaxN', t.boundaries.layoutTweenMaxN],
+    ['interactiveMaxN', t.boundaries.interactiveMaxN ?? null],
   ]
   for (const [name, b] of namedBoundaries) {
     if (b === null) continue
@@ -356,6 +363,15 @@ export function validateTierTable(t: TierTable): string[] {
   }
   if (t.boundaries.canvasMaxN !== null && t.boundaries.canvasMaxN.n < t.boundaries.svgRichMaxN.n) {
     problems.push(`boundary canvasMaxN (${t.boundaries.canvasMaxN.n}) is below svgRichMaxN (${t.boundaries.svgRichMaxN.n})`)
+  }
+  const im = t.boundaries.interactiveMaxN
+  if (im !== undefined) {
+    if (im.n < t.boundaries.svgRichMaxN.n) {
+      problems.push(`boundary interactiveMaxN (${im.n}) is below svgRichMaxN (${t.boundaries.svgRichMaxN.n})`)
+    }
+    if (t.boundaries.canvasMaxN !== null && im.n > t.boundaries.canvasMaxN.n) {
+      problems.push(`boundary interactiveMaxN (${im.n}) exceeds canvasMaxN (${t.boundaries.canvasMaxN.n})`)
+    }
   }
 
   if (!(t.boundaries.labelVisibleMinRadiusPx > 0)) problems.push('labelVisibleMinRadiusPx must be positive')
@@ -447,6 +463,11 @@ export function validateTierTable(t: TierTable): string[] {
     }
     if (t.boundaries.canvasAreaLimitPx !== derived.canvasAreaLimitPx) {
       problems.push(`measured table: boundary canvasAreaLimitPx is ${t.boundaries.canvasAreaLimitPx} but the measurements derive ${derived.canvasAreaLimitPx}`)
+    }
+    if (im === undefined) {
+      problems.push('measured table: boundary interactiveMaxN is missing')
+    } else if (im.n > derived.maxMeasuredN) {
+      problems.push(`measured table: boundary interactiveMaxN (${im.n}) exceeds the largest measured canvas n (${derived.maxMeasuredN})`)
     }
   }
 
