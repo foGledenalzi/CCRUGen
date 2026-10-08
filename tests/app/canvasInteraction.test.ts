@@ -457,6 +457,29 @@ describe('two touches pinch', () => {
     expect(kinds(r.actions)).not.toContain('tap')
   })
 
+  it('the finger that stays measures its slop from where it was when the other lifted, not from where it first landed', () => {
+    const r = run([
+      touch('down', 1, 100, 100),
+      touch('down', 2, 160, 100),
+      touch('move', 1, 60, 100), // the staying finger travels 40 px during the pinch
+      touch('up', 2, 160, 100),
+      touch('move', 1, 64, 100), // 4 px from where it is now (44 px from where it landed): still inside the slop
+      touch('up', 1, 64, 100),
+    ])
+    expect(r.each[4]).toEqual([])
+    expect(r.each[5]).toEqual([{ kind: 'gestureEnd' }])
+    expect(kinds(r.actions)).not.toContain('tap')
+    // and past the slop it pans by the distance from the rebased point, not from the original landing point
+    const past = run([
+      touch('down', 1, 100, 100),
+      touch('down', 2, 160, 100),
+      touch('move', 1, 60, 100),
+      touch('up', 2, 160, 100),
+      touch('move', 1, 75, 100),
+    ])
+    expect(past.each[4]).toEqual([{ kind: 'pan', dx: 15, dy: 0 }])
+  })
+
   it('lifting both fingers without moving the second ends the gesture and never taps', () => {
     const r = run([
       touch('down', 1, 100, 100),
