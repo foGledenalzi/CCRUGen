@@ -4,7 +4,7 @@ import React from 'react'
 import type { HoverInfo } from '../../data/types'
 import { formatNumeral } from '../../../engine/index'
 import { useNumogramView } from '../numogram/ViewContext'
-import { PanelColorBar, PanelUnavailable, SelectableListPanel } from './shared'
+import { CanvasListNote, PanelColorBar, PanelUnavailable, SelectableListPanel } from './shared'
 
 interface SyzygiesPanelProps {
   selZones: Set<number>
@@ -14,7 +14,8 @@ interface SyzygiesPanelProps {
 }
 
 export function SyzygiesPanel({ selZones, hlZones, onToggleSyzygyPair, onHoverInfo }: SyzygiesPanelProps) {
-  const { base, view, zoneLabels, svgRichMaxN } = useNumogramView()
+  const { base, view, zoneLabels, svgRichMaxN, tier } = useNumogramView()
+  if (tier === 'canvas' && view) return <CanvasListNote max={svgRichMaxN} />
   if (!view || !zoneLabels) return <PanelUnavailable max={svgRichMaxN} />
 
   type SyzygyItem = {

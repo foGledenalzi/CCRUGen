@@ -3,7 +3,7 @@
 import React from 'react'
 import type { HoverInfo } from '../../data/types'
 import { useNumogramView } from '../numogram/ViewContext'
-import { PanelColorBar, PanelUnavailable, SelectableListPanel } from './shared'
+import { CanvasListNote, PanelColorBar, PanelUnavailable, SelectableListPanel } from './shared'
 
 interface CurrentsPanelProps {
   selZones: Set<number>
@@ -13,7 +13,8 @@ interface CurrentsPanelProps {
 }
 
 export function CurrentsPanel({ selZones, hlZones, onHoverInfo, onSelectCurrent }: CurrentsPanelProps) {
-  const { view, zoneLabels, svgRichMaxN } = useNumogramView()
+  const { view, zoneLabels, svgRichMaxN, tier } = useNumogramView()
+  if (tier === 'canvas' && view) return <CanvasListNote max={svgRichMaxN} />
   if (!view || !zoneLabels) return <PanelUnavailable max={svgRichMaxN} />
 
   type CurrentItem = {

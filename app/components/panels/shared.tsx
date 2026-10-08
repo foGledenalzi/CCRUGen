@@ -104,10 +104,17 @@ export function SelectableListPanel<T>(props: SelectableListPanelProps<T>) {
   )
 }
 
-/** Shown by a panel instead of building a list it cannot afford: the context view is null above the SVG tier. */
+/** Shown by a panel instead of building a list it cannot afford: the context view is null at the headless tier (above the interactive ceiling). */
 export function PanelUnavailable({ max }: { max: number }) {
   return (
     <div data-post-baseline="" className="px-3 pb-2.5 text-[9px] text-gray-500">Available up to {max} zones.</div>
+  )
+}
+
+/** Canvas tier (Phase 6 UI-SPEC decision 3): the list is not rendered; the diagram, callout, Text panel and keyboard reach every element. */
+export function CanvasListNote({ max }: { max: number }) {
+  return (
+    <div data-post-baseline="" className="px-3 pb-2.5 text-[10px] text-gray-500">Listed up to {max} zones. Pick elements on the diagram.</div>
   )
 }
 

@@ -5,6 +5,7 @@ import type { HoverInfo } from '../../data/types'
 import { formatNumeral } from '../../../engine/index'
 import { useNumogramView } from '../numogram/ViewContext'
 import {
+  CanvasListNote,
   PanelColorBar,
   PanelCountToggleButton,
   PanelUnavailable,
@@ -20,7 +21,8 @@ interface GatesPanelProps {
 }
 
 export function GatesPanel({ hlZones, selZones, onHoverInfo, onSelectGate, onToggleAll }: GatesPanelProps) {
-  const { base, view, zoneLabels, svgRichMaxN } = useNumogramView()
+  const { base, view, zoneLabels, svgRichMaxN, tier } = useNumogramView()
+  if (tier === 'canvas' && view) return <CanvasListNote max={svgRichMaxN} />
   if (!view || !zoneLabels) return <PanelUnavailable max={svgRichMaxN} />
 
   type GateItem = {

@@ -6,6 +6,7 @@ import { REGION_CLR } from '../../lib/constants'
 import { formatXenotationForDisplay } from '../../lib/xenotation'
 import { useNumogramView } from '../numogram/ViewContext'
 import {
+  CanvasListNote,
   PanelColorBar,
   PanelCountToggleButton,
   PanelUnavailable,
@@ -22,7 +23,7 @@ interface ZonesPanelProps {
 }
 
 export function ZonesPanel({ selZones, hlZones, onToggleZone, onToggleAll, onHoverInfo }: ZonesPanelProps) {
-  const { view, zoneLabels, svgRichMaxN } = useNumogramView()
+  const { view, zoneLabels, svgRichMaxN, tier } = useNumogramView()
   const [hoverCard, setHoverCard] = useState<{ text: string; color: string; x: number; y: number } | null>(null)
 
   const showNAOverlay = (e: React.MouseEvent<HTMLSpanElement>, color: string) => {
@@ -36,6 +37,7 @@ export function ZonesPanel({ selZones, hlZones, onToggleZone, onToggleAll, onHov
     })
   }
 
+  if (tier === 'canvas' && view) return <CanvasListNote max={svgRichMaxN} />
   if (!view || !zoneLabels) return <PanelUnavailable max={svgRichMaxN} />
 
   type ZoneItem = { zone: number; color: string; label: string; xenotation: string; isSelected: boolean; isHighlighted: boolean }
