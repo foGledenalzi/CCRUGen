@@ -30,6 +30,10 @@ export function parseJsonl(text: string): Record<string, unknown>[] {
     .map(line => JSON.parse(line) as Record<string, unknown>)
 }
 
+/** Wording of boundaries.interactiveMaxN's rule, used only when the previous table has no such field to carry forward. */
+export const INTERACTIVE_RULE =
+  'shipped interactive ceiling (Phase 6 D-01): the largest n measured for the canvas suite on the shipped profile (budgets.canvasTargetN), every canvas row inside budget; raise it only by re-measuring'
+
 export interface ShapeInput {
   readonly records: readonly Record<string, unknown>[]
   readonly envs: readonly Record<string, unknown>[]
@@ -210,6 +214,18 @@ export function shapeTierTable(input: ShapeInput): TierTable {
     basedOn: shipped,
     rule: `highest n of the longest passing prefix of ${shipped} tween frames (svg-rich up to svgRichMaxN, canvas above) with median <= ${budgets.tweenMs} ms`,
   }
+  // The shipped interactive ceiling (Phase 6 D-01) is a decision, not a derivation, so it is carried forward from the
+  // previous table and CLAMPED to what this run measured: a re-measure that covers less than the shipped ceiling lowers
+  // it to the measured range (validateTierTable's `<= largest measured canvas n` rule then holds), a re-measure never
+  // raises it on its own (raising stays a deliberate data edit), and a canvas ceiling found by the run lowers it too.
+  // The real table (4000 measured, canvasMaxN null) keeps 4000. A previous table without the field starts from the
+  // largest measured n. Dropping the field silently is what this block prevents (T-06-07b).
+  const previousCeiling = previous.boundaries.interactiveMaxN
+  const interactiveMaxN: Boundary = {
+    n: Math.min(previousCeiling?.n ?? d.maxMeasuredN, d.maxMeasuredN, d.canvasMaxN ?? Infinity),
+    basedOn: shipped,
+    rule: previousCeiling?.rule ?? INTERACTIVE_RULE,
+  }
   const allChordsMaxN = { n: d.allChordsMaxN, rule: previous.boundaries.allChordsMaxN.rule }
 
   const maxOkDimension = canvasProbes.filter(p => p.ok).reduce((max, p) => Math.max(max, p.width, p.height), 0)
@@ -223,6 +239,7 @@ export function shapeTierTable(input: ShapeInput): TierTable {
     svgLeanMaxN,
     canvasMaxN,
     layoutTweenMaxN,
+    interactiveMaxN,
     allChordsMaxN,
     labelVisibleMinRadiusPx: previous.boundaries.labelVisibleMinRadiusPx,
     gatesFullMaxN: previous.boundaries.gatesFullMaxN,
