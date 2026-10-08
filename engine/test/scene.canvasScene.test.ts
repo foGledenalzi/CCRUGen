@@ -7,13 +7,15 @@ import { describe, expect, it } from 'vitest'
 import { createNumogram } from '../index'
 import type { Numogram } from '../core/types'
 import { fmt } from '../layout/format'
+import { pairGraphLayout, routePairGraph } from '../layout/pairgraph'
 import { resolveLayout } from '../layout/registry'
 import { routeCurrents, routeGates } from '../layout/routing'
-import type { CurrentRoutes, GateRoutes, Layout } from '../layout/types'
+import type { CurrentRoutes, GateRoutes, Layout, PairGraphLayout, PairGraphRoutes } from '../layout/types'
 import {
   CURVE_STRIDE,
   EDGE_KIND,
   PICK_FLATTEN_STEPS,
+  buildPairScene,
   buildZoneScene,
   edgeCount,
   flattenQuad,
@@ -693,5 +695,201 @@ describe('buildZoneScene: determinism and transferable buffers', () => {
       ])
       for (const a of arrays) if (foreign.has(a.buffer)) push('a scene array shares a buffer with the layout or the routes')
     })
+  })
+})
+
+// ---------------------------------------------------------------------------------------------------------------
+// The pair-graph scene (Task 2) and the guards of both builders
+
+const PAIR_BASES: number[] = []
+for (let n = 2; n <= 64; n += 2) PAIR_BASES.push(n)
+PAIR_BASES.push(202, 666, 1024, 4000)
+
+interface PairBuilt {
+  readonly g: Numogram
+  readonly layout: PairGraphLayout
+  readonly routes: PairGraphRoutes
+  readonly scene: CanvasScene
+}
+
+function pairBuildFresh(base: number): PairBuilt {
+  const g = createNumogram(base)
+  const layout = pairGraphLayout(g, { packer: 'shelf' })
+  const routes = routePairGraph(g, layout)
+  return { g, layout, routes, scene: buildPairScene(g, layout, routes) }
+}
+
+const pairMemo = new Map<number, PairBuilt>()
+function pairBuilt(base: number): PairBuilt {
+  let b = pairMemo.get(base)
+  if (b === undefined) {
+    b = pairBuildFresh(base)
+    pairMemo.set(base, b)
+  }
+  return b
+}
+
+function pairSweep(check: (base: number, b: PairBuilt, push: (msg: string) => void) => void): void {
+  const mismatches: string[] = []
+  for (const base of PAIR_BASES) {
+    const push = (msg: string): void => {
+      if (mismatches.length < MAX_MISMATCHES) mismatches.push(`n=${base} pairGraph ${msg}`)
+    }
+    check(base, pairBuilt(base), push)
+  }
+  expect(mismatches.slice(0, 20)).toEqual([])
+}
+
+describe('buildPairScene', () => {
+  it('copies the layout: x, y, drawOrder, px, py, pill size, frame and region labels, each on its own buffer', () => {
+    pairSweep((base, b, push) => {
+      const { g, layout, scene } = b
+      if (scene.kind !== 'pairs') push(`kind ${scene.kind}`)
+      if (scene.base !== base) push(`base ${scene.base}`)
+      if (scene.layoutId !== 'pairGraph' || scene.layoutId !== layout.id) push(`layoutId ${scene.layoutId}`)
+      if (!sameNumbers(scene.x, layout.x)) push('x differs')
+      if (!sameNumbers(scene.y, layout.y)) push('y differs')
+      if (!sameNumbers(scene.drawOrder, layout.drawOrder)) push('drawOrder differs')
+      if (scene.px === null || scene.py === null) {
+        push('px or py is null')
+        return
+      }
+      if (!sameNumbers(scene.px, layout.px)) push('px differs')
+      if (!sameNumbers(scene.py, layout.py)) push('py differs')
+      if (scene.px.length !== g.pairCount) push('px length')
+      if (scene.px === layout.px || scene.px.buffer === layout.px.buffer) push('px aliases the layout array')
+      if (scene.py.buffer === layout.py.buffer) push('py aliases the layout array')
+      if (scene.x.buffer === layout.x.buffer || scene.y.buffer === layout.y.buffer) push('x or y aliases the layout')
+      if (scene.drawOrder.buffer === layout.drawOrder.buffer) push('drawOrder aliases the layout')
+      if (scene.pillWidth !== layout.nodeWidth) push(`pillWidth ${scene.pillWidth} != ${layout.nodeWidth}`)
+      if (scene.pillHeight !== layout.nodeHeight) push(`pillHeight ${scene.pillHeight} != ${layout.nodeHeight}`)
+      if (scene.width !== layout.width || scene.height !== layout.height) push('frame differs')
+      if (scene.centerX !== layout.center.x || scene.centerY !== layout.center.y) push('centre differs')
+      if (scene.nodeRadius !== layout.nodeRadius) push('nodeRadius differs')
+      if (scene.labelSize !== layout.labelSize) push('labelSize differs')
+      if (scene.strokeScale !== layout.strokeScale) push('strokeScale differs')
+      if (JSON.stringify(scene.regionLabels) !== JSON.stringify(layout.regionLabels)) push('regionLabels differ')
+    })
+  })
+
+  it('pairArc and pairLoop hold the routes\' own strings in new arrays', () => {
+    pairSweep((base, b, push) => {
+      const { routes, scene } = b
+      if (scene.pairArc === null || scene.pairLoop === null) {
+        push('pairArc or pairLoop is null')
+        return
+      }
+      if (scene.pairArc === routes.arc || scene.pairLoop === routes.loop) push('a route array is shared')
+      if (scene.pairArc.length !== routes.arc.length || scene.pairLoop.length !== routes.loop.length) push('length differs')
+      for (let q = 0; q < routes.arc.length; q++) {
+        if (scene.pairArc[q] !== routes.arc[q]) push(`arc ${q} differs`)
+        if (scene.pairLoop[q] !== routes.loop[q]) push(`loop ${q} differs`)
+      }
+    })
+  })
+
+  it('currentTo is g.current(q).to; every zone-only array is empty; there are no edges to pick', () => {
+    pairSweep((base, b, push) => {
+      const { g, scene } = b
+      if (scene.currentTo.length !== g.pairCount) push('currentTo length')
+      for (let q = 0; q < g.pairCount; q++) {
+        if (scene.currentTo[q] !== g.current(q).to) push(`currentTo[${q}] ${scene.currentTo[q]} != ${g.current(q).to}`)
+      }
+      const empties: ReadonlyArray<readonly [string, ArrayLike<number>]> = [
+        ['syzygySeg', scene.syzygySeg],
+        ['currentCurves', scene.currentCurves],
+        ['currentKind', scene.currentKind],
+        ['junctionX', scene.junctionX],
+        ['junctionY', scene.junctionY],
+        ['gateCurves', scene.gateCurves],
+        ['gateLoop', scene.gateLoop],
+        ['gateTo', scene.gateTo],
+        ['gateLabelX', scene.gateLabelX],
+        ['gateLabelY', scene.gateLabelY],
+        ['pickSegments', scene.pickSegments],
+        ['edgeBox', scene.edgeBox],
+      ]
+      for (const [name, arr] of empties) if (arr.length !== 0) push(`${name} has length ${arr.length}, expected 0`)
+      if (!sameNumbers(scene.edgeSegStart, Int32Array.of(0))) push('edgeSegStart is not Int32Array.of(0)')
+      if (edgeCount(scene) !== 0) push(`edgeCount ${edgeCount(scene)}`)
+    })
+  })
+
+  it('every typed array (the empty ones included) owns a whole buffer of its own (T-06-13)', () => {
+    pairSweep((base, b, push) => {
+      const { layout, scene } = b
+      const arrays = typedArraysOf(scene)
+      if (arrays.length !== 19) push(`expected 19 typed arrays, found ${arrays.length}`)
+      const buffers = new Set(arrays.map(a => a.buffer))
+      if (buffers.size !== arrays.length) push(`${buffers.size} distinct buffers for ${arrays.length} typed arrays`)
+      for (const a of arrays) {
+        if (a.byteOffset !== 0 || a.byteLength !== a.buffer.byteLength) push('a typed array is a view onto part of a buffer')
+      }
+      const foreign = new Set<ArrayBufferLike>([
+        layout.x.buffer,
+        layout.y.buffer,
+        layout.drawOrder.buffer,
+        layout.px.buffer,
+        layout.py.buffer,
+      ])
+      for (const a of arrays) if (foreign.has(a.buffer)) push('a scene array shares a buffer with the layout')
+    })
+  })
+
+  it('two builds of the same input are element-wise identical', () => {
+    const mismatches: string[] = []
+    for (const base of [2, 28, 64, 666, 4000]) {
+      const a = pairBuildFresh(base).scene
+      const b = pairBuildFresh(base).scene
+      for (const [name, value] of Object.entries(a)) {
+        const other = (b as unknown as Record<string, unknown>)[name]
+        if (ArrayBuffer.isView(value)) {
+          if (!sameNumbers(value as unknown as Float64Array, other as Float64Array)) mismatches.push(`n=${base} ${name} differs`)
+        } else if (JSON.stringify(value) !== JSON.stringify(other)) {
+          mismatches.push(`n=${base} ${name} differs`)
+        }
+      }
+    }
+    expect(mismatches).toEqual([])
+  })
+
+  it('a layout that is not a pair graph, or routes of the wrong length, throw a RangeError', () => {
+    const g = createNumogram(10)
+    const ring = resolveLayout(g, 'ring', [], { packer: 'shelf' })
+    const pg = pairGraphLayout(g, { packer: 'shelf' })
+    const routes = routePairGraph(g, pg)
+    expect(() => buildPairScene(g, ring as unknown as PairGraphLayout, routes)).toThrow(RangeError)
+    expect(() => buildPairScene(g, pg, { arc: routes.arc.slice(1), loop: routes.loop })).toThrow(RangeError)
+    expect(() => buildPairScene(g, pg, { arc: routes.arc, loop: routes.loop.slice(1) })).toThrow(RangeError)
+  })
+})
+
+describe('canvasScene guards: a layout must belong to the numogram and to the right builder', () => {
+  it('buildPairScene and buildZoneScene reject a layout of another base', () => {
+    const g10 = createNumogram(10)
+    const g12 = createNumogram(12)
+    const ring12 = resolveLayout(g12, 'ring', [], { packer: 'shelf' })
+    const pg12 = pairGraphLayout(g12, { packer: 'shelf' })
+    const message = /^canvasScene: layout base 12 does not match numogram base 10$/
+    expect(() => buildZoneScene(g10, ring12, routeGates(g12, ring12), routeCurrents(g12, ring12))).toThrow(RangeError)
+    expect(() => buildZoneScene(g10, ring12, routeGates(g12, ring12), routeCurrents(g12, ring12))).toThrow(message)
+    expect(() => buildPairScene(g10, pg12, routePairGraph(g12, pg12))).toThrow(RangeError)
+    expect(() => buildPairScene(g10, pg12, routePairGraph(g12, pg12))).toThrow(message)
+  })
+
+  it('buildZoneScene rejects a pair-graph layout so a caller cannot mix kinds', () => {
+    const g = createNumogram(10)
+    const pg = pairGraphLayout(g, { packer: 'shelf' })
+    const gates = routeGates(g, pg)
+    const currents = routeCurrents(g, pg)
+    expect(() => buildZoneScene(g, pg, gates, currents)).toThrow(RangeError)
+    expect(() => buildZoneScene(g, pg, gates, currents)).toThrow('canvasScene: buildZoneScene got a pair-graph layout')
+  })
+
+  it('a base mismatch is reported before the kind', () => {
+    const g10 = createNumogram(10)
+    const g12 = createNumogram(12)
+    const pg12 = pairGraphLayout(g12, { packer: 'shelf' })
+    expect(() => buildZoneScene(g10, pg12, routeGates(g12, pg12), routeCurrents(g12, pg12))).toThrow(/layout base 12 does not match/)
   })
 })
