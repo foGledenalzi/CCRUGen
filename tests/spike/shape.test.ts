@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEVICE_PROFILES, MEASURED_SUITES, TIER_TABLE, deriveBoundaries, validateTierTable } from '../../engine/index'
 import type { TierTable } from '../../engine/index'
-import { parseJsonl, shapeTierTable } from '../../scripts/spike/shape'
+import { INTERACTIVE_RULE, parseJsonl, shapeTierTable } from '../../scripts/spike/shape'
 
 type ShapeInput = Parameters<typeof shapeTierTable>[0]
 
@@ -226,6 +226,84 @@ describe('shapeTierTable', () => {
     expect(table.boundaries.labelVisibleMinRadiusPx).toBe(TIER_TABLE.boundaries.labelVisibleMinRadiusPx)
     expect(table.boundaries.gatesFullMaxN).toBe(TIER_TABLE.boundaries.gatesFullMaxN)
     expect(table.boundaries.gatesThinMaxN).toBe(TIER_TABLE.boundaries.gatesThinMaxN)
+    expect(table.boundaries.interactiveMaxN?.rule).toBe(TIER_TABLE.boundaries.interactiveMaxN?.rule)
+  })
+
+  // ---- the shipped interactive ceiling (Phase 6 D-01, T-06-07b): carried forward, clamped, never raised ----
+
+  describe('interactiveMaxN carry-forward', () => {
+    /** derive.maxMeasuredN of a shaped table's own rows (the largest sw-6x canvas n). */
+    function maxMeasuredNOf(table: TierTable): number {
+      return deriveBoundaries({
+        measurements: table.measurements,
+        chords: table.chords,
+        canvasProbes: table.canvasProbes,
+        budgets: table.budgets,
+        shippedProfile: table.shippedProfile,
+      }).maxMeasuredN
+    }
+
+    it('the shaper rule text is the table rule text (one source of wording)', () => {
+      expect(INTERACTIVE_RULE).toBe(TIER_TABLE.boundaries.interactiveMaxN?.rule)
+    })
+
+    it('carries the field forward, clamped to the measured range, and the table still validates', () => {
+      const table = shapeTierTable(baseInput())
+      // The synthetic run measured canvas rows only up to n = 100, below the previous ceiling.
+      expect(maxMeasuredNOf(table)).toBe(100)
+      expect(TIER_TABLE.boundaries.interactiveMaxN?.n).toBeGreaterThan(100)
+      expect(table.boundaries.interactiveMaxN?.n).toBe(100)
+      expect(table.boundaries.interactiveMaxN?.basedOn).toBe('sw-6x')
+      expect(table.boundaries.interactiveMaxN?.rule).toBe(TIER_TABLE.boundaries.interactiveMaxN?.rule)
+      expect(validateTierTable(table)).toEqual([])
+    })
+
+    it('keeps the previous ceiling when the run measured past it and the canvas tier failed beyond it', () => {
+      const previousN = TIER_TABLE.boundaries.interactiveMaxN?.n
+      if (previousN === undefined) throw new Error('interactiveMaxN is missing from the shipped table')
+      const base = baseInput()
+      const input: ShapeInput = {
+        ...base,
+        records: [
+          ...base.records,
+          canvasRow('sw-6x', previousN, { mount: 185.5, pan: 22.0 }),
+          canvasRow('sw-6x', previousN + 1000, { mount: 9999, pan: 5 }),
+        ],
+      }
+      const table = shapeTierTable(input)
+      expect(table.boundaries.canvasMaxN?.n).toBe(previousN)
+      expect(table.boundaries.interactiveMaxN?.n).toBe(previousN)
+      expect(validateTierTable(table)).toEqual([])
+    })
+
+    it('never raises the ceiling by itself: rows that all pass beyond it leave it where it was', () => {
+      const previousN = TIER_TABLE.boundaries.interactiveMaxN?.n
+      if (previousN === undefined) throw new Error('interactiveMaxN is missing from the shipped table')
+      const base = baseInput()
+      const input: ShapeInput = {
+        ...base,
+        records: [
+          ...base.records,
+          canvasRow('sw-6x', previousN, { mount: 185.5, pan: 22.0 }),
+          canvasRow('sw-6x', previousN + 2000, { mount: 250, pan: 22.0 }),
+        ],
+      }
+      const table = shapeTierTable(input)
+      expect(table.boundaries.canvasMaxN).toBeNull()
+      expect(maxMeasuredNOf(table)).toBe(previousN + 2000)
+      expect(table.boundaries.interactiveMaxN?.n).toBe(previousN)
+      expect(validateTierTable(table)).toEqual([])
+    })
+
+    it('falls back to the largest measured canvas n and the shaper rule text when the previous table lacks the field', () => {
+      const previous = structuredClone(TIER_TABLE)
+      delete (previous.boundaries as { interactiveMaxN?: unknown }).interactiveMaxN
+      const table = shapeTierTable({ ...baseInput(), previous })
+      expect(table.boundaries.interactiveMaxN?.n).toBe(maxMeasuredNOf(table))
+      expect(table.boundaries.interactiveMaxN?.rule).toBe(INTERACTIVE_RULE)
+      expect(table.boundaries.interactiveMaxN?.basedOn).toBe('sw-6x')
+      expect(validateTierTable(table)).toEqual([])
+    })
   })
 
   it('webglDecision.adopt is false when the canvas tier never leaves budget in the measured range', () => {
