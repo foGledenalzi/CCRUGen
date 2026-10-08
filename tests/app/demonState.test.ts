@@ -11,6 +11,7 @@ import {
   FOCUS_CHORD_DRAW_MAX,
   demonFocusOf,
   demonsAfterBaseSwitch,
+  demonsAfterSwitchFromCounts,
   focusChordList,
   focusDemonRef,
   focusDrawPlan,
@@ -24,6 +25,7 @@ import {
   type DemonFocus,
   type DemonSessionState,
 } from '../../app/lib/demonState'
+import type { DemonFacetCounts } from '../../app/lib/worker/protocol'
 
 describe('DEMON_TABS / DEMON_TAB_LABEL', () => {
   it('are the three fixed tabs with labels', () => {
@@ -232,6 +234,58 @@ describe('demonsAfterBaseSwitch (T-05-15)', () => {
     const prev: DemonSessionState = { filter: 'chrono', focus: demonFocusOf({ a: 5, b: 2 }) }
     const g28 = createNumogram(28)
     expect(demonsAfterBaseSwitch(prev, g28)).toEqual({ filter: 'chrono', focus: null })
+  })
+})
+
+// The worker's closed-form facet counts stand in for a main-thread Numogram when the new base is huge (Phase 6 P6):
+// the rule must give exactly what demonsAfterBaseSwitch gives from the numogram itself.
+function countsOf(g: ReturnType<typeof createNumogram>): DemonFacetCounts {
+  return { total: g.demons.count, types: { ...g.demons.typeCounts() }, subtypes: { ...g.demons.counts() } }
+}
+
+describe('demonsAfterSwitchFromCounts (Phase 6 P6)', () => {
+  const filters: Array<DemonFilter | null> = [null, ...DEMON_TYPES, ...DEMON_SUBTYPES]
+
+  it('equals demonsAfterBaseSwitch for every filter at bases 2, 10, 28 and 666', () => {
+    for (const base of [2, 10, 28, 666]) {
+      const g = createNumogram(base)
+      const counts = countsOf(g)
+      for (const filter of filters) {
+        for (const focus of [null, zoneFocus(1)]) {
+          const prev: DemonSessionState = { filter, focus }
+          expect(demonsAfterSwitchFromCounts(prev, counts), `base ${base}, filter ${String(filter)}`).toEqual(
+            demonsAfterBaseSwitch(prev, g),
+          )
+        }
+      }
+    }
+  })
+
+  it('keeps a null filter null and always clears the focus', () => {
+    const counts = countsOf(createNumogram(28))
+    expect(demonsAfterSwitchFromCounts({ filter: null, focus: zoneFocus(3) }, counts)).toEqual({ filter: null, focus: null })
+    expect(demonsAfterSwitchFromCounts({ filter: 'chrono', focus: demonFocusOf({ a: 5, b: 2 }) }, counts)).toEqual({
+      filter: 'chrono',
+      focus: null,
+    })
+  })
+
+  it('drops a type or a subtype whose count is 0, and keeps one whose count is above 0', () => {
+    const counts = countsOf(createNumogram(28))
+    const zeroType: DemonFacetCounts = { ...counts, types: { ...counts.types, amphi: 0 } }
+    const zeroSub: DemonFacetCounts = { ...counts, subtypes: { ...counts.subtypes, 'warp-amphi': 0 } }
+    expect(demonsAfterSwitchFromCounts({ filter: 'amphi', focus: null }, zeroType).filter).toBeNull()
+    expect(demonsAfterSwitchFromCounts({ filter: 'chrono', focus: null }, zeroType).filter).toBe('chrono')
+    expect(demonsAfterSwitchFromCounts({ filter: 'warp-amphi', focus: null }, zeroSub).filter).toBeNull()
+    expect(demonsAfterSwitchFromCounts({ filter: 'plex-amphi', focus: null }, zeroSub).filter).toBe('plex-amphi')
+  })
+
+  it('never uses a foreign filter value as a key: anything that is not a type or subtype becomes null', () => {
+    const counts = countsOf(createNumogram(28))
+    for (const hostile of ['constructor', '__proto__', 'toString', 'total', '', 'Chrono']) {
+      const prev = { filter: hostile as unknown as DemonFilter, focus: null }
+      expect(demonsAfterSwitchFromCounts(prev, counts)).toEqual({ filter: null, focus: null })
+    }
   })
 })
 
