@@ -18,6 +18,11 @@ import { ZonesPanel } from '../../app/components/panels/ZonesPanel'
 import { SyzygiesPanel } from '../../app/components/panels/SyzygiesPanel'
 import { CurrentsPanel } from '../../app/components/panels/CurrentsPanel'
 import { GatesPanel } from '../../app/components/panels/GatesPanel'
+import { LayersPanel, gateInfoSuffix, particlesCanvasInfo } from '../../app/components/panels/LayersPanel'
+import { RegionsPanel } from '../../app/components/panels/RegionsPanel'
+import { ShortcutsModal } from '../../app/components/numogram/ShortcutsModal'
+import { EMPTY_REGION_FILTER, regionRows } from '../../app/lib/regions'
+import type { Layer } from '../../app/data/types'
 
 const noop = () => {}
 
@@ -150,5 +155,150 @@ describe('list panels at the SVG tier keep their rows', () => {
   it('ZonesPanel at base 28 has exactly 28 zone rows', () => {
     const markup = LIST_PANELS[0]!.render(buildCtx(SVG_BASE, 'svg'))
     expect(rowCount(markup)).toBe(SVG_BASE)
+  })
+})
+
+// ── Task 3: Layers copy, Regions read order, Shortcuts lines ─────────────────────────────────────────────────────
+
+describe('gateInfoSuffix (Layers panel, Gates info line)', () => {
+  it('off at the canvas tier says the gate is drawn for the hovered or pinned zone only', () => {
+    expect(gateInfoSuffix('off', 'canvas')).toBe(' Drawn for the hovered or pinned zone only at this base.')
+  })
+  it('off at the svg tier keeps the "too dense" line', () => {
+    expect(gateInfoSuffix('off', 'svg')).toBe(' Hidden at this base: too dense to draw legibly.')
+  })
+  it('off at the headless tier keeps the "too dense" line (nothing is drawn there at all)', () => {
+    expect(gateInfoSuffix('off', 'headless')).toBe(' Hidden at this base: too dense to draw legibly.')
+  })
+  it('thin reads the same at every tier', () => {
+    for (const tier of ['svg', 'canvas', 'headless'] as const) {
+      expect(gateInfoSuffix('thin', tier)).toBe(' Drawn thin at this base.')
+    }
+  })
+  it('on adds nothing at any tier', () => {
+    for (const tier of ['svg', 'canvas', 'headless'] as const) {
+      expect(gateInfoSuffix('on', tier)).toBe('')
+    }
+  })
+})
+
+describe('particlesCanvasInfo', () => {
+  it('names the cutoff it is given', () => {
+    expect(particlesCanvasInfo(200)).toBe('Particles are drawn up to 200 zones.')
+    expect(particlesCanvasInfo(SVG_RICH_MAX_N)).toBe(`Particles are drawn up to ${SVG_RICH_MAX_N} zones.`)
+  })
+})
+
+/** The text of the `right` slot of the Layers row whose label is `label` (ON, OFF or N/A). */
+function layersRightLabel(markup: string, label: string): string | null {
+  const m = new RegExp(`${label}</span><span class="ml-auto"><span class="[^"]*">([^<]*)</span>`).exec(markup)
+  return m ? (m[1] as string) : null
+}
+
+function renderLayers(ctx: NumogramViewContextValue, layers: readonly Layer[], particlesOn: boolean): string {
+  return renderIn(ctx, createElement(LayersPanel, {
+    layers: new Set<Layer>(layers), toggleLayer: noop, particlesOn, onToggleParticles: noop,
+  }))
+}
+
+describe('LayersPanel at the Canvas tier', () => {
+  it('Particles shows N/A whether or not particles are on, while syzygies and currents keep ON/OFF', () => {
+    const ctx = buildCtx(CANVAS_BASE, 'canvas')
+    for (const particlesOn of [false, true]) {
+      const markup = renderLayers(ctx, ['syzygies'], particlesOn)
+      expect(layersRightLabel(markup, 'Particles')).toBe('N/A')
+      expect(layersRightLabel(markup, 'Syzygies')).toBe('ON')
+      expect(layersRightLabel(markup, 'Currents')).toBe('OFF')
+    }
+  })
+
+  it('at the SVG tier Particles shows ON or OFF as today', () => {
+    const ctx = buildCtx(SVG_BASE, 'svg')
+    expect(layersRightLabel(renderLayers(ctx, ['syzygies'], false), 'Particles')).toBe('OFF')
+    expect(layersRightLabel(renderLayers(ctx, ['syzygies'], true), 'Particles')).toBe('ON')
+  })
+
+  it('at the headless tier the panel is the unavailable line', () => {
+    expect(renderLayers(buildCtx(CANVAS_BASE, 'headless'), [], false)).toBe(HEADLESS_NOTE)
+  })
+})
+
+// Props every RegionsPanel render needs.
+function renderRegions(ctx: NumogramViewContextValue): string {
+  return renderIn(ctx, createElement(RegionsPanel, {
+    hlRegion: null, tcActive: false, filter: EMPTY_REGION_FILTER,
+    onSelectRegion: noop, onToggleTC: noop, onToggleIsolate: noop, onToggleMute: noop,
+  }))
+}
+
+describe('RegionsPanel read order (T-06-01b, research P6)', () => {
+  it('does not read ctx.g before its early return: a throwing getter is never touched at the headless tier', () => {
+    const ctx = buildCtx(CANVAS_BASE, 'headless')
+    const guarded = { ...ctx } as { g?: Numogram } & Record<string, unknown>
+    Object.defineProperty(guarded, 'g', { get() { throw new Error('g read') }, enumerable: true })
+    expect(() => renderRegions(guarded as unknown as NumogramViewContextValue)).not.toThrow()
+    expect(renderRegions(guarded as unknown as NumogramViewContextValue)).toBe(HEADLESS_NOTE)
+  })
+
+  it('at the Canvas tier (base 202) renders one row per region plus the Time Circuit row', () => {
+    const ctx = buildCtx(CANVAS_BASE, 'canvas')
+    const markup = renderRegions(ctx)
+    const rows = regionRows(ctx.g)
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rowCount(markup)).toBe(rows.length + 1)
+    expect((markup.match(/aria-label="Isolate /g) ?? []).length).toBe(rows.length)
+    expect((markup.match(/aria-label="Mute /g) ?? []).length).toBe(rows.length)
+  })
+
+  it('at the SVG tier (base 28) still renders its rows', () => {
+    const ctx = buildCtx(SVG_BASE, 'svg')
+    expect(rowCount(renderRegions(ctx))).toBe(regionRows(ctx.g).length + 1)
+  })
+})
+
+/** What React writes for an apostrophe in text content. */
+function escapeApostrophe(s: string): string {
+  return s.replace(/'/g, '&#x27;')
+}
+
+function renderShortcuts(open: boolean): string {
+  return renderIn(buildCtx(SVG_BASE, 'svg'), createElement(ShortcutsModal, { open, onClose: noop }))
+}
+
+describe('ShortcutsModal lines for both keyboard models', () => {
+  const DIAGRAM_LINE =
+    `<div><span style="color:#10ff50">Diagram:</span> Up to ${SVG_RICH_MAX_N} zones: Tab moves into the diagram, ` +
+    'arrow keys step through zones, syzygies, currents and gates, Home/End jump, Enter or Space selects</div>'
+  const CANVAS_LINE = escapeApostrophe(
+    `<div class="text-gray-400">Above ${SVG_RICH_MAX_N} zones: arrow keys step between zones, Tab steps through a zone's ` +
+    'syzygy, current and gate, Page Up and Page Down jump 10 zones, Enter or Space selects. ' +
+    'Touch: drag pans, pinch zooms, tap selects.</div>',
+  )
+
+  it('qualifies the existing Diagram line with the SVG cutoff read from data', () => {
+    expect(renderShortcuts(true)).toContain(DIAGRAM_LINE)
+  })
+
+  it('adds the Canvas keyboard and touch line, in plain gray text with no accent span', () => {
+    const markup = renderShortcuts(true)
+    expect(markup).toContain(CANVAS_LINE)
+    expect(CANVAS_LINE).not.toContain('<span')
+    expect(CANVAS_LINE).not.toContain('#10ff50')
+  })
+
+  it('keeps both lines inside the data-post-baseline block, after the Diagram line and before Gate keys', () => {
+    const markup = renderShortcuts(true)
+    const block = markup.indexOf('<div data-post-baseline=""')
+    const diagram = markup.indexOf(DIAGRAM_LINE)
+    const canvas = markup.indexOf(CANVAS_LINE)
+    const gateKeys = markup.indexOf('Gate keys:')
+    expect(block).toBeGreaterThanOrEqual(0)
+    expect(diagram).toBeGreaterThan(block)
+    expect(canvas).toBeGreaterThan(diagram)
+    expect(gateKeys).toBeGreaterThan(canvas)
+  })
+
+  it('renders nothing when closed (the context hook is called before the early return)', () => {
+    expect(renderShortcuts(false)).toBe('')
   })
 })
