@@ -52,8 +52,12 @@ function clip(text: string, max: number): string {
 export function RegionsPanel({
   hlRegion, tcActive, filter, onSelectRegion, onToggleTC, onToggleIsolate, onToggleMute,
 }: RegionsPanelProps) {
-  const { g, view, zoneLabels, svgRichMaxN } = useNumogramView()
-  if (!view || !zoneLabels) return <PanelUnavailable max={svgRichMaxN} />
+  const ctx = useNumogramView()
+  if (!ctx.view || !ctx.zoneLabels) return <PanelUnavailable max={ctx.svgRichMaxN} />
+  // never read ctx.g before this line: above the ceiling g is built lazily (Phase 6 P6)
+  const { g } = ctx
+  const view = ctx.view
+  const zoneLabels = ctx.zoneLabels
 
   const rows = regionRows(g)
   const items: HoverInfoListItem[] = [

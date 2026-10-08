@@ -3,6 +3,7 @@
 import React from 'react'
 import type { Layer } from '../../data/types'
 import { formatNumeral } from '../../../engine/index'
+import type { RenderTier } from '../../../engine/index'
 import { useNumogramView } from '../numogram/ViewContext'
 import { HoverInfoList, type HoverInfoListItem } from './HoverInfoList'
 import { PanelUnavailable } from './shared'
@@ -29,9 +30,26 @@ const LAYER_META = LAYER_DEFS.map(({ id, label, clr }) => ({ id, label, clr }))
 
 const PARTICLE_INFO = 'Animated carriers for currents and gates. Useful for flow tracing and directional reading of active channels.'
 
+/** The Gates info suffix for a gate layer mode at a tier. Pure, because the info text only shows on hover. */
+export function gateInfoSuffix(mode: 'on' | 'thin' | 'off', tier: RenderTier): string {
+  if (mode === 'thin') return ' Drawn thin at this base.'
+  if (mode === 'off') {
+    return tier === 'canvas'
+      ? ' Drawn for the hovered or pinned zone only at this base.'
+      : ' Hidden at this base: too dense to draw legibly.'
+  }
+  return ''
+}
+
+/** The Particles info line at the Canvas tier, where particles are not drawn (UI-SPEC "What does not draw on Canvas"). */
+export function particlesCanvasInfo(svgRichMaxN: number): string {
+  return `Particles are drawn up to ${svgRichMaxN} zones.`
+}
+
 export function LayersPanel({ layers, toggleLayer, particlesOn, onToggleParticles }: LayersPanelProps) {
-  const { view, gateMode, allChordsMaxN, svgRichMaxN } = useNumogramView()
+  const { view, gateMode, allChordsMaxN, svgRichMaxN, tier } = useNumogramView()
   if (!view) return <PanelUnavailable max={svgRichMaxN} />
+  const particlesCanvas = tier === 'canvas'
 
   const n = view.zoneCount
   const pandemoniumUnavailable = !view.lore && view.demons === null
@@ -41,12 +59,7 @@ export function LayersPanel({ layers, toggleLayer, particlesOn, onToggleParticle
     if (id === 'syzygies') return `${n / 2} syzygies: each zone pairs with its complement; the pair sums to ${formatNumeral(n - 1, n)}.`
     if (id === 'currents') return `${n / 2} currents, one per syzygy: the larger zone minus the smaller gives the destination zone.`
     if (id === 'gates') {
-      const suffix = gateMode === 'thin'
-        ? ' Drawn thin at this base.'
-        : gateMode === 'off'
-        ? ' Hidden at this base: too dense to draw legibly.'
-        : ''
-      return `${n} gates: zone k channels to the in-base digital root of its triangular cumulation T(k).${suffix}`
+      return `${n} gates: zone k channels to the in-base digital root of its triangular cumulation T(k).${gateInfoSuffix(gateMode, tier)}`
     }
     return pandemoniumUnavailable
       ? `Demon chords are drawn up to ${allChordsMaxN} zones (legibility limit). Use Browse demons (header) for focus, matrix and search.`
@@ -71,13 +84,13 @@ export function LayersPanel({ layers, toggleLayer, particlesOn, onToggleParticle
       id: 'particles',
       color: '#00ccff',
       active: particlesOn,
-      info: PARTICLE_INFO,
-      onClick: onToggleParticles,
+      info: particlesCanvas ? particlesCanvasInfo(svgRichMaxN) : PARTICLE_INFO,
+      onClick: particlesCanvas ? () => {} : onToggleParticles,
       inactiveColor: '#333',
       className: 'mt-1 pt-1',
       style: { borderTop: '1px solid rgba(255,255,255,0.04)' },
       label: <span className="text-gray-400 text-[10px]">Particles</span>,
-      right: <span className="text-[8px] text-gray-700">{particlesOn ? 'ON' : 'OFF'}</span>,
+      right: <span className="text-[8px] text-gray-700">{particlesCanvas ? 'N/A' : (particlesOn ? 'ON' : 'OFF')}</span>,
     },
   ]
 

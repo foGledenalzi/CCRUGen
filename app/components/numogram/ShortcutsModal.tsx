@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useNumogramView } from './ViewContext'
 
 interface ShortcutsModalProps {
   open: boolean
@@ -8,6 +9,7 @@ interface ShortcutsModalProps {
 }
 
 export function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
+  const { svgRichMaxN } = useNumogramView() // before the early return: hooks keep their order whether open or not
   if (!open) return null
 
   return (
@@ -45,7 +47,8 @@ export function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
           <div><span style={{ color: '#10ff50' }}>History:</span> Cmd/Ctrl+Z undo, Shift+Cmd/Ctrl+Z redo, Ctrl+Y redo</div>
           <div><span style={{ color: '#10ff50' }}>Overlay:</span> Shift+/ toggles this shortcuts panel</div>
           <div data-post-baseline="" className="grid gap-1.5">
-            <div><span style={{ color: '#10ff50' }}>Diagram:</span> Tab moves into the diagram, arrow keys step through zones, syzygies, currents and gates, Home/End jump, Enter or Space selects</div>
+            <div><span style={{ color: '#10ff50' }}>Diagram:</span> Up to {svgRichMaxN} zones: Tab moves into the diagram, arrow keys step through zones, syzygies, currents and gates, Home/End jump, Enter or Space selects</div>
+            <div className="text-gray-400">Above {svgRichMaxN} zones: arrow keys step between zones, Tab steps through a zone&apos;s syzygy, current and gate, Page Up and Page Down jump 10 zones, Enter or Space selects. Touch: drag pans, pinch zooms, tap selects.</div>
             <div><span style={{ color: '#10ff50' }}>Gate keys:</span> digits 0-9 work at base 10 only</div>
           </div>
         </div>
