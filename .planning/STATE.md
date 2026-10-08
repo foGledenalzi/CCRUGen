@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_execute
-stopped_at: Phase 6 planned (15 plans in 9 waves)
-last_updated: "2026-10-06T05:05:19.000Z"
-last_activity: 2026-10-05
+status: executing
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-10-08T17:39:49.652Z"
+last_activity: 2026-10-08
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 74
-  completed_plans: 59
+  completed_plans: 60
   percent: 63
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 06 — canvas-tier-and-worker
+**Current focus:** Phase 6 — Canvas Tier and Worker
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-10-05
+Phase: 6 (Canvas Tier and Worker) — EXECUTING
+Plan: 2 of 15
+Status: Executing Phase 6
+Last activity: 2026-10-08 -- Completed 06-01 (shipped interactive ceiling as data)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
@@ -114,6 +114,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05 P10 | 15min | 2 tasks | 3 files |
 | Phase 05 P11 | ~20min | 2 tasks | 2 files |
 | Phase 05 P12 | 50min | 3 tasks | 3 files |
+| Phase 06 P01 | 13min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -197,6 +198,7 @@ Recent decisions affecting current work:
 - [Phase 5 P10] Demons layer wired into NumogramClient.tsx: header Browse demons button (data-post-baseline, never gated behind showDiagram, proven at base 666 with no diagram), DemonsOverlay mounted at {demonsOpen && (...)} as a sibling after SourcesFooter, onZoneNodeClick branches on demonFocusMode for D-03's diagram-to-browser entry point (unchanged toggle when off), focusChords/focusZones(demonFocus) feed Projection's additive-only chord layer and hlZones highlight, currentShareState carries live demonFilter/demonFocus/demonsOpen (D-07), commitBase batches demonsAfterBaseSwitch into the existing UI-08 reset, Escape closes the overlay before clearing selection/focus; page-weight baseline raised (/numogram/ jsBytes +66,499 +10.1%, jsGzip +19,630 +9.9%, this plan's TanStack Virtual + demons components now actually bundled) with a dated reason; full regression (60 goldens, 5 behaviour specs, url-codec, base-switch-reset, hover-pin, layers-zoom, base-picker, accessibility, region-legend, smoke-bases) green unchanged; DEM-01..DEM-05 all marked Complete (final covering plan)
 - [Phase 5 P11] Demons Browser e2e shipped (DEM-01, DEM-02, DEM-05, D-07, D-01): e2e/demons-helpers.ts (openDemons/demonsDialog/facet/demonList/demonRow/searchDemons/waitRaster/matrixCellPoint, the latter two for 05-12) and e2e/demons-browser.spec.ts (12 tests) prove base 28's closed-form facets incl. the 108-member cross-Torque sub-facet, base 666's 221,445-row virtualization with the DOM capped at <=80 rows and a 4,871,790px spacer, sort/search/filter (mesh, a::b, outside-filter, not-found, syntax-error UI-SPEC copy), base 10's 45 canonical names, the demonFilter=/demonFocus=/demonsOpen= URL round-trip incl. a bogus-filter fallback, Escape/backdrop/close-button dismissal with opener focus restore, modal key isolation against the main viewer's window-level shortcuts, and base 1024's 523,776-row pager windowing; [data-demon-pager] is a sibling of [data-demon-list] (DemonRowList.tsx), never a descendant, a Rule 1 fix caught by a failing test before either commit; full regression (153 tests incl. 60 goldens and 5 behaviour specs) stayed green alongside the new spec
 - [Phase 5 P12] Demons focus-mode and matrix e2e specs shipped (DEM-03, DEM-04): e2e/demons-focus.spec.ts (6 tests) proves D-03 in both directions (zone click -> overlay Focus tab with base-1 chords, overlay demon pick -> diagram chord + zone-stroke highlight), the pre-existing non-focus-mode zone click staying intact, the toggle clearing demonFocus=, base 666 (no diagram) working entirely through the Focus tab's own zone input, and a demonFocus= URL reloading to the same view; e2e/demons-matrix.spec.ts (6 tests) proves D-06 exact hover/click/keyboard resolve at multiple zoom levels (never from the raster), the syzygy diagonal overlay, base 666, and measured raster-fill timings answering research assumption A1: base=28 16ms, base=666 83ms, base=4096 71ms, all well under the 500ms oneTimePaintMs budget. Fixed (not re-deferred) the one pre-existing flaky fast-check property in tests/app/demonMatrix.test.ts (deferred-items.md, found during 05-05) with the epsilon tolerance it already prescribed, since this is the phase-closing plan. Full npm run verify green (1720 unit tests x2 timezones, 200 e2e passed/130 skipped incl. 60 goldens and 5 behaviour specs unchanged, page-weight unchanged). Phase 5 complete: 12/12 plans, all five DEM requirements Complete. Next step /gsd-verify-work 5.
+- [Phase 6 P01] Shipped interactive ceiling as data (D-01, REN-02/REN-03 groundwork): boundaries.interactiveMaxN { n 4000, basedOn sw-6x } is the only change to engine/scene/tier-table.json (5 lines; 144 rows, derived boundaries, canvasMaxN null and webglDecision byte-identical); interactiveCeiling(table) = min(canvasMaxN, interactiveMaxN) is exported from the engine barrel and selectTier uses it (svg to svgRichMaxN, canvas from svgRichMaxN + 2 to the ceiling, headless above, override wins, never a lean tier per D-03); the field is optional in TierBoundaries and required by validateTierTable only for a measured table, with one rule and one brokenCopy mutant per invariant (missing, basedOn, integer, non-empty rule, >= svgRichMaxN, <= largest measured canvas n, <= canvasMaxN); scripts/spike/shape.ts carries it forward clamped to min(previous, maxMeasuredN, canvasMaxN) so a re-measure can lower it but never raise or drop it (PATTERNS hazard 1 resolved by clamping in the shaper and keeping the validator strict), INTERACTIVE_RULE exported and pinned equal to the JSON rule; app/lib/tierBounds.ts exports INTERACTIVE_MAX_N = interactiveCeiling(TIER_VIEW), LABEL_MIN_RADIUS_PX and CANVAS_AREA_LIMIT_PX by property access, no 4000 literal in app or tests; NumogramClient only tests tierFor(...) === 'svg' so the viewer is unchanged until 06-11; full npm run verify exit 0 (1749 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK without a baseline update); REN-02 and REN-03 stay Pending (final covering plans later in Phase 6)
 
 ### Pending Todos
 
@@ -228,9 +230,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-06T05:05:19.000Z
-Stopped at: Phase 6 planned (15 plans in 9 waves)
-Resume file: .planning/phases/06-canvas-tier-and-worker/06-01-PLAN.md
+Last session: 2026-10-08T17:39:49.643Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
