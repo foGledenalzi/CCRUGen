@@ -19,7 +19,7 @@ import { formatDemonFocus, parseDemonFilter, parseDemonFocus, type DemonFocus } 
 import { DEFAULT_LABEL_SCHEME, formatLabelScheme, parseLabelScheme, type LabelScheme } from './labelScheme'
 import { defaultLayoutFor, isLayoutIdFor, type ViewLayoutId } from './layoutIds'
 import { parseRegionId, type RegionId } from './regions'
-import { tierOverrideFrom } from './tierBounds'
+import { tierFor, tierOverrideFrom } from './tierBounds'
 
 /** The layers a URL carries when `layers=` is absent entirely (the upstream viewer's unchanged default). */
 export const DEFAULT_LAYERS: readonly Layer[] = ['syzygies', 'currents', 'gates']
@@ -171,7 +171,8 @@ function parsePacker(raw: string | null): Packer {
  * Reads a URL search string (or an existing URLSearchParams) into a ShareState. Never throws: `base` is the one
  * strict field (D-06) — a refused value is reported in `baseRefusal` and the state falls back to base 10; every
  * other field is lenient per field, so a hand-edited or stale link still loads in full (D-21). Unknown keys are
- * ignored. `region`/`isolate`/`mute` only build a Numogram (`createNumogram`, cached) when one of them is present.
+ * ignored. `region`/`isolate`/`mute` only build a Numogram (`createNumogram`, cached) when one of them is present
+ * and the base is not above the interactive ceiling (there they are dropped, never built on the main thread).
  */
 export function parseShareParams(input: string | URLSearchParams): ParsedShare {
   const params = typeof input === 'string' ? new URLSearchParams(input) : input
@@ -189,7 +190,11 @@ export function parseShareParams(input: string | URLSearchParams): ParsedShare {
   let region: RegionId | null = null
   let isolate: readonly RegionId[] = []
   let mute: readonly RegionId[] = []
-  if (rawRegion !== null || rawIsolate !== null || rawMute !== null) {
+  // Phase 6 P6: above the interactive ceiling there is no diagram and no region view, and building g on the main thread
+  // would freeze at 2^26: drop region=, isolate= and mute=. The natural tier is used (override ignored) so small-base
+  // URLs keep their exact codec behaviour.
+  const aboveCeiling = tierFor(base) === 'headless'
+  if (!aboveCeiling && (rawRegion !== null || rawIsolate !== null || rawMute !== null)) {
     const g = createNumogram(base)
     if (rawRegion !== null) region = parseRegionId(rawRegion.trim(), g)
     isolate = parseRegionList(rawIsolate, g)
