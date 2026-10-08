@@ -27,14 +27,18 @@ import {
   drawCurrentLayer,
   drawGateLayer,
   drawNodeLayer,
+  drawOverlay,
   drawSyzygyLayer,
   edgeLayerOpacity,
   parseArcEnd,
   type Ctx2D,
   type DrawEnv,
   type DrawState,
+  type OverlayReport,
+  type OverlayState,
   type SceneIndex,
 } from '../../app/lib/canvas/draw'
+import type { RingTarget } from '../../app/lib/canvas/keyboardModel'
 import {
   IDENTITY_TRANSFORM,
   canvasFootprint,
@@ -46,12 +50,13 @@ import {
   type CanvasTransform,
 } from '../../app/lib/canvas/viewTransform'
 import { REGION_CLR } from '../../app/lib/constants'
+import { KIND_COLOR } from '../../app/lib/demonBrowser'
 import { syzTrianglePoints } from '../../app/lib/geometry'
 import { DEFAULT_LABEL_SCHEME, zoneLabelsFor } from '../../app/lib/labelScheme'
 import { buildNumogramView, type NumogramView } from '../../app/lib/numogramView'
 import { ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../app/lib/regions'
 import { labelsShown } from '../../app/lib/tierBounds'
-import type { Layer } from '../../app/data/types'
+import type { Demon, Layer } from '../../app/data/types'
 
 // ── Recording 2D context ─────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -1157,5 +1162,803 @@ describe('NaN scan over the static layers', () => {
     drawGateLayer(rec.env, st, fx.index)
     drawNodeLayer(rec.env, st, fx.index)
     expectAllFinite(rec)
+  })
+})
+
+// ── Overlay ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+function overlayFor(fx: Fx, over: Partial<OverlayState> = {}): OverlayState {
+  return {
+    ...stateFor(fx),
+    hlZones: new Set<number>(),
+    selZones: new Set<number>(),
+    anyFocus: false,
+    focusChords: null,
+    ring: null,
+    ...over,
+  }
+}
+
+/** Every curve [x0, y0, cx, cy, x1, y1] a recorded stroke carries (a moveTo followed by quadraticCurveTo), in CSS px. */
+function curvesOf(e: Ev): number[][] {
+  const out: number[][] = []
+  let start: number[] | null = null
+  for (const o of e.path?.ops ?? []) {
+    if (o.op === 'moveTo') start = nums(o.args)
+    else if (o.op === 'quadraticCurveTo' && start !== null) out.push([...start, ...nums(o.args)])
+  }
+  return out
+}
+
+/** The scene curve at curves[off ..] mapped through the transform, in the same layout as curvesOf. */
+function sceneCurve(fx: Fx, curves: Float64Array, off: number, t: CanvasTransform = IDENTITY_TRANSFORM): number[] {
+  const a = screenOf(fx, curves[off] as number, curves[off + 1] as number, t)
+  const c = screenOf(fx, curves[off + 2] as number, curves[off + 3] as number, t)
+  const b = screenOf(fx, curves[off + 4] as number, curves[off + 5] as number, t)
+  return [a.x, a.y, c.x, c.y, b.x, b.y]
+}
+
+const sameCurve = (a: number[], b: number[]): boolean => a.length === b.length && a.every((v, i) => Math.abs(v - (b[i] as number)) < 1e-6)
+
+/** Whether some stroke accepted by `pick` carries the scene curve at curves[off ..]. */
+function drawnCurve(
+  events: readonly Ev[],
+  fx: Fx,
+  curves: Float64Array,
+  off: number,
+  pick: (e: Ev) => boolean = () => true,
+  t: CanvasTransform = IDENTITY_TRANSFORM,
+): boolean {
+  const want = sceneCurve(fx, curves, off, t)
+  return strokesOf(events).some(e => pick(e) && curvesOf(e).some(c => sameCurve(c, want)))
+}
+
+const HL = { syzygy: 0.7, current: 0.85, gate: 0.8 }
+const isStem = (e: Ev): boolean => e.style.strokeStyle === '#22ee66' && e.style.globalAlpha === HL.current
+const isLeg = (e: Ev): boolean => e.style.strokeStyle === '#22ee66' && Math.abs(e.style.globalAlpha - HL.current * 0.7) < 1e-12
+const dashedGate = (e: Ev): boolean => e.style.strokeStyle === '#cc44ff' && e.style.lineDash.length > 0
+
+/** The demons incident to a zone, as the app's zone focus builds them (every pair containing it). */
+function incidentChords(fx: Fx, zone: number): Demon[] {
+  return (fx.view.demons ?? []).filter(d => d.a === zone || d.b === zone)
+}
+
+describe('drawOverlay: the empty overlay', () => {
+  it('clears to transparent, draws nothing, and reports zero edges and chords at full fidelity', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { dpr: 2 }), fx.index)
+    expect(report).toEqual({ highlightedEdges: 0, fidelity: 'full', chords: 0 })
+    const setT = rec.events.findIndex(e => e.type === 'setTransform')
+    const clear = rec.events.findIndex(e => e.type === 'clearRect')
+    expect(rec.events[setT]?.args).toEqual([2, 0, 0, 2, 0, 0])
+    expect(rec.events[clear]?.args).toEqual([0, 0, fx.w, fx.h])
+    expect(setT).toBeLessThan(clear)
+    expect(strokesOf(rec.events)).toHaveLength(0)
+    expect(fillsOf(rec.events)).toHaveLength(0)
+    expect(ofType(rec.events, 'fillText')).toHaveLength(0)
+  })
+
+  it('hover costs only an overlay redraw: a handful of calls even at base 4000', () => {
+    const fx = zoneFx(4000)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', hlZones: new Set([123]) }), fx.index)
+    expect(report.fidelity).toBe('full')
+    expect(rec.events.length).toBeLessThan(120)
+    expect(rec.paths.reduce((n, p) => n + p.ops.length, 0)).toBeLessThan(400)
+    expectAllFinite(rec)
+  })
+
+  it('context dimming is layer opacity, so anyFocus changes nothing the overlay draws', () => {
+    const fx = zoneFx(28)
+    const record = (anyFocus: boolean) => {
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, { anyFocus, hlZones: new Set([5]), selZones: new Set([5]) }), fx.index)
+      return JSON.stringify(rec.events.map(e => [e.type, e.args, e.style]))
+    }
+    expect(record(true)).toBe(record(false))
+  })
+
+  it('ignores zones that are out of range or not integers', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { hlZones: new Set([-1, 28, 9999, 1.5, Number.NaN]), selZones: new Set([-3, 100]) }), fx.index)
+    expect(report.highlightedEdges).toBe(0)
+    expect(strokesOf(rec.events)).toHaveLength(0)
+    expectAllFinite(rec)
+  })
+})
+
+describe('drawOverlay: edges on demand (D-04)', () => {
+  it('base 202, gate mode off, zone 5 hovered: its syzygy, its current, the currents into it and its own gate, though the gate layer draws nothing', () => {
+    const fx = zoneFx(202)
+    const layer = makeRecorder()
+    drawGateLayer(layer.env, stateFor(fx, { gateMode: 'off' }), fx.index)
+    expect(strokesOf(layer.events)).toHaveLength(0)
+
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', hlZones: new Set([5]) }), fx.index)
+    const q = fx.g.pairOf(5)
+    const currents = new Set<number>([q])
+    for (let w = 0; w < fx.g.pairCount; w++) if (fx.scene.currentTo[w] === 5) currents.add(w)
+    for (const c of currents) {
+      expect(drawnCurve(rec.events, fx, fx.scene.currentCurves, 18 * c + 12, isStem)).toBe(true)
+      expect(drawnCurve(rec.events, fx, fx.scene.currentCurves, 18 * c, isLeg)).toBe(true)
+      expect(drawnCurve(rec.events, fx, fx.scene.currentCurves, 18 * c + 6, isLeg)).toBe(true)
+    }
+    // exactly one dashed gate stroke, and it is zone 5's own gate (the gates into 5 stay with the layer, which is off)
+    const gates = strokesOf(rec.events).filter(dashedGate)
+    expect(gates).toHaveLength(1)
+    expect(drawnCurve(rec.events, fx, fx.scene.gateCurves, 6 * 5, dashedGate)).toBe(true)
+    expect(gates.reduce((n, e) => n + opsOf(e, 'quadraticCurveTo').length, 0)).toBe(1)
+    // the syzygy of the pair of 5: dots on its scene segment
+    const dots = fillsOf(rec.events).filter(e => e.style.fillStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy)
+    expect(dots).toHaveLength(1)
+    const { lo, hi } = fx.g.pair(q)
+    const k = fx.scene.nodeRadius / 21
+    const dist = Math.hypot((fx.scene.x[hi] as number) - (fx.scene.x[lo] as number), (fx.scene.y[hi] as number) - (fx.scene.y[lo] as number))
+    const numDots = Math.max(3, Math.min(10, Math.round(dist / (30 * k))))
+    const arcs = opsOf(dots[0] as Ev, 'arc').map(o => nums(o.args))
+    expect(arcs).toHaveLength(numDots)
+    const seg = fx.scene.syzygySeg
+    for (let i = 0; i < numDots; i++) {
+      const t = (i + 1) / (numDots + 1)
+      const at = screenOf(fx, (seg[4 * q] as number) + ((seg[4 * q + 2] as number) - (seg[4 * q] as number)) * t, (seg[4 * q + 1] as number) + ((seg[4 * q + 3] as number) - (seg[4 * q + 1] as number)) * t)
+      expect((arcs[i] as number[])[0]).toBeCloseTo(at.x, 6)
+      expect((arcs[i] as number[])[1]).toBeCloseTo(at.y, 6)
+    }
+    expect(report).toEqual({ highlightedEdges: 1 + currents.size + 1, fidelity: 'full', chords: 0 })
+  })
+
+  it('layers that are switched off draw nothing on demand either', () => {
+    const fx = zoneFx(202)
+    const only = (...layers: Layer[]) => {
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', layers: new Set<Layer>(layers), hlZones: new Set([5]) }), fx.index)
+      return rec
+    }
+    const noGates = only('syzygies', 'currents')
+    expect(strokesOf(noGates.events).filter(e => e.style.strokeStyle === '#cc44ff')).toHaveLength(0)
+    expect(strokesOf(noGates.events).filter(e => e.style.strokeStyle === '#22ee66').length).toBeGreaterThan(0)
+    const noCurrents = only('syzygies', 'gates')
+    expect(strokesOf(noCurrents.events).filter(e => e.style.strokeStyle === '#22ee66')).toHaveLength(0)
+    expect(strokesOf(noCurrents.events).filter(dashedGate)).toHaveLength(1)
+    const noSyzygies = only('currents', 'gates')
+    expect(fillsOf(noSyzygies.events).filter(e => e.style.fillStyle === '#e8e8e8')).toHaveLength(0)
+    const none = only()
+    expect(strokesOf(none.events).filter(e => e.style.strokeStyle === '#22ee66' || e.style.strokeStyle === '#cc44ff')).toHaveLength(0)
+    expect(fillsOf(none.events).filter(e => e.style.fillStyle === '#e8e8e8')).toHaveLength(0)
+    // the report counts only what is drawn
+    const rec = makeRecorder()
+    expect(drawOverlay(rec.env, overlayFor(fx, { layers: new Set<Layer>(), hlZones: new Set([5]) }), fx.index).highlightedEdges).toBe(0)
+  })
+
+  it('with the gate layer on, the gates that end in the hovered zone are drawn too', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { gateMode: 'on', hlZones: new Set([0]) }), fx.index)
+    const gates = new Set<number>([0])
+    for (let w = 0; w < 28; w++) if (fx.scene.gateTo[w] === 0) gates.add(w)
+    expect(gates.size).toBeGreaterThan(1)
+    const dashed = strokesOf(rec.events).filter(dashedGate)
+    expect(dashed.reduce((n, e) => n + opsOf(e, 'quadraticCurveTo').length, 0)).toBe(gates.size)
+    for (const w of gates) expect(drawnCurve(rec.events, fx, fx.scene.gateCurves, 6 * w, dashedGate)).toBe(true)
+    const currents = new Set<number>([fx.g.pairOf(0)])
+    for (let w = 0; w < fx.g.pairCount; w++) if (fx.scene.currentTo[w] === 0) currents.add(w)
+    expect(report.highlightedEdges).toBe(1 + currents.size + gates.size)
+  })
+
+  it('a muted zone draws nothing; an isolate-dimmed zone still gets its edges at the highlighted alpha', () => {
+    const fx = zoneFx(28)
+    const muted = makeRecorder()
+    const r1 = drawOverlay(muted.env, overlayFor(fx, { zoneStates: statesWith(28, { 5: ZONE_HIDDEN }), hlZones: new Set([5]) }), fx.index)
+    expect(r1.highlightedEdges).toBe(0)
+    expect(strokesOf(muted.events)).toHaveLength(0)
+    expect(fillsOf(muted.events)).toHaveLength(0)
+
+    const dimmed = makeRecorder()
+    const r2 = drawOverlay(dimmed.env, overlayFor(fx, { zoneStates: statesWith(28, { 5: ZONE_DIMMED }), hlZones: new Set([5]) }), fx.index)
+    expect(r2.highlightedEdges).toBeGreaterThan(0)
+    expect(strokesOf(dimmed.events).some(isStem)).toBe(true)
+  })
+
+  it('an edge with a muted far end is not drawn', () => {
+    const fx = zoneFx(28)
+    const q = fx.g.pairOf(5)
+    const dest = fx.scene.currentTo[q] as number
+    const other = fx.g.partner(5)
+    const victim = dest !== 5 && dest !== other ? dest : -1
+    expect(victim).toBeGreaterThanOrEqual(0)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { zoneStates: statesWith(28, { [victim]: ZONE_HIDDEN }), hlZones: new Set([5]) }), fx.index)
+    expect(drawnCurve(rec.events, fx, fx.scene.currentCurves, 18 * q + 12, isStem)).toBe(false)
+  })
+
+  it('while the Time Circuit is active gates are off and only Torque edges are drawn', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { tcActive: true, hlZones: new Set([5]) }), fx.index)
+    expect(strokesOf(rec.events).filter(e => e.style.strokeStyle === '#cc44ff')).toHaveLength(0)
+  })
+})
+
+describe('drawOverlay: nodes', () => {
+  it('a selected zone gets the outer ring (R + 7 k, alpha 0.3) and the 1.6 ss s stroke; a hovered one only 1.2 ss s', () => {
+    const fx = zoneFx(28)
+    const zone = 7
+    const t = fitZones(fx.scene.x, fx.scene.y, [zone], fx.frame, fx.w, fx.h)
+    const s = scaleFor(fx, t)
+    const ss = fx.scene.strokeScale
+    const k = fx.scene.nodeRadius / 21
+    const color = fx.view.zoneColors[zone] as string
+    const radius = fx.scene.nodeRadius * s
+    const ringsOf = (rec: Recorder) => strokesOf(rec.events).filter(e => e.style.strokeStyle === color)
+
+    const sel = makeRecorder()
+    drawOverlay(sel.env, overlayFor(fx, { transform: t, selZones: new Set([zone]), hlZones: new Set([zone]) }), fx.index)
+    const ring = ringsOf(sel).find(e => e.style.globalAlpha === 1 && opsOf(e, 'arc').length > 0) as Ev
+    expect(ring.style.lineWidth).toBeCloseTo(1.6 * ss * s, 9)
+    expect(nums((opsOf(ring, 'arc')[0] as { args: unknown[] }).args)[2]).toBeCloseTo(radius, 9)
+    const outer = ringsOf(sel).find(e => e.style.globalAlpha === 0.3) as Ev
+    expect(nums((opsOf(outer, 'arc')[0] as { args: unknown[] }).args)[2]).toBeCloseTo(radius + 7 * k * s, 9)
+    expect(outer.style.lineWidth).toBeCloseTo(Math.max(1, 0.5 * ss * s), 9)
+
+    const hov = makeRecorder()
+    drawOverlay(hov.env, overlayFor(fx, { transform: t, hlZones: new Set([zone]) }), fx.index)
+    const ring2 = ringsOf(hov).find(e => e.style.globalAlpha === 1 && opsOf(e, 'arc').length > 0) as Ev
+    expect(ring2.style.lineWidth).toBeCloseTo(1.2 * ss * s, 9)
+    expect(ringsOf(hov).some(e => e.style.globalAlpha === 0.3)).toBe(false)
+  })
+
+  it('the selected ring never falls under the 1 px floor and the outer ring keeps a visible gap at tiny sizes', () => {
+    const fx = zoneFx(4000)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', layers: new Set<Layer>(), selZones: new Set([10]) }), fx.index)
+    const color = fx.view.zoneColors[10] as string
+    const rings = strokesOf(rec.events).filter(e => e.style.strokeStyle === color)
+    expect(rings.length).toBeGreaterThan(0)
+    for (const e of rings) expect(e.style.lineWidth).toBeGreaterThanOrEqual(STROKE_MIN_PX)
+    const ring = rings.find(e => e.style.globalAlpha === 1) as Ev
+    const outer = rings.find(e => e.style.globalAlpha === 0.3) as Ev
+    const r1 = nums((opsOf(ring, 'arc')[0] as { args: unknown[] }).args)[2] as number
+    const r2 = nums((opsOf(outer, 'arc')[0] as { args: unknown[] }).args)[2] as number
+    expect(r1).toBe(NODE_MIN_RADIUS_PX)
+    expect(r2 - r1).toBeGreaterThanOrEqual(2)
+  })
+
+  it('at label level of detail a highlighted zone gets its label in the full colour, the triangle at 0.5 and the xenotation at 0.82', () => {
+    const fx = zoneFx(28)
+    const zone = 7
+    const color = fx.view.zoneColors[zone] as string
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { hlZones: new Set([zone]), labelVisibility: { numbers: true, xenotation: true, planets: false } }), fx.index)
+    const texts = ofType(rec.events, 'fillText')
+    const label = texts.find(e => e.args[0] === fx.labels[zone] && e.style.font.startsWith('bold')) as Ev
+    expect(label.style.fillStyle).toBe(color)
+    expect(label.style.globalAlpha).toBe(1)
+    const xeno = texts.find(e => e.style.font.startsWith('italic') && e.style.fillStyle === color && e.style.globalAlpha === 0.82) as Ev
+    expect(xeno).toBeDefined()
+    const triangles = fillsOf(rec.events).filter(e => e.style.fillStyle === color && e.style.globalAlpha === 0.5 && opsOf(e, 'closePath').length > 0)
+    expect(triangles).toHaveLength(1)
+    // below the threshold nothing of that is painted
+    const small = zoneFx(202)
+    const rec2 = makeRecorder()
+    drawOverlay(rec2.env, overlayFor(small, { layers: new Set<Layer>(), hlZones: new Set([7]) }), small.index)
+    expect(ofType(rec2.events, 'fillText')).toHaveLength(0)
+    expect(fillsOf(rec2.events)).toHaveLength(0)
+  })
+
+  it('an isolate-dimmed highlighted zone draws at alpha 0.2', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { layers: new Set<Layer>(), zoneStates: statesWith(28, { 7: ZONE_DIMMED }), hlZones: new Set([7]) }), fx.index)
+    const color = fx.view.zoneColors[7] as string
+    const ring = strokesOf(rec.events).find(e => e.style.strokeStyle === color) as Ev
+    expect(ring.style.globalAlpha).toBeCloseTo(0.2, 12)
+    const muted = makeRecorder()
+    drawOverlay(muted.env, overlayFor(fx, { layers: new Set<Layer>(), zoneStates: statesWith(28, { 7: ZONE_HIDDEN }), selZones: new Set([7]) }), fx.index)
+    expect(strokesOf(muted.events)).toHaveLength(0)
+  })
+})
+
+describe('drawOverlay: demon focus chords', () => {
+  it('a demon focus draws one chord in its kind colour, 1.2 ss s wide at alpha 0.75, and reports it', () => {
+    const fx = zoneFx(28)
+    const demon: Demon = { a: 12, b: 3, name: 'x', kind: 'chrono' }
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { focusChords: [demon] }), fx.index)
+    expect(report.chords).toBe(1)
+    const strokes = strokesOf(rec.events)
+    expect(strokes).toHaveLength(1)
+    const e = strokes[0] as Ev
+    expect(e.style.strokeStyle).toBe(KIND_COLOR.chrono)
+    expect(e.style.lineWidth).toBeCloseTo(Math.max(1, 1.2 * fx.scene.strokeScale * scaleFor(fx)), 9)
+    expect(e.style.globalAlpha).toBe(0.75)
+    // the chord runs between the two zone centres
+    const [curve] = curvesOf(e) as [number[]]
+    const a = screenOf(fx, fx.scene.x[12] as number, fx.scene.y[12] as number)
+    const b = screenOf(fx, fx.scene.x[3] as number, fx.scene.y[3] as number)
+    expect(curve[0]).toBeCloseTo(a.x, 6)
+    expect(curve[1]).toBeCloseTo(a.y, 6)
+    expect(curve[4]).toBeCloseTo(b.x, 6)
+    expect(curve[5]).toBeCloseTo(b.y, 6)
+  })
+
+  it('each kind has its own colour, an isolate-dimmed end drops the alpha to 0.15, a muted end removes the chord', () => {
+    const fx = zoneFx(28)
+    const kinds = ['chrono', 'amphi', 'xeno', 'syzygy'] as const
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { focusChords: kinds.map((kind, i) => ({ a: 10 + i, b: 20 + i, name: kind, kind })) }), fx.index)
+    expect(report.chords).toBe(4)
+    expect(strokesOf(rec.events).map(e => e.style.strokeStyle).sort()).toEqual(kinds.map(kind => KIND_COLOR[kind]).sort())
+
+    const demon: Demon = { a: 12, b: 3, name: 'x', kind: 'chrono' }
+    const dim = makeRecorder()
+    drawOverlay(dim.env, overlayFor(fx, { focusChords: [demon], zoneStates: statesWith(28, { 3: ZONE_DIMMED }) }), fx.index)
+    expect(strokesOf(dim.events)[0]?.style.globalAlpha).toBe(0.15)
+
+    const gone = makeRecorder()
+    const r = drawOverlay(gone.env, overlayFor(fx, { focusChords: [demon], zoneStates: statesWith(28, { 3: ZONE_HIDDEN }) }), fx.index)
+    expect(r.chords).toBe(0)
+    expect(strokesOf(gone.events)).toHaveLength(0)
+  })
+
+  it('a zone focus draws base - 1 chords; none and an empty list draw none', () => {
+    const fx = zoneFx(28)
+    expect(fx.view.demons).not.toBeNull()
+    const chords = incidentChords(fx, 3)
+    expect(chords).toHaveLength(27)
+    const rec = makeRecorder()
+    expect(drawOverlay(rec.env, overlayFor(fx, { focusChords: chords }), fx.index).chords).toBe(27)
+    expectAllFinite(rec)
+    expect(drawOverlay(makeRecorder().env, overlayFor(fx, { focusChords: [] }), fx.index).chords).toBe(0)
+    expect(drawOverlay(makeRecorder().env, overlayFor(fx, { focusChords: null }), fx.index).chords).toBe(0)
+  })
+
+  it('skips a chord with an out-of-range zone and never emits a NaN', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { focusChords: [{ a: -1, b: 3, name: 'bad', kind: 'xeno' }, { a: 3, b: 999, name: 'bad', kind: 'xeno' }, { a: 3, b: 4, name: 'ok', kind: 'xeno' }] }), fx.index)
+    expect(report.chords).toBe(1)
+    expectAllFinite(rec)
+  })
+})
+
+describe('drawOverlay: the Time Circuit', () => {
+  it('strokes every Torque walk segment in #00ccff at 1.5 ss s and alpha 0.6, statically', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { tcActive: true }), fx.index)
+    const tc = strokesOf(rec.events).filter(e => e.style.strokeStyle === '#00ccff')
+    expect(tc).toHaveLength(1)
+    const e = tc[0] as Ev
+    expect(e.style.globalAlpha).toBe(0.6)
+    expect(e.style.lineWidth).toBeCloseTo(Math.max(1, 1.5 * fx.scene.strokeScale * scaleFor(fx)), 9)
+    const segments = fx.view.torqueWalks.reduce((n, walk) => n + walk.length - 1, 0)
+    expect(opsOf(e, 'lineTo')).toHaveLength(segments)
+    expect(opsOf(e, 'moveTo')).toHaveLength(segments)
+    // a muted zone removes its segments
+    const muted = makeRecorder()
+    drawOverlay(muted.env, overlayFor(fx, { tcActive: true, zoneStates: statesWith(28, { 1: ZONE_HIDDEN }) }), fx.index)
+    const left = strokesOf(muted.events).find(x => x.style.strokeStyle === '#00ccff') as Ev
+    expect(opsOf(left, 'lineTo').length).toBeLessThan(segments)
+    // and nothing is drawn without it
+    const off = makeRecorder()
+    drawOverlay(off.env, overlayFor(fx), fx.index)
+    expect(strokesOf(off.events)).toHaveLength(0)
+  })
+})
+
+describe('drawOverlay: the keyboard focus ring', () => {
+  it('a zone ring is a #10ff50 circle of radius max(R_px + 3, 6), 2 px wide', () => {
+    for (const base of [202, 4000]) {
+      const fx = zoneFx(base)
+      const ring: RingTarget = { kind: 'zone', zone: 9 }
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, { ring }), fx.index)
+      const e = strokesOf(rec.events).find(x => x.style.strokeStyle === '#10ff50') as Ev
+      expect(e.style.lineWidth).toBe(2)
+      expect(e.style.globalAlpha).toBe(1)
+      const arc = nums((opsOf(e, 'arc')[0] as { args: unknown[] }).args)
+      const rPx = fx.scene.nodeRadius * scaleFor(fx)
+      expect(arc[2]).toBeCloseTo(Math.max(rPx + 3, 6), 9)
+      const c = screenOf(fx, fx.scene.x[9] as number, fx.scene.y[9] as number)
+      expect(arc[0]).toBeCloseTo(c.x, 9)
+      expect(arc[1]).toBeCloseTo(c.y, 9)
+    }
+    // the 6 px floor binds at base 4000 (R_px well under 3)
+    const tiny = zoneFx(4000)
+    expect(tiny.scene.nodeRadius * scaleFor(tiny)).toBeLessThan(3)
+  })
+
+  it('an edge ring draws a #10ff50 underlay (edge width + 4 px, alpha 0.9) before the edge itself', () => {
+    const fx = zoneFx(28)
+    const t: CanvasTransform = IDENTITY_TRANSFORM
+    const s = scaleFor(fx, t)
+    const ss = fx.scene.strokeScale
+    const cases: { ring: RingTarget; width: number; edge: (e: Ev) => boolean }[] = [
+      { ring: { kind: 'current', zone: 9 }, width: Math.max(1, 1.8 * ss * s), edge: isStem },
+      { ring: { kind: 'gate', zone: 9 }, width: Math.max(1, 1.2 * ss * s), edge: dashedGate },
+    ]
+    for (const c of cases) {
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, { ring: c.ring }), fx.index)
+      const strokes = strokesOf(rec.events)
+      const under = strokes.find(e => e.style.strokeStyle === '#10ff50') as Ev
+      const edge = strokes.find(c.edge) as Ev
+      expect(under).toBeDefined()
+      expect(edge).toBeDefined()
+      expect(under.style.lineWidth).toBeCloseTo(c.width + 4, 9)
+      expect(under.style.globalAlpha).toBe(0.9)
+      expect(under.i).toBeLessThan(edge.i)
+      // the underlay follows the very edge it marks
+      const curve = c.ring.kind === 'current' ? sceneCurve(fx, fx.scene.currentCurves, 18 * fx.g.pairOf(9) + 12) : sceneCurve(fx, fx.scene.gateCurves, 6 * 9)
+      expect(curvesOf(under).some(x => sameCurve(x, curve))).toBe(true)
+    }
+    // the syzygy ring: the underlay comes before the dots
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { ring: { kind: 'syzygy', zone: 9 } }), fx.index)
+    const under = strokesOf(rec.events).find(e => e.style.strokeStyle === '#10ff50') as Ev
+    const dots = fillsOf(rec.events).find(e => e.style.fillStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy) as Ev
+    expect(under.i).toBeLessThan(dots.i)
+    expect(under.style.globalAlpha).toBe(0.9)
+  })
+
+  it('draws nothing for a ring on a muted zone, a missing layer, or the wrong layout kind', () => {
+    const fx = zoneFx(28)
+    const none = (over: Partial<OverlayState>) => {
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, over), fx.index)
+      return strokesOf(rec.events).filter(e => e.style.strokeStyle === '#10ff50')
+    }
+    expect(none({ ring: { kind: 'zone', zone: 9 }, zoneStates: statesWith(28, { 9: ZONE_HIDDEN }) })).toHaveLength(0)
+    expect(none({ ring: { kind: 'gate', zone: 9 }, layers: new Set<Layer>(['syzygies', 'currents']) })).toHaveLength(0)
+    expect(none({ ring: { kind: 'pair', pair: 3 } })).toHaveLength(0)
+    expect(none({ ring: { kind: 'zone', zone: 99 } })).toHaveLength(0)
+    expect(none({ ring: null })).toHaveLength(0)
+  })
+
+  it('draws in order: Time Circuit, edges, node rings, chords, and the focus ring last', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    drawOverlay(
+      rec.env,
+      overlayFor(fx, {
+        tcActive: true,
+        hlZones: new Set([5]),
+        focusChords: [{ a: 12, b: 3, name: 'x', kind: 'amphi' }],
+        ring: { kind: 'zone', zone: 9 },
+      }),
+      fx.index,
+    )
+    const strokes = strokesOf(rec.events)
+    const tc = strokes.find(e => e.style.strokeStyle === '#00ccff') as Ev
+    const edge = strokes.find(isStem) as Ev
+    const node = strokes.find(e => e.style.strokeStyle === (fx.view.zoneColors[5] as string) && opsOf(e, 'arc').length > 0 && e.style.strokeStyle !== '#00ccff') as Ev | undefined
+    const chord = strokes.find(e => e.style.strokeStyle === KIND_COLOR.amphi) as Ev
+    const ring = strokes.find(e => e.style.strokeStyle === '#10ff50') as Ev
+    expect(tc.i).toBeLessThan(edge.i)
+    if (node !== undefined) expect(edge.i).toBeLessThan(node.i)
+    expect(edge.i).toBeLessThan(chord.i)
+    expect(chord.i).toBeLessThan(ring.i)
+    expect(strokes[strokes.length - 1]).toBe(ring)
+  })
+
+  it('a pair ring on the pair graph is a stadium outline with a 3 px gap, 2 px wide', () => {
+    const fx = pairFx(28)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { ring: { kind: 'pair', pair: 4 } }), fx.index)
+    const e = strokesOf(rec.events).find(x => x.style.strokeStyle === '#10ff50') as Ev
+    expect(e.style.lineWidth).toBe(2)
+    const s = scaleFor(fx)
+    const arcs = opsOf(e, 'arc').map(o => nums(o.args))
+    expect(arcs).toHaveLength(2)
+    for (const a of arcs) expect(a[2]).toBeCloseTo((fx.scene.pillHeight * s) / 2 + 3, 9)
+    expect(opsOf(e, 'closePath')).toHaveLength(1)
+    // the zone ring is ignored on the pair graph
+    const none = makeRecorder()
+    drawOverlay(none.env, overlayFor(fx, { ring: { kind: 'zone', zone: 4 } }), fx.index)
+    expect(strokesOf(none.events)).toHaveLength(0)
+  })
+})
+
+describe('drawOverlay: full fidelity decorations', () => {
+  it('a highlighted syzygy draws 3 to 10 graded dots, the radius growing toward the destination', () => {
+    const fx = zoneFx(28)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { layers: new Set<Layer>(['syzygies']), hlZones: new Set([5]) }), fx.index)
+    const dots = fillsOf(rec.events).find(e => e.style.fillStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy) as Ev
+    const radii = opsOf(dots, 'arc').map(o => nums(o.args)[2] as number)
+    expect(radii.length).toBeGreaterThanOrEqual(3)
+    expect(radii.length).toBeLessThanOrEqual(10)
+    const k = fx.scene.nodeRadius / 21
+    const s = scaleFor(fx)
+    radii.forEach((r, i) => expect(r).toBeCloseTo((1 + ((i + 1) / (radii.length + 1)) * 1.5) * k * s, 9))
+    for (let i = 1; i < radii.length; i++) expect(radii[i]).toBeGreaterThan(radii[i - 1] as number)
+    // the glow substitute: the same dots, 1 px larger, at a quarter of the opacity, drawn first
+    const under = fillsOf(rec.events).find(e => Math.abs(e.style.globalAlpha - 0.25 * HL.syzygy) < 1e-12) as Ev
+    expect(under.i).toBeLessThan(dots.i)
+    expect(opsOf(under, 'arc').map(o => nums(o.args)[2] as number)).toEqual(radii.map(r => r + 1))
+  })
+
+  it('a highlighted current draws legs, the white junction circle (5 k s) and the 9 x 7 arrowhead on the stem end', () => {
+    const fx = zoneFx(28)
+    const zone = 5
+    const q = fx.g.pairOf(zone)
+    const s = scaleFor(fx)
+    const k = fx.scene.nodeRadius / 21
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { layers: new Set<Layer>(['currents']), hlZones: new Set([zone]) }), fx.index)
+    const white = fillsOf(rec.events).filter(e => e.style.fillStyle === '#ffffff')
+    expect(white).toHaveLength(1)
+    const circles = opsOf(white[0] as Ev, 'arc').map(o => nums(o.args))
+    const j = screenOf(fx, fx.scene.junctionX[q] as number, fx.scene.junctionY[q] as number)
+    const mine = circles.find(a => Math.abs((a[0] as number) - j.x) < 1e-6 && Math.abs((a[1] as number) - j.y) < 1e-6) as number[]
+    expect(mine[2]).toBeCloseTo(5 * k * s, 9)
+    expect(white[0]?.style.globalAlpha).toBe(HL.current)
+    // the arrowhead: 9 x 7 marker, scaled to the stem width, tip on the stem end
+    const width = Math.max(1, 1.8 * fx.scene.strokeScale * s)
+    const arrows = fillsOf(rec.events).filter(e => e.style.fillStyle === '#22ee66' && e.style.globalAlpha === HL.current && opsOf(e, 'closePath').length > 0)
+    expect(arrows).toHaveLength(1)
+    const end = screenOf(fx, fx.scene.currentCurves[18 * q + 16] as number, fx.scene.currentCurves[18 * q + 17] as number)
+    const moves = opsOf(arrows[0] as Ev, 'moveTo').map(o => nums(o.args))
+    const tipIndex = moves.findIndex(m => Math.abs((m[0] as number) - end.x) < 1e-6 && Math.abs((m[1] as number) - end.y) < 1e-6)
+    expect(tipIndex).toBeGreaterThanOrEqual(0)
+    const corners = opsOf(arrows[0] as Ev, 'lineTo').map(o => nums(o.args)).slice(2 * tipIndex, 2 * tipIndex + 2)
+    const mid = [((corners[0] as number[])[0] as number + ((corners[1] as number[])[0] as number)) / 2, ((corners[0] as number[])[1] as number + ((corners[1] as number[])[1] as number)) / 2]
+    const scale = Math.min(9 / 8, 7 / 6) * width
+    expect(Math.hypot((moves[tipIndex] as number[])[0]! - mid[0]!, (moves[tipIndex] as number[])[1]! - mid[1]!)).toBeCloseTo(7 * scale, 6)
+    // the glow substitute is the whole current, 2 px wider, at a quarter of the opacity, drawn before the stem
+    const under = strokesOf(rec.events).find(e => Math.abs(e.style.globalAlpha - 0.25 * HL.current) < 1e-12) as Ev
+    const into = new Set<number>([q])
+    for (let w = 0; w < fx.g.pairCount; w++) if (fx.scene.currentTo[w] === zone) into.add(w)
+    expect(under.style.lineWidth).toBeCloseTo(width + 2, 9)
+    expect(under.i).toBeLessThan((strokesOf(rec.events).find(isStem) as Ev).i)
+    expect(curvesOf(under)).toHaveLength(3 * into.size)
+  })
+
+  it('a highlighted gate draws the 8 x 6 arrowhead at its end, dashed 5 / 3 ss s for a single route and 3 / 2 for a loop', () => {
+    const fx = zoneFx(28)
+    const s = scaleFor(fx)
+    const ss = fx.scene.strokeScale
+    const single = [...Array(28).keys()].find(z => fx.scene.gateLoop[z] === 0) as number
+    const loop = [...Array(28).keys()].find(z => fx.scene.gateLoop[z] === 1) as number
+    for (const [zone, dash] of [
+      [single, [5, 3]],
+      [loop, [3, 2]],
+    ] as const) {
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', layers: new Set<Layer>(['gates']), hlZones: new Set([zone]) }), fx.index)
+      const e = strokesOf(rec.events).find(dashedGate) as Ev
+      expect(e.style.lineDash[0]).toBeCloseTo((dash[0] as number) * ss * s, 9)
+      expect(e.style.lineDash[1]).toBeCloseTo((dash[1] as number) * ss * s, 9)
+      expect(e.style.lineWidth).toBeCloseTo(Math.max(1, 1.2 * ss * s), 9)
+      expect(e.style.globalAlpha).toBe(HL.gate)
+      const arrows = fillsOf(rec.events).filter(x => x.style.fillStyle === '#cc44ff' && opsOf(x, 'closePath').length > 0)
+      expect(arrows).toHaveLength(1)
+      const width = Math.max(1, 1.2 * ss * s)
+      const end = screenOf(fx, fx.scene.gateCurves[6 * zone + 4] as number, fx.scene.gateCurves[6 * zone + 5] as number)
+      const tip = nums((opsOf(arrows[0] as Ev, 'moveTo')[0] as { args: unknown[] }).args)
+      expect(tip[0]).toBeCloseTo(end.x, 6)
+      expect(tip[1]).toBeCloseTo(end.y, 6)
+      const corners = opsOf(arrows[0] as Ev, 'lineTo').map(o => nums(o.args))
+      const mid = [((corners[0] as number[])[0]! + (corners[1] as number[])[0]!) / 2, ((corners[0] as number[])[1]! + (corners[1] as number[])[1]!) / 2]
+      expect(Math.hypot(tip[0]! - mid[0]!, tip[1]! - mid[1]!)).toBeCloseTo(7 * Math.min(8 / 8, 6 / 6) * width, 6)
+    }
+  })
+
+  it('edge text (current name and label, syzygy demon name, gate label) only at label level of detail', () => {
+    const fx = zoneFx(28)
+    const zone = 5
+    const q = fx.g.pairOf(zone)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', hlZones: new Set([zone]) }), fx.index)
+    const texts = ofType(rec.events, 'fillText')
+    const current = fx.index.currentByPair[q]
+    expect(texts.some(e => e.args[0] === current?.name && e.style.font.startsWith('bold') && e.style.fillStyle === '#22ee66')).toBe(true)
+    expect(texts.some(e => e.args[0] === current?.label && e.style.fillStyle === '#22ee66')).toBe(true)
+    expect(texts.some(e => e.args[0] === fx.index.syzygyByPair[q]?.demon && e.style.font.startsWith('italic'))).toBe(true)
+    expect(texts.some(e => e.args[0] === fx.labels[zone] && e.style.font.startsWith('italic') && e.style.fillStyle === '#cc44ff')).toBe(true)
+
+    // base 202 at fit is under the threshold: no edge text at all
+    const small = zoneFx(202)
+    expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, small.frame, small.w, small.h))).toBe(false)
+    const rec2 = makeRecorder()
+    drawOverlay(rec2.env, overlayFor(small, { gateMode: 'off', hlZones: new Set([5]) }), small.index)
+    expect(ofType(rec2.events, 'fillText')).toHaveLength(0)
+  })
+})
+
+describe('drawOverlay: the fidelity switch (T-06-10)', () => {
+  const everyZone = (n: number): Set<number> => new Set(Array.from({ length: n }, (_, z) => z))
+
+  it('reports the highlighted edge count and fidelity full up to HIGHLIGHT_FULL_FIDELITY_MAX, plain above', () => {
+    const fx = zoneFx(4000)
+    const only = (count: number): OverlayReport =>
+      drawOverlay(makeRecorder().env, overlayFor(fx, { gateMode: 'off', layers: new Set<Layer>(['gates']), hlZones: new Set(Array.from({ length: count }, (_, z) => z)) }), fx.index)
+    // with only the gates layer on and the gate mode off, every zone adds exactly its own gate
+    expect(only(HIGHLIGHT_FULL_FIDELITY_MAX)).toEqual({ highlightedEdges: HIGHLIGHT_FULL_FIDELITY_MAX, fidelity: 'full', chords: 0 })
+    expect(only(HIGHLIGHT_FULL_FIDELITY_MAX + 1)).toEqual({ highlightedEdges: HIGHLIGHT_FULL_FIDELITY_MAX + 1, fidelity: 'plain', chords: 0 })
+  })
+
+  it('base 4000 select-all: plain, every edge counted, a bounded number of stroke calls, no arrowhead, junction or text', () => {
+    const fx = zoneFx(4000)
+    const all = everyZone(4000)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { gateMode: 'off', hlZones: all, selZones: all }), fx.index)
+    expect(report.fidelity).toBe('plain')
+    // 2000 syzygies + 2000 currents + 4000 own gates
+    expect(report.highlightedEdges).toBe(2 * fx.g.pairCount + 4000)
+    expect(strokesOf(rec.events).length).toBeLessThanOrEqual(16)
+    expect(strokesOf(rec.events).length).toBeGreaterThan(0)
+    expect(fillsOf(rec.events).filter(e => opsOf(e, 'closePath').length > 0)).toHaveLength(0) // no arrowheads
+    expect(fillsOf(rec.events).filter(e => e.style.fillStyle === '#ffffff')).toHaveLength(0) // no junction discs
+    expect(fillsOf(rec.events).filter(e => e.style.fillStyle === '#e8e8e8')).toHaveLength(0) // no graded dots
+    expect(ofType(rec.events, 'fillText')).toHaveLength(0)
+    // the plain strokes use the highlighted alphas per kind
+    const alphasOf = (color: string): number[] => [...new Set(strokesOf(rec.events).filter(e => e.style.strokeStyle === color).map(e => e.style.globalAlpha))]
+    expect(alphasOf('#22ee66')).toEqual([HL.current])
+    expect(alphasOf('#cc44ff')).toEqual([HL.gate])
+    expect(strokesOf(rec.events).some(e => e.style.strokeStyle === '#e8e8e8' && e.style.globalAlpha === HL.syzygy)).toBe(true)
+    expectAllFinite(rec)
+  })
+
+  it('plain mode never draws edge text, even where the zoom reaches label level of detail', () => {
+    const fx = zoneFx(202)
+    const t: CanvasTransform = { zoom: 3, tx: 0, ty: 0 }
+    expect(labelsShown(onScreenRadius(t, fx.frame, fx.w, fx.h))).toBe(true)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { transform: t, gateMode: 'off', hlZones: everyZone(202) }), fx.index)
+    expect(report.fidelity).toBe('plain')
+    for (const e of ofType(rec.events, 'fillText')) expect(e.style.font.startsWith('bold')).toBe(true) // only node labels
+  })
+
+  it('the same select-all in full fidelity (few edges) draws the decorations', () => {
+    const fx = zoneFx(28)
+    const all = everyZone(28)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { hlZones: all, selZones: all }), fx.index)
+    expect(report.fidelity).toBe('full')
+    expect(report.highlightedEdges).toBeLessThanOrEqual(HIGHLIGHT_FULL_FIDELITY_MAX)
+    expect(fillsOf(rec.events).filter(e => e.style.fillStyle === '#ffffff').length).toBeGreaterThan(0)
+    expect(fillsOf(rec.events).filter(e => e.style.fillStyle === '#22ee66' && opsOf(e, 'closePath').length > 0).length).toBeGreaterThan(0)
+  })
+})
+
+describe('drawOverlay: pair graph', () => {
+  const pairOf3 = (fx: Fx): { q: number; strings: string[] } => {
+    const q = fx.g.pairOf(3)
+    const strings = [fx.scene.pairArc?.[q] ?? null, fx.scene.pairLoop?.[q] ?? null].filter((d): d is string => d !== null)
+    return { q, strings }
+  }
+
+  it('hovering a pair member raises its arc to alpha 0.85 and the pill stroke to alpha 1', () => {
+    const fx = pairFx(28)
+    const { q, strings } = pairOf3(fx)
+    expect(strings).toHaveLength(1)
+    const t = fitZones(fx.scene.x, fx.scene.y, [3], fx.frame, fx.w, fx.h)
+    const s = scaleFor(fx, t)
+    const ss = fx.scene.strokeScale
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { transform: t, hlZones: new Set([3]) }), fx.index)
+    expect(report).toEqual({ highlightedEdges: 1, fidelity: 'full', chords: 0 })
+    expect(rec.svgCalls).toEqual(strings)
+    const arcs = strokesOf(rec.events).filter(e => e.style.strokeStyle === '#22ee66' && e.style.globalAlpha === 0.85)
+    expect(arcs).toHaveLength(1)
+    expect(arcs[0]?.style.lineWidth).toBeCloseTo(Math.max(1, 1.4 * ss * s), 9)
+    const color = fx.view.zoneColors[q] as string
+    const pill = strokesOf(rec.events).find(e => e.style.strokeStyle === color) as Ev
+    expect(pill.style.globalAlpha).toBe(1)
+    expect(pill.style.lineWidth).toBeCloseTo(Math.max(1, 0.9 * ss * s), 9)
+    expect(fillsOf(rec.events).filter(e => e.style.fillStyle === color && e.style.globalAlpha === 0.3)).toHaveLength(0)
+    // the arrowhead of the full fidelity arc
+    expect(fillsOf(rec.events).filter(e => e.style.fillStyle === '#22ee66' && opsOf(e, 'closePath').length > 0).length).toBeGreaterThan(0)
+  })
+
+  it('a selected pair (both members) gets the fill at alpha 0.3 and the 1.6 ss s stroke', () => {
+    const fx = pairFx(28)
+    const { q } = pairOf3(fx)
+    const { lo, hi } = fx.g.pair(q)
+    const t = fitZones(fx.scene.x, fx.scene.y, [3], fx.frame, fx.w, fx.h)
+    const s = scaleFor(fx, t)
+    const rec = makeRecorder()
+    drawOverlay(rec.env, overlayFor(fx, { transform: t, hlZones: new Set([lo, hi]), selZones: new Set([lo, hi]) }), fx.index)
+    const color = fx.view.zoneColors[q] as string
+    const fill = fillsOf(rec.events).find(e => e.style.fillStyle === color && e.style.globalAlpha === 0.3) as Ev
+    expect(fill).toBeDefined()
+    expect(opsOf(fill, 'closePath')).toHaveLength(1)
+    const pill = strokesOf(rec.events).find(e => e.style.strokeStyle === color) as Ev
+    expect(pill.style.lineWidth).toBeCloseTo(Math.max(1, 1.6 * fx.scene.strokeScale * s), 9)
+    expect(pill.style.globalAlpha).toBe(1)
+    // only one member selected: not a selected pair
+    const half = makeRecorder()
+    drawOverlay(half.env, overlayFor(fx, { transform: t, hlZones: new Set([lo]), selZones: new Set([lo]) }), fx.index)
+    expect(fillsOf(half.events).filter(e => e.style.fillStyle === color && e.style.globalAlpha === 0.3)).toHaveLength(0)
+  })
+
+  it('a muted pair draws nothing; focus chords are not drawn on the pair graph', () => {
+    const fx = pairFx(28)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { zoneStates: statesWith(28, { 3: ZONE_HIDDEN }), hlZones: new Set([3]) }), fx.index)
+    expect(report.highlightedEdges).toBe(0)
+    expect(strokesOf(rec.events)).toHaveLength(0)
+    const chords = makeRecorder()
+    expect(drawOverlay(chords.env, overlayFor(fx, { focusChords: [{ a: 1, b: 2, name: 'x', kind: 'chrono' }] }), fx.index).chords).toBe(0)
+    expect(strokesOf(chords.events)).toHaveLength(0)
+  })
+
+  it('select-all at base 4000 on the pair graph is plain with a bounded number of strokes', () => {
+    const fx = pairFx(4000)
+    const all = everyZoneSet(4000)
+    const rec = makeRecorder()
+    const report = drawOverlay(rec.env, overlayFor(fx, { hlZones: all, selZones: all }), fx.index)
+    expect(report.fidelity).toBe('plain')
+    expect(report.highlightedEdges).toBe((fx.scene.pairArc ?? []).filter(d => d !== null).length + (fx.scene.pairLoop ?? []).filter(d => d !== null).length)
+    expect(strokesOf(rec.events).length).toBeLessThanOrEqual(16)
+    expect(rec.svgCalls).toHaveLength(report.highlightedEdges)
+    expectAllFinite(rec)
+  })
+})
+
+function everyZoneSet(n: number): Set<number> {
+  return new Set(Array.from({ length: n }, (_, z) => z))
+}
+
+describe('NaN scan over the overlay', () => {
+  const cases: [string, () => Fx][] = [
+    ['ring 2', () => zoneFx(2)],
+    ['ring 4', () => zoneFx(4)],
+    ['ring 6', () => zoneFx(6)],
+    ['ring 28', () => zoneFx(28)],
+    ['ring 202', () => zoneFx(202)],
+    ['ring 4000', () => zoneFx(4000)],
+    ['ladder 28', () => zoneFx(28, 'ladder')],
+    ['spiral 28', () => zoneFx(28, 'spiral')],
+    ['pairGraph 28', () => pairFx(28)],
+    ['pairGraph 202', () => pairFx(202)],
+  ]
+  for (const [name, make] of cases) {
+    it(`${name}: every recorded number is finite with highlights, selection, chords, Time Circuit and a ring`, () => {
+      const fx = make()
+      const n = fx.g.base
+      const zones = [0, 1, Math.min(2, n - 1), n - 1]
+      const zoomed = fitZones(fx.scene.x, fx.scene.y, [0, 1], fx.frame, fx.w, fx.h)
+      const rings: (RingTarget | null)[] =
+        fx.scene.kind === 'pairs'
+          ? [{ kind: 'pair', pair: 0 }]
+          : [{ kind: 'zone', zone: 1 }, { kind: 'syzygy', zone: 1 }, { kind: 'current', zone: 1 }, { kind: 'gate', zone: 1 }]
+      for (const transform of [IDENTITY_TRANSFORM, zoomed]) {
+        for (const ring of rings) {
+          const rec = makeRecorder()
+          drawOverlay(
+            rec.env,
+            overlayFor(fx, {
+              transform,
+              dpr: 2,
+              hlZones: new Set(zones),
+              selZones: new Set([0, 1]),
+              tcActive: name.startsWith('ring') && n > 2,
+              focusChords: [{ a: 0, b: n - 1, name: 'x', kind: 'amphi' }, { a: 1, b: 0, name: 'y', kind: 'syzygy' }],
+              ring,
+              labelVisibility: { numbers: true, xenotation: true, planets: false },
+            }),
+            fx.index,
+          )
+          expectAllFinite(rec)
+        }
+      }
+    })
+  }
+
+  it('select-all at base 4000 (plain) and base 28 (full) with isolate and mute states', () => {
+    for (const base of [28, 4000]) {
+      const fx = zoneFx(base)
+      const states = new Uint8Array(base).fill(ZONE_NORMAL)
+      states[1] = ZONE_DIMMED
+      states[2] = ZONE_HIDDEN
+      const rec = makeRecorder()
+      drawOverlay(rec.env, overlayFor(fx, { zoneStates: states, hlZones: everyZoneSet(base), selZones: everyZoneSet(base) }), fx.index)
+      expectAllFinite(rec)
+    }
   })
 })
