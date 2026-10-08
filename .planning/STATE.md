@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-05-PLAN.md
-last_updated: "2026-10-08T19:45:44.736Z"
-last_activity: 2026-10-08 -- Completed 06-05 (canvas view transform and pick index); wave 3 continues with 06-09
+stopped_at: Completed 06-09-PLAN.md
+last_updated: "2026-10-08T19:59:22.381Z"
+last_activity: 2026-10-08 -- Completed 06-09 (picker computing state, capped O(k) Selection list, URL codec headless guard); wave 3 done, wave 4 (06-07, 06-08) next
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 74
-  completed_plans: 65
+  completed_plans: 66
   percent: 63
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 6 (Canvas Tier and Worker) — EXECUTING
-Plan: 6 of 15 complete (06-01, 06-02, 06-03, 06-04, 06-05, 06-06)
+Plan: 7 of 15 complete (06-01, 06-02, 06-03, 06-04, 06-05, 06-06, 06-09)
 Status: Executing Phase 6
-Last activity: 2026-10-08 -- Completed 06-05 (canvas view transform and pick index); wave 3 continues with 06-09
+Last activity: 2026-10-08 -- Completed 06-09 (picker computing state, capped O(k) Selection list, URL codec headless guard); wave 3 done, wave 4 (06-07, 06-08) next
 
 Progress: [██████░░░░] 63%
 
@@ -120,6 +120,7 @@ Progress: [██████░░░░] 63%
 | Phase 06 P06 | 22min | 3 tasks | 16 files |
 | Phase 06 P04 | 18min | 2 tasks | 10 files |
 | Phase 06 P05 | 25min | 2 tasks | 4 files |
+| Phase 06 P09 | 13min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -209,6 +210,7 @@ Recent decisions affecting current work:
 - [Phase 6 P06] View contract carries the Canvas tier (REN-02): NumogramViewContextValue gained required tier (RenderTier) and interactiveMaxN, NumogramClient passes the tier it renders today (showDiagram ? 'svg' : 'headless', 06-11 replaces it with the render tier) and INTERACTIVE_MAX_N, and the five Phase 5 render-test literals took both fields in the same commit; at the Canvas tier Zones, Syzygies, Currents and Gates return CanvasListNote (10px, data-post-baseline) before the headless early return so no thousand-row list is built (PanelUnavailable markup byte-identical), Layers uses gateInfoSuffix(mode, tier) and shows Particles as N/A (particlesCanvasInfo), RegionsPanel reads ctx.g only after its early return (proven with a throwing getter), ShortcutsModal qualifies the Diagram line with Up to {svgRichMaxN} zones and adds a plain-gray Canvas and touch line, both inside the data-post-baseline block; npm run test:swap green after the first NumogramClient edit and again at the end (65 passed 5 skipped, 1927 unit tests), npm run verify exit 0; known interim: Particles row keeps active state at the Canvas tier
 - [Phase 6 P04] Pure worker core and contract shipped (REN-03 groundwork, D-06): app/lib/summary.ts holds the lore-free summarize (moved verbatim, re-exported from numogramView.ts so every importer compiles unchanged); TEXT_VIEW_ZONE_LIMIT = INTERACTIVE_MAX_N so the text view lists every zone, syzygy and gate up to the shipped ceiling (bigBaseMessage kept until 06-11) and overLimitMessage(base, interactiveMaxN) / tierOverrideMessage(base) carry the UI-SPEC copy as pure functions; app/lib/worker/protocol.ts defines WORKER_PROTOCOL 'ccrug-numogram-worker/1', request/response types, DemonFacetCounts, resultKey (base:layout:packer:labelSchemeKey), total shape guards (exact membership for layout, packer and label scheme, id integer >= 1, hostile accessors are not a message) and the computeFailed/noWorker copy; app/lib/worker/buildResult.ts is the single pure core the worker shell and the main-thread fallback both run: buildResult returns summary, text, plain-object facet counts and the scene equal to the independent summarize/numogramText/buildZoneScene|buildPairScene, sceneWanted builds a scene only when wantScene, base <= INTERACTIVE_MAX_N and the layout is not a base-10 authored one (2^26 yields scene null, run once), handleRequest never throws (malformed -> build-failed with id/base kept when usable else -1, bad base -> invalid-base with the engine message, engine throw -> build-failed, proved with a file-scoped engine mock) and transferListFor lists each of the 17 (zones) or 19 (pairs) buffers once (a real structuredClone transfer accepts it and detaches them); a static import-graph walk proves the core reaches no app/presets, app/data, numogramView, demonBrowser or demonState (the walker is checked on numogramView, which does reach lore); demonsAfterSwitchFromCounts equals demonsAfterBaseSwitch for every filter at bases 2, 10, 28, 666; 16 mutants (14 killed first, the two survivors became tests, plus a pair-graph packer mutant); full npm run verify exit 0 (2010 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK without an update); REN-03 stays Pending (final covering plans 06-07/06-09/06-11/06-14)
 - [Phase 6 P05] Canvas view transform and pick index shipped (REN-02 groundwork, D-09): app/lib/canvas/viewTransform.ts is the pure fit-relative transform (s = min(W/width, H/height) x zoom so the 19 x 4096 ladder letterboxes at zoom 1; zoom 0.3 to max(5, 2 x LABEL_MIN_RADIUS_PX / fitted radius) capped at 100 so labels are reachable by zoom at every Canvas base on ring, ladder, spiral and pair graph in the 580 x 704 footprint, the worst case being the ladder at n = 4000 where the cap binds and a node reaches only 8.8 px; zoomAt keeps the point under the cursor, the pan clamp keeps 24 px of the frame reachable, fitZones, ensureVisible, canvasFootprint, and backingStore with DPR capped at 3 and the area reduced under CANVAS_AREA_LIMIT_PX from the table); app/lib/canvas/pickIndex.ts is the one resolve path for hover, click, tap and keyboard: a 12 CSS px nearest-wins pick over a bounded CSR zone grid, the scene's flattened edge segments with a per-edge box reject, pair stadium pills and flattened demon chords, ties zone (pair), syzygy, current, gate, chord then lower id, muted never a candidate, isolate-dimmed still, a gate only when the caller reports it drawn, equal to an independent brute-force reference for random points, filters and chords; FlatChords also carries zoneA/zoneB so a chord with a muted end is never picked, and a pill's members are q and base - 1 - q (pinned against g.pair); the edge unit tests run on the ladder because ring pairs are adjacent (a ring syzygy is a 2 to 3 radius stub); 113 tests, 57 mutant runs (both required mutants killed, 3 equivalent survivors named, 4 gaps closed by tests); typecheck, base-ten gate and 2123 unit tests x2 timezones green; REN-02 stays Pending (final covering plans 06-10/06-12/06-13)
+- [Phase 6 P09] Large-base guards shipped (REN-02 and REN-03 groundwork, D-07): BasePicker takes optional requestedBase, computing and announcement (defaults keep today's markup plus one empty sr-only span) and runs every edit, step, chip, Enter, Escape and commit on effectiveBase = requestedBase ?? base so a pending worker switch never snaps the numeral back, the summary slot is replaced in place by Computing base {n}... (data-computing, no role, a refusal still wins) and a persistent sr-only role=status carrier announces the computing and ready lines (checker recommendation 1); app/lib/selectionList.ts adds SELECTION_LIST_MAX 200, mergeSelectionOrder (two Sets, returns prev itself when unchanged, equal to the old O(k^2) body on a 200-run fast-check property, 200,000-key linear guard) and capSelection, and InfoDisplay lists at most 200 entries at the Canvas and headless tiers with an and {M} more selected line (SVG tier unchanged); parseShareParams drops region=, isolate= and mute= when tierFor(base) === 'headless' (natural tier, tier= override ignored so shareParams.test.ts stays untouched and green), proven by a vi.mock call-count spy at INTERACTIVE_MAX_N + 2 and 2^26; no caller passes the picker props until 06-11; the hidden-count line has no automated DOM test yet (06-12 select-all e2e can assert [data-selection-more]); npm run verify exit 0 (2155 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK); REN-02 and REN-03 stay Pending
 
 ### Pending Todos
 
@@ -240,8 +242,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-08T19:45:44.728Z
-Stopped at: Completed 06-05-PLAN.md
+Last session: 2026-10-08T19:59:00Z
+Stopped at: Completed 06-09-PLAN.md
 Resume file: None
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
