@@ -322,7 +322,8 @@ describe('distToStadium', () => {
   })
 
   it('follows the centre', () => {
-    expect(distToStadium(110, 208, 100, 200, 20, 10)).toBe(3)
+    expect(distToStadium(100, 208, 100, 200, 20, 10)).toBe(3)
+    expect(distToStadium(110, 208, 100, 200, 20, 10)).toBeCloseTo(Math.hypot(5, 8) - 5, 12)
   })
 
   it('returns Infinity for any non-finite input', () => {
@@ -487,78 +488,131 @@ describe('zone pick (base 202 ring, a node is 2 px on screen)', () => {
   })
 })
 
+describe('zone pick on hand-made clouds', () => {
+  it('the radius is inclusive: exactly 12 px picks, a hair beyond does not', () => {
+    // zone 0 at the origin with a 2 px radius at scale 1: the point (14, 0) is exactly 12 px from its surface
+    const { scene, grid } = synthetic({ ...FAR_ZONES, x: [0, ...FAR_ZONES.x.slice(1)], y: [0, ...FAR_ZONES.y.slice(1)], radius: 2 })
+    expect(pickAt(scene, grid, 14, 0, 1, allowAll)).toEqual({ kind: 'zone', id: 0, distancePx: SPEC_RADIUS_PX })
+    expect(pickAt(scene, grid, 14.000001, 0, 1, allowAll)).toBeNull()
+    expect(pickAt(scene, grid, 8, 0, 2, allowAll)).toEqual({ kind: 'zone', id: 0, distancePx: SPEC_RADIUS_PX }) // 12 px again at twice the scale (the 2 world unit radius is 4 px)
+  })
+
+  it('property: the grid pick equals brute force for zone clouds anywhere in the plane (offset origins, any radius and scale)', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -5000, max: 5000, noNaN: true }),
+        fc.double({ min: -5000, max: 5000, noNaN: true }),
+        fc.array(fc.tuple(fc.double({ min: 0, max: 300, noNaN: true }), fc.double({ min: 0, max: 300, noNaN: true })), { minLength: 6, maxLength: 6 }),
+        fc.double({ min: 0.5, max: 30, noNaN: true }),
+        fc.integer({ min: 0, max: 5 }),
+        fc.double({ min: -1, max: 1, noNaN: true }),
+        fc.double({ min: -1, max: 1, noNaN: true }),
+        fc.double({ min: -1, max: 1.2, noNaN: true }),
+        (ox, oy, cloud, radius, z, du, dv, logScale) => {
+          const { scene, grid } = synthetic({ x: cloud.map(c => ox + c[0]), y: cloud.map(c => oy + c[1]), radius })
+          const scale = Math.pow(10, logScale)
+          const reach = radius + 20 / scale
+          const wx = (scene.x[z] ?? NaN) + du * reach
+          const wy = (scene.y[z] ?? NaN) + dv * reach
+          sameHit(pickAt(scene, grid, wx, wy, scale, noEdges), refPick(scene, wx, wy, scale, noEdges))
+        },
+      ),
+      { numRuns: 600 },
+    )
+  })
+
+  it('a zone cloud whose y range sits far from its x range is found (the grid origin is per axis)', () => {
+    const { scene, grid } = synthetic({ x: [0, 40, 80, 120, 160, 200], y: [3000, 3040, 3080, 3120, 3160, 3200], radius: 5 })
+    for (let z = 0; z < 6; z++) expect(pickAt(scene, grid, scene.x[z] ?? NaN, scene.y[z] ?? NaN, 1, noEdges)).toEqual({ kind: 'zone', id: z, distancePx: 0 })
+    const flipped = synthetic({ x: [3000, 3040, 3080, 3120, 3160, 3200], y: [0, 40, 80, 120, 160, 200], radius: 5 })
+    for (let z = 0; z < 6; z++) expect(pickAt(flipped.scene, flipped.grid, flipped.scene.x[z] ?? NaN, flipped.scene.y[z] ?? NaN, 1, noEdges)).toEqual({ kind: 'zone', id: z, distancePx: 0 })
+  })
+})
+
 // ── edge picking ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
-describe('edge pick (base 202 ring, a node is 12 px on screen so the edges are apart)', () => {
-  const { scene, grid } = ring(202)
+// The ladder, because its syzygies are long rungs (11 node radii): on the ring the two members of a pair sit next to each
+// other, so a syzygy there is a stub between two nodes and no point can be 6 px from it and 20 px from every node.
+describe('edge pick (base 202 ladder, a node is 12 px on screen so the edges are apart)', () => {
+  const { scene, grid } = ladder(202)
   const s = 12 / scene.nodeRadius
   const P = scene.currentTo.length
 
-  /** The first point `offsetPx` beside edge e whose nearest other element is at least `minOtherPx` away and whose distance to e is within 0.5 px of the offset. */
-  function pointBeside(e: number, kind: PickKind, id: number, offsetPx: number, minOtherPx: number, minNodePx = 0): [number, number] | null {
+  const only = (kind: 'syzygy' | 'current' | 'gate'): PickFilter => ({ zoneAllowed: () => true, edgeAllowed: k => k === kind })
+
+  /**
+   * The first point `offsetPx` beside edge e (a point within 0.5 px of that distance from the edge, measured by brute
+   * force) whose nearest other candidate under `filter` is at least `minOtherPx` away and whose nearest node surface is
+   * at least `minNodePx` away.
+   */
+  function pointBeside(filter: PickFilter, e: number, kind: PickKind, id: number, offsetPx: number, minOtherPx: number, minNodePx = 0): [number, number] | null {
     for (const [x, y] of besideEdge(scene, e, offsetPx, s)) {
-      const cands = refCandidates(scene, x, y, s, allowAll)
-      const d = distOf(cands, { kind, id })
-      if (!(Math.abs(d - offsetPx) < 0.5)) continue
+      const cands = refCandidates(scene, x, y, s, filter)
+      if (!(Math.abs(distOf(cands, { kind, id }) - offsetPx) < 0.5)) continue
       if (nearestOther(cands, { kind, id }) < minOtherPx) continue
-      const nodeD = Math.min(...cands.filter(c => c.kind === 'zone').map(c => c.d))
-      if (nodeD < minNodePx) continue
+      if (Math.min(...refCandidates(scene, x, y, s, noEdges).map(c => c.d)) < minNodePx) continue
       return [x, y]
     }
     return null
   }
 
-  function firstEdge(range: [number, number], kind: PickKind, offsetPx: number, minOtherPx: number, minNodePx = 0): { id: number; x: number; y: number } {
+  function firstEdge(filter: PickFilter, range: [number, number], kind: PickKind, offsetPx: number, minOtherPx: number, minNodePx = 0): { id: number; x: number; y: number } {
     for (let e = range[0]; e < range[1]; e++) {
       const id = kind === 'syzygy' ? e : kind === 'current' ? e - P : e - 2 * P
-      const pt = pointBeside(e, kind, id, offsetPx, minOtherPx, minNodePx)
+      const pt = pointBeside(filter, e, kind, id, offsetPx, minOtherPx, minNodePx)
       if (pt !== null) return { id, x: pt[0], y: pt[1] }
     }
     throw new Error(`no free point beside any ${kind} edge`)
   }
 
   it('a point 6 px from a syzygy segment and 20 px from every node picks { syzygy, q }', () => {
-    const p = firstEdge([0, P], 'syzygy', 6, 8, 20)
-    const hit = pickAt(scene, grid, p.x, p.y, s, allowAll)
+    const p = firstEdge(only('syzygy'), [0, P], 'syzygy', 6, 8, 20)
+    const hit = pickAt(scene, grid, p.x, p.y, s, only('syzygy'))
     expect(hit?.kind).toBe('syzygy')
+    expect(hit?.id).toBe(p.id)
+    expect(Math.abs((hit?.distancePx ?? NaN) - 6)).toBeLessThan(0.5)
+    // and every syzygy is a candidate through allowAll too: the answer there is whatever is nearest (the brute-force property below)
+    sameHit(pickAt(scene, grid, p.x, p.y, s, allowAll), refPick(scene, p.x, p.y, s, allowAll))
+  })
+
+  it('a point 6 px from a current leg picks { current, pair id }', () => {
+    const p = firstEdge(only('current'), [P, 2 * P], 'current', 6, 8)
+    const hit = pickAt(scene, grid, p.x, p.y, s, only('current'))
+    expect(hit?.kind).toBe('current')
     expect(hit?.id).toBe(p.id)
     expect(Math.abs((hit?.distancePx ?? NaN) - 6)).toBeLessThan(0.5)
   })
 
-  it('a point 6 px from a current leg picks { current, pair id }', () => {
-    const p = firstEdge([P, 2 * P], 'current', 6, 8)
-    const hit = pickAt(scene, grid, p.x, p.y, s, allowAll)
-    expect(hit?.kind).toBe('current')
-    expect(hit?.id).toBe(p.id)
-  })
-
   it('a gate is a candidate only when the filter says it is drawn', () => {
-    const p = firstEdge([2 * P, 2 * P + scene.x.length], 'gate', 6, 8)
-    const withGate: PickFilter = { zoneAllowed: () => true, edgeAllowed: () => true }
-    const hit = pickAt(scene, grid, p.x, p.y, s, withGate)
+    const p = firstEdge(only('gate'), [2 * P, 2 * P + scene.x.length], 'gate', 6, 8)
+    const hit = pickAt(scene, grid, p.x, p.y, s, only('gate'))
     expect(hit?.kind).toBe('gate')
     expect(hit?.id).toBe(p.id)
-    // with gates off nothing else is within 8 px, so the answer is no gate at all
-    const without = pickAt(scene, grid, p.x, p.y, s, noGates)
-    expect(without?.kind).not.toBe('gate')
-    // only that one gate drawn: asked about every other zone's gate it is not a candidate either way
-    const only: PickFilter = { zoneAllowed: () => true, edgeAllowed: (kind, id) => kind !== 'gate' || id === p.id }
-    expect(pickAt(scene, grid, p.x, p.y, s, only)?.kind).toBe('gate')
-    const others: PickFilter = { zoneAllowed: () => true, edgeAllowed: (kind, id) => kind !== 'gate' || id !== p.id }
-    expect(pickAt(scene, grid, p.x, p.y, s, others)?.kind).not.toBe('gate')
+    expect(Math.abs((hit?.distancePx ?? NaN) - 6)).toBeLessThan(0.5)
+    // gates not drawn (the table's gate layer is off above 150 zones): the gate is not a candidate
+    expect(pickAt(scene, grid, p.x, p.y, s, noGates)?.kind).not.toBe('gate')
+    expect(pickAt(scene, grid, p.x, p.y, s, noEdges)?.kind).not.toBe('gate')
+    // only this zone's own gate drawn (a hovered zone's on-demand gate): it is a candidate, every other gate is not
+    const ownGate: PickFilter = { zoneAllowed: () => true, edgeAllowed: (kind, id) => kind === 'gate' && id === p.id }
+    expect(pickAt(scene, grid, p.x, p.y, s, ownGate)).toEqual({ kind: 'gate', id: p.id, distancePx: expect.closeTo(hit?.distancePx ?? NaN, 9) })
+    const otherGates: PickFilter = { zoneAllowed: () => true, edgeAllowed: (kind, id) => kind === 'gate' && id !== p.id }
+    const elsewhere = pickAt(scene, grid, p.x, p.y, s, otherGates)
+    expect(elsewhere !== null && elsewhere.kind === 'gate' && elsewhere.id === p.id).toBe(false)
   })
 
-  it('asks the filter about a gate only through edgeAllowed (a disallowed gate costs nothing and is never returned)', () => {
+  it('does not ask the filter about edges far from the point (the box rejects them first)', () => {
     const asked: Array<[string, number]> = []
     const spy: PickFilter = {
       zoneAllowed: () => true,
       edgeAllowed: (kind, id) => {
         asked.push([kind, id])
-        return kind !== 'gate'
+        return true
       },
     }
-    pickAt(scene, grid, scene.x[0] ?? 0, scene.y[0] ?? 0, s, spy)
-    expect(asked.every(([kind]) => kind === 'syzygy' || kind === 'current' || kind === 'gate')).toBe(true)
+    expect(pickAt(scene, grid, -1e6, -1e6, s, spy)).toBeNull()
+    expect(asked).toEqual([])
+    pickAt(scene, grid, scene.width / 2, scene.height / 2, s, spy)
+    expect(asked.length).toBeLessThan(scene.edgeSegStart.length - 1)
   })
 })
 
@@ -772,7 +826,7 @@ describe('pill pick (pair graph at base 202)', () => {
   it('pair ids agree with the engine: the members of pair q are q and base - 1 - q', () => {
     for (const base of [2, 4, 10, 28, 202, 4000]) {
       const g = createNumogram(base)
-      for (const q of [0, 1, base / 2 - 1]) {
+      for (const q of new Set([0, 1, base / 2 - 1].filter(id => id < base / 2))) {
         const info = g.pair(q)
         expect([info.lo, info.hi]).toEqual(pairMembersOf(base, q))
       }
@@ -799,6 +853,22 @@ describe('pill pick (pair graph at base 202)', () => {
       ),
       { numRuns: 500 },
     )
+  })
+
+  it('a pill beats a demon chord at equal distance (a pill ranks with a zone, whatever the ids)', () => {
+    // pill 2 sits at the origin (the others far away) and a straight chord passes through it: both are at distance 0
+    const template = pairs(6).scene
+    const hand: CanvasScene = { ...template, px: Float64Array.of(FAR, FAR + 500, 0), py: Float64Array.of(FAR, FAR, 0), pillWidth: 40, pillHeight: 20 }
+    const handGrid = buildZoneGrid(hand.x, hand.y, hand.nodeRadius)
+    const chords = flattenChords([{ a: 0, b: 1, name: 'c', kind: 'chrono' }], Float64Array.of(-0.5, 0.5, 100, 100, 100, 100), new Float64Array(6), 0, 1e6)
+    expect(chords.segments.length).toBe(4 * PICK_FLATTEN_STEPS)
+    expect(pickAt(hand, handGrid, 0, 0, 1, allowAll, chords)).toEqual({ kind: 'pair', id: 2, distancePx: 0 })
+    // a chord alone (the pill muted through its member zones) is what is left
+    expect(pickAt(hand, handGrid, 0, 0, 1, { zoneAllowed: z => z !== 2 && z !== 3 ? true : false, edgeAllowed: () => true }, chords)).toEqual({
+      kind: 'chord',
+      id: 0,
+      distancePx: 0,
+    })
   })
 
   it('a pair scene has no edges: a point far from every pill picks nothing', () => {
@@ -877,7 +947,7 @@ describe('flattenChords and the chord pick', () => {
   it('a point 4 px from the chord and 30 px from anything else picks { chord, index }', () => {
     const fcs = flattenChords([demon], scene.x, scene.y, scene.centerX, scene.centerY)
     const R = scene.nodeRadius
-    for (const scale of [6 / R, 8 / R, 12 / R]) {
+    for (const scale of [16, 20, 24, 32, 48].map(px => px / R)) {
       const s = scale
       for (let k = 0; k < PICK_FLATTEN_STEPS; k++) {
         const x0 = fcs.segments[4 * k] ?? NaN
