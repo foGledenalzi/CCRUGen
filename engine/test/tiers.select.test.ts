@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   deriveBoundaries,
   gateLayerMode,
+  interactiveCeiling,
   labelsVisible,
   parseTierOverride,
   selectTier,
@@ -154,6 +155,80 @@ describe('selectTier', () => {
     })
     expect(selectTier(4000, table)).toBe('canvas')
     expect(selectTier(4002, table)).toBe('headless')
+  })
+
+  // Phase 6 D-01: the shipped interactive ceiling is its own data field, boundaries.interactiveMaxN.
+  it('canvas runs from svgRichMaxN + 2 up to interactiveMaxN, headless above (canvasMaxN null)', () => {
+    const base = makeTable().boundaries
+    const table = makeTable({
+      boundaries: { ...base, svgRichMaxN: makeBoundary(200), canvasMaxN: null, interactiveMaxN: makeBoundary(4000) },
+    })
+    expect(selectTier(200, table)).toBe('svg')
+    expect(selectTier(202, table)).toBe('canvas')
+    expect(selectTier(4000, table)).toBe('canvas')
+    expect(selectTier(4002, table)).toBe('headless')
+    expect(selectTier(10 ** 6, table)).toBe('headless')
+  })
+
+  it('an explicit override still wins above the interactive ceiling', () => {
+    const base = makeTable().boundaries
+    const table = makeTable({
+      boundaries: { ...base, svgRichMaxN: makeBoundary(200), canvasMaxN: null, interactiveMaxN: makeBoundary(4000) },
+    })
+    expect(selectTier(4002, table, 'svg')).toBe('svg')
+    expect(selectTier(4002, table, 'canvas')).toBe('canvas')
+    expect(selectTier(2, table, 'headless')).toBe('headless')
+  })
+
+  it('the smaller of canvasMaxN and interactiveMaxN wins', () => {
+    const base = makeTable().boundaries
+    const canvasSmaller = makeTable({
+      boundaries: { ...base, svgRichMaxN: makeBoundary(200), canvasMaxN: makeBoundary(1000), interactiveMaxN: makeBoundary(4000) },
+    })
+    expect(selectTier(1000, canvasSmaller)).toBe('canvas')
+    expect(selectTier(1002, canvasSmaller)).toBe('headless')
+    const interactiveSmaller = makeTable({
+      boundaries: { ...base, svgRichMaxN: makeBoundary(200), canvasMaxN: makeBoundary(4000), interactiveMaxN: makeBoundary(1000) },
+    })
+    expect(selectTier(1000, interactiveSmaller)).toBe('canvas')
+    expect(selectTier(1002, interactiveSmaller)).toBe('headless')
+  })
+
+  it('never returns a lean tier: svgLeanMaxN is history only (D-03)', () => {
+    const base = makeTable().boundaries
+    const table = makeTable({
+      boundaries: { ...base, svgRichMaxN: makeBoundary(200), svgLeanMaxN: makeBoundary(300), interactiveMaxN: makeBoundary(4000) },
+    })
+    for (const n of [202, 250, 300, 302, 1000, 4000]) expect(selectTier(n, table)).toBe('canvas')
+  })
+})
+
+// ---- interactiveCeiling (Phase 6 D-01) ----
+
+describe('interactiveCeiling', () => {
+  const base = makeTable().boundaries
+
+  it('is Infinity when neither canvasMaxN nor interactiveMaxN is set', () => {
+    expect(interactiveCeiling(makeTable({ boundaries: { ...base, canvasMaxN: null } }))).toBe(Infinity)
+  })
+
+  it('is interactiveMaxN when canvasMaxN is null', () => {
+    expect(interactiveCeiling(makeTable({ boundaries: { ...base, canvasMaxN: null, interactiveMaxN: makeBoundary(4000) } }))).toBe(4000)
+  })
+
+  it('is canvasMaxN when only canvasMaxN is set', () => {
+    expect(interactiveCeiling(makeTable({ boundaries: { ...base, canvasMaxN: makeBoundary(1234) } }))).toBe(1234)
+  })
+
+  it('is the smaller of the two when both are set', () => {
+    const a = makeTable({ boundaries: { ...base, canvasMaxN: makeBoundary(1000), interactiveMaxN: makeBoundary(4000) } })
+    const b = makeTable({ boundaries: { ...base, canvasMaxN: makeBoundary(4000), interactiveMaxN: makeBoundary(1000) } })
+    expect(interactiveCeiling(a)).toBe(1000)
+    expect(interactiveCeiling(b)).toBe(1000)
+  })
+
+  it('accepts a bare { boundaries } object, like selectTier', () => {
+    expect(interactiveCeiling({ boundaries: { ...base, interactiveMaxN: makeBoundary(77) } })).toBe(77)
   })
 })
 

@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { DEVICE_PROFILES, MEASURED_SUITES, deriveBoundaries, validateTierTable } from '../scene/tiers'
+import { DEVICE_PROFILES, MEASURED_SUITES, deriveBoundaries, interactiveCeiling, selectTier, validateTierTable } from '../scene/tiers'
 import type { TierTable } from '../scene/tiers'
 import { TIER_TABLE } from '../scene/tierTable'
 
@@ -71,6 +71,34 @@ describe('TIER_TABLE', () => {
         expect(TIER_TABLE.measurements.some(m => m.profile === p && m.suite === suite)).toBe(true)
       }
     }
+  })
+
+  describe('the shipped interactive ceiling (Phase 6 D-01)', () => {
+    it('is a data field basedOn the shipped profile, equal to the measured canvas target and inside the measured range', () => {
+      const im = TIER_TABLE.boundaries.interactiveMaxN
+      expect(im).toBeDefined()
+      if (im === undefined) return
+      expect(im.basedOn).toBe(TIER_TABLE.shippedProfile)
+      expect(Number.isInteger(im.n)).toBe(true)
+      expect(im.n).toBeGreaterThanOrEqual(TIER_TABLE.boundaries.svgRichMaxN.n)
+      expect(im.n).toBe(TIER_TABLE.budgets.canvasTargetN)
+      expect(im.rule.length).toBeGreaterThan(0)
+      // canvasMaxN stays what the measurements derive (null: no ceiling found), so the ceiling is its own field.
+      expect(TIER_TABLE.boundaries.canvasMaxN).toBeNull()
+      expect(interactiveCeiling(TIER_TABLE)).toBe(im.n)
+    })
+
+    it('selectTier on the real table: svg, canvas up to the ceiling, headless above; no lean tier (D-03)', () => {
+      const im = TIER_TABLE.boundaries.interactiveMaxN
+      if (im === undefined) throw new Error('interactiveMaxN is missing from the shipped table')
+      const rich = TIER_TABLE.boundaries.svgRichMaxN.n
+      expect(selectTier(rich, TIER_TABLE)).toBe('svg')
+      expect(selectTier(rich + 2, TIER_TABLE)).toBe('canvas')
+      expect(selectTier(TIER_TABLE.boundaries.svgLeanMaxN.n + 2, TIER_TABLE)).toBe('canvas')
+      expect(selectTier(im.n, TIER_TABLE)).toBe('canvas')
+      expect(selectTier(im.n + 2, TIER_TABLE)).toBe('headless')
+      expect(selectTier(2 ** 26, TIER_TABLE)).toBe('headless')
+    })
   })
 
   it('is LF-only JSON with a final newline that parses to the object the loader exports', () => {
@@ -163,6 +191,74 @@ describe('TIER_TABLE', () => {
         })
       })
       expect(hasProblemStartingWith(validateTierTable(broken), 'canvas probe 20000x20000 contradicts canvasAreaLimitPx')).toBe(true)
+    })
+
+    // ---- interactiveMaxN: one mutant per validator rule (T-06-07) ----
+
+    it('interactiveMaxN deleted from a measured table', () => {
+      const broken = brokenCopy(t => {
+        delete (t.boundaries as { interactiveMaxN?: unknown }).interactiveMaxN
+      })
+      expect(hasProblemStartingWith(validateTierTable(broken), 'measured table: boundary interactiveMaxN is missing')).toBe(true)
+    })
+
+    it('interactiveMaxN basedOn a different profile than shippedProfile', () => {
+      const broken = brokenCopy(t => {
+        ;(t.boundaries.interactiveMaxN as { basedOn: string } | undefined)!.basedOn = 'gpu'
+      })
+      expect(hasProblemStartingWith(validateTierTable(broken), 'boundary interactiveMaxN basedOn gpu')).toBe(true)
+    })
+
+    it('interactiveMaxN.n not an integer', () => {
+      const broken = brokenCopy(t => {
+        ;(t.boundaries.interactiveMaxN as { n: number } | undefined)!.n = 4000.5
+      })
+      expect(hasProblemStartingWith(validateTierTable(broken), 'boundary interactiveMaxN.n must be a non-negative integer')).toBe(true)
+    })
+
+    it('interactiveMaxN with an empty rule', () => {
+      const broken = brokenCopy(t => {
+        ;(t.boundaries.interactiveMaxN as { rule: string } | undefined)!.rule = ''
+      })
+      expect(hasProblemStartingWith(validateTierTable(broken), 'boundary interactiveMaxN.rule must be non-empty')).toBe(true)
+    })
+
+    it('interactiveMaxN below svgRichMaxN', () => {
+      const broken = brokenCopy(t => {
+        ;(t.boundaries.interactiveMaxN as { n: number } | undefined)!.n = t.boundaries.svgRichMaxN.n - 100
+      })
+      const problems = validateTierTable(broken)
+      expect(
+        hasProblemStartingWith(
+          problems,
+          `boundary interactiveMaxN (${TIER_TABLE.boundaries.svgRichMaxN.n - 100}) is below svgRichMaxN (${TIER_TABLE.boundaries.svgRichMaxN.n})`,
+        ),
+      ).toBe(true)
+    })
+
+    it('interactiveMaxN above the largest measured canvas n', () => {
+      const broken = brokenCopy(t => {
+        ;(t.boundaries.interactiveMaxN as { n: number } | undefined)!.n += 2
+      })
+      const im = TIER_TABLE.boundaries.interactiveMaxN
+      if (im === undefined) throw new Error('interactiveMaxN is missing from the shipped table')
+      expect(
+        hasProblemStartingWith(
+          validateTierTable(broken),
+          `measured table: boundary interactiveMaxN (${im.n + 2}) exceeds the largest measured canvas n (${im.n})`,
+        ),
+      ).toBe(true)
+    })
+
+    it('interactiveMaxN above a non-null canvasMaxN', () => {
+      const im = TIER_TABLE.boundaries.interactiveMaxN
+      if (im === undefined) throw new Error('interactiveMaxN is missing from the shipped table')
+      const broken = brokenCopy(t => {
+        ;(t.boundaries as { canvasMaxN: unknown }).canvasMaxN = { n: im.n - 1000, basedOn: 'sw-6x', rule: 'x' }
+      })
+      expect(
+        validateTierTable(broken).some(p => p.includes(`boundary interactiveMaxN (${im.n}) exceeds canvasMaxN (${im.n - 1000})`)),
+      ).toBe(true)
     })
   })
 })
