@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-10-08T17:39:49.652Z"
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-10-08T18:03:33.620Z"
 last_activity: 2026-10-08
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 74
-  completed_plans: 60
+  completed_plans: 61
   percent: 63
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 6 (Canvas Tier and Worker) — EXECUTING
-Plan: 2 of 15
+Plan: 3 of 15
 Status: Executing Phase 6
-Last activity: 2026-10-08 -- Completed 06-01 (shipped interactive ceiling as data)
+Last activity: 2026-10-08 -- Completed 06-03 (pure Canvas keyboard and pointer models); 06-02 (wave 2) is next
 
 Progress: [██████░░░░] 63%
 
@@ -115,6 +115,7 @@ Progress: [██████░░░░] 63%
 | Phase 05 P11 | ~20min | 2 tasks | 2 files |
 | Phase 05 P12 | 50min | 3 tasks | 3 files |
 | Phase 06 P01 | 13min | 2 tasks | 9 files |
+| Phase 06 P03 | 21min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,7 @@ Recent decisions affecting current work:
 - [Phase 5 P11] Demons Browser e2e shipped (DEM-01, DEM-02, DEM-05, D-07, D-01): e2e/demons-helpers.ts (openDemons/demonsDialog/facet/demonList/demonRow/searchDemons/waitRaster/matrixCellPoint, the latter two for 05-12) and e2e/demons-browser.spec.ts (12 tests) prove base 28's closed-form facets incl. the 108-member cross-Torque sub-facet, base 666's 221,445-row virtualization with the DOM capped at <=80 rows and a 4,871,790px spacer, sort/search/filter (mesh, a::b, outside-filter, not-found, syntax-error UI-SPEC copy), base 10's 45 canonical names, the demonFilter=/demonFocus=/demonsOpen= URL round-trip incl. a bogus-filter fallback, Escape/backdrop/close-button dismissal with opener focus restore, modal key isolation against the main viewer's window-level shortcuts, and base 1024's 523,776-row pager windowing; [data-demon-pager] is a sibling of [data-demon-list] (DemonRowList.tsx), never a descendant, a Rule 1 fix caught by a failing test before either commit; full regression (153 tests incl. 60 goldens and 5 behaviour specs) stayed green alongside the new spec
 - [Phase 5 P12] Demons focus-mode and matrix e2e specs shipped (DEM-03, DEM-04): e2e/demons-focus.spec.ts (6 tests) proves D-03 in both directions (zone click -> overlay Focus tab with base-1 chords, overlay demon pick -> diagram chord + zone-stroke highlight), the pre-existing non-focus-mode zone click staying intact, the toggle clearing demonFocus=, base 666 (no diagram) working entirely through the Focus tab's own zone input, and a demonFocus= URL reloading to the same view; e2e/demons-matrix.spec.ts (6 tests) proves D-06 exact hover/click/keyboard resolve at multiple zoom levels (never from the raster), the syzygy diagonal overlay, base 666, and measured raster-fill timings answering research assumption A1: base=28 16ms, base=666 83ms, base=4096 71ms, all well under the 500ms oneTimePaintMs budget. Fixed (not re-deferred) the one pre-existing flaky fast-check property in tests/app/demonMatrix.test.ts (deferred-items.md, found during 05-05) with the epsilon tolerance it already prescribed, since this is the phase-closing plan. Full npm run verify green (1720 unit tests x2 timezones, 200 e2e passed/130 skipped incl. 60 goldens and 5 behaviour specs unchanged, page-weight unchanged). Phase 5 complete: 12/12 plans, all five DEM requirements Complete. Next step /gsd-verify-work 5.
 - [Phase 6 P01] Shipped interactive ceiling as data (D-01, REN-02/REN-03 groundwork): boundaries.interactiveMaxN { n 4000, basedOn sw-6x } is the only change to engine/scene/tier-table.json (5 lines; 144 rows, derived boundaries, canvasMaxN null and webglDecision byte-identical); interactiveCeiling(table) = min(canvasMaxN, interactiveMaxN) is exported from the engine barrel and selectTier uses it (svg to svgRichMaxN, canvas from svgRichMaxN + 2 to the ceiling, headless above, override wins, never a lean tier per D-03); the field is optional in TierBoundaries and required by validateTierTable only for a measured table, with one rule and one brokenCopy mutant per invariant (missing, basedOn, integer, non-empty rule, >= svgRichMaxN, <= largest measured canvas n, <= canvasMaxN); scripts/spike/shape.ts carries it forward clamped to min(previous, maxMeasuredN, canvasMaxN) so a re-measure can lower it but never raise or drop it (PATTERNS hazard 1 resolved by clamping in the shaper and keeping the validator strict), INTERACTIVE_RULE exported and pinned equal to the JSON rule; app/lib/tierBounds.ts exports INTERACTIVE_MAX_N = interactiveCeiling(TIER_VIEW), LABEL_MIN_RADIUS_PX and CANVAS_AREA_LIMIT_PX by property access, no 4000 literal in app or tests; NumogramClient only tests tierFor(...) === 'svg' so the viewer is unchanged until 06-11; full npm run verify exit 0 (1749 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK without a baseline update); REN-02 and REN-03 stay Pending (final covering plans later in Phase 6)
+- [Phase 6 P03] Pure Canvas input models shipped (REN-02 groundwork, D-08, D-09): app/lib/canvas/keyboardModel.ts is the two-level keyboard traversal as a pure function (arrows wrap over the visible zones or pairs in order, Home/End, Page +/-10 positions clamped and never wrapping, Tab steps a zone's syzygy, current, gate with absent edges skipped and then leaves, Shift+Tab mirrors it, Enter/Space activate, + = - _ 0 zoom; a null, muted or wrong-kind ring is treated as initialTarget before the key applies; an empty order answers only Tab) with focusKeyOf/announcementFor/activationAnnouncement reproducing the SVG tier's data-focus-key grammar and aria-label strings from the real base-28 view (an edge lookup that is null degrades to its owner zone and never claims pinned; a zone's activation text is built without the selected suffix so it cannot double); app/lib/canvas/interaction.ts is the immutable pointer reducer (mouse click slop 3 px measured as displacement, touch tap and pan 8 px with the first pan carrying the whole distance since the press, rubber band from empty space with a click on a release within the slop so an empty click still clears, alt/middle pan, two-touch pinch emitting zoom about the PREVIOUS midpoint then pan so the content stays under the fingers (fast-check property replays random streams on a transform), one finger carries on in the same gesture after the other lifts, pointercancel and a mouse leaving during an uncaptured press drop the gesture, non-finite down/move/up ignored while cancel/leave are always processed) plus wheelZoomFactor (exp(-step x 0.0015), step clamped to +-100, line x16, page x120); 108 new tests mutation-checked (the one real survivor became a test); full npm run verify exit 0 (1857 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK without an update); REN-02 stays Pending (final covering plans 06-10/06-12/06-13)
 
 ### Pending Todos
 
@@ -230,8 +232,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-08T17:39:49.643Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-10-08T18:03:33.608Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
