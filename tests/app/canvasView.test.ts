@@ -404,10 +404,14 @@ describe('clampTransform', () => {
   })
 
   it('centres a frame in a window too small to keep 24 px of it on either side', () => {
+    // a 30 x 30 window at the minimum zoom shows the 10 x 10 frame 9 px wide: (9 / 2) + (30 / 2) - 24 is below 0, so no pan is allowed
     const tiny: CanvasFrame = { width: 10, height: 10, nodeRadius: 1 }
-    const t = panBy(IDENTITY_TRANSFORM, 500, -500, tiny, 30, 30)
+    const t = panBy({ zoom: ZOOM_MIN, tx: 0, ty: 0 }, 500, -500, tiny, 30, 30)
+    expect(t.zoom).toBe(ZOOM_MIN)
     expect(t.tx).toBe(0)
     expect(t.ty).toBe(0)
+    // the same window at zoom 1 shows the frame 30 px wide, so it may pan until 24 px of the window edge is still covered
+    expect(panBy(IDENTITY_TRANSFORM, 500, -500, tiny, 30, 30)).toEqual({ zoom: 1, tx: 6, ty: -6 })
   })
 
   it('a pan by a non-finite delta leaves the view where it was instead of resetting it', () => {
