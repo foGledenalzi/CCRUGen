@@ -319,6 +319,40 @@ describe('zoomAt', () => {
     )
   })
 
+  it('property: from a panned and zoomed view, zooming in about a cursor keeps the world point under it fixed (within 1e-6)', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 300, max: 1500, noNaN: true }),
+        fc.double({ min: 300, max: 1500, noNaN: true }),
+        fc.double({ min: 1, max: 3, noNaN: true }),
+        fc.double({ min: -100, max: 100, noNaN: true }),
+        fc.double({ min: -100, max: 100, noNaN: true }),
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        fc.double({ min: 1, max: 8, noNaN: true }),
+        (w, h, zoom, tx, ty, u, v, factor) => {
+          const f: CanvasFrame = { width: 1000, height: 600, nodeRadius: 5 }
+          const start = clampTransform({ zoom, tx, ty }, f, w, h)
+          // a cursor inside both the window and the frame's extent under the starting transform
+          const s0 = scaleOf(start, f, w, h)
+          const left = Math.max(0, w / 2 + start.tx - (f.width * s0) / 2)
+          const right = Math.min(w, w / 2 + start.tx + (f.width * s0) / 2)
+          const top = Math.max(0, h / 2 + start.ty - (f.height * s0) / 2)
+          const bottom = Math.min(h, h / 2 + start.ty + (f.height * s0) / 2)
+          const sx = left + u * (right - left)
+          const sy = top + v * (bottom - top)
+          const before = toWorld(start, f, w, h, sx, sy)
+          const t2 = zoomAt(start, factor, sx, sy, f, w, h)
+          fc.pre(t2.zoom < zoomMax(f, w, h) - 1e-9)
+          const after = toWorld(t2, f, w, h, sx, sy)
+          expect(Math.abs(after.x - before.x)).toBeLessThan(1e-6)
+          expect(Math.abs(after.y - before.y)).toBeLessThan(1e-6)
+        },
+      ),
+      { numRuns: 400 },
+    )
+  })
+
   it('zooming out about the window centre keeps the centre fixed', () => {
     const t = zoomAt(IDENTITY_TRANSFORM, 0.5, 250, 250, frame, 500, 500)
     expect(t.zoom).toBe(0.5)
