@@ -375,12 +375,13 @@ describe('targetTextFor', () => {
   it('joins syzygy, current and gate entries to a zone by pair id and origin zone', () => {
     for (let z = 0; z < 28; z++) {
       const q = fx.g.pairOf(z)
+      // the view's own entry objects (identity), found independently of the index by g.pairOf and the origin zone
       const syz = fx.view.syzygies.find(s => fx.g.pairOf(s.a) === q)
-      expect(text.syzygyOf(z)).toEqual(syz === undefined ? null : { a: syz.a, b: syz.b })
+      expect(text.syzygyOf(z)).toBe(syz ?? null)
       const cur = fx.view.currents.find(c => fx.g.pairOf(c.from) === q)
-      expect(text.currentOf(z)).toEqual(cur === undefined ? null : { name: cur.name, label: cur.label })
+      expect(text.currentOf(z)).toBe(cur ?? null)
       const gate = fx.view.gates.find(gt => gt.from === z)
-      expect(text.gateOf(z)).toEqual(gate === undefined ? null : { name: gate.name, from: gate.from, to: gate.to })
+      expect(text.gateOf(z)).toBe(gate ?? null)
     }
   })
 
