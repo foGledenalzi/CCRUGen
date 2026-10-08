@@ -178,6 +178,9 @@ describe('parseRouteCurve', () => {
     const out = new Float64Array(6)
     for (const bad of [
       'L1 2M3 4',
+      'L1 2L3 4',
+      'Q1 2Q5 6 7 8',
+      '0 1 2L3 4',
       'M1 2',
       'M1 2L3',
       'M1 2L3 4 5',
@@ -258,12 +261,27 @@ describe('flattenQuad', () => {
     expect(out.every(v => v === 5)).toBe(true)
   })
 
+  it('a NaN curve returns 0 even when the output has no room at all (it reserves none)', () => {
+    const curves = new Float64Array(6).fill(NaN)
+    expect(flattenQuad(curves, 0, PICK_FLATTEN_STEPS, new Float64Array(0), 0)).toBe(0)
+    expect(flattenQuad(curves, 0, PICK_FLATTEN_STEPS, new Float64Array(4), 12)).toBe(0)
+  })
+
   it('rejects a non-positive or non-integer step count and an output that is too small', () => {
     const curves = new Float64Array([0, 0, 1, 1, 2, 0])
     const out = new Float64Array(8)
     expect(() => flattenQuad(curves, 0, 0, out, 0)).toThrow(RangeError)
     expect(() => flattenQuad(curves, 0, 2.5, out, 0)).toThrow(RangeError)
     expect(() => flattenQuad(curves, 0, 3, out, 0)).toThrow(RangeError)
+  })
+
+  it('the output bound is exact: room for 4 * steps numbers works, one fewer or a shifted start throws', () => {
+    const curves = new Float64Array([0, 0, 1, 1, 2, 0])
+    expect(flattenQuad(curves, 0, 2, new Float64Array(8), 0)).toBe(2)
+    expect(() => flattenQuad(curves, 0, 2, new Float64Array(7), 0)).toThrow(RangeError)
+    expect(() => flattenQuad(curves, 0, 2, new Float64Array(8), 1)).toThrow(RangeError)
+    expect(() => flattenQuad(curves, 0, 2, new Float64Array(8), -1)).toThrow(RangeError)
+    expect(flattenQuad(curves, 0, 2, new Float64Array(9), 1)).toBe(2)
   })
 })
 
@@ -314,6 +332,38 @@ describe('buildZoneScene: syzygies', () => {
         }
       }
     })
+  })
+
+  it('trims by each member\'s own radius and draws centre to centre up to and including 2r', () => {
+    const g = createNumogram(10)
+    const base = resolveLayout(g, 'ring', [], { packer: 'shelf' })
+    const r = base.nodeRadius
+    const x = base.x.slice()
+    const y = base.y.slice()
+    // pair 0 = zones 0 and 9: exactly 2r apart; pair 1 = zones 1 and 8: 1.5r apart; pair 2 = zones 2 and 7: 2r + 0.5 apart
+    x[0] = 100
+    y[0] = 100
+    x[9] = 100 + 2 * r
+    y[9] = 100
+    x[1] = 200
+    y[1] = 200
+    x[8] = 200 + 1.5 * r
+    y[8] = 200
+    x[2] = 300
+    y[2] = 300
+    x[7] = 300 + 2 * r + 0.5
+    y[7] = 300
+    // distinct radii everywhere, so a lo/hi mix-up shows on every diagonal pair too; pair 2 gets two explicit ones
+    const nodeRadii = Float64Array.from({ length: 10 }, (_, z) => r + 0.25 * z)
+    nodeRadii[2] = r + 3 // the low member of pair 2
+    nodeRadii[7] = r - 2 // the high member of pair 2
+    const custom: Layout = { ...base, x, y, nodeRadii }
+    const scene = buildZoneScene(g, custom, routeGates(g, custom), routeCurrents(g, custom))
+    const seg = (q: number): number[] => Array.from(scene.syzygySeg.subarray(4 * q, 4 * q + 4))
+    expect(seg(0)).toEqual([100, 100, 100 + 2 * r, 100])
+    expect(seg(1)).toEqual([200, 200, 200 + 1.5 * r, 200])
+    expect(seg(2)).toEqual([300 + (r + 3), 300, 300 + 2 * r + 0.5 - (r - 2), 300])
+    for (let q = 0; q < g.pairCount; q++) expect(seg(q)).toEqual(expectedSyzygy(g, custom, q))
   })
 
   it('draws the same lines as the SVG tier (rounded as the emitter rounds)', () => {
@@ -448,6 +498,28 @@ describe('buildZoneScene: currents and gates are the engine routes', () => {
     expect(() => buildZoneScene(g, layout, cubic, currents)).toThrow(RangeError)
   })
 
+  it('an empty route string on the very last edge builds too (a NaN curve reserves no pick space)', () => {
+    const g = createNumogram(10)
+    const layout = resolveLayout(g, 'ring', [], { packer: 'shelf' })
+    const gates = routeGates(g, layout)
+    const currents = routeCurrents(g, layout)
+    const n = g.zoneCount
+    const lastGates: GateRoutes = { ...gates, d: gates.d.map((d, z) => (z === n - 1 ? '' : d)) }
+    const scene = buildZoneScene(g, layout, lastGates, currents)
+    const E = edgeCount(scene)
+    expect(E).toBe(2 * g.pairCount + n)
+    expect(scene.edgeSegStart[E]).toBe(scene.edgeSegStart[E - 1])
+    expect(scene.edgeSegStart[E]).toBe(scene.pickSegments.length / 4)
+    expect(Array.from(scene.edgeBox.subarray(4 * (E - 1))).every(Number.isNaN)).toBe(true)
+
+    // every curve of every pair blank, and the last gate too: the whole tail of the CSR is empty
+    const blank = (list: readonly string[]): string[] => list.map(() => '')
+    const allBlank: CurrentRoutes = { ...currents, legA: blank(currents.legA), legB: blank(currents.legB), stem: blank(currents.stem) }
+    const emptyScene = buildZoneScene(g, layout, { ...gates, d: blank(gates.d) }, allBlank)
+    expect(emptyScene.pickSegments.length).toBe(4 * g.pairCount) // only the syzygies remain
+    expect(emptyScene.edgeSegStart[edgeCount(emptyScene)]).toBe(g.pairCount)
+  })
+
   it('routes of the wrong length throw instead of reading past them', () => {
     const g = createNumogram(10)
     const layout = resolveLayout(g, 'ring', [], { packer: 'shelf' })
@@ -455,6 +527,9 @@ describe('buildZoneScene: currents and gates are the engine routes', () => {
     const currents = routeCurrents(g, layout)
     expect(() => buildZoneScene(g, layout, { ...gates, d: gates.d.slice(1) }, currents)).toThrow(RangeError)
     expect(() => buildZoneScene(g, layout, gates, { ...currents, stem: currents.stem.slice(1) })).toThrow(RangeError)
+    expect(() => buildZoneScene(g, layout, gates, { ...currents, legA: currents.legA.slice(1) })).toThrow(RangeError)
+    expect(() => buildZoneScene(g, layout, gates, { ...currents, legB: currents.legB.slice(1) })).toThrow(RangeError)
+    expect(() => buildZoneScene(g, layout, { ...gates, d: [...gates.d, 'M0 0L1 1'] }, currents)).toThrow(RangeError)
   })
 })
 

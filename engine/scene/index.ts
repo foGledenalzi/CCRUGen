@@ -5,6 +5,17 @@ export { layoutToSvg, pairGraphToSvg, escapeXml, groupColour } from './svgString
 export type { SvgOptions } from './svgString'
 
 export {
+  buildZoneScene,
+  parseRouteCurve,
+  flattenQuad,
+  edgeCount,
+  EDGE_KIND,
+  CURVE_STRIDE,
+  PICK_FLATTEN_STEPS,
+} from './canvasScene'
+export type { CanvasScene, SceneKind } from './canvasScene'
+
+export {
   RENDER_TIERS,
   DEVICE_PROFILES,
   MEASURED_SUITES,
