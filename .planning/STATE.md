@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-07-PLAN.md
-last_updated: "2026-10-08T22:40:00.000Z"
-last_activity: 2026-10-08 -- Completed 06-07 (latest-wins WorkerClient, worker shell, useNumogramWorker hook; bundling form proven at root and /ccrug); wave 4 continues with 06-08
+stopped_at: Completed 06-08-PLAN.md
+last_updated: "2026-10-08T23:15:00.000Z"
+last_activity: 2026-10-08 -- Completed 06-08 (Canvas drawing module: static layers with SVG parity values and label LOD, overlay with on-demand edges, focus ring and the 400-edge fidelity downgrade); wave 4 is complete, next is wave 5 (06-10)
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 74
-  completed_plans: 67
+  completed_plans: 68
   percent: 63
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 6 (Canvas Tier and Worker) — EXECUTING
-Plan: 8 of 15 complete (06-01, 06-02, 06-03, 06-04, 06-05, 06-06, 06-07, 06-09)
+Plan: 9 of 15 complete (06-01, 06-02, 06-03, 06-04, 06-05, 06-06, 06-07, 06-08, 06-09)
 Status: Executing Phase 6
-Last activity: 2026-10-08 -- Completed 06-07 (latest-wins WorkerClient, worker shell, useNumogramWorker hook; bundling form proven at root and /ccrug); wave 4 continues with 06-08
+Last activity: 2026-10-08 -- Completed 06-08 (Canvas drawing module: static layers with SVG parity values and label LOD, overlay with on-demand edges, focus ring and the 400-edge fidelity downgrade); wave 4 is complete, next is wave 5 (06-10)
 
 Progress: [██████░░░░] 63%
 
@@ -122,6 +122,7 @@ Progress: [██████░░░░] 63%
 | Phase 06 P05 | 25min | 2 tasks | 4 files |
 | Phase 06 P09 | 13min | 3 tasks | 7 files |
 | Phase 06 P07 | ~50min | 2 tasks | 4 files |
+| Phase 06 P08 | ~36min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -213,6 +214,7 @@ Recent decisions affecting current work:
 - [Phase 6 P05] Canvas view transform and pick index shipped (REN-02 groundwork, D-09): app/lib/canvas/viewTransform.ts is the pure fit-relative transform (s = min(W/width, H/height) x zoom so the 19 x 4096 ladder letterboxes at zoom 1; zoom 0.3 to max(5, 2 x LABEL_MIN_RADIUS_PX / fitted radius) capped at 100 so labels are reachable by zoom at every Canvas base on ring, ladder, spiral and pair graph in the 580 x 704 footprint, the worst case being the ladder at n = 4000 where the cap binds and a node reaches only 8.8 px; zoomAt keeps the point under the cursor, the pan clamp keeps 24 px of the frame reachable, fitZones, ensureVisible, canvasFootprint, and backingStore with DPR capped at 3 and the area reduced under CANVAS_AREA_LIMIT_PX from the table); app/lib/canvas/pickIndex.ts is the one resolve path for hover, click, tap and keyboard: a 12 CSS px nearest-wins pick over a bounded CSR zone grid, the scene's flattened edge segments with a per-edge box reject, pair stadium pills and flattened demon chords, ties zone (pair), syzygy, current, gate, chord then lower id, muted never a candidate, isolate-dimmed still, a gate only when the caller reports it drawn, equal to an independent brute-force reference for random points, filters and chords; FlatChords also carries zoneA/zoneB so a chord with a muted end is never picked, and a pill's members are q and base - 1 - q (pinned against g.pair); the edge unit tests run on the ladder because ring pairs are adjacent (a ring syzygy is a 2 to 3 radius stub); 113 tests, 57 mutant runs (both required mutants killed, 3 equivalent survivors named, 4 gaps closed by tests); typecheck, base-ten gate and 2123 unit tests x2 timezones green; REN-02 stays Pending (final covering plans 06-10/06-12/06-13)
 - [Phase 6 P09] Large-base guards shipped (REN-02 and REN-03 groundwork, D-07): BasePicker takes optional requestedBase, computing and announcement (defaults keep today's markup plus one empty sr-only span) and runs every edit, step, chip, Enter, Escape and commit on effectiveBase = requestedBase ?? base so a pending worker switch never snaps the numeral back, the summary slot is replaced in place by Computing base {n}... (data-computing, no role, a refusal still wins) and a persistent sr-only role=status carrier announces the computing and ready lines (checker recommendation 1); app/lib/selectionList.ts adds SELECTION_LIST_MAX 200, mergeSelectionOrder (two Sets, returns prev itself when unchanged, equal to the old O(k^2) body on a 200-run fast-check property, 200,000-key linear guard) and capSelection, and InfoDisplay lists at most 200 entries at the Canvas and headless tiers with an and {M} more selected line (SVG tier unchanged); parseShareParams drops region=, isolate= and mute= when tierFor(base) === 'headless' (natural tier, tier= override ignored so shareParams.test.ts stays untouched and green), proven by a vi.mock call-count spy at INTERACTIVE_MAX_N + 2 and 2^26; no caller passes the picker props until 06-11; the hidden-count line has no automated DOM test yet (06-12 select-all e2e can assert [data-selection-more]); npm run verify exit 0 (2155 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK); REN-02 and REN-03 stay Pending
 - [Phase 6 P07] Latest-wins worker client, shell and hook shipped (REN-03 groundwork, D-06, D-07): app/lib/worker/workerClient.ts WorkerClient numbers requests, keeps 1 in flight + 1 pending (a newer request replaces the waiting one, which is never posted or answered), delivers a reply only when its id is the in-flight id AND still the latest, supersede() raises the latest id and drops the pending request (a synchronous SVG-tier commit calls it), the worker is created lazily on the first request and never re-created, dispose() terminates once and is idempotent; no worker (null, throw, error event, or a postMessage that throws) runs the same core on the main thread after one scheduled frame and only up to fallbackMaxBase (INTERACTIVE_MAX_N in the app), above it the callback gets a 'no-worker' error and the fallback is never called; createNumogramWorker is the only new Worker( and only import.meta.url under app/ and workers/ (literal form, no options, pinned by static tests); WorkerLike.onerror is (e: ErrorEvent) => void because a real Worker is not assignable to the plan's (e: Event) form (TS2322); workers/numogram.worker.ts is the thin shell (handleRequest then postMessage(response, { transfer }), imports only buildResult, lore-free import graph); useNumogramWorker builds the client lazily with the ceiling, the shared core as fallback and requestAnimationFrame then setTimeout 0 as the scheduler, its only effect is the dispose cleanup (P17); 44 tests incl. a 400-run fast-check event-sequence property, 11 of 14 single mutants killed plus the joint kill of the two redundant pending guards (the rest reasoned equivalent). The worker chunk cannot exist in the shipped export until 06-11 imports the hook (the plan's importScripts count is met only by polyfills), so the bundling form was proven with a temporary probe route (deleted, never committed): classic chunk chunks/215.<hash>.js (9,551 B raw, 3,896 gzip, not referenced by any HTML) loading shared chunks 506 (36,255 B) and 755 (9,441 B), one worker at /_next/static/chunks at root and /ccrug/_next/static/chunks under the basePath, replies built for base 28 online and offline, no base-10 lore in the worker chunks (positive control in the page chunk). Full gate green (84 files, 2199 tests in both timezones, sub-path e2e 10, page-weight unmoved, e2e 200 passed and 130 skipped, check-repo 13/13); frozen oracles untouched, NumogramClient not edited.
+- [Phase 6 P08] Canvas drawing module shipped (REN-02 groundwork, D-04, D-05, D-08 non-colour cues): app/lib/canvas/draw.ts is pure scene+state -> calls against an injected 2D context and Path2D factory (drawSyzygyLayer, drawCurrentLayer, drawGateLayer, drawNodeLayer, drawOverlay, buildSceneIndex, edgeLayerOpacity, parseArcEnd, PALETTE) with the SVG tier's hexes, 'world x strokeScale x s' widths floored at 1 px, the opacity table and dashes, level of detail only through labelsShown(on-screen radius) (pill half height for the pair graph), region captions from 6 px and node discs at max(R_px, 1.5); context dimming is the edge layer's CSS opacity (edgeLayerOpacity: syzygy 0.5/0.1, current 0.6/0.08, gate 0.5/0.08, x0.5 thin) because edges paint at alpha 1 and isolate-dimmed ones at context over ambient, so hover never repaints the static layers; drawOverlay draws the Time Circuit, the keyboard ring's edge underlay, highlighted edges, highlighted and selected zones, demon focus chords (the SVG curveAway route) and the #10ff50 ring last, a hovered zone always gets its own syzygy, current, incoming currents and own gate even with the gate layer off while the Layers toggles and mute still apply, and above HIGHLIGHT_FULL_FIDELITY_MAX = 400 highlighted edges it draws one plain batched stroke per kind and style (select-all at base 4000: 8000 edges, 11 stroke() calls) and reports { highlightedEdges, fidelity, chords }; two visibility floors beyond the spec (2 px outer-ring gap, 0.75 px dot radius), partial-selection gradients stay SVG-only (UI-SPEC item 7, for 06-15); 123 recording-context tests, 134 of 134 mutants killed
 
 ### Pending Todos
 
@@ -244,8 +246,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-08T22:40:00Z
-Stopped at: Completed 06-07-PLAN.md
+Last session: 2026-10-08T23:15:00Z
+Stopped at: Completed 06-08-PLAN.md
 Resume file: None
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
