@@ -21,6 +21,7 @@ import {
   EDGE_LAYER_ALPHA,
   HIGHLIGHT_FULL_FIDELITY_MAX,
   NODE_MIN_RADIUS_PX,
+  PALETTE,
   STROKE_MIN_PX,
   buildSceneIndex,
   drawCurrentLayer,
@@ -28,6 +29,7 @@ import {
   drawNodeLayer,
   drawSyzygyLayer,
   edgeLayerOpacity,
+  parseArcEnd,
   type Ctx2D,
   type DrawEnv,
   type DrawState,
@@ -303,6 +305,18 @@ const scaleFor = (fx: Fx, t: CanvasTransform = IDENTITY_TRANSFORM): number => sc
 const screenOf = (fx: Fx, wx: number, wy: number, t: CanvasTransform = IDENTITY_TRANSFORM): { x: number; y: number } =>
   toScreen(t, fx.frame, fx.w, fx.h, wx, wy)
 
+/** The state override that removes the layout's own region captions, so text counts see only zone or pill labels. */
+const bare = (fx: Fx): Partial<DrawState> => ({ scene: { ...fx.scene, regionLabels: [] } })
+
+/** The stroke of the current stems: alpha 1, a batch of quadratic curves (the junction rims are alpha 1 too, but arcs). */
+const stemStroke = (events: readonly Ev[]): Ev =>
+  events.find(
+    e => e.type === 'stroke' && e.style.globalAlpha === 1 && e.style.strokeStyle === '#22ee66' && opsOf(e, 'quadraticCurveTo').length > 0,
+  ) as Ev
+
+/** The font size in CSS px out of a canvas font string such as "bold 12.5px monospace". */
+const fontPx = (font: string): number => Number(/([\d.]+)px/.exec(font)?.[1])
+
 /** States with every zone normal except the listed ones. */
 function statesWith(n: number, set: Record<number, number>): Uint8Array {
   const states = new Uint8Array(n).fill(ZONE_NORMAL)
@@ -340,6 +354,58 @@ describe('draw constants and edgeLayerOpacity', () => {
     // the gate mode never touches syzygies or currents
     expect(edgeLayerOpacity('syzygy', false, 'thin')).toBe(0.5)
     expect(edgeLayerOpacity('current', true, 'thin')).toBe(0.08)
+  })
+})
+
+describe('palette', () => {
+  it('carries the SVG tier hexes byte for byte', () => {
+    expect(PALETTE.syzygy).toBe('#e8e8e8')
+    expect(PALETTE.current).toBe('#22ee66')
+    expect(PALETTE.gate).toBe('#cc44ff')
+    expect(PALETTE.timeCircuit).toBe('#00ccff')
+    expect(PALETTE.focusRing).toBe('#10ff50')
+    expect(Object.isFrozen(PALETTE)).toBe(true)
+  })
+})
+
+describe('parseArcEnd (pair-graph arrowheads)', () => {
+  it('a quarter turn: end point, tangent by sweep, extent = chord', () => {
+    const cw = parseArcEnd('M1 0A1 1 0 0 1 0 1')
+    expect(cw).not.toBeNull()
+    expect(cw?.x).toBe(0)
+    expect(cw?.y).toBe(1)
+    expect(cw?.dx).toBeCloseTo(-1, 9)
+    expect(cw?.dy).toBeCloseTo(0, 9)
+    expect(cw?.span).toBeCloseTo(Math.SQRT2, 9)
+    const ccw = parseArcEnd('M1 0A1 1 0 0 0 0 1')
+    expect(ccw?.dx).toBeCloseTo(0, 9)
+    expect(ccw?.dy).toBeCloseTo(1, 9)
+  })
+
+  it('a large arc (the loop under a pill): the centre lies on the far side of the chord', () => {
+    const loop = parseArcEnd('M-0.8 0A1 1 0 1 0 0.8 0')
+    expect(loop?.x).toBeCloseTo(0.8, 9)
+    expect(loop?.dx).toBeCloseTo(-0.6, 9)
+    expect(loop?.dy).toBeCloseTo(-0.8, 9)
+    expect(loop?.span).toBeCloseTo(1.6, 9)
+  })
+
+  it('every engine pair-graph route parses, with a finite tangent along the circle', () => {
+    const fx = pairFx(28)
+    const strings = [...(fx.scene.pairArc ?? []), ...(fx.scene.pairLoop ?? [])].filter((d): d is string => d !== null)
+    expect(strings.length).toBeGreaterThan(0)
+    for (const d of strings) {
+      const end = parseArcEnd(d)
+      expect(end).not.toBeNull()
+      expect(Number.isFinite((end?.dx ?? NaN) + (end?.dy ?? NaN) + (end?.x ?? NaN) + (end?.y ?? NaN))).toBe(true)
+      expect(Math.hypot(end?.dx ?? 0, end?.dy ?? 0)).toBeGreaterThan(0)
+    }
+  })
+
+  it('anything that is not one circular arc is null', () => {
+    for (const d of ['', 'M0 0L1 1', 'M0 0Q1 1 2 2', 'M0 0A1 1 0 0 1', 'M0 0A1 1 0 0 1 0 0', 'M0 0A0 0 0 0 1 1 1', 'M0 0A1 1 0 0 1 1e999 1', 'M0 0A1 1 0 0 1 1 1A1 1 0 0 1 2 2']) {
+      expect(parseArcEnd(d)).toBeNull()
+    }
   })
 })
 
@@ -510,7 +576,7 @@ describe('drawSyzygyLayer', () => {
     const fx = zoneFx(202)
     const full = makeRecorder()
     drawSyzygyLayer(full.env, stateFor(fx), fx.index)
-    const zoomed = fitZones(fx.scene.x, fx.scene.y, [0, 1, 2], fx.frame, fx.w, fx.h)
+    const zoomed = fitZones(fx.scene.x, fx.scene.y, [0], fx.frame, fx.w, fx.h)
     expect(zoomed.zoom).toBeGreaterThan(2)
     const rec = makeRecorder()
     drawSyzygyLayer(rec.env, stateFor(fx, { transform: zoomed }), fx.index)
@@ -540,24 +606,18 @@ function stemLengthPx(fx: Fx, q: number, t: CanvasTransform = IDENTITY_TRANSFORM
 }
 
 describe('drawCurrentLayer (zone layouts)', () => {
-  it('base 28: #22ee66 stems at max(1, 1.2 ss s) and legs at 0.7 of that width and alpha 0.7, one junction circle per current', () => {
+  it('base 28 at fit: one stem batch (a curve per pair), one leg batch at alpha 0.7 (two per pair), one white junction disc per current', () => {
     const fx = zoneFx(28)
     const st = stateFor(fx)
     const s = scaleFor(fx)
-    const ss = fx.scene.strokeScale
     expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, fx.frame, fx.w, fx.h))).toBe(true) // precondition: label level of detail
     const rec = makeRecorder()
     drawCurrentLayer(rec.env, st, fx.index)
     const strokes = strokesOf(rec.events).filter(e => e.style.strokeStyle === '#22ee66')
-    const stemWidth = Math.max(1, 1.2 * ss * s)
-    const legWidth = Math.max(1, 0.7 * 1.2 * ss * s)
-    const stems = strokes.filter(e => e.style.lineWidth === stemWidth && e.style.globalAlpha === 1)
-    const legs = strokes.filter(e => e.style.lineWidth === legWidth && e.style.globalAlpha === 0.7)
-    expect(stemWidth).toBeGreaterThan(1)
-    expect(legWidth / stemWidth).toBeCloseTo(0.7, 9)
+    const stems = strokes.filter(e => e.style.globalAlpha === 1 && opsOf(e, 'quadraticCurveTo').length > 0)
+    const legs = strokes.filter(e => e.style.globalAlpha === 0.7)
     expect(stems).toHaveLength(1)
     expect(legs).toHaveLength(1)
-    // the stem batch has one curve per pair; the leg batch two
     expect(opsOf(stems[0] as Ev, 'quadraticCurveTo')).toHaveLength(fx.g.pairCount)
     expect(opsOf(legs[0] as Ev, 'quadraticCurveTo')).toHaveLength(2 * fx.g.pairCount)
     // the white junction discs: one arc per current, filled #ffffff
@@ -568,11 +628,32 @@ describe('drawCurrentLayer (zone layouts)', () => {
     expect(r).toBeCloseTo(3.5 * (fx.scene.nodeRadius / 21) * s, 9)
   })
 
+  it('zoomed in the stems are 1.2 ss s wide and the legs 0.7 of that (the 1 px floor no longer binds)', () => {
+    const fx = zoneFx(28)
+    const t: CanvasTransform = { zoom: 2, tx: 0, ty: 0 }
+    const s = scaleFor(fx, t)
+    const ss = fx.scene.strokeScale
+    const stemWidth = Math.max(1, 1.2 * ss * s)
+    const legWidth = Math.max(1, 0.7 * 1.2 * ss * s)
+    expect(legWidth).toBeGreaterThan(1)
+    const rec = makeRecorder()
+    drawCurrentLayer(rec.env, stateFor(fx, { transform: t }), fx.index)
+    const stem = stemStroke(rec.events)
+    const legs = strokesOf(rec.events).find(e => e.style.globalAlpha === 0.7) as Ev
+    expect(stem.style.lineWidth).toBeCloseTo(stemWidth, 9)
+    expect(legs.style.lineWidth).toBeCloseTo(legWidth, 9)
+    expect(legs.style.lineWidth / stem.style.lineWidth).toBeCloseTo(0.7, 9)
+    // the floor itself: at fit both are 1 px
+    const fit = makeRecorder()
+    drawCurrentLayer(fit.env, stateFor(fx), fx.index)
+    expect(stemStroke(fit.events).style.lineWidth).toBe(STROKE_MIN_PX)
+  })
+
   it('the first stem curve is the scene curve of pair 0 mapped through toScreen', () => {
     const fx = zoneFx(28)
     const rec = makeRecorder()
     drawCurrentLayer(rec.env, stateFor(fx), fx.index)
-    const stems = strokesOf(rec.events).find(e => e.style.globalAlpha === 1 && e.style.strokeStyle === '#22ee66') as Ev
+    const stems = stemStroke(rec.events)
     const c = fx.scene.currentCurves
     const p0 = screenOf(fx, c[12] as number, c[13] as number)
     const pc = screenOf(fx, c[14] as number, c[15] as number)
@@ -647,7 +728,7 @@ describe('drawCurrentLayer (zone layouts)', () => {
     const fx = zoneFx(28)
     const rec = makeRecorder()
     drawCurrentLayer(rec.env, stateFor(fx, { tcActive: true }), fx.index)
-    const stems = strokesOf(rec.events).find(e => e.style.globalAlpha === 1) as Ev
+    const stems = stemStroke(rec.events)
     expect(opsOf(stems, 'quadraticCurveTo')).toHaveLength(fx.view.torqueCurrentNames.size)
   })
 
@@ -655,7 +736,7 @@ describe('drawCurrentLayer (zone layouts)', () => {
     const fx = zoneFx(28)
     const rec = makeRecorder()
     drawCurrentLayer(rec.env, stateFor(fx, { zoneStates: statesWith(28, { 5: ZONE_HIDDEN }) }), fx.index)
-    const stems = strokesOf(rec.events).find(e => e.style.globalAlpha === 1) as Ev
+    const stems = stemStroke(rec.events)
     // zone 5 is a member of one pair (its current is hidden) and may be the destination of others
     let hidden = 0
     for (let q = 0; q < fx.g.pairCount; q++) {
@@ -680,7 +761,7 @@ describe('drawCurrentLayer (zone layouts)', () => {
     const rec = makeRecorder()
     drawCurrentLayer(rec.env, stateFor(fx, { scene }), fx.index)
     expectAllFinite(rec)
-    const stems = strokesOf(rec.events).find(e => e.style.globalAlpha === 1) as Ev
+    const stems = stemStroke(rec.events)
     expect(opsOf(stems, 'quadraticCurveTo')).toHaveLength(fx.g.pairCount - 1)
   })
 })
@@ -817,7 +898,7 @@ describe('drawNodeLayer (zone layouts)', () => {
     const fx = zoneFx(28)
     expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, fx.frame, fx.w, fx.h))).toBe(true)
     const rec = makeRecorder()
-    drawNodeLayer(rec.env, stateFor(fx), fx.index)
+    drawNodeLayer(rec.env, stateFor(fx, bare(fx)), fx.index)
     const texts = ofType(rec.events, 'fillText')
     expect(texts).toHaveLength(28)
     expect(new Set(texts.map(e => e.args[0]))).toEqual(new Set(fx.labels))
@@ -825,7 +906,7 @@ describe('drawNodeLayer (zone layouts)', () => {
     for (const e of texts) {
       expect(e.style.font).toContain('bold')
       expect(e.style.font).toContain('monospace')
-      expect(e.style.font).toContain(`${fx.scene.labelSize * s}px`)
+      expect(fontPx(e.style.font)).toBeCloseTo(fx.scene.labelSize * s, 9)
       expect(e.style.textAlign).toBe('center')
     }
     // the first label sits at the zone centre (y + 1 world unit), coloured `${clr}aa`
@@ -836,14 +917,18 @@ describe('drawNodeLayer (zone layouts)', () => {
     expect(z0.style.fillStyle).toBe(`${fx.view.zoneColors[0]}aa`)
 
     const off = makeRecorder()
-    drawNodeLayer(off.env, stateFor(fx, { labelVisibility: { numbers: false, xenotation: false, planets: false } }), fx.index)
+    drawNodeLayer(off.env, stateFor(fx, { ...bare(fx), labelVisibility: { numbers: false, xenotation: false, planets: false } }), fx.index)
     expect(ofType(off.events, 'fillText')).toHaveLength(0)
+    // with the layout's own captions kept (base 28 at fit shows all four) they are the only text left
+    const caps = makeRecorder()
+    drawNodeLayer(caps.env, stateFor(fx, { labelVisibility: { numbers: false, xenotation: false, planets: false } }), fx.index)
+    expect(ofType(caps.events, 'fillText').map(e => e.args[0])).toEqual(fx.scene.regionLabels.map(l => l.text))
   })
 
   it('the xenotation label follows its own toggle: italic 6.5 k s at y + 24 k, alpha 0.44', () => {
     const fx = zoneFx(28)
     const rec = makeRecorder()
-    drawNodeLayer(rec.env, stateFor(fx, { labelVisibility: { numbers: false, xenotation: true, planets: false } }), fx.index)
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), labelVisibility: { numbers: false, xenotation: true, planets: false } }), fx.index)
     const texts = ofType(rec.events, 'fillText')
     expect(texts.length).toBeGreaterThan(0)
     expect(texts.length).toBeLessThan(28) // zone 0 has no xenotation
@@ -851,7 +936,7 @@ describe('drawNodeLayer (zone layouts)', () => {
     const s = scaleFor(fx)
     for (const e of texts) {
       expect(e.style.font).toContain('italic')
-      expect(e.style.font).toContain(`${6.5 * k * s}px`)
+      expect(fontPx(e.style.font)).toBeCloseTo(6.5 * k * s, 9)
       expect(e.style.globalAlpha).toBeCloseTo(0.44, 12)
     }
   })
@@ -889,9 +974,10 @@ describe('drawNodeLayer (zone layouts)', () => {
     }
     // the dot sits below the node by nodeRadius + 10 k plus the label line (8 k + 2 k) when a number label shows
     const first = fx.scene.drawOrder[0] as number
-    const dot0 = dots.flatMap(e => opsOf(e, 'arc').map(a => nums(a.args))).find(a => Math.abs((a[0] as number) - screenOf(fx, fx.scene.x[first] as number, 0).x) < 1e-6)
-    expect(dot0).toBeDefined()
-    expect(dot0![1]).toBeCloseTo(screenOf(fx, 0, (fx.scene.y[first] as number) + fx.scene.nodeRadius + 10 * k + 8 * k + 2 * k).y, 9)
+    const centre = screenOf(fx, fx.scene.x[first] as number, 0).x
+    const below = screenOf(fx, 0, (fx.scene.y[first] as number) + fx.scene.nodeRadius + 10 * k + 8 * k + 2 * k).y
+    const arcs = dots.flatMap(e => opsOf(e, 'arc').map(a => nums(a.args)))
+    expect(arcs.some(a => Math.abs((a[0] as number) - centre) < 1e-6 && Math.abs((a[1] as number) - below) < 1e-6)).toBe(true)
   })
 
   it('region captions follow their own size: hidden under 6 CSS px, drawn from 6 in the region colour', () => {
@@ -911,13 +997,13 @@ describe('drawNodeLayer (zone layouts)', () => {
     expect(texts[0]?.style.textAlign).toBe('left')
     expect(texts[1]?.style.textAlign).toBe('right')
     expect(texts[1]?.style.font).toContain('monospace')
-    expect(texts[1]?.style.font).toContain('12px')
+    expect(fontPx(texts[1]?.style.font as string)).toBeCloseTo(12, 9)
   })
 
   it('culls zones outside the window when zoomed into a corner', () => {
     const fx = zoneFx(202)
-    const zoom = fitZones(fx.scene.x, fx.scene.y, [0, 1, 2, 3], fx.frame, fx.w, fx.h)
-    const near: CanvasTransform = { ...zoom, zoom: Math.max(zoom.zoom, 6) }
+    const near = fitZones(fx.scene.x, fx.scene.y, [0], fx.frame, fx.w, fx.h)
+    expect(near.zoom).toBeGreaterThan(2)
     const full = makeRecorder()
     drawNodeLayer(full.env, stateFor(fx), fx.index)
     const rec = makeRecorder()
@@ -931,7 +1017,7 @@ describe('drawNodeLayer (zone layouts)', () => {
   it('a muted zone is not drawn; an isolate-dimmed zone is drawn at alpha 0.2', () => {
     const fx = zoneFx(28)
     const rec = makeRecorder()
-    drawNodeLayer(rec.env, stateFor(fx, { zoneStates: statesWith(28, { 4: ZONE_HIDDEN, 6: ZONE_DIMMED }) }), fx.index)
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), zoneStates: statesWith(28, { 4: ZONE_HIDDEN, 6: ZONE_DIMMED }) }), fx.index)
     const texts = ofType(rec.events, 'fillText')
     expect(texts).toHaveLength(27)
     expect(texts.some(e => e.args[0] === fx.labels[4])).toBe(false)
@@ -983,7 +1069,8 @@ describe('pair-graph scenes', () => {
     expect(fills.reduce((n, e) => n + opsOf(e, 'closePath').length, 0)).toBe(14)
     expect(strokes.reduce((n, e) => n + opsOf(e, 'closePath').length, 0)).toBe(14)
     for (const e of strokes) expect(e.style.lineWidth).toBeCloseTo(Math.max(1, 0.9 * fx.scene.strokeScale * s), 9)
-    for (const e of [...fills, ...strokes]) expect(Object.values(fx.view.zoneColors)).toContain(e.style.fillStyle === '#000000' ? e.style.strokeStyle : e.style.fillStyle)
+    for (const e of fills) expect(fx.view.zoneColors).toContain(e.style.fillStyle)
+    for (const e of strokes) expect(fx.view.zoneColors).toContain(e.style.strokeStyle)
     // the pill is the stadium of the scene's size: its width on screen is pillWidth x s
     const e = fills[0] as Ev
     const lines = opsOf(e, 'lineTo').map(o => nums(o.args))
@@ -996,7 +1083,7 @@ describe('pair-graph scenes', () => {
     const fx = pairFx(28)
     expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, fx.frame, fx.w, fx.h))).toBe(true)
     const rec = makeRecorder()
-    drawNodeLayer(rec.env, stateFor(fx), fx.index)
+    drawNodeLayer(rec.env, stateFor(fx, bare(fx)), fx.index)
     const texts = ofType(rec.events, 'fillText')
     expect(texts).toHaveLength(14)
     for (let q = 0; q < 14; q++) {
