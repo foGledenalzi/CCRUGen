@@ -16,7 +16,7 @@ import { withBasePath } from './lib/basePath'
 import { buildNumogramView, summarize } from './lib/numogramView'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel, zoneLabelsFor } from './lib/labelScheme'
 import type { LabelScheme } from './lib/labelScheme'
-import { ALL_CHORDS_MAX_N, SVG_RICH_MAX_N, gateMode, labelsShown, mayTween, tierFor } from './lib/tierBounds'
+import { ALL_CHORDS_MAX_N, INTERACTIVE_MAX_N, SVG_RICH_MAX_N, gateMode, labelsShown, mayTween, tierFor } from './lib/tierBounds'
 import { DIAGRAM_CSS_WIDTH, layoutTarget } from './lib/viewLayouts'
 import { engineRenderData, frameLayout } from './lib/renderData'
 import { isPresetLayoutId, LAYOUT_LABELS, layoutIdsForBase, layoutShortcut } from './lib/layoutIds'
@@ -259,7 +259,9 @@ export default function NumogramPage() {
     svgRichMaxN: SVG_RICH_MAX_N,
     allChordsMaxN: ALL_CHORDS_MAX_N,
     gateMode: zoneGateMode,
-  }), [base, g, summary, view, zoneLabels, labelScheme, zoneGateMode])
+    tier: showDiagram ? 'svg' : 'headless', // the tier rendered today; 06-11 replaces this with the render tier once the canvas branch exists
+    interactiveMaxN: INTERACTIVE_MAX_N,
+  }), [base, g, summary, view, zoneLabels, labelScheme, zoneGateMode, showDiagram])
 
   // The single URL codec's ShareState for the session's current values (UI-02): the replaceState sync effect and
   // the share button both build a query from this, so a URL never drifts from what the two writers would produce.

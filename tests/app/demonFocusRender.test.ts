@@ -8,7 +8,7 @@ import { createNumogram } from '../../engine/index'
 import type { Numogram } from '../../engine/index'
 import { summarize } from '../../app/lib/numogramView'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../../app/lib/labelScheme'
-import { SVG_RICH_MAX_N, ALL_CHORDS_MAX_N } from '../../app/lib/tierBounds'
+import { SVG_RICH_MAX_N, ALL_CHORDS_MAX_N, INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
 import { NumogramViewContext, type NumogramViewContextValue } from '../../app/components/numogram/ViewContext'
 import { DemonFocusView, type DemonFocusViewProps } from '../../app/components/demons/DemonFocusView'
 import { demonFocusOf, focusDrawPlan, zoneFocus } from '../../app/lib/demonState'
@@ -28,6 +28,8 @@ function buildCtx(g: Numogram): NumogramViewContextValue {
     svgRichMaxN: SVG_RICH_MAX_N,
     allChordsMaxN: ALL_CHORDS_MAX_N,
     gateMode: 'off',
+    tier: 'headless',
+    interactiveMaxN: INTERACTIVE_MAX_N,
   }
 }
 

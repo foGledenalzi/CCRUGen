@@ -11,7 +11,7 @@ import type { Numogram } from '../../engine/index'
 import { buildNumogramView, summarize } from '../../app/lib/numogramView'
 import type { NumogramView } from '../../app/lib/numogramView'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../../app/lib/labelScheme'
-import { SVG_RICH_MAX_N, ALL_CHORDS_MAX_N } from '../../app/lib/tierBounds'
+import { SVG_RICH_MAX_N, ALL_CHORDS_MAX_N, INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
 import { NumogramViewContext, type NumogramViewContextValue } from '../../app/components/numogram/ViewContext'
 import { CyberButton } from '../../app/components/ui/CyberButton'
 import { DemonInfo } from '../../app/components/info/InfoDisplay'
@@ -36,6 +36,8 @@ function buildCtx(g: Numogram, view: NumogramView | null = null): NumogramViewCo
     svgRichMaxN: SVG_RICH_MAX_N,
     allChordsMaxN: ALL_CHORDS_MAX_N,
     gateMode: 'off',
+    tier: view ? 'svg' : 'headless',
+    interactiveMaxN: INTERACTIVE_MAX_N,
   }
 }
 
