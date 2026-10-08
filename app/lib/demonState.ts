@@ -1,7 +1,8 @@
 // Demon UI state (DEM-03, D-03, D-07): shared focus, tabs, URL tokens, base-switch rule. Original CCRUG code (MIT, NOTICE section 1).
 import type { DemonRef, Numogram } from '../../engine/index'
 import type { Demon } from '../data/types'
-import { facetCount, incidentSource, isDemonFilter, legacyDemon, type DemonFilter } from './demonBrowser'
+import { facetCount, incidentSource, isDemonFilter, isDemonType, legacyDemon, type DemonFilter } from './demonBrowser'
+import type { DemonFacetCounts } from './worker/protocol'
 
 // ── Tabs ─────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,18 @@ export interface DemonSessionState {
 export function demonsAfterBaseSwitch(prev: DemonSessionState, next: Numogram): DemonSessionState {
   const filter = prev.filter !== null && facetCount(next, prev.filter) > 0 ? prev.filter : null
   return { filter, focus: null }
+}
+
+/**
+ * demonsAfterBaseSwitch from closed-form counts (the worker's facetCounts) so a huge new base never needs a main-thread
+ * Numogram (Phase 6 P6). A null filter stays null; a filter survives only when its count is above 0 (checked with
+ * isDemonFilter before it is used as a key, so a foreign string can never index the counts); the focus always clears.
+ */
+export function demonsAfterSwitchFromCounts(prev: DemonSessionState, counts: DemonFacetCounts): DemonSessionState {
+  const f = prev.filter
+  if (f === null || !isDemonFilter(f)) return { filter: null, focus: null }
+  const count = isDemonType(f) ? counts.types[f] : counts.subtypes[f]
+  return { filter: count > 0 ? f : null, focus: null }
 }
 
 /** Which demon tab a freshly-hydrated focus should open: a zone focus opens Focus; a demon focus is the pinned row in Browser. */

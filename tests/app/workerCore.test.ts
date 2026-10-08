@@ -195,6 +195,9 @@ describe('buildResult: base 28, ring, shelf, digits', () => {
     const xeno = built(handleRequest(request({ labels: { mode: 'xeno' } })))
     expect(xeno.text).toBe(numogramText(g, z => formatZoneLabel(z, 28, { mode: 'xeno' })))
     expect(xeno.text).not.toBe(res.text)
+    expect(xeno.labels).toEqual({ mode: 'xeno' })
+    expect(xeno.key).toBe(resultKey(28, 'ring', 'shelf', { mode: 'xeno' }))
+    expect(xeno.key).not.toBe(res.key)
   })
 
   it('has closed-form facet counts as plain objects', () => {
@@ -223,11 +226,21 @@ describe('buildResult: base 28, ring, shelf, digits', () => {
     expect(res.scene).toEqual(expected)
   })
 
-  it('honours the packer', () => {
-    const spiral = built(handleRequest(request({ packer: 'spiral' })))
-    const layout = resolveLayout(g, 'ring', [], { packer: 'spiral' })
-    expect(spiral.packer).toBe('spiral')
-    expect(spiral.scene?.x).toEqual(layout.x)
+  it('honours the packer (base 66 is the smallest base where the packer moves the ring and the pair graph)', () => {
+    const g66 = createNumogram(66)
+    const shelfRing = resolveLayout(g66, 'ring', [], { packer: 'shelf' })
+    const spiralRing = resolveLayout(g66, 'ring', [], { packer: 'spiral' })
+    expect(spiralRing.x).not.toEqual(shelfRing.x) // the two packers really differ here, so the next lines can tell them apart
+    const ring = built(handleRequest(request({ base: 66, packer: 'spiral' })))
+    expect(ring.packer).toBe('spiral')
+    expect(ring.scene?.x).toEqual(spiralRing.x)
+    expect(built(handleRequest(request({ base: 66, packer: 'shelf' }))).scene?.x).toEqual(shelfRing.x)
+
+    const shelfPg = pairGraphLayout(g66, { packer: 'shelf' })
+    const spiralPg = pairGraphLayout(g66, { packer: 'spiral' })
+    expect(spiralPg.px).not.toEqual(shelfPg.px)
+    expect(built(handleRequest(request({ base: 66, layout: 'pairGraph', packer: 'spiral' }))).scene?.px).toEqual(spiralPg.px)
+    expect(built(handleRequest(request({ base: 66, layout: 'pairGraph', packer: 'shelf' }))).scene?.px).toEqual(shelfPg.px)
   })
 })
 
