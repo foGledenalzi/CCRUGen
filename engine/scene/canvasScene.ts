@@ -13,7 +13,7 @@
 // Cost (T-06-16): O(n) arrays, about 100k numbers at n = 4000; callers build a scene only up to the shipped ceiling.
 
 import type { Numogram } from '../core/types'
-import type { CurrentRoutes, GateRoutes, Layout, RegionLabel } from '../layout/types'
+import type { CurrentRoutes, GateRoutes, Layout, PairGraphLayout, PairGraphRoutes, RegionLabel } from '../layout/types'
 
 export const CURVE_STRIDE = 6 // x0 y0 cx cy x1 y1
 export const PICK_FLATTEN_STEPS = 8 // chords per quadratic for picking (research Pattern 6: 6 is within 0.4% of curve length; 8 for margin)
@@ -258,12 +258,22 @@ function buildPickData(P: number, n: number, syzygySeg: Float64Array, currentCur
 // ---------------------------------------------------------------------------------------------------------------
 // Builders
 
+/** A layout built for another base would index every array wrongly: refuse it before anything is read. */
+function assertLayoutBase(g: Numogram, layout: Layout): void {
+  if (layout.base !== g.base) {
+    throw new RangeError(`canvasScene: layout base ${layout.base} does not match numogram base ${g.base}`)
+  }
+}
+
 /**
  * The scene of a zone layout (ring, ladder, spiral or a base-10 preset) with its gate and current routes: coordinates,
  * syzygy segments trimmed exactly as svgString.ts trims them, every gate and current route as one curve of six
- * numbers, the route side arrays, and flattened pick segments with per-edge boxes. Pure; deterministic.
+ * numbers, the route side arrays, and flattened pick segments with per-edge boxes. Pure; deterministic. Throws a
+ * RangeError for a layout of another base, a pair-graph layout (use buildPairScene) or routes of the wrong length.
  */
 export function buildZoneScene(g: Numogram, layout: Layout, gates: GateRoutes, currents: CurrentRoutes): CanvasScene {
+  assertLayoutBase(g, layout)
+  if ('px' in layout) throw new RangeError('canvasScene: buildZoneScene got a pair-graph layout')
   const n = g.zoneCount
   const P = g.pairCount
   if (
@@ -353,5 +363,60 @@ export function buildZoneScene(g: Numogram, layout: Layout, gates: GateRoutes, c
     edgeSegStart: pick.edgeSegStart,
     edgeBox: pick.edgeBox,
     pickSegments: pick.pickSegments,
+  }
+}
+
+/**
+ * The scene of the syzygy-collapsed pair graph: coordinates, pill centres and size, and the engine's own arc and loop
+ * path strings (SVG `A` arcs, drawn from the strings; the arcs are not pickable, only the pills are). Every zone-only
+ * array is a fresh empty array and there are no pick edges. Pure; deterministic. Throws a RangeError for a layout of
+ * another base, a layout that is not a pair graph, or routes of the wrong length.
+ */
+export function buildPairScene(g: Numogram, layout: PairGraphLayout, routes: PairGraphRoutes): CanvasScene {
+  assertLayoutBase(g, layout)
+  if (!('px' in layout) || !('py' in layout)) throw new RangeError('canvasScene: buildPairScene needs a pair-graph layout')
+  const P = g.pairCount
+  if (layout.px.length !== P || layout.py.length !== P || routes.arc.length !== P || routes.loop.length !== P) {
+    throw new RangeError(`canvasScene: pair-graph routes do not match numogram base ${g.base}`)
+  }
+
+  const currentTo = new Int32Array(P)
+  for (let q = 0; q < P; q++) currentTo[q] = g.current(q).to
+
+  return {
+    kind: 'pairs',
+    base: g.base,
+    layoutId: layout.id,
+    width: layout.width,
+    height: layout.height,
+    centerX: layout.center.x,
+    centerY: layout.center.y,
+    nodeRadius: layout.nodeRadius,
+    labelSize: layout.labelSize,
+    strokeScale: layout.strokeScale,
+    x: layout.x.slice(),
+    y: layout.y.slice(),
+    drawOrder: layout.drawOrder.slice(),
+    regionLabels: layout.regionLabels.slice(),
+    syzygySeg: new Float64Array(0),
+    currentCurves: new Float64Array(0),
+    currentKind: new Uint8Array(0),
+    junctionX: new Float64Array(0),
+    junctionY: new Float64Array(0),
+    currentTo,
+    gateCurves: new Float64Array(0),
+    gateLoop: new Uint8Array(0),
+    gateTo: new Int32Array(0),
+    gateLabelX: new Float64Array(0),
+    gateLabelY: new Float64Array(0),
+    px: layout.px.slice(),
+    py: layout.py.slice(),
+    pillWidth: layout.nodeWidth,
+    pillHeight: layout.nodeHeight,
+    pairArc: routes.arc.slice(),
+    pairLoop: routes.loop.slice(),
+    edgeSegStart: Int32Array.of(0),
+    edgeBox: new Float64Array(0),
+    pickSegments: new Float64Array(0),
   }
 }

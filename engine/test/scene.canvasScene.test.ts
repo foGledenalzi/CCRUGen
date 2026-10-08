@@ -861,6 +861,8 @@ describe('buildPairScene', () => {
     expect(() => buildPairScene(g, ring as unknown as PairGraphLayout, routes)).toThrow(RangeError)
     expect(() => buildPairScene(g, pg, { arc: routes.arc.slice(1), loop: routes.loop })).toThrow(RangeError)
     expect(() => buildPairScene(g, pg, { arc: routes.arc, loop: routes.loop.slice(1) })).toThrow(RangeError)
+    expect(() => buildPairScene(g, { ...pg, px: pg.px.slice(1) }, routes)).toThrow(RangeError)
+    expect(() => buildPairScene(g, { ...pg, py: pg.py.slice(1) }, routes)).toThrow(RangeError)
   })
 })
 

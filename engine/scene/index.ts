@@ -6,6 +6,7 @@ export type { SvgOptions } from './svgString'
 
 export {
   buildZoneScene,
+  buildPairScene,
   parseRouteCurve,
   flattenQuad,
   edgeCount,
