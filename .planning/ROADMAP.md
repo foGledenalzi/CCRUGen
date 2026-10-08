@@ -179,7 +179,7 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md - Shipped ceiling as data: boundaries.interactiveMaxN, selectTier/interactiveCeiling, validator rules, shaper carry-forward, INTERACTIVE_MAX_N (wave 1)
-- [ ] 06-02-PLAN.md - Engine Canvas scene: typed arrays, route curves, syzygy trimming, pick segments for ring/ladder/spiral and the pair graph (wave 2)
+- [x] 06-02-PLAN.md - Engine Canvas scene: typed arrays, route curves, syzygy trimming, pick segments for ring/ladder/spiral and the pair graph (wave 2)
 - [x] 06-03-PLAN.md - Pure input models: Canvas keyboard traversal and announcements, pointer state machine and wheel factor (wave 1)
 - [ ] 06-04-PLAN.md - Worker contract and pure core: lore-free summary, text limit follows the ceiling, over-limit copy, protocol, buildResult (wave 3)
 - [ ] 06-05-PLAN.md - Canvas view transform (fit-relative zoom, footprint, backing store) and the 12 px nearest-wins pick index (wave 3)
@@ -252,6 +252,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
-| 6. Canvas Tier and Worker | 2/15 | In Progress | - |
+| 6. Canvas Tier and Worker | 3/15 | In Progress | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |
