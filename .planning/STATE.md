@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-10-08T18:33:12.099Z"
-last_activity: 2026-10-08 -- Completed 06-02 (engine Canvas scene); 06-06 (wave 2) is next
+stopped_at: Completed 06-06-PLAN.md
+last_updated: "2026-10-08T18:57:11.474Z"
+last_activity: 2026-10-08 -- Completed 06-06 (view contract tier and ceiling, Canvas-aware panels); wave 3 (06-04, 06-05, 06-09) is next
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 74
-  completed_plans: 62
+  completed_plans: 63
   percent: 63
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 6 (Canvas Tier and Worker) — EXECUTING
-Plan: 3 of 15 complete (06-01, 06-02, 06-03)
+Plan: 4 of 15 complete (06-01, 06-02, 06-03, 06-06)
 Status: Executing Phase 6
-Last activity: 2026-10-08 -- Completed 06-02 (engine Canvas scene); 06-06 (wave 2) is next
+Last activity: 2026-10-08 -- Completed 06-06 (view contract tier and ceiling, Canvas-aware panels); wave 3 (06-04, 06-05, 06-09) is next
 
 Progress: [██████░░░░] 63%
 
@@ -117,6 +117,7 @@ Progress: [██████░░░░] 63%
 | Phase 06 P01 | 13min | 2 tasks | 9 files |
 | Phase 06 P03 | 21min | 2 tasks | 4 files |
 | Phase 06 P02 | 26min | 2 tasks | 3 files |
+| Phase 06 P06 | 22min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -203,6 +204,7 @@ Recent decisions affecting current work:
 - [Phase 6 P01] Shipped interactive ceiling as data (D-01, REN-02/REN-03 groundwork): boundaries.interactiveMaxN { n 4000, basedOn sw-6x } is the only change to engine/scene/tier-table.json (5 lines; 144 rows, derived boundaries, canvasMaxN null and webglDecision byte-identical); interactiveCeiling(table) = min(canvasMaxN, interactiveMaxN) is exported from the engine barrel and selectTier uses it (svg to svgRichMaxN, canvas from svgRichMaxN + 2 to the ceiling, headless above, override wins, never a lean tier per D-03); the field is optional in TierBoundaries and required by validateTierTable only for a measured table, with one rule and one brokenCopy mutant per invariant (missing, basedOn, integer, non-empty rule, >= svgRichMaxN, <= largest measured canvas n, <= canvasMaxN); scripts/spike/shape.ts carries it forward clamped to min(previous, maxMeasuredN, canvasMaxN) so a re-measure can lower it but never raise or drop it (PATTERNS hazard 1 resolved by clamping in the shaper and keeping the validator strict), INTERACTIVE_RULE exported and pinned equal to the JSON rule; app/lib/tierBounds.ts exports INTERACTIVE_MAX_N = interactiveCeiling(TIER_VIEW), LABEL_MIN_RADIUS_PX and CANVAS_AREA_LIMIT_PX by property access, no 4000 literal in app or tests; NumogramClient only tests tierFor(...) === 'svg' so the viewer is unchanged until 06-11; full npm run verify exit 0 (1749 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK without a baseline update); REN-02 and REN-03 stay Pending (final covering plans later in Phase 6)
 - [Phase 6 P03] Pure Canvas input models shipped (REN-02 groundwork, D-08, D-09): app/lib/canvas/keyboardModel.ts is the two-level keyboard traversal as a pure function (arrows wrap over the visible zones or pairs in order, Home/End, Page +/-10 positions clamped and never wrapping, Tab steps a zone's syzygy, current, gate with absent edges skipped and then leaves, Shift+Tab mirrors it, Enter/Space activate, + = - _ 0 zoom; a null, muted or wrong-kind ring is treated as initialTarget before the key applies; an empty order answers only Tab) with focusKeyOf/announcementFor/activationAnnouncement reproducing the SVG tier's data-focus-key grammar and aria-label strings from the real base-28 view (an edge lookup that is null degrades to its owner zone and never claims pinned; a zone's activation text is built without the selected suffix so it cannot double); app/lib/canvas/interaction.ts is the immutable pointer reducer (mouse click slop 3 px measured as displacement, touch tap and pan 8 px with the first pan carrying the whole distance since the press, rubber band from empty space with a click on a release within the slop so an empty click still clears, alt/middle pan, two-touch pinch emitting zoom about the PREVIOUS midpoint then pan so the content stays under the fingers (fast-check property replays random streams on a transform), one finger carries on in the same gesture after the other lifts, pointercancel and a mouse leaving during an uncaptured press drop the gesture, non-finite down/move/up ignored while cancel/leave are always processed) plus wheelZoomFactor (exp(-step x 0.0015), step clamped to +-100, line x16, page x120); 108 new tests mutation-checked (the one real survivor became a test); full npm run verify exit 0 (1857 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK without an update); REN-02 stays Pending (final covering plans 06-10/06-12/06-13)
 - [Phase 6 P02] Engine Canvas scene shipped (REN-02 groundwork, D-04, D-05): engine/scene/canvasScene.ts is a pure typed-array CanvasScene built from (g, layout, routes) for ring, ladder, spiral (buildZoneScene) and the pair graph (buildPairScene); parseRouteCurve is the only reader of route text (character whitelist plus exactly M+L or M+Q, an L stores its midpoint as the control, '' becomes six NaN, anything else throws RangeError) so every gate, current leg and stem is one curve of six numbers equal to the engine's route string; syzygySeg reuses svgString's exact trimming (per-node radii, centre to centre up to 2r) and is also compared with the lines layoutToSvg emits; pick data is a CSR over edges (syzygies 0..P-1, currents P..2P-1, gates 2P..2P+n-1, keyed by pair id and origin zone) with 8 flattened chords per non-NaN curve (a current edge has up to 24 segments) and per-edge boxes (four NaN for an edge with none); the pair graph keeps the engine's arc and loop path strings for drawing (not pickable) and px/py/pill size for picking; every typed array is its own whole buffer (17 for zones, 19 for pairs, proved with a Set over buffers) for the worker's transfer list; both builders reject a layout of another base first, buildZoneScene a pair-graph layout and both routes of the wrong length; mutation testing (86 runs) found one real bug (flattenQuad checked bounds before NaN, so a NaN curve on the last edge threw) and it is fixed and pinned; 40 tests over bases 2..64 plus 202, 666, 1024, 4000; full npm run verify exit 0 (1897 unit tests x2 timezones, 200 e2e passed incl. 60 goldens and the behaviour baseline unchanged, page-weight OK without an update); REN-02 stays Pending (final covering plans 06-10/06-12/06-13)
+- [Phase 6 P06] View contract carries the Canvas tier (REN-02): NumogramViewContextValue gained required tier (RenderTier) and interactiveMaxN, NumogramClient passes the tier it renders today (showDiagram ? 'svg' : 'headless', 06-11 replaces it with the render tier) and INTERACTIVE_MAX_N, and the five Phase 5 render-test literals took both fields in the same commit; at the Canvas tier Zones, Syzygies, Currents and Gates return CanvasListNote (10px, data-post-baseline) before the headless early return so no thousand-row list is built (PanelUnavailable markup byte-identical), Layers uses gateInfoSuffix(mode, tier) and shows Particles as N/A (particlesCanvasInfo), RegionsPanel reads ctx.g only after its early return (proven with a throwing getter), ShortcutsModal qualifies the Diagram line with Up to {svgRichMaxN} zones and adds a plain-gray Canvas and touch line, both inside the data-post-baseline block; npm run test:swap green after the first NumogramClient edit and again at the end (65 passed 5 skipped, 1927 unit tests), npm run verify exit 0; known interim: Particles row keeps active state at the Canvas tier
 
 ### Pending Todos
 
@@ -234,8 +236,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-08T18:33:12.089Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-10-08T18:57:00Z
+Stopped at: Completed 06-06-PLAN.md
 Resume file: None
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
