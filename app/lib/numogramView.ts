@@ -12,22 +12,15 @@ import { SYZYGIES } from '../presets/base10/syzygies'
 import { regionOfZone, type RegionId } from './regions'
 import { ALL_CHORDS_MAX_N } from './tierBounds'
 import { REGION_CLR } from './constants'
+import { summarize, type NumogramSummary } from './summary'
+
+// The summary moved to a lore-free module (Phase 6, research P11); re-exported so every existing importer compiles unchanged.
+export { SUMMARY_TORQUE_LIMIT, summarize } from './summary'
+export type { NumogramSummary } from './summary'
 
 // U+2212 MINUS SIGN, built as data (never a typed escape) so the viewer's structural current labels use the same
 // character as the base-10 preset's.
 const MINUS = String.fromCodePoint(0x2212)
-
-export const SUMMARY_TORQUE_LIMIT = 12
-
-export interface NumogramSummary {
-  readonly base: number
-  readonly zoneCount: number
-  readonly hasWarp: boolean
-  readonly torqueCount: number
-  readonly torqueLengths: readonly number[]
-  readonly demonCount: number
-  readonly typeCounts: Readonly<{ chrono: number; amphi: number; xeno: number }>
-}
 
 export interface Base10Lore {
   readonly zoneMeta: Readonly<Record<number, ZoneMeta>>
@@ -60,28 +53,6 @@ export interface NumogramView {
 /** The region-identity color of a cycle kind (torque cyan, warp green, plex brown). */
 export function zoneColorFor(kind: RegionKind): string {
   return REGION_CLR[kind]
-}
-
-/**
- * A cheap summary of `g`: safe at any base, including a huge one, because it reads at most SUMMARY_TORQUE_LIMIT
- * Torque cycles through `cycleAt` (never materializing `g.torques`/`g.cycles`) and the virtual demon space's O(1)
- * `count`/`typeCounts()` (T-04-08).
- */
-export function summarize(g: Numogram): NumogramSummary {
-  const torqueCount = g.torqueCount
-  const limit = Math.min(torqueCount, SUMMARY_TORQUE_LIMIT)
-  const torqueLengths: number[] = []
-  for (let i = 0; i < limit; i++) torqueLengths.push(g.cycleAt(i).lengthInPairs)
-  const typeCounts = g.demons.typeCounts()
-  return {
-    base: g.base,
-    zoneCount: g.zoneCount,
-    hasWarp: g.warp !== null,
-    torqueCount,
-    torqueLengths,
-    demonCount: g.demons.count,
-    typeCounts: { chrono: typeCounts.chrono, amphi: typeCounts.amphi, xeno: typeCounts.xeno },
-  }
 }
 
 /** Each Torque cycle's zone walk (flow order) with its first zone appended, closing the loop. */

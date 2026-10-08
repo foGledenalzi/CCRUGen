@@ -1,17 +1,29 @@
 // Plain-text numogram (UI-07 text view, D-14 fallback). Bounded: zone, syzygy and gate listings only up to
 // TEXT_VIEW_ZONE_LIMIT zones, so huge bases stay cheap. Original CCRUG code (MIT, NOTICE section 1).
 import { formatGateName, formatNumeral, torqueLabel, type Cycle, type Numogram } from '../../engine/index'
-import { summarize } from './numogramView'
+import { summarize } from './summary'
+import { INTERACTIVE_MAX_N } from './tierBounds'
 
 // U+2212 MINUS SIGN, built as data (never a typed escape) so the current-flow lines use the same character the
 // base-10 preset's own labels use.
 const MINUS = String.fromCodePoint(0x2212)
 
-export const TEXT_VIEW_ZONE_LIMIT = 1024
+// follows the shipped interactive ceiling (data): the text view is complete at every Canvas base (Phase 6 UI-SPEC decision 4)
+export const TEXT_VIEW_ZONE_LIMIT = INTERACTIVE_MAX_N
 
 /** The UI-SPEC's big-base fallback message verbatim; svgRichMaxN always arrives as a prop from the tier table (D-16). */
 export function bigBaseMessage(base: number, zoneCount: number, svgRichMaxN: number): string {
   return `Base ${base} has ${zoneCount} zones — more than the interactive diagram supports live (over ${svgRichMaxN}). Showing the summary and text view.`
+}
+
+/** The over-limit message (Phase 6 D-01/D-02): the cutoff is the shipped interactive ceiling, always passed in, never a literal. */
+export function overLimitMessage(base: number, interactiveMaxN: number): string {
+  return `Base ${base} is above the interactive limit of ${interactiveMaxN}. Showing the summary and text view. To draw it, use headless export.`
+}
+
+/** The diagnostic tier=headless message for a base within the limit: never claims the base is over the limit. */
+export function tierOverrideMessage(base: number): string {
+  return `Tier override active. Showing the summary and text view for base ${base}.`
 }
 
 /** One Torque/Warp/Plex region line: its name, pair count, and its zone walk with the active zone labels. */
