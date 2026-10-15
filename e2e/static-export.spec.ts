@@ -57,3 +57,38 @@ test('the header title link keeps a single base path and drops the query', async
   if (BASE) for (const u of visited) expect(u).not.toContain(`${BASE}${BASE}`)
   await expect(page.locator('svg[viewBox^="0 0 800 "]')).toBeVisible()  // the numogram, not a 404 page
 })
+
+// REN-03 / ROADMAP criterion 5 (research A1): static files only; the one long-lived worker keeps answering offline (a first-ever
+// offline new Worker() cannot fetch its chunk by platform design). Runs at the root and, through `npm run test:e2e:basepath`
+// (which executes only this file), under /ccrug. Base 28 takes the worker path through the diagnostic ?tier=canvas override, so
+// production behaviour at 28 stays synchronous (Phase 6 D-06).
+test('the numogram worker loads from the site chunk path and keeps answering offline', async ({ page, context }) => {
+  const urls: string[] = []
+  page.on('worker', w => urls.push(w.url()))
+  // Test-only: record every reply the worker really sends, so a main-thread fallback could never pass for the worker.
+  await page.addInitScript(() => {
+    const replies: number[] = []
+    ;(window as unknown as { __workerReplies: number[] }).__workerReplies = replies
+    const post = Worker.prototype.postMessage as unknown as (this: Worker, ...args: unknown[]) => void
+    Worker.prototype.postMessage = function (this: Worker, ...args: unknown[]) {
+      const id = (args[0] as { id?: number }).id
+      this.addEventListener('message', ev => {
+        const d = ev.data as { id?: number; type?: string; base?: number }
+        if (d.id === id && d.type === 'built' && d.base !== undefined) replies.push(d.base)
+      })
+      post.apply(this, args)
+    } as unknown as typeof Worker.prototype.postMessage
+  })
+  await page.goto(`${BASE}/numogram/?base=64&tier=canvas`)
+  await expect(page.locator('[data-render-tier="canvas"][data-canvas-state="ready"][data-base="64"]')).toBeVisible()
+  expect(urls).toHaveLength(1)
+  const origin = new URL(page.url()).origin
+  expect(urls[0]).toMatch(new RegExp(`^${esc(origin)}${esc(BASE)}/_next/static/chunks/[^/]+\\.js$`))
+  await context.setOffline(true)
+  await page.locator('input[aria-label="Base"]').fill('28')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('[data-render-tier="canvas"][data-canvas-state="ready"][data-base="28"]')).toBeVisible() // base 28 computed through the existing worker while offline
+  expect(urls).toHaveLength(1)
+  expect(await page.evaluate(() => (window as unknown as { __workerReplies: number[] }).__workerReplies)).toEqual([64, 28])
+  await context.setOffline(false)
+})
