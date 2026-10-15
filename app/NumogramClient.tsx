@@ -195,8 +195,8 @@ export default function NumogramPage() {
   const [pendingLayout, setPendingLayout] = useState<ViewLayoutId | null>(null)
   const [pendingVisible, setPendingVisible] = useState(false)
   const [announcement, setAnnouncement] = useState('')
-  // The Canvas zoom percentage for the toolbar (06-12 reads it).
-  const [, setCanvasZoom] = useState(1)
+  // The Canvas zoom (relative to fit) the toolbar's percentage shows; CanvasDiagram reports its committed zoom through onZoomChange.
+  const [canvasZoom, setCanvasZoom] = useState(1)
 
   const svgWrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<CanvasHandle | null>(null)
@@ -228,7 +228,6 @@ export default function NumogramPage() {
     : tier === 'headless' ? 'headless'
     : shownForBase.scene !== null ? 'canvas'
     : base > INTERACTIVE_MAX_N ? 'headless' : 'svg'
-  const showDiagram = renderTier === 'svg'
   const hasDiagram = renderTier !== 'headless'
   // Main-thread numogram: svg and canvas only (cheap up to the ceiling, 0.26 ms at 4000: D-06 deviation recorded in the
   // 06-11 summary, the worker builds the layout, routes and scene). Headless never builds it here (P6).
@@ -534,9 +533,10 @@ export default function NumogramPage() {
     const gap = 12
     const viewW = viewport.w
     const maxLeft = Math.max(margin, viewW - INFO_PANEL_WIDTH - margin)
-    const svgEl = svgWrapRef.current?.querySelector('svg')
-    const svgRect = svgEl?.getBoundingClientRect()
-    const rightOfDiagram = svgRect ? Math.round(svgRect.right + gap) : maxLeft
+    // The diagram element whichever tier draws it: the Canvas root, else the SVG tier's own [data-diagram] svg.
+    const diagramEl = canvasRef.current?.element() ?? svgWrapRef.current?.querySelector('[data-diagram]')
+    const diagramRect = diagramEl?.getBoundingClientRect()
+    const rightOfDiagram = diagramRect ? Math.round(diagramRect.right + gap) : maxLeft
     const left = Math.max(margin, Math.min(rightOfDiagram, maxLeft))
 
     setPanelPositions(prev => ({
@@ -603,7 +603,16 @@ export default function NumogramPage() {
   const onCloseDemons = useCallback(() => setDemonsOpen(false), [])
 
   const fitSelectionToView = useCallback((zones: number[]) => {
-    if (renderTier !== 'svg') return // the Canvas fit uses the canvas transform (06-12)
+    if (renderTier === 'canvas') {
+      // The Canvas fit uses the canvas transform, never getScreenCTM. A pair-graph scene is indexed by pair id (pair id =
+      // min(zone, base - 1 - zone)), so a selected zone fits its pair there.
+      const handle = canvasRef.current
+      if (!handle || !g) return
+      const pairs = shownForBase?.scene?.kind === 'pairs'
+      handle.fitZones(pairs ? Array.from(new Set(zones.map(z => g.pairOf(z)))) : zones)
+      return
+    }
+    if (renderTier !== 'svg') return
     if (zones.length === 0) return
     const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
     const xs = zones.map(z => pos[z].x)
@@ -638,7 +647,7 @@ export default function NumogramPage() {
       const dy = targetY - sp.y
       setCanvasPan(prev => ({ x: prev.x + dx, y: prev.y + dy }))
     })
-  }, [renderTier, pos, svgWidth, svgHeight, setCanvasPan, setZoomOrigin, setZoom, viewport.w, viewport.h])
+  }, [renderTier, g, shownForBase, pos, svgWidth, svgHeight, setCanvasPan, setZoomOrigin, setZoom, viewport.w, viewport.h])
   const finalizeSelection = useCallback((end: Pos) => {
     if (!selectionStart) return
     const left = Math.min(selectionStart.x, end.x)
@@ -1250,10 +1259,23 @@ export default function NumogramPage() {
   )
 
   // UI-06: fit every visible (non-muted) zone into view, keyboard-reachable via the ViewControls toolbar.
+  // At the Canvas tier the canvas transform does the framing (a pair-graph scene is indexed by pair id, whose state is that of
+  // its low zone, exactly as the SVG pair graph's pairStates are built).
+  const canvasUnits = shownForBase?.scene?.kind === 'pairs' ? base / 2 : base
   const fitAll = useCallback(() => {
+    if (renderTier === 'canvas') {
+      if (zoneStateArr === null) {
+        canvasRef.current?.fit()
+        return
+      }
+      const visible: number[] = []
+      for (let z = 0; z < canvasUnits; z++) if (zoneStateArr[z] !== 0) visible.push(z)
+      canvasRef.current?.fitZones(visible)
+      return
+    }
     const zones = Array.from({ length: base }, (_, z) => z).filter(z => !zoneStateArr || zoneStateArr[z] !== 0)
     fitSelectionToView(zones)
-  }, [base, zoneStateArr, fitSelectionToView])
+  }, [renderTier, base, canvasUnits, zoneStateArr, fitSelectionToView])
 
   const hlZones = useMemo(() => {
     if (tcActive) return new Set(view ? view.torqueZones : [])
@@ -1944,11 +1966,11 @@ export default function NumogramPage() {
         </div>
       </Panel>
 
-      {showDiagram && (
+      {hasDiagram && (
         <ViewControls
-          zoom={zoom}
-          onZoomIn={() => setZoom(zoom * 1.25)}
-          onZoomOut={() => setZoom(zoom / 1.25)}
+          zoom={renderTier === 'canvas' ? canvasZoom : zoom}
+          onZoomIn={renderTier === 'canvas' ? () => canvasRef.current?.zoomIn() : () => setZoom(zoom * 1.25)}
+          onZoomOut={renderTier === 'canvas' ? () => canvasRef.current?.zoomOut() : () => setZoom(zoom / 1.25)}
           onFit={fitAll}
           demonFocusMode={demonFocusMode}
           onToggleDemonFocus={onToggleDemonFocus}
