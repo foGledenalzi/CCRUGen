@@ -861,6 +861,9 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
         position: 'relative',
         width: cssWidth,
         height: cssHeight,
+        // The window is exactly cssWidth wide (the footprint rule: 100vw - 16 on a phone). The page shell pads its flex row by
+        // 16 px each side, so without this the row shrinks the window to 343 px at 375 px and clips the diagram's right edge.
+        flexShrink: 0,
         overflow: 'hidden',
         opacity: pending ? 0.5 : 1,
         pointerEvents: pending ? 'none' : undefined,
