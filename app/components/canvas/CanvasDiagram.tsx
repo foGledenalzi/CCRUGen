@@ -503,7 +503,12 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
         setRing(target)
       }
     }
-    if (target !== null) props.onHoverInfo(ringInfo(target, index, scene))
+    if (target !== null) {
+      props.onHoverInfo(ringInfo(target, index, scene))
+      // D-08: the live region announces the focused zone. The aria-label names the canvas, not where the ring is, so a
+      // keyboard user landing here (or coming back with Shift+Tab) hears the ring's target as well.
+      announce(announcementFor(target, textSel))
+    }
   }
 
   function handleBlur(): void {
