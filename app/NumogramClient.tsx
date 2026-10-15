@@ -14,12 +14,12 @@ import { getAnglesForDate, computePlanetaryPositions } from './lib/planetary'
 import { buildNumogramTitle } from './lib/shareTitle'
 import { withBasePath } from './lib/basePath'
 import { buildNumogramView, summarize } from './lib/numogramView'
-import { DEFAULT_LABEL_SCHEME, formatZoneLabel, zoneLabelsFor } from './lib/labelScheme'
+import { DEFAULT_LABEL_SCHEME, formatZoneLabel, labelSchemeKey, zoneLabelsFor } from './lib/labelScheme'
 import type { LabelScheme } from './lib/labelScheme'
 import { ALL_CHORDS_MAX_N, INTERACTIVE_MAX_N, SVG_RICH_MAX_N, gateMode, labelsShown, mayTween, tierFor } from './lib/tierBounds'
 import { DIAGRAM_CSS_WIDTH, layoutTarget } from './lib/viewLayouts'
 import { engineRenderData, frameLayout } from './lib/renderData'
-import { isPresetLayoutId, LAYOUT_LABELS, layoutIdsForBase, layoutShortcut } from './lib/layoutIds'
+import { isLayoutIdFor, isPresetLayoutId, LAYOUT_LABELS, layoutIdsForBase, layoutShortcut } from './lib/layoutIds'
 import type { ViewLayoutId } from './lib/layoutIds'
 import { EMPTY_REGION_FILTER, isRegionId, regionFilterActive, sanitizeRegionFilter, toggleIsolate, toggleMute, zonesOfRegion, zoneStates as computeZoneStates } from './lib/regions'
 import type { RegionFilter, RegionId } from './lib/regions'
@@ -27,13 +27,16 @@ import { buildShareParams, DEFAULT_LAYERS, parseShareParams } from './lib/shareP
 import type { ShareState } from './lib/shareParams'
 import { refusalFromUrl } from './lib/basePicker'
 import { numogramText } from './lib/numogramText'
-import type { WorkerBuilt } from './lib/worker/protocol'
+import { computeFailedMessage, noWorkerMessage, resultKey } from './lib/worker/protocol'
+import type { WorkerBuilt, WorkerResponse } from './lib/worker/protocol'
+import { useNumogramWorker } from './lib/worker/useNumogramWorker'
+import { PENDING_GRACE_MS } from './lib/canvas/diagramModel'
 import { sessionAfterBaseSwitch } from './lib/baseSwitch'
 import type { DemonFilter } from './lib/demonBrowser'
 import { legacyDemon } from './lib/demonBrowser'
 import {
-  demonsAfterBaseSwitch, focusChordList, focusZones, initialDemonTab, zoneFocus, sameFocus,
-  type DemonFocus, type DemonTab,
+  demonsAfterBaseSwitch, demonsAfterSwitchFromCounts, focusChordList, focusZones, initialDemonTab, zoneFocus, sameFocus,
+  type DemonFocus, type DemonSessionState, type DemonTab,
 } from './lib/demonState'
 
 // Presets
@@ -144,6 +147,13 @@ function toggleTerminalSelection(prev: Set<number>, terminals: Iterable<number>)
 // authored 'original' preset, never the current (possibly huge) base.
 const FALLBACK_TARGET = layoutTarget(BASE10, 'original', 'shelf', {})
 
+// Whether a base and layout are computed by the worker (Phase 6 D-06): every base above svgRichMaxN (or any base under a
+// tier=canvas|headless diagnostic override), except the authored base-10 presets, which always render synchronously as SVG
+// (UI-SPEC decision 6). Base 10 and every SVG-tier base never become asynchronous.
+function needsWorkerFor(base: number, layout: ViewLayoutId, override: RenderTier | null): boolean {
+  return tierFor(base, override) !== 'svg' && !isPresetLayoutId(layout, base)
+}
+
 export default function NumogramPage() {
   // ── State ──────────────────────────────────────────────────
   const [layout, setLayout] = useState<ViewLayoutId>('original')
@@ -178,13 +188,13 @@ export default function NumogramPage() {
   const [demonFilter, setDemonFilter] = useState<DemonFilter | null>(null)
   const [demonFocus, setDemonFocus] = useState<DemonFocus | null>(null)
   const [demonFocusMode, setDemonFocusMode] = useState(false)
-  // Worker path (Phase 6): the last result applied by the swap, the base being computed, whether the previous diagram is
-  // dimmed (only after the grace period) and the picker's announcement. Task 1 declares these value-only; the worker
-  // request path (setters, effect, swap) arrives with the rest of the integration.
-  const [shown] = useState<WorkerBuilt | null>(null)
-  const [pendingBase] = useState<number | null>(null)
-  const [pendingVisible] = useState(false)
-  const [announcement] = useState('')
+  // Worker path (Phase 6): the last result applied by the swap, the base (and its layout) being computed, whether the
+  // previous diagram is dimmed (only after the grace period) and the picker's announcement.
+  const [shown, setShown] = useState<WorkerBuilt | null>(null)
+  const [pendingBase, setPendingBase] = useState<number | null>(null)
+  const [pendingLayout, setPendingLayout] = useState<ViewLayoutId | null>(null)
+  const [pendingVisible, setPendingVisible] = useState(false)
+  const [announcement, setAnnouncement] = useState('')
   // The Canvas zoom percentage for the toolbar (06-12 reads it).
   const [, setCanvasZoom] = useState(1)
 
@@ -273,6 +283,20 @@ export default function NumogramPage() {
   const currentOrientationRef = useRef<Record<string, 1 | -1>>({})
   const planetaryDateInputRef = useRef<HTMLInputElement | null>(null)
   const dateFieldWasVisibleRef = useRef(false)
+
+  // ── Worker client (Phase 6 REN-03, D-06, D-07) ───────────────
+  // Above svgRichMaxN every recomputation is one whole-desired-record request to the latest-wins client; base 10 and every
+  // SVG-tier base never touch it, except that a synchronous commit supersedes anything in flight (P2).
+  const worker = useNumogramWorker()
+  // The URL state of a worker-path base, held until its result lands (the base-10 SVG stays as "the last result" meanwhile).
+  const pendingHydrationRef = useRef<ShareState | null>(null)
+  // Latest-value mirrors, written during render, so the worker callback never reads a stale closure: shown (failure
+  // rollback), pendingVisible (the "ready" announcement) and the swap function itself.
+  const shownRef = useRef<WorkerBuilt | null>(null)
+  const pendingVisibleRef = useRef(false)
+  const applyWorkerResponseRef = useRef<(resp: WorkerResponse) => void>(() => {})
+  shownRef.current = shown
+  pendingVisibleRef.current = pendingVisible
 
   // ── View context (MIG-02, UI-03) ─────────────────────────────
   const zoneGateMode: 'on' | 'thin' | 'off' = renderTier === 'canvas' ? gateMode(base) : target ? (target.preset ? 'on' : gateMode(base)) : 'off'
@@ -386,19 +410,10 @@ export default function NumogramPage() {
     }
   }, [base, layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting, g])
 
-  // UI-08: the base picker's one commit path. Everything base-shaped resets in a single batched event-handler call
-  // (React batches all these setters into one render with the new base) so no intermediate render ever shows a
-  // selection, region highlight or history entry belonging to the previous base.
-  const commitBase = useCallback((n: number) => {
-    if (n === base) return
-    const next = sessionAfterBaseSwitch(
-      {
-        layout, selected: [...selZones], hlRegion, tcActive, orbiting, pinned: pinnedInfo !== null,
-        isolate: [...regionFilter.isolate], mute: [...regionFilter.mute],
-      },
-      n,
-    )
-    const nextDemons = demonsAfterBaseSwitch({ filter: demonFilter, focus: demonFocus }, createNumogram(n))
+  // UI-08: everything base-shaped resets in a single batched call (React batches all these setters into one render with
+  // the new base) so no intermediate render ever shows a selection, region highlight or history entry belonging to the
+  // previous base. Shared by the synchronous commit below and the worker swap; the caller sets the base and the layout.
+  const resetForBaseSwitch = useCallback((nextDemons: DemonSessionState) => {
     jumpToTarget()
     historyCurrentRef.current = null
     setUndoStack([])
@@ -412,7 +427,6 @@ export default function NumogramPage() {
     setRegionFilter(EMPTY_REGION_FILTER)
     setTcActive(false)
     setOrbiting(false)
-    setLayout(next.layout)
     setBaseRefusal(null)
     setCanvasPan({ x: 0, y: 0 })
     setZoom(1)
@@ -420,10 +434,55 @@ export default function NumogramPage() {
     setDemonFilter(nextDemons.filter)
     setDemonFocus(null)
     setDemonFocusMode(false)
+  }, [jumpToTarget, setCanvasPan, setZoom, setZoomOrigin, setOrbiting])
+
+  // A URL state waiting for its worker result is void the moment anything else commits: drop it and let the URL sync start.
+  const dropPendingHydration = useCallback(() => {
+    if (pendingHydrationRef.current === null) return
+    pendingHydrationRef.current = null
+    setUrlSyncReady(true)
+  }, [])
+
+  // UI-08: the base picker's one commit path. A worker-tier base (Canvas or headless) only records the desired base and
+  // layout: the displayed state keeps belonging to the displayed base until the result lands, and the swap does the reset.
+  // An SVG-tier base commits synchronously, exactly as before, and supersedes anything still in flight (P2).
+  const commitBase = useCallback((n: number) => {
+    const next = sessionAfterBaseSwitch(
+      {
+        // while a switch is pending the user's latest layout choice is the pending one (P3)
+        layout: pendingBase !== null ? (pendingLayout ?? layout) : layout,
+        selected: [...selZones], hlRegion, tcActive, orbiting, pinned: pinnedInfo !== null,
+        isolate: [...regionFilter.isolate], mute: [...regionFilter.mute],
+      },
+      n,
+    )
+    if (needsWorkerFor(n, next.layout, tierOverride)) {
+      dropPendingHydration()
+      if (n === base) {
+        // back to the displayed base: the desired record equals the displayed one again, the effect supersedes the request
+        setPendingBase(null)
+        setPendingLayout(null)
+        return
+      }
+      setBaseRefusal(null)
+      setPendingBase(n)
+      setPendingLayout(next.layout)
+      return
+    }
+    worker.supersede()
+    dropPendingHydration()
+    setPendingBase(null)
+    setPendingLayout(null)
+    setPendingVisible(false)
+    setAnnouncement('')
+    if (n === base) return
+    const nextDemons = demonsAfterBaseSwitch({ filter: demonFilter, focus: demonFocus }, createNumogram(n))
+    resetForBaseSwitch(nextDemons)
+    setLayout(next.layout)
     setBase(n)
   }, [
-    base, layout, selZones, hlRegion, tcActive, orbiting, pinnedInfo, regionFilter, jumpToTarget,
-    setCanvasPan, setZoom, setZoomOrigin, setOrbiting, demonFilter, demonFocus,
+    base, layout, pendingBase, pendingLayout, selZones, hlRegion, tcActive, orbiting, pinnedInfo, regionFilter,
+    tierOverride, worker, dropPendingHydration, resetForBaseSwitch, demonFilter, demonFocus,
   ])
 
   // Packer changes tween the diagram when the tier allows it (todo 005): capture the current positions as the
@@ -502,11 +561,17 @@ export default function NumogramPage() {
   }, [])
 
   const handleSwitchLayout = useCallback((newLayout: ViewLayoutId) => {
+    // While a base switch is pending the layout belongs to the pending base (P3): update the pending record, never the
+    // displayed layout, so the request is re-issued for the whole desired record instead of orphaning the base switch.
+    if (pendingBase !== null) {
+      if (isLayoutIdFor(newLayout, pendingBase)) setPendingLayout(newLayout)
+      return
+    }
     if (newLayout === layout) return
     if (newLayout === 'pairGraph' || layout === 'pairGraph') jumpToTarget()
     else switchLayout()
     setLayout(newLayout)
-  }, [layout, switchLayout, jumpToTarget])
+  }, [layout, pendingBase, switchLayout, jumpToTarget])
 
   const onHoverInfo = useCallback((info: HoverInfo | null) => {
     setHoverInfo(info)
@@ -661,6 +726,27 @@ export default function NumogramPage() {
     const { state, baseRefusal: refusal } = parseShareParams(window.location.search)
     if (refusal) setBaseRefusal(refusalFromUrl(refusal.raw, refusal.check, 10))
 
+    // A worker-tier base (Phase 6): nothing base-shaped is built here, no numogram on the main thread. The base-10 SVG
+    // stays as "the last result" (P7), the base-independent settings apply now, and the base-shaped URL state (selection,
+    // regions, demons) is stashed and applied by the swap. The URL sync stays off until then, so `?base=` is kept.
+    if (needsWorkerFor(state.base, state.layout, state.tier)) {
+      setTierOverride(state.tier)
+      setLayers(new Set(state.layers))
+      setParticlesOn(state.particles)
+      setShowOrbits(state.orbits)
+      if (state.date) {
+        setPlanetDate(state.date)
+        setOrbiting(false)
+        setPlanetaryAngles(getAnglesForDate(new Date(`${state.date}T12:00:00`)))
+      }
+      setLabelScheme(state.labels)
+      setPacker(state.packer)
+      pendingHydrationRef.current = state
+      setPendingBase(state.base)
+      setPendingLayout(state.layout)
+      return
+    }
+
     setBase(state.base)
     setLayout(state.layout)
     setLayers(new Set(state.layers))
@@ -734,6 +820,108 @@ export default function NumogramPage() {
     window.history.replaceState(window.history.state, '', url)
     lastSyncedQueryRef.current = query
   }, [urlSyncReady, currentShareState])
+
+  // ── Worker results (Phase 6 REN-03, D-07) ───────────────────
+  // The URL state of a worker-path base, applied by the swap that lands its result (everything base-shaped was reset first).
+  const applyHydratedState = (state: ShareState, resp: WorkerBuilt) => {
+    setHlRegion(state.region)
+    setRegionFilter({ isolate: new Set(state.isolate), mute: new Set(state.mute) })
+    setTcActive(state.tc)
+    setSelZones(new Set(state.selected))
+    setDemonFilter(state.demonFilter)
+    setDemonFocus(state.demonFocus)
+    setDemonFocusMode(state.demonFocus !== null)
+    setDemonsOpen(state.demonsOpen)
+    setDemonTab(initialDemonTab(state.demonFocus))
+    if (state.demonFocus?.kind === 'demon') {
+      // The one place a headless base builds its numogram on the main thread for a URL: a pinned demon needs its name
+      // (one-time, accepted: about 0.6 s at 2^26; createNumogram is cached by the engine).
+      setPinnedInfo({
+        type: 'demon',
+        demon: legacyDemon(createNumogram(resp.base).demons.ref(state.demonFocus.a, state.demonFocus.b), resp.base),
+      })
+    }
+    if (state.selected.length > 0 && resp.scene !== null) pendingShareSelectionRef.current = [...state.selected]
+  }
+
+  // The latest-wins swap: the client only calls this for the newest request, and every setter below runs in this one
+  // callback so React batches them into a single render: the new result, the new base and the UI-08 reset land together
+  // and no frame shows a mix of old and new.
+  const applyWorkerResponse = (resp: WorkerResponse) => {
+    if (resp.type === 'error') {
+      setPendingVisible(false)
+      setAnnouncement('')
+      setBaseRefusal(resp.reason === 'no-worker' ? noWorkerMessage(resp.base, base) : computeFailedMessage(resp.base, base))
+      setPendingBase(null)
+      setPendingLayout(null)
+      // The displayed result stays, undimmed; layout, packer and labels revert to what it was built with.
+      const current = shownRef.current
+      if (current !== null && current.base === base) {
+        setLayout(current.layout)
+        setPacker(current.packer)
+        if (labelSchemeKey(current.labels) !== labelSchemeKey(labelScheme)) setLabelScheme(current.labels)
+      }
+      dropPendingHydration()
+      return
+    }
+    const hydration = pendingHydrationRef.current
+    pendingHydrationRef.current = null
+    if (hydration !== null || resp.base !== base) {
+      // A new base (or a URL's whole state): the UI-08 reset first, then the URL's own values on top of it.
+      resetForBaseSwitch(demonsAfterSwitchFromCounts({ filter: demonFilter, focus: demonFocus }, resp.facetCounts))
+      if (hydration !== null) applyHydratedState(hydration, resp)
+    }
+    setBase(resp.base)
+    setLayout(resp.layout)
+    setPacker(resp.packer)
+    // A structured-cloned but equal scheme must not change identity: that would force a re-raster of the same picture.
+    if (labelSchemeKey(resp.labels) !== labelSchemeKey(labelScheme)) setLabelScheme(resp.labels)
+    setShown(resp)
+    setPendingBase(null)
+    setPendingLayout(null)
+    setPendingVisible(false)
+    setAnnouncement(pendingVisibleRef.current ? `Base ${resp.base} ready.` : '')
+    if (hydration !== null) setUrlSyncReady(true)
+  }
+  applyWorkerResponseRef.current = applyWorkerResponse
+
+  // The desired record: the pending base (or the displayed one) with the layout, packer and labels chosen for it. Whatever
+  // is not the displayed result, and needs the worker, goes out as ONE request carrying all four (P3).
+  const desiredBase = pendingBase ?? base
+  const desiredLayout = pendingBase !== null ? (pendingLayout ?? layout) : layout
+  const desiredKey = needsWorkerFor(desiredBase, desiredLayout, tierOverride)
+    ? resultKey(desiredBase, desiredLayout, packer, labelScheme)
+    : null
+  useEffect(() => {
+    if (desiredKey === null || (pendingBase === null && shownRef.current?.key === desiredKey)) {
+      // The SVG path, or the displayed result already is the desired one: nothing may arrive late and overwrite it (P2).
+      worker.supersede()
+      setPendingVisible(false)
+      setAnnouncement('')
+      return
+    }
+    const timer = window.setTimeout(() => {
+      setPendingVisible(true)
+      setAnnouncement(`Computing base ${desiredBase}...`)
+    }, PENDING_GRACE_MS)
+    worker.request(
+      {
+        base: desiredBase,
+        layout: desiredLayout,
+        packer,
+        labels: labelScheme,
+        wantScene: tierFor(desiredBase, tierOverride) !== 'headless',
+      },
+      resp => {
+        window.clearTimeout(timer)
+        applyWorkerResponseRef.current(resp)
+      },
+    )
+    return () => window.clearTimeout(timer)
+    // desiredKey encodes the desired base, layout, packer and labels (the only inputs); the other values read here are
+    // the same render's, and the swap reaches the latest closure through applyWorkerResponseRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desiredKey])
 
   const onToggleZone = useCallback((z: number) => {
     setSelZones(prev => {
