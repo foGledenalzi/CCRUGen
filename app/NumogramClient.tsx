@@ -7,7 +7,7 @@ import type { Layout, Layer, Pos, HoverInfo, LabelVisibility } from './data/type
 
 // Engine (base-generic layout plumbing, 04-11)
 import { createNumogram, routePairGraph } from '../engine/index'
-import type { Packer, PairGraphLayout, RenderTier } from '../engine/index'
+import type { Numogram, Packer, PairGraphLayout, RenderTier } from '../engine/index'
 
 // Lib
 import { getAnglesForDate, computePlanetaryPositions } from './lib/planetary'
@@ -27,6 +27,7 @@ import { buildShareParams, DEFAULT_LAYERS, parseShareParams } from './lib/shareP
 import type { ShareState } from './lib/shareParams'
 import { refusalFromUrl } from './lib/basePicker'
 import { numogramText } from './lib/numogramText'
+import type { WorkerBuilt } from './lib/worker/protocol'
 import { sessionAfterBaseSwitch } from './lib/baseSwitch'
 import type { DemonFilter } from './lib/demonBrowser'
 import { legacyDemon } from './lib/demonBrowser'
@@ -55,6 +56,7 @@ import { CyberButtonGroup as ButtonSet } from './components/ui/CyberButtonGroup'
 import { CyberPanel as Panel } from './components/ui/CyberPanel'
 import { Projection } from './components/projection/Projection'
 import { PairGraphProjection } from './components/projection/PairGraphProjection'
+import { CanvasDiagram, type CanvasDiagramHandle as CanvasHandle } from './components/canvas/CanvasDiagram'
 import { BasePicker } from './components/numogram/BasePicker'
 import { BigBaseSummary } from './components/numogram/BigBaseSummary'
 import { TextView } from './components/numogram/TextView'
@@ -176,8 +178,18 @@ export default function NumogramPage() {
   const [demonFilter, setDemonFilter] = useState<DemonFilter | null>(null)
   const [demonFocus, setDemonFocus] = useState<DemonFocus | null>(null)
   const [demonFocusMode, setDemonFocusMode] = useState(false)
+  // Worker path (Phase 6): the last result applied by the swap, the base being computed, whether the previous diagram is
+  // dimmed (only after the grace period) and the picker's announcement. Task 1 declares these value-only; the worker
+  // request path (setters, effect, swap) arrives with the rest of the integration.
+  const [shown] = useState<WorkerBuilt | null>(null)
+  const [pendingBase] = useState<number | null>(null)
+  const [pendingVisible] = useState(false)
+  const [announcement] = useState('')
+  // The Canvas zoom percentage for the toolbar (06-12 reads it).
+  const [, setCanvasZoom] = useState(1)
 
   const svgWrapRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<CanvasHandle | null>(null)
   const selectionAdditiveRef = useRef(false)
   const suppressNextCanvasClickRef = useRef(false)
   const desktopPanelLayoutInitRef = useRef(false)
@@ -196,12 +208,28 @@ export default function NumogramPage() {
   })
 
   // ── Engine-derived state (UI-02, D-14..D-18): follows the chosen base ─────
-  const g = useMemo(() => createNumogram(base), [base])
-  const summary = useMemo(() => summarize(g), [g])
-  // Above the measured SVG tier, no view/layout/render structure is ever built (D-16, T-04-08): only the O(1)
-  // summary and the bounded text view.
-  const showDiagram = tierFor(base, tierOverride) === 'svg'
-  const view = useMemo(() => (showDiagram ? buildNumogramView(g) : null), [g, showDiagram])
+  const tier = tierFor(base, tierOverride)
+  const shownForBase = shown !== null && shown.base === base ? shown : null
+  // The tier actually drawn: base-10 presets always SVG (UI-SPEC decision 6); a worker tier draws only once its result for
+  // this base has landed, until then the previous SVG stays as "the last result" (D-07, P7). A scene-less result above the
+  // ceiling (for example tier=canvas at 2^26) is headless: the main thread must never build g or the view for it.
+  const renderTier: RenderTier =
+    tier === 'svg' || isPresetLayoutId(layout, base) || shownForBase === null ? 'svg'
+    : tier === 'headless' ? 'headless'
+    : shownForBase.scene !== null ? 'canvas'
+    : base > INTERACTIVE_MAX_N ? 'headless' : 'svg'
+  const showDiagram = renderTier === 'svg'
+  const hasDiagram = renderTier !== 'headless'
+  // Main-thread numogram: svg and canvas only (cheap up to the ceiling, 0.26 ms at 4000: D-06 deviation recorded in the
+  // 06-11 summary, the worker builds the layout, routes and scene). Headless never builds it here (P6).
+  const g = useMemo(() => (renderTier === 'headless' ? null : createNumogram(base)), [base, renderTier])
+  const summary = useMemo(
+    () => (renderTier === 'svg' || shownForBase === null ? summarize(g as Numogram) : shownForBase.summary),
+    [renderTier, shownForBase, g],
+  )
+  // Above the Canvas ceiling no view/layout/render structure is ever built (D-16, T-04-08): only the summary and the text
+  // view the worker built.
+  const view = useMemo(() => (g !== null ? buildNumogramView(g) : null), [g])
   const zoneLabels = useMemo(() => (view ? zoneLabelsFor(base, labelScheme) : null), [view, base, labelScheme])
 
   // ── Hooks ──────────────────────────────────────────────────
@@ -209,12 +237,12 @@ export default function NumogramPage() {
   const { planetaryAngles, setPlanetaryAngles, orbiting, setOrbiting, onDateUpdateRef } = useOrbitalAnimation(layout, PLANETARY_DEFAULT_ANGLE, reducedMotion)
   const planetaryPos = useMemo(() => computePlanetaryPositions(planetaryAngles), [planetaryAngles])
   const target = useMemo(
-    () => (view ? layoutTarget(g, layout, packer, planetaryPos) : null),
-    [view, g, layout, packer, planetaryPos],
+    () => (renderTier === 'svg' && view && g ? layoutTarget(g, layout, packer, planetaryPos) : null),
+    [renderTier, view, g, layout, packer, planetaryPos],
   )
   // useLayoutTween must be called every render (rules of hooks); above the SVG tier target is null and the hook
   // runs on the cheap module-level FALLBACK_TARGET instead, its output unused.
-  const { pos, ctr, svgWidth, svgHeight, tweening, switchLayout, jumpToTarget } = useLayoutTween(target ?? FALLBACK_TARGET, mayTween(g.zoneCount) && !reducedMotion)
+  const { pos, ctr, svgWidth, svgHeight, tweening, switchLayout, jumpToTarget } = useLayoutTween(target ?? FALLBACK_TARGET, mayTween(base) && !reducedMotion)
   const parallax = useParallax()
   const {
     positions: panelPositions,
@@ -247,21 +275,26 @@ export default function NumogramPage() {
   const dateFieldWasVisibleRef = useRef(false)
 
   // ── View context (MIG-02, UI-03) ─────────────────────────────
-  const zoneGateMode: 'on' | 'thin' | 'off' = target ? (target.preset ? 'on' : gateMode(g.zoneCount)) : 'off'
-  const viewCtx = useMemo<NumogramViewContextValue>(() => ({
-    base,
-    g,
-    summary,
-    view,
-    zoneLabels,
-    labelScheme,
-    zoneLabel: z => formatZoneLabel(z, base, labelScheme),
-    svgRichMaxN: SVG_RICH_MAX_N,
-    allChordsMaxN: ALL_CHORDS_MAX_N,
-    gateMode: zoneGateMode,
-    tier: showDiagram ? 'svg' : 'headless', // the tier rendered today; 06-11 replaces this with the render tier once the canvas branch exists
-    interactiveMaxN: INTERACTIVE_MAX_N,
-  }), [base, g, summary, view, zoneLabels, labelScheme, zoneGateMode, showDiagram])
+  const zoneGateMode: 'on' | 'thin' | 'off' = renderTier === 'canvas' ? gateMode(base) : target ? (target.preset ? 'on' : gateMode(base)) : 'off'
+  const viewCtx = useMemo<NumogramViewContextValue>(() => {
+    const common = {
+      base,
+      summary,
+      view,
+      zoneLabels,
+      labelScheme,
+      zoneLabel: (z: number) => formatZoneLabel(z, base, labelScheme),
+      svgRichMaxN: SVG_RICH_MAX_N,
+      allChordsMaxN: ALL_CHORDS_MAX_N,
+      gateMode: zoneGateMode,
+      tier: renderTier,
+      interactiveMaxN: INTERACTIVE_MAX_N,
+    }
+    if (g !== null) return { ...common, g }
+    // Headless (orchestrator decision 5): g is built lazily on first read (Demons overlay, demon info); createNumogram
+    // caches by base. Never spread this object: a spread would read the getter and build the numogram.
+    return { ...common, get g() { return createNumogram(base) } }
+  }, [base, g, summary, view, zoneLabels, labelScheme, zoneGateMode, renderTier])
 
   // The single URL codec's ShareState for the session's current values (UI-02): the replaceState sync effect and
   // the share button both build a query from this, so a URL never drifts from what the two writers would produce.
@@ -339,10 +372,10 @@ export default function NumogramPage() {
     })
     setLabelScheme(snapshot.labels)
     setPacker(snapshot.packer)
-    setRegionFilter(sanitizeRegionFilter({
+    setRegionFilter(g ? sanitizeRegionFilter({
       isolate: new Set(snapshot.isolate as RegionId[]),
       mute: new Set(snapshot.mute as RegionId[]),
-    }, g))
+    }, g) : EMPTY_REGION_FILTER)
 
     if (snapshot.layout === 'planetary') {
       if (snapshot.planetDate) {
@@ -505,6 +538,7 @@ export default function NumogramPage() {
   const onCloseDemons = useCallback(() => setDemonsOpen(false), [])
 
   const fitSelectionToView = useCallback((zones: number[]) => {
+    if (renderTier !== 'svg') return // the Canvas fit uses the canvas transform (06-12)
     if (zones.length === 0) return
     const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
     const xs = zones.map(z => pos[z].x)
@@ -539,7 +573,7 @@ export default function NumogramPage() {
       const dy = targetY - sp.y
       setCanvasPan(prev => ({ x: prev.x + dx, y: prev.y + dy }))
     })
-  }, [pos, svgWidth, svgHeight, setCanvasPan, setZoomOrigin, setZoom, viewport.w, viewport.h])
+  }, [renderTier, pos, svgWidth, svgHeight, setCanvasPan, setZoomOrigin, setZoom, viewport.w, viewport.h])
   const finalizeSelection = useCallback((end: Pos) => {
     if (!selectionStart) return
     const left = Math.min(selectionStart.x, end.x)
@@ -555,22 +589,34 @@ export default function NumogramPage() {
       return
     }
 
-    const svgEl = svgWrapRef.current?.querySelector('svg') as SVGSVGElement | null
-    const ctm = svgEl?.getScreenCTM()
-    if (!svgEl || !ctm) {
-      setSelectionStart(null)
-      setSelectionNow(null)
-      return
-    }
+    let selected: Set<number>
+    if (renderTier === 'canvas') {
+      // The Canvas tier resolves the rectangle itself, with its live transform and the mute filter applied.
+      const handle = canvasRef.current
+      if (!handle) {
+        setSelectionStart(null)
+        setSelectionNow(null)
+        return
+      }
+      selected = new Set(handle.zonesInClientRect(left, top, right, bottom))
+    } else {
+      const svgEl = svgWrapRef.current?.querySelector('svg') as SVGSVGElement | null
+      const ctm = svgEl?.getScreenCTM()
+      if (!svgEl || !ctm) {
+        setSelectionStart(null)
+        setSelectionNow(null)
+        return
+      }
 
-    const selected = new Set<number>()
-    for (let z = 0; z < g.zoneCount; z++) {
-      const pt = svgEl.createSVGPoint()
-      pt.x = pos[z].x
-      pt.y = pos[z].y
-      const sp = pt.matrixTransform(ctm)
-      if (sp.x >= left && sp.x <= right && sp.y >= top && sp.y <= bottom) {
-        selected.add(z)
+      selected = new Set<number>()
+      for (let z = 0; z < base; z++) {
+        const pt = svgEl.createSVGPoint()
+        pt.x = pos[z].x
+        pt.y = pos[z].y
+        const sp = pt.matrixTransform(ctm)
+        if (sp.x >= left && sp.x <= right && sp.y >= top && sp.y <= bottom) {
+          selected.add(z)
+        }
       }
     }
     setSelZones(prev => {
@@ -584,7 +630,7 @@ export default function NumogramPage() {
     suppressNextCanvasClickRef.current = true
     setSelectionStart(null)
     setSelectionNow(null)
-  }, [selectionStart, pos, g])
+  }, [selectionStart, pos, base, renderTier])
 
   useEffect(() => {
     if (!selectionStart) return
@@ -717,13 +763,14 @@ export default function NumogramPage() {
 
   const onToggleAllZones = useCallback(() => {
     setSelZones(prev => {
-      if (prev.size === g.zoneCount) return new Set()
+      if (!view) return prev // headless: no selection exists
+      if (prev.size === base) return new Set()
       const all = new Set<number>()
-      for (let z = 0; z < g.zoneCount; z++) all.add(z)
+      for (let z = 0; z < base; z++) all.add(z)
       return all
     })
     setHlRegion(null)
-  }, [g])
+  }, [view, base])
 
   const onToggleTC = useCallback(() => {
     setTcActive(prev => !prev)
@@ -731,8 +778,9 @@ export default function NumogramPage() {
   }, [])
 
   const onSelectCurrent = useCallback((from: number, to: number) => {
-    setSelZones(prev => toggleTerminalSelection(prev, [from, g.partner(from), to]))
-  }, [g])
+    if (!view) return
+    setSelZones(prev => toggleTerminalSelection(prev, [from, view.partner(from), to]))
+  }, [view])
 
   const onSelectGate = useCallback((from: number, to: number) => {
     setSelZones(prev => toggleTerminalSelection(prev, [from, to]))
@@ -756,7 +804,7 @@ export default function NumogramPage() {
       }
       if (info.type === 'current') {
         next.delete(info.data.from)
-        next.delete(g.partner(info.data.from))
+        if (view) next.delete(view.partner(info.data.from))
         next.delete(info.data.to)
         return next
       }
@@ -769,7 +817,7 @@ export default function NumogramPage() {
       next.delete(info.demon.b)
       return next
     })
-  }, [g])
+  }, [view])
 
   const onZoneNodeClick = useCallback((zone: number) => {
     if (demonFocusMode) {
@@ -784,6 +832,14 @@ export default function NumogramPage() {
       return next
     })
   }, [demonFocusMode])
+
+  // The Canvas tier reports where a rubber-band press began; the rectangle and its window listeners stay here (the same
+  // ones the SVG wrapper uses) and finalizeSelection resolves the zones through the canvas handle.
+  const onCanvasRubberBand = useCallback((x: number, y: number, additive: boolean) => {
+    selectionAdditiveRef.current = additive
+    setSelectionStart({ x, y })
+    setSelectionNow({ x, y })
+  }, [])
 
   useEffect(() => {
     const currentSnapshot = snapshotState()
@@ -994,26 +1050,26 @@ export default function NumogramPage() {
   // Isolate/mute render filter (UI-05, D-19..D-24): built only when the filter is non-empty and there is a view to
   // filter (SVG tier, D-16); null means "render exactly as before" to both diagrams.
   const zoneStateArr = useMemo(
-    () => (view && regionFilterActive(regionFilter) ? computeZoneStates(g, regionFilter) : null),
+    () => (view && g && regionFilterActive(regionFilter) ? computeZoneStates(g, regionFilter) : null),
     [view, g, regionFilter],
   )
 
   // Demon focus chords (DEM-03, D-03): drawn into the diagram only when one exists and a diagram is mounted (bounded
   // at FOCUS_CHORD_DRAW_MAX via focusChordList); null renders nothing (Projection's focusChords prop is additive-only).
   const focusChords = useMemo(
-    () => (view && demonFocus ? focusChordList(g, demonFocus) : null),
+    () => (view && g && demonFocus ? focusChordList(g, demonFocus) : null),
     [view, demonFocus, g],
   )
 
   // UI-06: fit every visible (non-muted) zone into view, keyboard-reachable via the ViewControls toolbar.
   const fitAll = useCallback(() => {
-    const zones = Array.from({ length: g.zoneCount }, (_, z) => z).filter(z => !zoneStateArr || zoneStateArr[z] !== 0)
+    const zones = Array.from({ length: base }, (_, z) => z).filter(z => !zoneStateArr || zoneStateArr[z] !== 0)
     fitSelectionToView(zones)
-  }, [g, zoneStateArr, fitSelectionToView])
+  }, [base, zoneStateArr, fitSelectionToView])
 
   const hlZones = useMemo(() => {
     if (tcActive) return new Set(view ? view.torqueZones : [])
-    if (hlRegion && isRegionId(hlRegion, g)) {
+    if (hlRegion && g && isRegionId(hlRegion, g)) {
       return new Set(zonesOfRegion(g, hlRegion))
     }
     if (hoverInfo?.type === 'gate') {
@@ -1027,7 +1083,7 @@ export default function NumogramPage() {
         case 'syzygy': s.add(hoverInfo.data.a); s.add(hoverInfo.data.b); break
         case 'current': {
           const c = hoverInfo.data
-          s.add(c.from); s.add(g.partner(c.from)); s.add(c.to); break
+          s.add(c.from); if (view) s.add(view.partner(c.from)); s.add(c.to); break
         }
         case 'demon': s.add(hoverInfo.demon.a); s.add(hoverInfo.demon.b); break
       }
@@ -1054,7 +1110,7 @@ export default function NumogramPage() {
     }
     if (layers.has('currents')) {
       for (const c of view.currents) {
-        const partner = g.partner(c.from)
+        const partner = view.partner(c.from)
         if (selZones.has(c.from) && selZones.has(partner) && selZones.has(c.to)) {
           pushUnique(`current:${c.name}`, { type: 'current', data: c })
         }
@@ -1072,7 +1128,7 @@ export default function NumogramPage() {
     })
 
     return infos
-  }, [selZones, layers, view, g])
+  }, [selZones, layers, view])
 
   const onShareExplanation = useCallback(async () => {
     const selectedIds = Array.from(selZones).sort((a, b) => a - b)
@@ -1127,13 +1183,13 @@ export default function NumogramPage() {
   // layout and the pair graph render through the engine's own routing (LAY-01..04, UI-06). All of these run only
   // when view/target are non-null (i.e. within the SVG tier, D-16): above it nothing here is ever built.
   const presetGates = useMemo(
-    () => (view && target && target.preset
+    () => (view && g && target && target.preset
       ? base10GateRender({ layout: layout as Layout, pos, ctr, g, gates: view.gates, currents: view.currents, syzygies: view.syzygies, zoneRadius })
       : null),
     [view, target, layout, pos, ctr, g, zoneRadius],
   )
   const presetCurrents = useMemo(
-    () => (view && target && target.preset
+    () => (view && g && target && target.preset
       ? base10CurrentRender(
           { layout: layout as Layout, pos, ctr, g, gates: view.gates, currents: view.currents, syzygies: view.syzygies, zoneRadius },
           currentOrientationRef.current,
@@ -1157,14 +1213,14 @@ export default function NumogramPage() {
   const gateRenderData = presetGates ?? frameRoutes?.gates ?? {}
   const currentRenderData = presetCurrents ?? frameRoutes?.currents ?? {}
   const pairRoutes = useMemo(
-    () => (target && target.pairGraph && target.layout ? routePairGraph(g, target.layout as PairGraphLayout) : null),
+    () => (g && target && target.pairGraph && target.layout ? routePairGraph(g, target.layout as PairGraphLayout) : null),
     [g, target],
   )
 
   const zoneOrder = useMemo(() => {
     if (!target) return []
-    return target.drawOrder ? [...target.drawOrder] : Array.from({ length: g.zoneCount }, (_, z) => z).sort((a, b) => pos[a].y - pos[b].y)
-  }, [target, g, pos])
+    return target.drawOrder ? [...target.drawOrder] : Array.from({ length: base }, (_, z) => z).sort((a, b) => pos[a].y - pos[b].y)
+  }, [target, base, pos])
   const labelsOn = !!target && (target.preset || labelsShown(target.nodeRadius * (DIAGRAM_CSS_WIDTH / svgWidth) * zoom))
 
   const gateCalcFocusName = hoverInfo?.type === 'gate'
@@ -1194,18 +1250,15 @@ export default function NumogramPage() {
     return hoverInfo ? 'grab' : 'crosshair'
   }, [selectionStart, hoverInfo])
 
-  // D-14/D-16: the big-base fallback's text view, bounded internally (TEXT_VIEW_ZONE_LIMIT) so it stays cheap at
-  // any base; empty (and unused) while the diagram is shown.
-  const bigBaseText = useMemo(
-    () => (showDiagram ? '' : numogramText(g, z => formatZoneLabel(z, base, labelScheme))),
-    [showDiagram, g, base, labelScheme],
-  )
+  // The over-limit view's text view (D-14/D-16): built by the worker for the displayed base (bounded internally, so it
+  // stays cheap at any base); empty until a result for this base has landed, and unused while a diagram is shown.
+  const bigBaseText = shownForBase?.text ?? ''
 
-  // The Text panel's copy (UI-07): only built at the SVG tier, since above it BigBaseSummary already carries the
-  // text view (bigBaseText, above) and the panel itself is hidden.
+  // The Text panel's copy (UI-07): the SVG tier builds it here (cheap up to svgRichMaxN); the Canvas tier takes the
+  // worker's full text (D-08's non-visual fallback), and headless has no panel (BigBaseSummary carries the text).
   const panelText = useMemo(
-    () => (showDiagram ? numogramText(g, z => formatZoneLabel(z, base, labelScheme)) : ''),
-    [showDiagram, g, base, labelScheme],
+    () => (renderTier === 'svg' ? numogramText(g as Numogram, z => formatZoneLabel(z, base, labelScheme)) : (shownForBase?.text ?? '')),
+    [renderTier, shownForBase, g, base, labelScheme],
   )
 
   // ── Render ─────────────────────────────────────────────────
@@ -1218,7 +1271,7 @@ export default function NumogramPage() {
       >
         <div className="pointer-events-auto flex flex-col items-center">
           <ButtonSet>
-            {layoutIdsForBase(g.base).map(id => {
+            {layoutIdsForBase(base).map(id => {
               const active = layout === id
               const clr = active ? '#10ff50' : '#444'
               const icon = id === 'original' ? <OriginalIcon clr={clr} />
@@ -1230,8 +1283,8 @@ export default function NumogramPage() {
                 : <PairGraphIcon clr={clr} />
               return (
                 <Button key={id} active={active}
-                  shortcut={layoutShortcut(id, g.base) ?? undefined}
-                  postBaseline={!(g.base === 10 && isPresetLayoutId(id, 10))}
+                  shortcut={layoutShortcut(id, base) ?? undefined}
+                  postBaseline={!(base === 10 && isPresetLayoutId(id, 10))}
                   onClick={() => handleSwitchLayout(id)}
                   onMouseEnter={() => setHoveredLayout(id)}
                   onMouseLeave={() => setHoveredLayout(null)}
@@ -1313,8 +1366,9 @@ export default function NumogramPage() {
         <div style={{ height: layout === 'planetary' ? 72 : 48 }} />
 
         {view && target ? (
-          <div className="flex justify-center w-full" style={{
+          <div className="flex justify-center w-full" data-render-tier="svg" style={{
             transform: `translate(${canvasPan.x}px, ${canvasPan.y}px)`,
+            ...(pendingVisible ? { opacity: 0.5, pointerEvents: 'none', transition: 'opacity 0.15s' } : {}),
           }}>
             <div ref={svgWrapRef} style={{
               transform: `translate(${parallax.x}px, ${parallax.y}px) scale(${zoom})`,
@@ -1344,7 +1398,7 @@ export default function NumogramPage() {
             }}>
               {target.pairGraph ? (
                 <PairGraphProjection
-                  g={g}
+                  g={g as Numogram}
                   view={view}
                   layout={target.layout as PairGraphLayout}
                   routes={pairRoutes!}
@@ -1353,7 +1407,7 @@ export default function NumogramPage() {
                   hlZones={hlZones}
                   anyFocus={anyFocus}
                   labelsOn={labelsOn}
-                  pairStates={zoneStateArr ? Uint8Array.from({ length: g.pairCount }, (_, q) => zoneStateArr[q]) : null}
+                  pairStates={zoneStateArr ? Uint8Array.from({ length: base / 2 }, (_, q) => zoneStateArr[q]) : null}
                   onHoverInfo={onHoverInfo}
                   onPinInfo={onPinInfo}
                   onTogglePair={onToggleSyzygyPair}
@@ -1398,9 +1452,44 @@ export default function NumogramPage() {
               )}
             </div>
           </div>
+        ) : renderTier === 'canvas' && view && zoneLabels && shownForBase?.scene ? (
+          <div className="flex justify-center w-full">
+            <CanvasDiagram
+              ref={canvasRef}
+              scene={shownForBase.scene}
+              view={view}
+              zoneLabels={zoneLabels}
+              layers={layers}
+              labelVisibility={labelVisibility}
+              gateMode={zoneGateMode}
+              hlZones={hlZones}
+              selZones={selZones}
+              anyFocus={anyFocus}
+              zoneStates={zoneStateArr}
+              focusChords={focusChords}
+              tcActive={tcActive}
+              hoverInfo={hoverInfo}
+              pinnedInfo={pinnedInfo}
+              demonFocusMode={demonFocusMode}
+              pending={pendingVisible}
+              viewportWidth={viewport.w}
+              viewportHeight={viewport.h}
+              onHoverInfo={onHoverInfo}
+              onPinInfo={onPinInfo}
+              onZoneNodeClick={onZoneNodeClick}
+              onTogglePair={onToggleSyzygyPair}
+              onClearFocus={clearInfoFocus}
+              onRubberBandStart={onCanvasRubberBand}
+              onZoomChange={setCanvasZoom}
+            />
+          </div>
         ) : (
-          <div className="select-text">
-            <BigBaseSummary summary={summary} svgRichMaxN={SVG_RICH_MAX_N} text={bigBaseText} />
+          <div
+            data-render-tier="headless"
+            className="select-text"
+            style={pendingVisible ? { opacity: 0.5, pointerEvents: 'none', transition: 'opacity 0.15s' } : undefined}
+          >
+            <BigBaseSummary summary={summary} interactiveMaxN={INTERACTIVE_MAX_N} overridden={tierFor(base) !== 'headless'} text={bigBaseText} />
           </div>
         )}
       </div>
@@ -1441,6 +1530,9 @@ export default function NumogramPage() {
                 packer={packer}
                 onPackerChange={onPackerChange}
                 packerVisible={layout === 'ring' || layout === 'pairGraph'}
+                requestedBase={pendingBase ?? base}
+                computing={pendingVisible}
+                announcement={announcement}
               />
               <button
                 className="px-1.5 py-1"
@@ -1599,7 +1691,7 @@ export default function NumogramPage() {
           onSelectGate={onSelectGate} onToggleAll={onToggleAllZones} />
       </Panel>
 
-      {showDiagram && (
+      {hasDiagram && (
         <Panel id="text" title="Text"
           postBaseline
           position={isMobile ? mobilePanelPositions.text : panelPositions.text}
@@ -1696,7 +1788,7 @@ export default function NumogramPage() {
           onFilterChange={setDemonFilter}
           focus={demonFocus}
           onFocusChange={onDemonFocusChange}
-          showDiagram={showDiagram}
+          showDiagram={hasDiagram}
           hoverInfo={hoverInfo}
           pinnedInfo={pinnedInfo}
           onHoverInfo={onHoverInfo}

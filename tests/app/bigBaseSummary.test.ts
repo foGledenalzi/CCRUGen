@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest'
 import { createNumogram } from '../../engine/index'
 import { summarize } from '../../app/lib/summary'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
-import * as numogramTextModule from '../../app/lib/numogramText'
 import { BigBaseSummary } from '../../app/components/numogram/BigBaseSummary'
 
 const OVER = INTERACTIVE_MAX_N + 2
@@ -63,12 +62,5 @@ describe('BigBaseSummary: the diagnostic tier override', () => {
     expect(markup).toContain('aria-label="Numogram summary"')
     expect(markup.match(/<button/g)).toHaveLength(1)
     expect(markup).not.toContain('<a ')
-  })
-})
-
-describe('numogramText no longer carries the Phase 4 fallback message', () => {
-  it('exports no bigBaseMessage (the cutoff and copy moved to overLimitMessage)', () => {
-    expect('bigBaseMessage' in numogramTextModule).toBe(false)
-    expect('overLimitMessage' in numogramTextModule).toBe(true)
   })
 })

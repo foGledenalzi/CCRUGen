@@ -11,11 +11,6 @@ const MINUS = String.fromCodePoint(0x2212)
 // follows the shipped interactive ceiling (data): the text view is complete at every Canvas base (Phase 6 UI-SPEC decision 4)
 export const TEXT_VIEW_ZONE_LIMIT = INTERACTIVE_MAX_N
 
-/** The UI-SPEC's big-base fallback message verbatim; svgRichMaxN always arrives as a prop from the tier table (D-16). */
-export function bigBaseMessage(base: number, zoneCount: number, svgRichMaxN: number): string {
-  return `Base ${base} has ${zoneCount} zones — more than the interactive diagram supports live (over ${svgRichMaxN}). Showing the summary and text view.`
-}
-
 /** The over-limit message (Phase 6 D-01/D-02): the cutoff is the shipped interactive ceiling, always passed in, never a literal. */
 export function overLimitMessage(base: number, interactiveMaxN: number): string {
   return `Base ${base} is above the interactive limit of ${interactiveMaxN}. Showing the summary and text view. To draw it, use headless export.`
