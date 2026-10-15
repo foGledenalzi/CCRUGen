@@ -1,20 +1,36 @@
-import { test, expect, type CDPSession, type Page } from '@playwright/test'
-import { buildZoneScene, createNumogram, DEFAULT_LAYOUT_PARAMS, resolveLayout, routeCurrents, routeGates, type CanvasScene } from '../engine/index'
+import { test, expect, type CDPSession, type Locator, type Page } from '@playwright/test'
+import {
+  buildZoneScene,
+  createNumogram,
+  DEFAULT_LAYOUT_PARAMS,
+  formatGateName,
+  formatNetSpan,
+  resolveLayout,
+  routeCurrents,
+  routeGates,
+  torqueLabel,
+  type CanvasScene,
+  type Numogram,
+} from '../engine/index'
 import { DEFAULT_LABEL_SCHEME, zoneLabelsFor } from '../app/lib/labelScheme'
+import { buildNumogramView, type NumogramView } from '../app/lib/numogramView'
 import { regionLabel, regionOfZone } from '../app/lib/regions'
 import { SVG_RICH_MAX_N } from '../app/lib/tierBounds'
+import { PAGE_STEP } from '../app/lib/canvas/keyboardModel'
 import { buildZoneGrid, pickAt, type PickFilter, type ZoneGrid } from '../app/lib/canvas/pickIndex'
 import {
   IDENTITY_TRANSFORM,
+  ZOOM_STEP,
   canvasFootprint,
   onScreenRadius,
   scaleOf,
   toScreen,
   toWorld,
+  zoomMax,
   type CanvasFrame,
   type CanvasTransform,
 } from '../app/lib/canvas/viewTransform'
-import { CANVAS_READY, openCanvas } from './viewer-helpers'
+import { CANVAS_READY, openCanvas, panel } from './viewer-helpers'
 
 // Proves the Canvas tier's input surface in Chromium (REN-02, D-08, D-09): narrow windows (375 x 667 and 768 x 1024),
 // touch (a CDP two-finger pinch, a one-finger pan, a tap that pins the nearest element within 12 px), keyboard traversal
@@ -28,6 +44,8 @@ test.use({ viewport: { width: 1280, height: 800 } })
 
 const OVERLAY = 'canvas[data-diagram]'
 const CALLOUT = '[data-canvas-callout]'
+const LIVE = '[data-canvas-live]'
+const ZWSP = String.fromCodePoint(0x200b) // the live region's repeat toggle (never typed as an escape)
 const PACKER = DEFAULT_LAYOUT_PARAMS.packer
 const CANVAS_BASE = SVG_RICH_MAX_N + 2 // the first even base the table sends to the Canvas tier
 const HEIGHT_RESERVE = 96 // UI-SPEC: the canvas is at most the viewport height minus 96 px
@@ -65,10 +83,54 @@ function at(a: Float64Array, i: number): number {
   return v
 }
 
-/** The callout text the canvas shows for a zone (the SVG tier's own aria-label, UI-SPEC Copywriting). */
-function zoneText(z: number, base: number): string {
-  const labels = zoneLabelsFor(base, DEFAULT_LABEL_SCHEME)
-  return `Zone ${labels[z]}, ${regionLabel(regionOfZone(createNumogram(base), z))}`
+// ── Expected text, from the engine and the view (never from the keyboard model under test) ───────────────────────────
+
+interface BaseNames {
+  readonly g: Numogram
+  readonly view: NumogramView
+  readonly labels: readonly string[]
+}
+const baseNames = new Map<number, BaseNames>()
+function namesOf(base: number): BaseNames {
+  let names = baseNames.get(base)
+  if (names === undefined) {
+    const g = createNumogram(base)
+    names = { g, view: buildNumogramView(g), labels: zoneLabelsFor(base, DEFAULT_LABEL_SCHEME) }
+    baseNames.set(base, names)
+  }
+  return names
+}
+
+/** The text the canvas shows for a zone (the SVG tier's own aria-label, UI-SPEC Copywriting) plus an optional announcement suffix. */
+function zoneText(z: number, base: number, suffix = ''): string {
+  const { g, labels } = namesOf(base)
+  return `Zone ${labels[z]}, ${regionLabel(regionOfZone(g, z))}${suffix}`
+}
+
+interface Stop {
+  readonly key: string // the data-focus-key
+  readonly text: string // the announcement (the SVG tier's aria-label)
+}
+
+/** The syzygy, current and gate that Tab visits for zone z: keys and strings from the engine, checked against the view's own entries. */
+function stopsOf(base: number, z: number): { syzygy: Stop; current: Stop; gate: Stop } {
+  const { g, view, labels } = namesOf(base)
+  const q = g.pairOf(z)
+  const { lo, hi } = g.pair(q)
+  const syzygy = view.syzygies.find(s => g.pairOf(s.a) === q)
+  const current = view.currents.find(c => g.pairOf(c.from) === q)
+  const gate = view.gates.find(t => t.from === z)
+  if (syzygy === undefined || current === undefined || gate === undefined) throw new Error(`the view has no syzygy, current or gate for zone ${z}`)
+  // the view agrees with the engine's own definitions before the page is compared with either
+  expect([syzygy.a, syzygy.b]).toEqual([lo, hi])
+  expect(current.name).toBe(formatNetSpan(hi, lo, base))
+  expect(gate.name).toBe(formatGateName(g.gate(z).cumulation, base))
+  expect(gate.to).toBe(g.gate(z).to)
+  return {
+    syzygy: { key: `syzygy:${lo}:${hi}`, text: `Syzygy ${labels[lo]}::${labels[hi]}` },
+    current: { key: `current:${current.name}`, text: `Current ${current.name}: ${current.label}` },
+    gate: { key: `gate:${gate.name}`, text: `Gate ${gate.name}: zone ${labels[z]} to zone ${labels[gate.to]}` },
+  }
 }
 
 // ── Canvas geometry: where a world point is on the page ─────────────────────────────────────────────────────────────
@@ -351,5 +413,341 @@ test('768 x 1024: the canvas keeps the 580 px column', async ({ page }) => {
   const overflow = await pageOverflow(page)
   expect(overflow.doc).toBeLessThanOrEqual(768)
   expect(overflow.body).toBeLessThanOrEqual(768)
+  expect(errors).toEqual([])
+})
+
+// ── Keyboard: helpers ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+async function isCanvasActive(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const active = document.activeElement
+    return active instanceof HTMLCanvasElement && active.getAttribute('role') === 'application'
+  })
+}
+
+/** Presses Tab until the overlay canvas (role="application") is the active element: it is one Tab stop among the page's controls. */
+async function tabToCanvas(page: Page, maxPresses = 150): Promise<number> {
+  for (let i = 1; i <= maxPresses; i++) {
+    await page.keyboard.press('Tab')
+    if (await isCanvasActive(page)) return i
+  }
+  throw new Error(`the canvas was not reached within ${maxPresses} Tab presses`)
+}
+
+/** The live region's text without the zero-width space it appends to make a repeated announcement a change. */
+async function announced(page: Page): Promise<string> {
+  return ((await page.locator(LIVE).textContent()) ?? '').split(ZWSP).join('')
+}
+
+async function expectAnnouncement(page: Page, expected: string): Promise<void> {
+  await expect.poll(() => announced(page), { message: 'the live region says' }).toBe(expected)
+}
+
+/** The ring is on `key` (data-focus-key) and the live region says `text`. */
+async function expectRing(page: Page, key: string, text: string): Promise<void> {
+  await expect(page.locator(OVERLAY)).toHaveAttribute('data-focus-key', key)
+  await expectAnnouncement(page, text)
+}
+
+async function leaveToCorner(page: Page): Promise<void> {
+  const corner = await emptyCorner(page)
+  await page.mouse.move(corner.x, corner.y)
+  await expect(page.locator(CALLOUT)).toHaveCount(0)
+}
+
+/** The first of `zones` whose centre reaches the overlay canvas at the current transform (page coordinates). */
+async function reachableZone(page: Page, scene: CanvasScene, zones: readonly number[]): Promise<TapTarget> {
+  const { frame, cssWidth, cssHeight, box } = await windowOf(page, scene)
+  const t = await liveTransform(page)
+  for (const z of zones) {
+    const p = toScreen(t, frame, cssWidth, cssHeight, at(scene.x, z), at(scene.y, z))
+    const x = box.x + p.x
+    const y = box.y + p.y
+    if (await reachesCanvas(page, x, y)) return { zone: z, x, y }
+  }
+  throw new Error(`no zone of ${zones.join(', ')} reaches the canvas (panels cover it)`)
+}
+
+/**
+ * Presses a Regions panel button from the keyboard. In the default desktop layout the Regions panel (235 px high at this
+ * base) runs under the Currents panel's header, which sits above the Warp and Plex rows' buttons and takes a mouse click
+ * meant for them; the buttons themselves work, so the setup activates them with focus and Space.
+ */
+async function press(page: Page, button: Locator): Promise<void> {
+  await button.focus()
+  await page.keyboard.press('Space')
+}
+
+function isolateButton(page: Page, label: string) {
+  return page.getByRole('button', { name: `Isolate ${label}`, exact: true })
+}
+function muteButton(page: Page, label: string) {
+  return page.getByRole('button', { name: `Mute ${label}`, exact: true })
+}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+test('keyboard: arrows, Home/End and the Page keys move between zones and each move is announced', async ({ page }) => {
+  const errors = trackErrors(page)
+  const base = CANVAS_BASE
+  const last = base - 1
+  await openCanvas(page, `base=${base}`)
+  const presses = await tabToCanvas(page)
+  console.log(`the canvas is Tab stop ${presses} on this page`)
+
+  const canvas = page.locator(OVERLAY)
+  await expect(canvas).toHaveAttribute('data-focus-key', 'zone:0')
+  // the first visible zone is announced and named by the callout when the canvas takes focus
+  await expectAnnouncement(page, zoneText(0, base))
+  await expect(page.locator(CALLOUT)).toHaveText(zoneText(0, base))
+
+  const steps: ReadonlyArray<readonly [string, number]> = [
+    ['ArrowRight', 1],
+    ['ArrowDown', 2],
+    ['ArrowLeft', 1],
+    ['ArrowUp', 0],
+    ['ArrowLeft', last], // wraps backwards
+    ['ArrowRight', 0], // and forwards
+    ['End', last],
+    ['Home', 0],
+    ['PageDown', PAGE_STEP],
+    ['PageDown', 2 * PAGE_STEP],
+    ['PageUp', PAGE_STEP],
+    ['End', last],
+    ['PageDown', last], // clamped at the end
+    ['PageUp', last - PAGE_STEP],
+    ['Home', 0],
+    ['PageUp', 0], // clamped at the start
+  ]
+  for (const [key, zone] of steps) {
+    await page.keyboard.press(key)
+    await expectRing(page, `zone:${zone}`, zoneText(zone, base))
+  }
+
+  expect(await isCanvasActive(page)).toBe(true)
+  expect(errors).toEqual([])
+})
+
+test("keyboard: Tab steps through the zone's syzygy, current and gate, then leaves; Shift+Tab steps back", async ({ page }) => {
+  const errors = trackErrors(page)
+  const base = CANVAS_BASE
+  const z = PAGE_STEP
+  const stops = stopsOf(base, z)
+  const root = page.locator(CANVAS_READY)
+  await openCanvas(page, `base=${base}`)
+  await expect(root).toHaveAttribute('data-overlay-edges', '0') // the gate layer is off at this base: nothing is drawn at rest
+  await tabToCanvas(page)
+
+  await page.keyboard.press('PageDown')
+  await expectRing(page, `zone:${z}`, zoneText(z, base))
+
+  await page.keyboard.press('Tab')
+  await expectRing(page, stops.syzygy.key, stops.syzygy.text)
+  await page.keyboard.press('Tab')
+  await expectRing(page, stops.current.key, stops.current.text)
+  await page.keyboard.press('Tab')
+  // the gate is reachable although its layer is not drawn at this base (D-04, D-08): keyboard focus counts as hover
+  await expectRing(page, stops.gate.key, stops.gate.text)
+  await expect.poll(() => numberAttr(page, CANVAS_READY, 'data-overlay-edges')).toBeGreaterThanOrEqual(1)
+
+  // the next Tab leaves the canvas (never a trap) and focus no longer draws its edges
+  await page.keyboard.press('Tab')
+  expect(await isCanvasActive(page)).toBe(false)
+  await expect(root).toHaveAttribute('data-overlay-edges', '0')
+
+  // Shift+Tab comes back to the canvas, and steps back through the stops before it leaves again
+  await page.keyboard.press('Shift+Tab')
+  expect(await isCanvasActive(page)).toBe(true)
+  await expect(page.locator(OVERLAY)).toHaveAttribute('data-focus-key', stops.gate.key)
+  await page.keyboard.press('Shift+Tab')
+  await expectRing(page, stops.current.key, stops.current.text)
+  await page.keyboard.press('Shift+Tab')
+  await expectRing(page, stops.syzygy.key, stops.syzygy.text)
+  await page.keyboard.press('Shift+Tab')
+  await expectRing(page, `zone:${z}`, zoneText(z, base))
+  await page.keyboard.press('Shift+Tab')
+  expect(await isCanvasActive(page)).toBe(false)
+
+  expect(errors).toEqual([])
+})
+
+test('Enter selects a zone and announces it, Enter on an edge pins it', async ({ page }) => {
+  const errors = trackErrors(page)
+  const base = CANVAS_BASE
+  const z = 3
+  const stops = stopsOf(base, z)
+  await openCanvas(page, `base=${base}`)
+  await tabToCanvas(page)
+  for (let i = 0; i < z; i++) await page.keyboard.press('ArrowRight')
+  await expectRing(page, `zone:${z}`, zoneText(z, base))
+  expect(selectedZones(page)).toEqual([])
+
+  await page.keyboard.press('Enter')
+  await expectAnnouncement(page, zoneText(z, base, ', selected'))
+  await expect.poll(() => selectedZones(page)).toEqual([z])
+
+  // moving away and back: the zone is now named as selected
+  await page.keyboard.press('ArrowRight')
+  await expectRing(page, `zone:${z + 1}`, zoneText(z + 1, base))
+  await page.keyboard.press('ArrowLeft')
+  await expectRing(page, `zone:${z}`, zoneText(z, base, ', selected'))
+
+  await page.keyboard.press('Enter')
+  await expectAnnouncement(page, zoneText(z, base, ', not selected'))
+  await expect.poll(() => selectedZones(page)).toEqual([])
+
+  // an edge is pinned, not selected
+  await page.keyboard.press('Tab')
+  await expectRing(page, stops.syzygy.key, stops.syzygy.text)
+  await page.keyboard.press('Enter')
+  await expectAnnouncement(page, `${stops.syzygy.text}, pinned`)
+  expect(selectedZones(page)).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('the focus ring target stays inside the window when keys would move it out (auto-pan)', async ({ page }) => {
+  const errors = trackErrors(page)
+  const base = CANVAS_BASE
+  const scene = zoneScene(base)
+  await openCanvas(page, `base=${base}`)
+  await tabToCanvas(page) // the + key is only handled while the canvas has focus
+  const { frame, cssWidth, cssHeight } = await windowOf(page, scene)
+  const ceiling = zoomMax(frame, cssWidth, cssHeight)
+
+  for (let i = 0; i < 6; i++) await page.keyboard.press('+')
+  // six steps of 1.25, held at the canvas's own zoom ceiling
+  await expect.poll(() => numberAttr(page, OVERLAY, 'data-zoom')).toBeCloseTo(Math.min(ceiling, ZOOM_STEP ** 6), 6)
+  const zoom = await numberAttr(page, OVERLAY, 'data-zoom')
+  expect(zoom).toBeGreaterThan(2)
+  expect(zoom).toBeLessThanOrEqual(ceiling)
+
+  const margin = 20 // UI-SPEC: 24 px inside the window edge, with 4 px of tolerance
+  let panned = 0
+  for (let i = 1; i <= 5; i++) {
+    const before = await liveTransform(page)
+    await page.keyboard.press('PageDown')
+    const z = i * PAGE_STEP
+    await expect(page.locator(OVERLAY)).toHaveAttribute('data-focus-key', `zone:${z}`)
+    const t = await liveTransform(page)
+    if (t.tx !== before.tx || t.ty !== before.ty) panned++
+    const p = toScreen(t, frame, cssWidth, cssHeight, at(scene.x, z), at(scene.y, z))
+    expect(p.x, `zone ${z} x on screen`).toBeGreaterThanOrEqual(margin)
+    expect(p.x, `zone ${z} x on screen`).toBeLessThanOrEqual(cssWidth - margin)
+    expect(p.y, `zone ${z} y on screen`).toBeGreaterThanOrEqual(margin)
+    expect(p.y, `zone ${z} y on screen`).toBeLessThanOrEqual(cssHeight - margin)
+  }
+  console.log(`auto-pan: zoom ${zoom} (ceiling ${ceiling}), ${panned} of 5 Page Down presses panned the view`)
+  expect(panned, 'at this zoom the ring leaves the window, so the view must have panned').toBeGreaterThan(0)
+
+  expect(errors).toEqual([])
+})
+
+test('reduced motion: the canvas reaches ready and the global rule collapses its transition', async ({ page }) => {
+  const errors = trackErrors(page)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await openCanvas(page, `base=${CANVAS_BASE}`)
+  const root = page.locator(CANVAS_READY)
+  await expect(root).toHaveAttribute('data-canvas-state', 'ready')
+
+  const seconds = async (): Promise<number[]> =>
+    root.evaluate(el =>
+      getComputedStyle(el)
+        .transitionDuration.split(',')
+        .map(part => (part.trim().endsWith('ms') ? parseFloat(part) / 1000 : parseFloat(part))),
+    )
+  for (const duration of await seconds()) expect(duration).toBeLessThanOrEqual(0.01)
+
+  // the rule is what does it: without the preference the same element keeps its 0.15 s opacity transition
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await expect.poll(seconds).toEqual([0.15])
+
+  // and under the preference the canvas still answers keys at once
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await tabToCanvas(page)
+  await page.keyboard.press('+')
+  await expect.poll(() => numberAttr(page, OVERLAY, 'data-zoom')).toBe(ZOOM_STEP)
+
+  expect(errors).toEqual([])
+})
+
+test('mute removes zones from picking and from the keyboard order; isolate keeps the other zones pickable and on the keys', async ({ page }) => {
+  const errors = trackErrors(page)
+  const base = CANVAS_BASE
+  const { g } = namesOf(base)
+  const scene = zoneScene(base)
+  const plex = Array.from(g.plex.zones()).sort((a, b) => a - b)
+  const visible = Array.from({ length: base }, (_, z) => z).filter(z => !plex.includes(z)) // the keyboard order with Plex muted
+  const first = visible[0]
+  const lastVisible = visible[visible.length - 1]
+  if (first === undefined || lastVisible === undefined) throw new Error('the base has no zone outside Plex')
+  const torqueRow = g.torqueCount === 1 ? 'Torque' : `Torque ${torqueLabel(0)}`
+
+  await openCanvas(page, `base=${base}`)
+  const plexZone = await reachableZone(page, scene, plex)
+  const torqueZone = await reachableZone(page, scene, Array.from(g.torques[0].zones()))
+  expect(plex).toContain(plexZone.zone)
+
+  // before the mute: a Plex zone is picked
+  await page.mouse.move(plexZone.x, plexZone.y)
+  await expect(page.locator(CALLOUT)).toHaveText(zoneText(plexZone.zone, base))
+  await leaveToCorner(page)
+
+  // mute Plex: no Plex zone is picked any more, and the keyboard never lands on one
+  await press(page, muteButton(page, 'Plex'))
+  await expect(muteButton(page, 'Plex')).toHaveAttribute('aria-pressed', 'true')
+  await page.mouse.move(plexZone.x, plexZone.y)
+  await settleFrames(page)
+  expect((await page.locator(CALLOUT).allTextContents()).join(' ')).not.toContain(', Plex')
+
+  await page.locator(OVERLAY).focus()
+  await expect(page.locator(OVERLAY)).toHaveAttribute('data-focus-key', `zone:${first}`)
+  await page.keyboard.press('End')
+  await expectRing(page, `zone:${lastVisible}`, zoneText(lastVisible, base))
+  await page.keyboard.press('ArrowRight') // from the zone before a Plex zone: skips Plex and wraps
+  await expectRing(page, `zone:${first}`, zoneText(first, base))
+  await page.keyboard.press('ArrowLeft')
+  await expectRing(page, `zone:${lastVisible}`, zoneText(lastVisible, base))
+  await page.keyboard.press('Home')
+  await expectRing(page, `zone:${first}`, zoneText(first, base))
+
+  // clear the mute and isolate the first Torque row: the other regions are dimmed, but still picked and still on the keys
+  await press(page, muteButton(page, 'Plex'))
+  await expect(muteButton(page, 'Plex')).toHaveAttribute('aria-pressed', 'false')
+  await press(page, isolateButton(page, torqueRow))
+  await expect(isolateButton(page, torqueRow)).toHaveAttribute('aria-pressed', 'true')
+  await expect(page).toHaveURL(/isolate=/)
+
+  await page.mouse.move(plexZone.x, plexZone.y)
+  await expect(page.locator(CALLOUT)).toHaveText(zoneText(plexZone.zone, base)) // dimmed, not isolated
+  await leaveToCorner(page)
+  await page.mouse.move(torqueZone.x, torqueZone.y)
+  await expect(page.locator(CALLOUT)).toHaveText(zoneText(torqueZone.zone, base)) // isolated
+  await leaveToCorner(page)
+
+  await page.locator(OVERLAY).focus()
+  await page.keyboard.press('End')
+  await expectRing(page, `zone:${base - 1}`, zoneText(base - 1, base)) // a Plex zone is still in the order
+
+  expect(errors).toEqual([])
+})
+
+test('a Regions-row highlight draws on the overlay', async ({ page }) => {
+  const errors = trackErrors(page)
+  const base = CANVAS_BASE
+  const { g } = namesOf(base)
+  const torqueRow = g.torqueCount === 1 ? 'Torque' : `Torque ${torqueLabel(0)}`
+  await openCanvas(page, `base=${base}`)
+  const root = page.locator(CANVAS_READY)
+  await expect(root).toHaveAttribute('data-overlay-edges', '0')
+
+  const row = panel(page, 'Regions').locator('div.cursor-pointer').filter({ hasText: new RegExp(`^${torqueRow}`) }).first()
+  await row.locator('span').first().click()
+  await expect.poll(() => numberAttr(page, CANVAS_READY, 'data-overlay-edges')).toBeGreaterThan(0)
+
+  // clicking the row again removes the highlight and what it drew
+  await row.locator('span').first().click()
+  await expect(root).toHaveAttribute('data-overlay-edges', '0')
+
   expect(errors).toEqual([])
 })
