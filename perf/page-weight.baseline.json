@@ -9,19 +9,19 @@
   "routes": {
     "/": {
       "htmlBytes": 4688,
-      "htmlGzip": 1765,
-      "jsBytes": 416830,
-      "jsGzip": 128120,
-      "cssBytes": 20550,
-      "cssGzip": 5085
+      "htmlGzip": 1769,
+      "jsBytes": 416918,
+      "jsGzip": 128175,
+      "cssBytes": 20497,
+      "cssGzip": 5064
     },
     "/numogram/": {
-      "htmlBytes": 91347,
-      "htmlGzip": 13294,
-      "jsBytes": 726294,
-      "jsGzip": 218587,
-      "cssBytes": 20550,
-      "cssGzip": 5085
+      "htmlBytes": 90137,
+      "htmlGzip": 12985,
+      "jsBytes": 808836,
+      "jsGzip": 245874,
+      "cssBytes": 20497,
+      "cssGzip": 5064
     }
   },
   "domNodes": {
@@ -310,6 +310,40 @@
             "htmlGzip": 13294,
             "jsGzip": 218587,
             "cssGzip": 5085
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-10-15",
+      "reason": "Phase 6 06-12: the Canvas tier (CanvasDiagram with its draw, pick, keyboard, interaction and view-transform modules) and the worker hook with its main-thread fallback core are now imported by /numogram/, so /numogram/ JS grows from 726,294 to 808,836 bytes raw and from 218,587 to 245,874 gzip (808,034 and 245,633 as measured at 06-11, plus the toolbar and fit wiring of 06-12); the worker chunk itself (17,006 bytes) is not referenced by HTML and is outside this measure; the lazy-load alternative that would recover most of it is recorded as todo 007 for the user to decide at the 06-15 checkpoint",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1765,
+            "jsGzip": 128120,
+            "cssGzip": 5085
+          },
+          "/numogram/": {
+            "htmlGzip": 13294,
+            "jsGzip": 218587,
+            "cssGzip": 5085
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128175,
+            "cssGzip": 5064
+          },
+          "/numogram/": {
+            "htmlGzip": 12985,
+            "jsGzip": 245874,
+            "cssGzip": 5064
           }
         },
         "domNodesTotal": 6405
