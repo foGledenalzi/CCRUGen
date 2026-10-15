@@ -7,8 +7,8 @@ import { formatZoneLabel } from '../../app/lib/labelScheme'
 import { SUMMARY_TORQUE_LIMIT, summarize as summarizeFromSummary } from '../../app/lib/summary'
 import { summarize as summarizeFromView } from '../../app/lib/numogramView'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
+import * as numogramTextModule from '../../app/lib/numogramText'
 import {
-  bigBaseMessage,
   numogramText,
   overLimitMessage,
   TEXT_VIEW_ZONE_LIMIT,
@@ -149,11 +149,13 @@ describe('summarize after the move to a lore-free module', () => {
   })
 })
 
-describe('bigBaseMessage', () => {
-  it('matches the UI-SPEC copy verbatim, with svgRichMaxN passed in (never a literal)', () => {
-    expect(bigBaseMessage(1024, 1024, 200)).toBe(
-      'Base 1024 has 1024 zones — more than the interactive diagram supports live (over 200). Showing the summary and text view.',
-    )
+describe('the Phase 4 fallback message is gone', () => {
+  // Rewritten deliberately in Phase 6 (06-11): bases 202 to the ceiling now draw on the Canvas tier, so the old
+  // "more than the interactive diagram supports live (over 200)" string no longer exists anywhere; overLimitMessage
+  // (below) replaced it.
+  it('exports no bigBaseMessage and does export overLimitMessage', () => {
+    expect('bigBaseMessage' in numogramTextModule).toBe(false)
+    expect('overLimitMessage' in numogramTextModule).toBe(true)
   })
 })
 
