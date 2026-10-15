@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test'
 import { createNumogram } from '../engine/index'
-import { DIAGRAM, openViewer, panel } from './viewer-helpers'
+import { openCanvas, openViewer, panel } from './viewer-helpers'
 import { demonList, demonRow, openDemons, searchDemons } from './demons-helpers'
 
 // Proves DEM-03 (D-03, both focus-mode entry points) end to end against the static export: a zone click in the
 // base-28 diagram drawing its incident demons as chords and showing in the overlay's Focus tab, a demon chosen in
 // the overlay drawing its one chord and highlighting its two zones in the diagram, the old (non-focus-mode) zone
-// click staying intact, the toggle clearing state, base 666 (no diagram at all) still working through the Focus
+// click staying intact, the toggle clearing state, base 666 (a Canvas diagram) still working through the Focus
 // tab's own zone input, and a `demonFocus=` URL reloading to the same view. Every expected count/label below is
 // computed independently from `createNumogram(...)`, never from the app's own view model (see
 // e2e/demons-browser.spec.ts for the same convention).
@@ -78,12 +78,12 @@ test('turning Demon focus off clears the chords and the URL', async ({ page }) =
   await expect(page).not.toHaveURL(/demonFocus/)
 })
 
-test('base 666 has no diagram but focus still works', async ({ page }) => {
+test('base 666 draws on the canvas and focus works through the Focus tab', async ({ page }) => {
   const g = createNumogram(666)
   expect(g.base - 1).toBe(665)
 
-  await openViewer(page, 'base=666')
-  await expect(page.locator(DIAGRAM)).toHaveCount(0)
+  await openCanvas(page, 'base=666')
+  await expect(page.locator('[data-render-tier="canvas"] canvas[data-diagram="zones"]')).toHaveCount(1)
   const dialog = await openDemons(page)
   await dialog.getByRole('tab', { name: /^focus$/i }).click()
 

@@ -1,14 +1,11 @@
 import { test, expect, type Page } from '@playwright/test'
-import tierTable from '../engine/scene/tier-table.json'
-import { DIAGRAM, SUMMARY, openViewer, radioLabel } from './viewer-helpers'
+import { CANVAS_READY, SUMMARY, openViewer, radioLabel } from './viewer-helpers'
 
 // UI-01, UI-02: the header base picker (04-12) is the way a visitor changes base — typed/stepped/slid/chipped, all
 // through one sanitized commit path (app/lib/baseSwitch.ts). base= is the one strict URL field (D-06): a refused
 // candidate never freezes the picker and always echoes the exact UI-SPEC copy next to it.
 
 test.beforeEach(({}, info) => test.skip(info.project.name !== 'chromium-utc', 'Phase 4 UI specs run once (UTC context)'))
-
-const SVG_RICH_MAX_N = tierTable.boundaries.svgRichMaxN.n
 
 function trackErrors(page: Page): string[] {
   const errors: string[] = []
@@ -123,11 +120,12 @@ test('chips: the notable-base strip, in order, and clicking one commits it (D-07
   await chips.filter({ hasText: /^64$/ }).click()
   await expect(page.locator('[data-diagram="zones"] [data-zone]')).toHaveCount(64)
 
+  // Base 1024 is above the SVG tier and within the interactive ceiling (Phase 6): it draws on the Canvas tier, with no
+  // summary card. The worker result lands asynchronously, so wait for the canvas wrapper rather than the old SVG.
   await chips.filter({ hasText: /^1024$/ }).click()
-  const summary = page.locator(SUMMARY)
-  await expect(summary).toBeVisible()
-  await expect(summary).toContainText(`(over ${SVG_RICH_MAX_N})`)
-  await expect(page.locator(DIAGRAM)).toHaveCount(0)
+  await expect(page.locator(CANVAS_READY)).toBeVisible()
+  await expect(page.locator('canvas[data-diagram="zones"]')).toHaveCount(1)
+  await expect(page.locator(SUMMARY)).toHaveCount(0)
 
   await chips.filter({ hasText: /^10$/ }).click()
   await expect(page.locator('[data-diagram="zones"] [data-zone]')).toHaveCount(10)

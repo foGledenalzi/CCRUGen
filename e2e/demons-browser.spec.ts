@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { createNumogram } from '../engine/index'
-import { DIAGRAM, openViewer } from './viewer-helpers'
+import { openCanvas, openViewer } from './viewer-helpers'
 import { demonList, demonRow, demonsDialog, facet, openDemons, searchDemons } from './demons-helpers'
 
 // Proves the Browser half of Phase 5 end to end against the static export: facets (DEM-01), the virtualized browser
@@ -42,7 +42,7 @@ test('base 28 facets show closed-form counts incl. the cross-Torque sub-facet', 
   await expect(page).toHaveURL(/demonsOpen=1/)
 })
 
-test('base 666 opens with no diagram and shows 221,445 demons instantly', async ({ page }) => {
+test('base 666 opens on the Canvas tier and shows 221,445 demons instantly', async ({ page }) => {
   const g = createNumogram(666)
   const typeCounts = g.demons.typeCounts()
   const subtypeCounts = g.demons.counts()
@@ -50,8 +50,8 @@ test('base 666 opens with no diagram and shows 221,445 demons instantly', async 
   expect(typeCounts.chrono).toBe(220116)
   expect(subtypeCounts['cross-torque-chrono']).toBe(199884)
 
-  await openViewer(page, 'base=666')
-  await expect(page.locator(DIAGRAM)).toHaveCount(0)
+  await openCanvas(page, 'base=666')
+  await expect(page.locator('[data-render-tier="canvas"] canvas[data-diagram="zones"]')).toHaveCount(1)
   const dialog = await openDemons(page)
 
   await expect(dialog.locator('[data-demons-total="221445"]')).toBeVisible()
@@ -63,7 +63,7 @@ test('base 666 opens with no diagram and shows 221,445 demons instantly', async 
 })
 
 test('base 666 virtualizes 221,445 rows', async ({ page }) => {
-  await openViewer(page, 'base=666')
+  await openCanvas(page, 'base=666')
   const dialog = await openDemons(page)
   const list = demonList(page, 'browser')
   await expect(list).toHaveAttribute('aria-rowcount', '221446')
@@ -105,7 +105,7 @@ test('sort toggles direction and sorts by type', async ({ page }) => {
 })
 
 test('search by mesh and a::b under a filter', async ({ page }) => {
-  await openViewer(page, 'base=666')
+  await openCanvas(page, 'base=666')
   await openDemons(page)
 
   await facet(page, 'chrono').click()
@@ -231,7 +231,7 @@ test('base 1024 windows 523,776 rows', async ({ page }) => {
   const g = createNumogram(1024)
   expect(g.demons.count).toBe(523776)
 
-  await openViewer(page, 'base=1024')
+  await openCanvas(page, 'base=1024')
   const dialog = await openDemons(page)
 
   // `[data-demon-pager]` is a sibling of the `[data-demon-list]` grid (DemonRowList.tsx), not a descendant.

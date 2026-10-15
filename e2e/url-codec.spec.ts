@@ -1,14 +1,16 @@
 import { test, expect, type Page } from '@playwright/test'
 import tierTable from '../engine/scene/tier-table.json'
-import { openViewer, selectionHeading } from './viewer-helpers'
+import { CANVAS_READY, DIAGRAM, SUMMARY, openCanvas, openHeadless, openViewer, selectionHeading } from './viewer-helpers'
 
-// UI-02, D-14..D-18: the single URL codec drives the page. base= is the one strict field (a refused value falls
-// back to base 10 without freezing); everything else is lenient. A valid base above the measured SVG ceiling shows
-// the summary + text view instead of the diagram. tier= is a diagnostic URL-only override, never exercised here.
+// UI-02, D-14..D-18, Phase 6 D-01/D-02: the single URL codec drives the page. base= is the one strict field (a refused
+// value falls back to base 10 without freezing); everything else is lenient. A base above the SVG tier draws on the
+// Canvas tier, and a valid base above the shipped interactive ceiling shows the summary + text view instead of any
+// diagram. tier= is a diagnostic URL-only override, never exercised here.
 
 test.beforeEach(({}, info) => test.skip(info.project.name !== 'chromium-utc', 'Phase 4 UI specs run once (UTC context)'))
 
-const SVG_RICH_MAX_N = tierTable.boundaries.svgRichMaxN.n
+// the shipped interactive ceiling, always read from the table (never a literal)
+const CEIL = tierTable.boundaries.interactiveMaxN.n
 
 function trackErrors(page: Page): string[] {
   const errors: string[] = []
@@ -69,18 +71,34 @@ test('?base=28&layout=planetary degrades to a procedural layout at 28 zones', as
   expect(errors).toEqual([])
 })
 
-test('?base=1024 shows the summary card and text view, never the diagram', async ({ page }) => {
+test('?base=1024 draws on the Canvas tier and keeps base= in the URL', async ({ page }) => {
   const errors = trackErrors(page)
-  await openViewer(page, 'base=1024')
+  await openCanvas(page, 'base=1024')
 
-  const summary = page.locator('section[aria-label="Numogram summary"]')
+  await expect(page.locator('canvas[data-diagram="zones"]')).toHaveCount(1)
+  await expect(page.locator(SUMMARY)).toHaveCount(0)
+  await expect(page).toHaveURL(/base=1024/)
+
+  await page.reload()
+  await expect(page.locator(CANVAS_READY)).toHaveAttribute('data-base', '1024')
+  await expect(page.locator('canvas[data-diagram="zones"]')).toHaveCount(1)
+  expect(errors).toEqual([])
+})
+
+test('a base above the interactive ceiling shows the summary card and text view, never a diagram', async ({ page }) => {
+  const errors = trackErrors(page)
+  const above = CEIL + 2
+  await openHeadless(page, `base=${above}`)
+
+  const summary = page.locator(SUMMARY)
   await expect(summary).toBeVisible()
-  await expect(summary).toContainText('1024 zones')
-  await expect(summary).toContainText(`(over ${SVG_RICH_MAX_N})`)
-  await expect(page.locator('[data-diagram]')).toHaveCount(0)
+  await expect(summary).toContainText(`Base ${above} is above the interactive limit of ${CEIL}.`)
+  await expect(summary).toContainText('To draw it, use headless export.')
+  await expect(page.locator(DIAGRAM)).toHaveCount(0)
 
   const text = page.locator('pre[aria-label="Numogram text"]')
-  await expect(text).toHaveText(/^CCRUG numogram, base 1024/)
+  await expect(text).toHaveText(new RegExp(`^CCRUG numogram, base ${above}`))
+  await expect(page).toHaveURL(new RegExp(`base=${above}`))
   expect(errors).toEqual([])
 })
 

@@ -1,12 +1,12 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { createNumogram, formatNumeral, type Numogram } from '../engine/index'
 import { SUBTYPE_LABEL } from '../app/lib/demonBrowser'
-import { DIAGRAM, openViewer } from './viewer-helpers'
+import { openFor } from './viewer-helpers'
 import { matrixCellPoint, openDemons, waitRaster } from './demons-helpers'
 
 // Proves DEM-04 (D-06) end to end against the static export: the triangular matrix identifies and pins the exact
 // cell under the cursor at any zoom level (never from the raster, research A2), keyboard access, the syzygy
-// diagonal overlay, base 666 with no diagram, and the matrix's raster-fill timings (research A1) logged for the
+// diagonal overlay, base 666 beside the canvas diagram, and the matrix's raster-fill timings (research A1) logged for the
 // SUMMARY rather than asserted against a threshold (T-05-38: tests never depend on this PC's speed).
 
 test.beforeEach(({}, info) => test.skip(info.project.name !== 'chromium-utc', 'Phase 5 UI specs run once (UTC context)'))
@@ -24,8 +24,8 @@ async function liveScale(matrix: Locator): Promise<number> {
 }
 
 /** Opens the viewer, the demons overlay, and switches to the Matrix tab, waiting for its first raster to finish. */
-async function openMatrix(page: Page, query: string): Promise<Locator> {
-  await openViewer(page, query)
+async function openMatrix(page: Page, base: number): Promise<Locator> {
+  await openFor(page, base)
   const dialog = await openDemons(page)
   await dialog.getByRole('tab', { name: /^matrix$/i }).click()
   await waitRaster(page)
@@ -34,7 +34,7 @@ async function openMatrix(page: Page, query: string): Promise<Locator> {
 
 test('base 28: hover identifies the exact cell at fit and after zooming', async ({ page }) => {
   const g = createNumogram(28)
-  const dialog = await openMatrix(page, 'base=28')
+  const dialog = await openMatrix(page, 28)
   const matrix = dialog.locator('[data-demon-matrix]')
   const tooltip = dialog.locator('[data-matrix-tooltip]')
 
@@ -58,7 +58,7 @@ test('base 28: hover identifies the exact cell at fit and after zooming', async 
 })
 
 test('click pins and focuses the demon', async ({ page }) => {
-  const dialog = await openMatrix(page, 'base=28')
+  const dialog = await openMatrix(page, 28)
   const matrix = dialog.locator('[data-demon-matrix]')
 
   const p = await matrixCellPoint(page, 12, 3)
@@ -80,13 +80,13 @@ test('click pins and focuses the demon', async ({ page }) => {
 })
 
 test('the syzygy diagonal is an explicit overlay', async ({ page }) => {
-  const dialog = await openMatrix(page, 'base=28')
+  const dialog = await openMatrix(page, 28)
   await expect(dialog.locator('line[data-matrix-line="syzygy"]')).toHaveCount(1)
 })
 
 test('keyboard: arrows move the cursor, Enter pins', async ({ page }) => {
   const g = createNumogram(28)
-  const dialog = await openMatrix(page, 'base=28')
+  const dialog = await openMatrix(page, 28)
   const matrix = dialog.locator('[data-demon-matrix]')
   const live = dialog.locator('[data-matrix-live]')
 
@@ -107,10 +107,10 @@ test('keyboard: arrows move the cursor, Enter pins', async ({ page }) => {
   await expect.poll(() => liveScale(matrix)).toBeGreaterThan(beforeScale)
 })
 
-test('base 666 matrix renders with no diagram and resolves exactly after zooming in', async ({ page }) => {
+test('base 666 matrix renders beside the canvas diagram and resolves exactly after zooming in', async ({ page }) => {
   const g = createNumogram(666)
-  const dialog = await openMatrix(page, 'base=666')
-  await expect(page.locator(DIAGRAM)).toHaveCount(0)
+  const dialog = await openMatrix(page, 666)
+  await expect(page.locator('[data-render-tier="canvas"] canvas[data-diagram="zones"]')).toHaveCount(1)
 
   for (let i = 0; i < 6; i++) {
     const p = await matrixCellPoint(page, 15, 3)
@@ -127,7 +127,7 @@ test('base 666 matrix renders with no diagram and resolves exactly after zooming
 
 test('raster timings are recorded, not asserted', async ({ page }) => {
   for (const base of [28, 666, 4096]) {
-    const dialog = await openMatrix(page, `base=${base}`)
+    const dialog = await openMatrix(page, base)
     const matrix = dialog.locator('[data-demon-matrix]')
     const rasterMs = parseFloat((await matrix.getAttribute('data-raster-ms')) ?? 'NaN')
     const scale = await matrix.getAttribute('data-scale')
