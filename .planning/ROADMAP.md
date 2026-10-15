@@ -189,7 +189,7 @@ Plans:
 - [x] 06-09-PLAN.md - Large-base guards: picker computing state, O(k) capped Selection list, URL codec never builds a headless numogram (wave 3)
 - [x] 06-10-PLAN.md - CanvasDiagram component and pure glue: layers, gestures, picking, keyboard, callout, live region (wave 5)
 - [x] 06-11-PLAN.md - Viewer integration: render tier, worker requests and swap, deferred hydration, lazy headless g, over-limit view, rewritten old-fallback specs (wave 6)
-- [ ] 06-12-PLAN.md - Canvas chrome (toolbar, fit, shared-link fit) and e2e canvas-tier spec; page weight via --reason (wave 7)
+- [x] 06-12-PLAN.md - Canvas chrome (toolbar, fit, shared-link fit) and e2e canvas-tier spec; page weight via --reason (wave 7)
 - [ ] 06-13-PLAN.md - E2E: narrow windows, touch gestures, keyboard traversal and announcements, isolate/mute at the Canvas tier (wave 8)
 - [ ] 06-14-PLAN.md - E2E: worker scope, stale results, computing state, 2^26 heartbeat, fallbacks, worker offline at root and /ccrug; worker chunk report (wave 8)
 - [ ] 06-15-PLAN.md - Phase gate: full verify, validation sign-off, manual screen-reader/touch/parity/narrow-window checkpoint (wave 9)
@@ -252,6 +252,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
-| 6. Canvas Tier and Worker | 11/15 | In Progress | - |
+| 6. Canvas Tier and Worker | 12/15 | In Progress | - |
 | 7. Naming Builder | 0/TBD | Not started | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |
