@@ -3,6 +3,15 @@
 Out-of-scope discoveries logged during plan execution, per the executor's scope-boundary rule
 (only auto-fix issues directly caused by the current task's changes).
 
+## 2026-10-15 — `next lint --dir e2e` reports two errors in files outside plan 06-14 (found during 06-14)
+
+- **Where:** `e2e/canvas-tier.spec.ts:78` (`pairScene` is defined but never used) and `e2e/visual-dom.ts:50` (an expression statement,
+  `@typescript-eslint/no-unused-expressions`).
+- **Why deferred:** the repo's lint gate (`npm run lint`) covers `app`, `engine` and `workers` only, so `npm run verify` is unaffected;
+  `e2e/visual-dom.ts` belongs to the frozen DOM-golden harness (a change there needs care), and neither file was touched by 06-14.
+- **Suggested fix:** delete the unused `pairScene` binding in `canvas-tier.spec.ts`; leave `visual-dom.ts` alone unless the harness is
+  ever re-captured, or add `e2e` to the lint script only after both are clean.
+
 ## 2026-10-15 — Regions panel lower rows sit under the Currents panel header at the default desktop layout (found during 06-13)
 
 - **Where:** the viewer's initial draggable panel positions (the `DESKTOP_PANEL_*` constants and the panel-group stacking
