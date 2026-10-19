@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef, useCallback, type RefObject } from 'react'
 
-export function useCanvasZoom(wrapRef: RefObject<HTMLDivElement | null>) {
+/**
+ * `active` is true while the element behind `wrapRef` is mounted. The wheel listener binds to the element that exists when
+ * the effect runs, so a caller whose wrapper unmounts and mounts anew (the SVG tier, replaced by the Canvas or headless tier
+ * and back) passes its own "the wrapper is rendered" flag: flipping it rebinds the listener to the new element (Phase 6
+ * review WR-03). The default keeps every other caller exactly as before.
+ */
+export function useCanvasZoom(wrapRef: RefObject<HTMLDivElement | null>, active = true) {
   const [zoom, setZoom] = useState(1)
   const [zoomOrigin, setZoomOrigin] = useState<{ x: number; y: number }>({ x: 50, y: 50 })
   const wheelGestureActiveRef = useRef(false)
@@ -9,7 +15,7 @@ export function useCanvasZoom(wrapRef: RefObject<HTMLDivElement | null>) {
 
   useEffect(() => {
     const wrap = wrapRef.current
-    if (!wrap) return
+    if (!active || !wrap) return
 
     const normalizeDeltaY = (e: WheelEvent): number => {
       // deltaMode: 0=pixel, 1=line, 2=page
@@ -49,9 +55,11 @@ export function useCanvasZoom(wrapRef: RefObject<HTMLDivElement | null>) {
       if (wheelGestureTimerRef.current !== null) {
         window.clearTimeout(wheelGestureTimerRef.current)
         wheelGestureTimerRef.current = null
+        // the timer that would have ended the gesture is gone: a rebind must not inherit a gesture that never ends
+        wheelGestureActiveRef.current = false
       }
     }
-  }, [wrapRef, clamp])
+  }, [wrapRef, clamp, active])
 
   const setZoomValue = useCallback((nextZoom: number) => {
     setZoom(clamp(nextZoom, 0.3, 5))

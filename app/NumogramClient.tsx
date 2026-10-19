@@ -270,7 +270,9 @@ export default function NumogramPage() {
     baseY: 64,
     gap: 6,
   })
-  const { zoom, zoomOrigin, setZoom, setZoomOrigin } = useCanvasZoom(svgWrapRef)
+  // The wheel listener sits on the SVG wrapper, which exists only while the SVG branch below renders (`view && target`). The
+  // Canvas and headless tiers unmount it and a return mounts a new element, so the flag makes the hook rebind (WR-03).
+  const { zoom, zoomOrigin, setZoom, setZoomOrigin } = useCanvasZoom(svgWrapRef, !!(view && target))
   const orbitStartDateRef = useRef<Date | null>(null)
   const urlHydratedRef = useRef(false)
   const pendingShareSelectionRef = useRef<number[] | null>(null)

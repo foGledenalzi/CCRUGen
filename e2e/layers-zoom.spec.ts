@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { createNumogram } from '../engine/index'
-import { DIAGRAM, openViewer, panel, stubClipboard } from './viewer-helpers'
+import { CANVAS_READY, DIAGRAM, openViewer, panel, stubClipboard } from './viewer-helpers'
 
 // UI-06 at a generated base (28 and 100): layers toggle (including Pandemonium), zoom in/out/wheel/fit, alt-drag
 // pan, real panel collapse (todo 003) and the Text panel's copy button (UI-07's final covering plan).
@@ -96,6 +96,43 @@ test('zoom in, zoom out and the mouse wheel change the diagram scale', async ({ 
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.wheel(0, -400)
   await expect.poll(readScale).toBeGreaterThan(before)
+})
+
+// Phase 6 review WR-03: the wheel listener is bound to the SVG wrapper element that exists when the hook first runs. Any visit
+// to a base above svgRichMaxN swaps the SVG tier for the Canvas tier (the wrapper unmounts), and coming back mounts a NEW
+// wrapper element, so the listener sat on a detached node and the wheel did nothing. The base-10 viewer is where that shows.
+test('the mouse wheel still zooms the SVG diagram after a visit to a Canvas base (WR-03)', async ({ page }) => {
+  await openViewer(page, '')
+  const readScale = async () => parseScale((await scaleWrapper(page).getAttribute('style')) ?? '')
+  const wheelOverDiagram = async () => {
+    const box = await page.locator(DIAGRAM).boundingBox()
+    if (!box) throw new Error('diagram has no bounding box')
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.wheel(0, -400)
+  }
+  const commitBase = async (base: number) => {
+    const input = page.locator('input[aria-label="Base"]')
+    await input.fill(String(base))
+    await input.press('Enter')
+  }
+
+  // control: the wheel works on the first mount
+  expect(await readScale()).toBe(1)
+  await wheelOverDiagram()
+  await expect.poll(readScale).toBeGreaterThan(1)
+
+  // base 10, a Canvas base, base 10 again: the SVG wrapper is unmounted and mounted anew
+  await commitBase(202)
+  await expect(page.locator(CANVAS_READY)).toHaveAttribute('data-base', '202')
+  await expect(page.locator('[data-render-tier="svg"]')).toHaveCount(0)
+  await commitBase(10)
+  await expect(page.locator('[data-render-tier="svg"]')).toHaveCount(1)
+  await expect(page.locator(CANVAS_READY)).toHaveCount(0)
+  await expect(page.locator(DIAGRAM)).toHaveAttribute('data-diagram', 'zones')
+  await expect.poll(readScale).toBe(1) // the base switch reset the zoom
+
+  await wheelOverDiagram()
+  await expect.poll(readScale).toBeGreaterThan(1)
 })
 
 test('fit diagram to view frames every zone inside the viewport', async ({ page }) => {
