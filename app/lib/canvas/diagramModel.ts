@@ -14,7 +14,7 @@ import { ZONE_HIDDEN } from '../regions'
 import { PALETTE, type SceneIndex } from './draw'
 import type { KeyboardContext, RingTarget, TargetText } from './keyboardModel'
 import type { PickFilter, PickHit } from './pickIndex'
-import type { CanvasFrame, CanvasTransform } from './viewTransform'
+import { IDENTITY_TRANSFORM, type CanvasFrame, type CanvasTransform } from './viewTransform'
 
 export const CALLOUT_OFFSET_PX = 12 // named exception: the demon matrix tooltip's x + 12, y + 12 (checker recommendation 4)
 export const WHEEL_COMMIT_DELAY_MS = 120 // re-raster after a wheel burst (research Pattern 5)
@@ -337,6 +337,27 @@ export function liveText(previous: string, next: string): string {
 /** The frame every transform, zoom limit and level-of-detail radius uses; a pair scene's node radius is the pill half height. */
 export function frameOf(scene: CanvasScene): CanvasFrame {
   return { width: scene.width, height: scene.height, nodeRadius: scene.kind === 'pairs' ? scene.pillHeight / 2 : scene.nodeRadius }
+}
+
+/** The committed view and the scene key it belongs to: the one piece of transform state CanvasDiagram keeps in React state. */
+export interface CommittedBox {
+  readonly key: string
+  readonly t: CanvasTransform
+}
+
+/** The transform the layer bitmaps are drawn at for `sceneKey`: the stored one when it belongs to this scene, else the identity. */
+export function committedFor(box: CommittedBox, sceneKey: string): CanvasTransform {
+  return box.key === sceneKey ? box.t : IDENTITY_TRANSFORM
+}
+
+/**
+ * The stored box once the scene key is `sceneKey` (Phase 6 review WR-02). A key change drops whatever was committed for the
+ * previous scene: keeping it would bring a stale zoom back to life when the user returns to that key (scene A zoomed, scene
+ * B, scene A again), while the live view was reset to the identity, so the old raster would be squeezed onto a blank window.
+ * The same key keeps the box as it is (the same object, so React bails out of the state update).
+ */
+export function boxForScene(prev: CommittedBox, sceneKey: string): CommittedBox {
+  return prev.key === sceneKey ? prev : { key: sceneKey, t: IDENTITY_TRANSFORM }
 }
 
 /**

@@ -35,7 +35,9 @@ import {
   WHEEL_COMMIT_DELAY_MS,
   calloutColor,
   calloutPosition,
+  boxForScene,
   canvasAriaLabel,
+  committedFor,
   frameOf,
   gestureMapping,
   hoverInfoOf,
@@ -46,6 +48,7 @@ import {
   targetAnchor,
   targetOfInfo,
   targetTextFor,
+  type CommittedBox,
 } from '../../lib/canvas/diagramModel'
 import {
   buildSceneIndex,
@@ -233,9 +236,10 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
   // ── State ───────────────────────────────────────────────────────────────────────────────────────────────────────────
   const [rawDpr, setRawDpr] = useState(1)
   const sceneKey = `${scene.kind}:${scene.layoutId}:${scene.base}`
-  // The committed transform belongs to one scene key: a new base or layout is the identity at once (no stale frame).
-  const [box, setBox] = useState<{ key: string; t: CanvasTransform }>({ key: sceneKey, t: IDENTITY_TRANSFORM })
-  const committed = box.key === sceneKey ? box.t : IDENTITY_TRANSFORM
+  // The committed transform belongs to one scene key: a new base or layout is the identity at once (no stale frame), and the
+  // layout effect below also replaces the stored box, so a zoom committed for an earlier key never comes back (WR-02).
+  const [box, setBox] = useState<CommittedBox>({ key: sceneKey, t: IDENTITY_TRANSFORM })
+  const committed = committedFor(box, sceneKey)
   committedRef.current = committed
   const [ring, setRing] = useState<RingTarget | null>(null)
   const [focused, setFocused] = useState(false)
@@ -687,9 +691,11 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
 
   // ── Effects ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-  // A new scene key starts at the identity view.
+  // A new scene key starts at the identity view: the live view AND the stored committed box (WR-02). During the render
+  // before this effect `committed` is already the identity (the key differs), so there is no stale frame in between.
   useIsoLayoutEffect(() => {
     liveRef.current = IDENTITY_TRANSFORM
+    setBox(prev => boxForScene(prev, sceneKey))
   }, [sceneKey])
 
   // Static raster: all four layers, then the overlay, then the CSS gesture transform is cleared, in one frame.

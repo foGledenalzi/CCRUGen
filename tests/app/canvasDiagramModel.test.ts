@@ -20,9 +20,11 @@ import {
   CALLOUT_OFFSET_PX,
   PENDING_GRACE_MS,
   WHEEL_COMMIT_DELAY_MS,
+  boxForScene,
   calloutColor,
   calloutPosition,
   canvasAriaLabel,
+  committedFor,
   frameOf,
   gestureMapping,
   hoverInfoOf,
@@ -33,6 +35,7 @@ import {
   targetAnchor,
   targetOfInfo,
   targetTextFor,
+  type CommittedBox,
   type FilterArgs,
 } from '../../app/lib/canvas/diagramModel'
 import { buildSceneIndex, PALETTE, type SceneIndex } from '../../app/lib/canvas/draw'
@@ -669,5 +672,50 @@ describe('gestureMapping (the CSS transform that stretches the cached bitmap dur
   it('a non-finite or non-positive zoom ratio is the identity, never NaN', () => {
     expect(gestureMapping({ zoom: 0, tx: 0, ty: 0 }, IDENTITY_TRANSFORM, w, h)).toEqual({ k: 1, tx: 0, ty: 0 })
     expect(gestureMapping(IDENTITY_TRANSFORM, { zoom: NaN, tx: 0, ty: 0 }, w, h)).toEqual({ k: 1, tx: 0, ty: 0 })
+  })
+})
+
+// ── committedFor / boxForScene (Phase 6 review WR-02) ────────────────────────────────────────────────────────────────
+
+describe('committedFor and boxForScene (a zoom committed for an earlier scene key never comes back)', () => {
+  const keyA = 'zones:ring:202'
+  const keyB = 'zones:ring:204'
+  const zoomed: CanvasTransform = { zoom: 2.4596, tx: 31, ty: -17 }
+
+  it('a box answers for its own key and is the identity for any other', () => {
+    const box: CommittedBox = { key: keyA, t: zoomed }
+    expect(committedFor(box, keyA)).toBe(zoomed)
+    expect(committedFor(box, keyB)).toBe(IDENTITY_TRANSFORM)
+  })
+
+  it('keeps the very same box for the same key, so the state update is a no-op', () => {
+    const box: CommittedBox = { key: keyA, t: zoomed }
+    expect(boxForScene(box, keyA)).toBe(box)
+  })
+
+  it('replaces the box with the identity on the new key', () => {
+    expect(boxForScene({ key: keyA, t: zoomed }, keyB)).toEqual({ key: keyB, t: IDENTITY_TRANSFORM })
+  })
+
+  it('walks zoomed A, then B, then back to A: the committed view is the identity at every step (the WR-02 sequence)', () => {
+    let box: CommittedBox = { key: keyA, t: zoomed } // a zoom was committed in scene A
+    expect(committedFor(box, keyA)).toBe(zoomed)
+
+    // to scene B: the render reads the identity at once, the layout effect then swaps the stored box
+    expect(committedFor(box, keyB)).toBe(IDENTITY_TRANSFORM)
+    box = boxForScene(box, keyB)
+    expect(committedFor(box, keyB)).toBe(IDENTITY_TRANSFORM)
+
+    // back to scene A: without the swap the old box would answer `zoomed` here (the bug: stale raster, wrong percentage)
+    expect(committedFor(box, keyA)).toBe(IDENTITY_TRANSFORM)
+    box = boxForScene(box, keyA)
+    expect(committedFor(box, keyA)).toBe(IDENTITY_TRANSFORM)
+    expect(box.t.zoom).toBe(1)
+  })
+
+  it('control: a box that was never swapped does bring the old zoom back, which is why the component must swap it', () => {
+    const stale: CommittedBox = { key: keyA, t: zoomed }
+    expect(committedFor(stale, keyB)).toBe(IDENTITY_TRANSFORM)
+    expect(committedFor(stale, keyA)).toBe(zoomed)
   })
 })

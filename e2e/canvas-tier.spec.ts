@@ -685,3 +685,80 @@ test('a shared link with selected zones fits them on the canvas', async ({ page 
 
   expect(errors).toEqual([])
 })
+
+// ── 12 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Phase 6 review WR-02: CanvasDiagram stays mounted across a canvas-to-canvas swap and only its scene changes. A zoom committed
+// for scene A used to stay in the stored box, so coming back to A (after any scene that committed no zoom of its own) revived
+// it while the live view had been reset to the identity: the layers were rastered at the old zoom, the CSS gesture transform
+// shrank them to a patch on a blank window, and data-zoom and the toolbar percentage lied. Every step is a deterministic state
+// read: data-zoom, the toolbar percentage and the layer stack's CSS transform (empty when the live view is the committed one).
+test('returning to a zoomed Canvas scene shows the fit view, not the stale zoom', async ({ page }) => {
+  const errors = trackErrors(page)
+  const baseA = CANVAS_BASE
+  const baseB = CANVAS_BASE + 2
+  await openCanvas(page, `base=${baseA}`)
+  const overlay = page.locator(OVERLAY)
+  const stack = overlay.locator('xpath=..') // the layer stack: it carries the CSS gesture transform
+  const toolbar = page.locator('[role="toolbar"][aria-label="Diagram view"]')
+  const stackTransform = () => stack.evaluate(el => (el as HTMLElement).style.transform)
+  const commitBase = async (base: number): Promise<void> => {
+    const input = page.locator('input[aria-label="Base"]')
+    await input.fill(String(base))
+    await input.press('Enter')
+    await expect(page.locator(CANVAS_READY)).toHaveAttribute('data-base', String(base))
+  }
+
+  await page.locator('button[aria-label="Zoom in"]').click()
+  await page.locator('button[aria-label="Zoom in"]').click()
+  await expect(overlay).toHaveAttribute('data-zoom', String(1.25 * 1.25))
+  await expect(toolbar).toContainText('156%')
+
+  // scene B commits no zoom of its own
+  await commitBase(baseB)
+  await expect(overlay).toHaveAttribute('data-zoom', '1')
+  await expect(toolbar).toContainText('100%')
+  expect(await stackTransform()).toBe('')
+
+  // back to scene A: the fit view again, never the zoom that was committed before the visit to B
+  await commitBase(baseA)
+  await expect(overlay).toHaveAttribute('data-zoom', '1')
+  await expect(toolbar).toContainText('100%')
+  expect(await stackTransform()).toBe('')
+
+  // the zoom machinery of the returned scene still works from the fit view
+  await page.locator('button[aria-label="Zoom in"]').click()
+  await expect(overlay).toHaveAttribute('data-zoom', '1.25')
+  await expect(toolbar).toContainText('125%')
+  expect(await stackTransform()).toBe('')
+
+  expect(errors).toEqual([])
+})
+
+test('returning to a zoomed Canvas layout shows the fit view too (ring, pair graph, ring)', async ({ page }) => {
+  const errors = trackErrors(page)
+  await openCanvas(page, `base=${CANVAS_BASE}&layout=ring`)
+  const overlay = page.locator(OVERLAY)
+  const stack = overlay.locator('xpath=..')
+  const toolbar = page.locator('[role="toolbar"][aria-label="Diagram view"]')
+  const stackTransform = () => stack.evaluate(el => (el as HTMLElement).style.transform)
+
+  await page.locator('button[aria-label="Zoom in"]').click()
+  await expect(overlay).toHaveAttribute('data-zoom', '1.25')
+
+  // the A/S/D/F layout shortcuts: the first offered layout is the ring, the last of the four the pair graph
+  await page.locator('body').press('f')
+  await expect(overlay).toHaveAttribute('data-diagram', 'pairs')
+  await expect(page.locator(CANVAS_READY)).toBeVisible()
+  await expect(overlay).toHaveAttribute('data-zoom', '1')
+  expect(await stackTransform()).toBe('')
+
+  await page.locator('body').press('a')
+  await expect(overlay).toHaveAttribute('data-diagram', 'zones')
+  await expect(page.locator(CANVAS_READY)).toBeVisible()
+  await expect(overlay).toHaveAttribute('data-zoom', '1')
+  await expect(toolbar).toContainText('100%')
+  expect(await stackTransform()).toBe('')
+
+  expect(errors).toEqual([])
+})
