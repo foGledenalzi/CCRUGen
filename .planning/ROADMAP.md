@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Procedural Layout and Ceiling Spike** - Deterministic legible layouts for any base, base-10 presets, pair-graph view, and the measured renderer threshold table (completed 2026-09-28)
 - [x] **Phase 4: Base Picker and Generator UI** - Interactive SVG viewer for any even base with URL state, labels, region legend, accessibility and text view (completed 2026-09-29)
 - [x] **Phase 5: Demons Layer** - Facets, virtualized browser, focus chords, triangular matrix and canonical base-10 names for all C(n,2) demons (completed 2026-09-30)
-- [ ] **Phase 6: Canvas Tier and Worker** - Canvas rendering for large bases, worker-offloaded computation and graceful degradation past the measured ceiling
+- [x] **Phase 6: Canvas Tier and Worker** - Canvas rendering for large bases, worker-offloaded computation and graceful degradation past the measured ceiling (completed 2026-10-19)
 - [ ] **Phase 7: Naming Builder** - Per-zone sound table, seeded generator, derived demon names, JSON import/export and the CCRU base-10 preset
 - [ ] **Phase 8: Export, CLI and Hardening** - SVG/PNG/JSON export, headless CLI, performance and accessibility checks, cross-platform CI and glossary
 
@@ -192,7 +192,7 @@ Plans:
 - [x] 06-12-PLAN.md - Canvas chrome (toolbar, fit, shared-link fit) and e2e canvas-tier spec; page weight via --reason (wave 7)
 - [x] 06-13-PLAN.md - E2E: narrow windows, touch gestures, keyboard traversal and announcements, isolate/mute at the Canvas tier (wave 8)
 - [x] 06-14-PLAN.md - E2E: worker scope, stale results, computing state, 2^26 heartbeat, fallbacks, worker offline at root and /ccrug; worker chunk report (wave 8)
-- [ ] 06-15-PLAN.md - Phase gate: full verify, validation sign-off, manual screen-reader/touch/parity/narrow-window checkpoint (wave 9)
+- [x] 06-15-PLAN.md - Phase gate: full verify, validation sign-off, manual screen-reader/touch/parity/narrow-window checkpoint (wave 9)
 **UI hint**: yes
 **Research**: YES, run `/gsd-research-phase` for Canvas picking (uniform-grid zone picking, id-buffer edge picking) and for worker bundling under Next 14 webpack in an export build (`trailingSlash`, `basePath`, same-origin worker).
 **Notes**: Both tiers sit behind one `NumogramViewProps` contract selected from the data table, not from hard-coded numbers. A WebGL (PixiJS 8) tier is built only if the Phase 3 spike said yes. This phase is independent of Phase 7 and the two may run in either order or in parallel.
@@ -252,6 +252,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 3. Procedural Layout and Ceiling Spike | 10/10 | Complete    | 2026-09-28 |
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
-| 6. Canvas Tier and Worker | 14/15 | In Progress | - |
+| 6. Canvas Tier and Worker | 15/15 | Complete    | 2026-10-19 |
 | 7. Naming Builder | 0/TBD | Not started | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |

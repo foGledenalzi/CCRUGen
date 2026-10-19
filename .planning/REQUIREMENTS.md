@@ -58,8 +58,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Rendering and Ceiling
 
 - [x] **REN-01**: A ceiling spike measures frame time and memory per render tier against n and yields a threshold table stored as data, not hard-coded
-- [ ] **REN-02**: An SVG tier serves small bases and a Canvas tier serves large bases, selected from the threshold table, behind one shared view contract
-- [ ] **REN-03**: Heavy computation runs in a Web Worker at large n so the UI never freezes; beyond the measured ceiling the app degrades to headless export with a visible message
+- [x] **REN-02**: An SVG tier serves small bases and a Canvas tier serves large bases, selected from the threshold table, behind one shared view contract
+- [x] **REN-03**: Heavy computation runs in a Web Worker at large n so the UI never freezes; beyond the measured ceiling the app degrades to headless export with a visible message
 
 ### Naming
 
@@ -149,8 +149,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEM-03 | Phase 5 | Complete (05-04, 05-08, 05-10) |
 | DEM-04 | Phase 5 | Complete (05-02, 05-07, 05-10) |
 | DEM-05 | Phase 5 | Complete (05-01, 05-06, 05-09, 05-10) |
-| REN-02 | Phase 6 | Pending |
-| REN-03 | Phase 6 | Pending |
+| REN-02 | Phase 6 | Complete |
+| REN-03 | Phase 6 | Complete (06-01..06-15; the message and freeze-proof degradation are delivered, the headless export it names lands in Phase 8, EXP-01..EXP-04) |
 | NAM-01 | Phase 7 | Pending |
 | NAM-02 | Phase 7 | Pending |
 | NAM-03 | Phase 7 | Pending |

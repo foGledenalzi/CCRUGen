@@ -20,9 +20,10 @@ Out-of-scope discoveries logged during plan execution, per the executor's scope-
   overlap the Currents panel (216,227, 180 x 70). The Currents header is above the Warp and Plex rows' Isolate and Mute
   buttons: a mouse click meant for them lands on the Currents header (Playwright reports "header ... intercepts pointer
   events"). The buttons work from the keyboard, and the panels can be dragged apart.
-- **Why deferred:** nothing in Phase 6 changed the panel stack, and no Canvas-tier file is implicated; the cause (fixed
-  stacking positions that do not follow the Regions panel's height at bases with several rows) was observed, not
-  investigated further. It is a layout decision for the panel stack, not for this plan.
+- **Why deferred:** nothing in Phase 6 changed the panel stack, and no Canvas-tier file is implicated; the cause was later measured (2026-10-18): the desktop
+  panel stack keeps the heights it measured at the first render (base 10) and does not re-stack after a base change; it
+  reproduces on a plain SVG-tier switch 10 to 28, so it is a pre-existing Phase 4-era bug. See
+  `.planning/todos/pending/008-regions-panel-overlaps-currents-at-large-bases.md`. It is a layout decision for the panel stack, not for this plan.
 - **How 06-13 works around it:** `e2e/canvas-interaction.spec.ts` activates the Plex and first-Torque buttons with focus
   and Space (the `press` helper), which also exercises the keyboard path.
 - **Suggested fix for whoever picks this up:** place each panel below the measured height of the one above it in its
