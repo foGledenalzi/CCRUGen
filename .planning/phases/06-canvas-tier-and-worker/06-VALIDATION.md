@@ -1,7 +1,7 @@
 ---
 phase: 6
 slug: canvas-tier-and-worker
-status: draft
+status: approved
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-10-05
@@ -74,7 +74,7 @@ Sampling bases: 10, 28, 64, 100, 200 (SVG tier, synchronous, unchanged); 28 and 
 | 06-14-T1 | 06-14 | 8 | REN-03 | T-06-03, T-06-01 | stale results discarded; 2^26 responsive; fallbacks | e2e (+ heartbeat guard, mutant) | `npm run build && npx playwright test e2e/worker.spec.ts --project=chromium-utc` | Wave 0 (06-14) | ✅ green |
 | 06-14-T2 | 06-14 | 8 | REN-03 | T-06-04, T-06-06 | worker from own chunk path at root and /ccrug, offline; lore-free chunk | e2e + script | `npm run build && node scripts/worker-chunks.mjs && npx playwright test e2e/static-export.spec.ts && npm run test:e2e:basepath` | extend existing | ✅ green |
 | 06-15-T1 | 06-15 | 9 | REN-02, REN-03 | T-06-11, T-06-06 | full gate with oracles untouched | full suite | `MSYS_NO_PATHCONV=1 npm run verify` | existing | ✅ green |
-| 06-15-T2 | 06-15 | 9 | REN-02, REN-03 | T-06-29 | manual-only checks signed off | manual checkpoint | `grep -c "Manual-Only Verifications" .planning/phases/06-canvas-tier-and-worker/06-VALIDATION.md` | existing | ⬜ pending (awaiting the user's sign-off, see Manual-Only Verifications) |
+| 06-15-T2 | 06-15 | 9 | REN-02, REN-03 | T-06-29 | manual-only checks signed off | manual checkpoint | `grep -c "Manual-Only Verifications" .planning/phases/06-canvas-tier-and-worker/06-VALIDATION.md` | existing | ✅ green (user approval of 2026-10-19, see "Outcome of the manual checks") |
 
 *Filled at planning time from the 15 Phase 6 plans (one row per task). "Wave 0 (06-NN)" means the test file is created by that plan alongside the code it covers. Plan 06-15 Task 1 flipped the statuses on 2026-10-18 after `MSYS_NO_PATHCONV=1 npm run verify` exited 0 (88 test files and 2411 unit tests in UTC and in America/New_York, sub-path e2e 12 passed, e2e 237 passed and 165 skipped including the 60 DOM goldens and the behaviour baseline, page-weight OK, clean-tree and static-out OK). The one row left pending is 06-15-T2, the manual checkpoint, which only the user can resolve.*
 
@@ -115,14 +115,16 @@ Sampling bases: 10, 28, 64, 100, 200 (SVG tier, synchronous, unchanged); 28 and 
 
 ### Outcome of the manual checks (06-15 Task 2)
 
-Recorded only after the user's reply. Until then every line stays pending and `status` in the frontmatter stays `draft`.
+Recorded after the user's reply of 2026-10-19 ("approved!", given after the checkpoint message listing all four checks, the first-focus question, the page-weight decision and the panel-overlap finding). The user replied with a blanket approval and did not report per-check detail, so the lines below say exactly what that approval covers.
 
 | Check | Date | Outcome |
 |-------|------|---------|
-| 1. Screen reader (incl. the first-focus announcement question from 06-13) | - | pending |
-| 2. Real touch (pinch, pan, tap-pin at 202 and 1024) | - | pending |
-| 3. Visual parity SVG vs Canvas at base 28 | - | pending |
-| 4. Narrow windows (375 px and 768 px) | - | pending |
+| 1. Screen reader (incl. the first-focus announcement question from 06-13) | 2026-10-19 | Approved by the user. The first-focus double read (label, then "Zone 0, Plex") was put to the user as a question; the approval raised no objection, so it stays as implemented (commit `b936206`). No per-check notes were given. |
+| 2. Real touch (pinch, pan, tap-pin at 202 and 1024) | 2026-10-19 | Approved by the user. No per-check notes were given. |
+| 3. Visual parity SVG vs Canvas at base 28 | 2026-10-19 | Looked at by Claude in the built-in browser (dev server, 1280 x 800): same ring-in-ring layout, zone letters in the nodes, Plex and Warp capsules and line styles; the list panels show the designed Canvas note. By-eye only, no pixel comparison (the automated centre agreement is 0.30 px at base 28 and 0.72 px at base 64). Approved by the user. |
+| 4. Narrow windows (375 px and 768 px) | 2026-10-19 | Measured by Claude at base 202: 375 px gives a 359 px canvas at x = 8 with the diagram's right edge intact, no horizontal scroll, truncated picker status, no panel-on-panel overlap in the mobile stack; 768 px gives the centred 580 px column at x = 94, no overflow, panels in order. The zoom toolbar overlaps the lowest panel of the stack at the 375 px scroll position (existing fixed control, not a Canvas defect). Approved by the user. |
+
+Decisions the approval leaves as recorded defaults: keep the `/numogram/` page-weight raise (todo 007, lazy-load split, stays pending for a later decision); keep the first-focus announcement. Todo 008 (panel stack keeps base-10 heights after a base change, found while checking 4, pre-existing) stays pending.
 
 ---
 
@@ -135,4 +137,4 @@ Recorded only after the user's reply. Until then every line stays pending and `s
 - [x] Feedback latency < 60s per touched spec (UTC project, from the final verify run: worker.spec 9.1 s, canvas-tier.spec 12.5 s, canvas-interaction.spec 7.2 s, static-export.spec 5.0 s)
 - [x] `nyquist_compliant` is set to true in the frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-10-19

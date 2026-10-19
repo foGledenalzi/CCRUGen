@@ -3,7 +3,7 @@ phase: 06-canvas-tier-and-worker
 plan: 15
 subsystem: phase-gate
 tags: [verify, oracle-integrity, validation-sign-off, worker-chunks, page-weight, mutation-evidence, manual-checkpoint]
-status: checkpoint-pending  # Task 1 done and committed; Task 2 (blocking human-verify) NOT resolved. This file is interim until the user replies.
+status: complete  # Task 1 committed (901ebb9); Task 2 (blocking human-verify) approved by the user on 2026-10-19.
 
 # Dependency graph
 requires:
@@ -11,7 +11,7 @@ requires:
     provides: 06-13's Canvas input e2e and 06-14's worker e2e and worker chunk report (wave 8), and every earlier Phase 6 plan's tests and summaries
 provides:
   - a green `MSYS_NO_PATHCONV=1 npm run verify` on the final Phase 6 tree, with every frozen oracle byte-identical to the pre-phase commit 75fcbd8
-  - 06-VALIDATION.md signed off for the automated side (map green except the manual-checkpoint row, Wave 0 ticked, six sign-off boxes ticked, nyquist_compliant and wave_0_complete true, status still draft)
+  - 06-VALIDATION.md fully signed off (every map row green incl. the manual-checkpoint row after the user's approval of 2026-10-19, Wave 0 ticked, six sign-off boxes ticked, nyquist_compliant and wave_0_complete true, status approved)
   - the per-requirement evidence for REN-02 and REN-03, the mutant ledger, the timing lines, the worker chunk report and the review lists, all below
 affects: [phase-6-verification, 06-VERIFICATION]
 
@@ -28,22 +28,22 @@ key-files:
     - .planning/phases/06-canvas-tier-and-worker/06-VALIDATION.md
 
 key-decisions:
-  - "Row 06-15-T2 (the manual checkpoint) stays pending in the validation map and `status` stays draft: the plan says Task 2 alone sets approval, and no user reply exists"
+  - "Row 06-15-T2 (the manual checkpoint) stayed pending in the validation map and `status` stayed draft while Task 1 ran (the plan says Task 2 alone sets approval); both were set after the user approved on 2026-10-19"
   - "A fourth manual check (narrow windows at 375 and 768 px) was added to the Manual-Only Verifications table: the plan and its must_haves list four checks, the table planned in 06-RESEARCH had three"
   - "The sign-off box about nyquist_compliant was reworded (`is set to true in the frontmatter`) so that `grep -c 'nyquist_compliant: true'` is exactly 1, as the acceptance criterion states, instead of 2"
   - "REQUIREMENTS.md checkboxes for REN-02 and REN-03 are untouched, as the plan says (the orchestrator marks them), and STATE.md keeps percent 63 and completed_phases 5"
 
-requirements-completed: []  # REN-02 and REN-03: left to the orchestrator, and only after the user's sign-off
+requirements-completed: [REN-02, REN-03]  # marked by the orchestrator after the user's sign-off of 2026-10-19 (and the phase verification)
 
 # Metrics
 started: 2026-10-19T04:03:00Z   # 2026-10-18 22:03 MDT
-completed: pending (Task 2 checkpoint)
-duration: ~15 min for Task 1 (the gate itself took 7.0 min)
+completed: 2026-10-19
+duration: ~15 min for Task 1 (the gate itself took 7.0 min); Task 2 was the user's manual sign-off plus the orchestrator's own browser checks
 ---
 
 # Phase 6 Plan 15: Phase Gate Summary
 
-**STATUS: Task 1 complete (commit `901ebb9`). Task 2, the blocking user sign-off on four manual-only checks, is awaiting the user. Nothing here records an approval.**
+**STATUS: Both tasks complete. Task 1 is commit `901ebb9`. Task 2, the blocking user sign-off on the four manual-only checks, was approved by the user on 2026-10-19 ("approved!"); the outcome of each check is recorded in 06-VALIDATION.md.**
 
 **The full project gate is green on the final Phase 6 tree: `npm run verify` exit 0 in 7.0 minutes, 88 files and 2411 unit tests in both timezones, 237 e2e passed and 165 skipped (the 60 DOM goldens and the behaviour baseline among the passes), page weight OK, and every frozen oracle byte-identical to 75fcbd8. The validation map is green except the manual row; the user's four manual checks are the only thing left before `/gsd-verify-work 6`.**
 
@@ -205,9 +205,9 @@ ROADMAP criteria served: 3 (stale results never show), 4 (typing or loading 2^26
 | Item | Where | What is open |
 |------|-------|--------------|
 | Page-weight decision | `.planning/todos/pending/007-code-split-canvas-and-worker-fallback.md` | accept the raise (about +27 KB gzip on every `/numogram/` visit, base 10 included) or schedule the split |
-| Regions panel overlaps the Currents header at larger bases | `.planning/todos/pending/008-regions-panel-overlaps-currents-at-large-bases.md`, `deferred-items.md` | pre-existing desktop panel stacking; mouse clicks on Warp and Plex Isolate and Mute land on the Currents header at 1280 px, base 202; works from the keyboard; not a Canvas defect |
+| Desktop panel stack keeps base-10 heights after a base change (Regions overlaps the Currents header) | `.planning/todos/pending/008-regions-panel-overlaps-currents-at-large-bases.md` (root cause measured 2026-10-18), `deferred-items.md` | pre-existing Phase 4-era layout bug, not a Canvas defect and not specific to large bases: a plain SVG-tier switch 10 to 28 reproduces it (Currents at y227 over Regions' bottom edge at y250) while a direct `?base=28` load is correct; mouse clicks on the lower Regions rows' buttons land on the Currents header; keyboard works; stays pending |
 | `next lint --dir e2e` errors | `deferred-items.md` | `e2e/canvas-tier.spec.ts:78` unused `pairScene` and `e2e/visual-dom.ts:50` unused expression; outside the repo's lint gate (`app`, `engine`, `workers`); `visual-dom.ts` is the frozen DOM-golden harness, so leave it |
-| First-focus announcement | 06-13 production fix `b936206` | the canvas now announces the ring's first target on keyboard focus, so a screen reader hears the aria-label and then `Zone 0, Plex`; if the user finds the double read too chatty it is a one-commit revert plus relaxing the first assertion of the keyboard test |
+| First-focus announcement | 06-13 production fix `b936206` | the canvas now announces the ring's first target on keyboard focus, so a screen reader hears the aria-label and then `Zone 0, Plex`. The question was put to the user at the checkpoint; the approval of 2026-10-19 raised no objection, so it stays as implemented (if it proves too chatty later it is a one-commit revert plus relaxing the first assertion of the keyboard test) |
 | Particles row at the Canvas tier | 06-06 known stub | the row is labelled N/A but keeps `active: particlesOn`, so it can look active; 06-10 to 06-12 did not change it |
 | Panels cover the canvas's left strip at 1280 px | 06-12 observation | by the UI-SPEC z-order, the SVG tier behaves the same; not a bug |
 | REQUIREMENTS.md REN-02 and REN-03 | orchestrator | left unchecked on purpose until the phase is verified |
@@ -227,9 +227,14 @@ None. The gate was green on its first run; no production, test or oracle file ne
 
 **Total deviations:** none of scope; four judgement calls. **Impact on plan:** none.
 
-## Task 2: User sign-off on the manual-only checks (NOT DONE, blocking)
+## Task 2: User sign-off on the manual-only checks (DONE, approved 2026-10-19)
 
-Status: **awaiting the user.** Not approved, not self-approved. The four checks, the first-focus question and the `[default]` list above are handed to the user through the checkpoint message returned with this summary. When the user replies, the continuation records the date and outcome of checks 1 to 4 in the "Outcome of the manual checks" table of 06-VALIDATION.md, sets `status: approved` and the approval line only if every check passed (otherwise the reported issues are recorded per check number and `status` stays draft), then finalizes this SUMMARY (frontmatter `status`, `completed`, a Task 2 outcome) and the orchestrator completes the phase.
+The checkpoint message gave the user the four checks, the first-focus question, the page-weight decision, the panel-overlap finding and the `[default]` list. The user replied "approved!" on 2026-10-19 without per-check notes or separate answers to the two questions. What that covers, as recorded in 06-VALIDATION.md "Outcome of the manual checks":
+
+- **Checks 1 (screen reader) and 2 (real touch):** only a person can do these; approved by the user, no detail given. The first-focus double read stays as implemented.
+- **Checks 3 (visual parity) and 4 (narrow windows):** before the reply, the orchestrator ran them in the built-in browser on the dev server and reported the numbers (base 28 SVG versus Canvas look the same by eye; 375 px gives a 359 px canvas at x = 8 with no horizontal scroll and an intact right edge; 768 px gives the centred 580 px column with no overflow and no panel overlap); the user approved them too.
+- **Decisions left as recorded defaults:** the `/numogram/` page-weight raise stays (todo 007, the lazy-load split, remains pending for a later decision), and todo 008 (panel stack) remains pending.
+- `06-VALIDATION.md` now has `status: approved`, `Approval: approved 2026-10-19`, and row 06-15-T2 green.
 
 ## Task Commits
 
@@ -237,7 +242,9 @@ Each carries the Co-Authored-By trailer (checked with `git log -1 --format=%B`):
 
 1. **Task 1: full gate, oracle confirmation, evidence and validation sign-off** - `901ebb9` (docs, `06-VALIDATION.md`)
 
-**Plan metadata:** interim docs commit (this SUMMARY and STATE.md) follows; the final one comes after Task 2.
+2. **Task 2: user sign-off** - recorded in `06-VALIDATION.md` and this SUMMARY by the orchestrator after the approval (docs commit; the interim checkpoint docs commit was `cac0cf7`)
+
+**Plan metadata:** final docs commit follows the phase verification.
 
 ## Verification
 
@@ -258,14 +265,14 @@ None new. T-06-11 (oracle integrity): mitigated, proven by the empty diff agains
 
 ## Next Phase Readiness
 
-- After the user's reply: record the outcome, set approval only if every manual check passed, finalize this SUMMARY and STATE.md, mark REN-02 and REN-03 complete in REQUIREMENTS.md, run `/gsd-verify-work 6`.
+- The user approved. Remaining orchestrator steps for Phase 6: code review, regression gate, phase goal verification, mark REN-02 and REN-03 complete in REQUIREMENTS.md, advance STATE.md and ROADMAP.md.
 - Phase 7 (Naming Builder) does not depend on any open item here; todo 007 (page weight) and 008 (panel overlap) are independent follow-ups.
 
 ---
 *Phase: 06-canvas-tier-and-worker*
-*Task 1 completed: 2026-10-18; Task 2 pending the user*
+*Task 1 completed: 2026-10-18; Task 2 approved by the user: 2026-10-19*
 
-## Self-Check: PASSED (Task 1 only; Task 2 is intentionally unresolved)
+## Self-Check: PASSED
 
 - FOUND: `.planning/phases/06-canvas-tier-and-worker/06-VALIDATION.md` (modified), commit `901ebb9` present in `git log`
 - FOUND: `.planning/phases/06-canvas-tier-and-worker/06-15-SUMMARY.md`
