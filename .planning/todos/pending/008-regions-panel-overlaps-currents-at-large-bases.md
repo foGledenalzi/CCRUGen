@@ -1,5 +1,5 @@
 ---
-title: "Regions panel's lower rows sit under the Currents panel header at the default desktop layout (bases with several regions)"
+title: "Desktop panel stack does not re-measure after a base change, so the Regions panel overlaps the Currents header (and other panels drift)"
 status: pending
 priority: P2
 source: "Phase 6 execution, plan 06-13 e2e run, 2026-10-15 (logged first in .planning/phases/06-canvas-tier-and-worker/deferred-items.md)"
@@ -20,6 +20,18 @@ Found while writing `e2e/canvas-interaction.spec.ts` (plan 06-13). At 1280 px wi
 - Nothing in Phase 6 changed the panel stack; the cause is the fixed desktop stacking positions (`DESKTOP_PANEL_*` constants and the panel-group layout in `app/NumogramClient.tsx`), which do not follow the Regions panel's real height at bases with several rows. It was observed, not investigated further.
 
 This is the same family of problem as the narrow-window Selection/Zones overlap fixed in `43760fb` (there the mobile stack ignored the Selection panel's real height; here the desktop stack ignores the Regions panel's).
+
+## Root-cause evidence (measured 2026-10-18 in the built-in browser, 1280x800, dev server)
+
+The overlap is **not specific to large bases or to the Canvas tier**. It follows how the viewer reached the base:
+
+| Route to base 28 | Regions | Currents | Zones | Syzygies | Gates | Result |
+|---|---|---|---|---|---|---|
+| Direct load `?base=28&tier=svg` | y64-250 | y268 | y326 | y874 | y618 | correct stack, 18 px gaps |
+| Load `/numogram/` (base 10), then type 28 in the picker (plain synchronous SVG-tier switch, no worker) | y64-250 | **y227** | y347 | y635 | y388 | **Currents overlaps Regions by 23 px** |
+| Direct load `?base=28&tier=canvas` (hydrates at base 10, then swaps to 28) | y64-250 | **y227** | y347 | y635 | y388 | same overlap |
+
+The post-switch offsets (Currents 227, Zones 347, Gates 388, Syzygies 635) are the ones the stack computes from the **base-10-era panel heights**: Labels then had one more row (101 px vs 80), Regions had fewer rows (about 145 px vs 186). So the desktop stack keeps the heights it measured at the first render and does not re-stack after a base change changes a panel's content height. It is a Phase 4-era layout bug that Phase 6 merely made easier to see, because Canvas-tier bases are always reached after a base-10 first render. Likely area: `desktopPanelHeights` / `onPanelHeight` in `app/NumogramClient.tsx` and the `usePanelGroupLayout` stack (the mobile stack re-measures through `CyberPanel`'s `ResizeObserver` and does not show this).
 
 ## Suggested fix
 
