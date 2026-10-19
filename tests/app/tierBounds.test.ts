@@ -1,7 +1,7 @@
 // Tests for app/lib/tierBounds.ts (REN-01 data, D-14..D-18). Every threshold is read from the engine's TIER_TABLE,
 // never a hard-coded number.
 import { describe, expect, it } from 'vitest'
-import { TIER_TABLE, gateLayerMode, interactiveCeiling, labelsVisible, tweenAllowed } from '../../engine/index'
+import { TIER_TABLE, gateLayerMode, interactiveCeiling, labelsVisible, selectTier, tweenAllowed } from '../../engine/index'
 import {
   ALL_CHORDS_MAX_N,
   CANVAS_AREA_LIMIT_PX,
@@ -66,11 +66,33 @@ describe('tierFor', () => {
     expect(tierFor(2 ** 26)).toBe('headless')
   })
 
-  it('the tier= override still wins above the ceiling and below the rich boundary', () => {
+  it('the tier=canvas and tier=headless overrides still win above the ceiling and below the rich boundary', () => {
     expect(tierFor(INTERACTIVE_MAX_N + 2, 'canvas')).toBe('canvas')
-    expect(tierFor(INTERACTIVE_MAX_N + 2, 'svg')).toBe('svg')
     expect(tierFor(2, 'headless')).toBe('headless')
+    expect(tierFor(2, 'canvas')).toBe('canvas')
+    expect(tierFor(INTERACTIVE_MAX_N + 2, 'headless')).toBe('headless')
     expect(tierFor(INTERACTIVE_MAX_N + 2, null)).toBe('headless')
+  })
+
+  // Phase 6 review WR-01: an svg override builds the numogram and the whole SVG on the main thread, so it never lifts
+  // the interactive ceiling (12 s and 176,296 nodes measured at 16384, a tab crash at 2^26).
+  describe('the svg override never lifts the interactive ceiling (WR-01)', () => {
+    it('stays a diagnostic up to and including the ceiling', () => {
+      expect(tierFor(SVG_RICH_MAX_N + 2, 'svg')).toBe('svg')
+      expect(tierFor(1024, 'svg')).toBe('svg')
+      expect(tierFor(INTERACTIVE_MAX_N, 'svg')).toBe('svg')
+    })
+
+    it('falls back to the natural tier (headless) one step above the ceiling and at the engine maximum', () => {
+      expect(tierFor(INTERACTIVE_MAX_N + 2, 'svg')).toBe('headless')
+      expect(tierFor(2 ** 26, 'svg')).toBe('headless')
+      expect(tierFor(INTERACTIVE_MAX_N + 2, 'svg')).toBe(tierFor(INTERACTIVE_MAX_N + 2))
+    })
+
+    it('is the one place that decides: selectTier itself stays the plain primitive that the table tests pin', () => {
+      expect(selectTier(INTERACTIVE_MAX_N + 2, TIER_VIEW, 'svg')).toBe('svg')
+      expect(selectTier(INTERACTIVE_MAX_N + 2, TIER_VIEW)).toBe('headless')
+    })
   })
 })
 

@@ -63,6 +63,17 @@ describe('parseShareParams above the interactive ceiling', () => {
     expect(state.region).toBeNull()
     expect(spy).not.toHaveBeenCalled()
   })
+
+  // WR-01: the viewer reads the parsed override through tierFor (hydration, the picker and needsWorkerFor), which clamps an
+  // svg override at the ceiling, so the state this link carries is still a headless base with no main-thread build.
+  it('the parsed tier=svg does not lift the ceiling either: tierFor(base, tier) stays headless', () => {
+    for (const base of [INTERACTIVE_MAX_N + 2, MAX_SAFE_BASE]) {
+      const { state } = parseShareParams(`?base=${base}&tier=svg`)
+      expect(state.tier).toBe('svg')
+      expect(tierFor(state.base, state.tier)).toBe('headless')
+    }
+    expect(spy).not.toHaveBeenCalled()
+  })
 })
 
 describe('parseShareParams at the canvas and svg tiers', () => {

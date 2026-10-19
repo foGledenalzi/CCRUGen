@@ -104,6 +104,11 @@ scope:
   visitor can only force a heavier render tier for their own tab by hand-editing their own URL — there is no
   mechanism for one visitor to force this state onto another (a shared link with `?tier=svg&base=<huge>`
   would only ever slow down the tab of whoever opens it, and `validateBase`'s 2^26 ceiling still applies).
+  **Update 2026-10-19 (Phase 6 review WR-01):** that last clause no longer held once bases above 200 became
+  reachable: a shared `?tier=svg&base=<huge>` link made the opener's tab build the whole SVG on the main thread
+  (11 s at base 16384, memory exhaustion towards 2^26). `tierFor` in `app/lib/tierBounds.ts` now ignores an `svg`
+  override above the interactive ceiling, so the override can still be hand-set for diagnosis between 200 and the
+  ceiling but never forces a main-thread build above it. The remaining accepted scope is the in-ceiling case only.
 
 ## Residual Observations (non-blocking)
 

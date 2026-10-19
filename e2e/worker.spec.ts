@@ -312,6 +312,50 @@ test('a scene-less 2^26 result under tier=canvas renders headless, never SVG, an
   expect(errors).toEqual([])
 })
 
+// Phase 6 review WR-01: the tier=svg diagnostic override never lifts the interactive ceiling. It builds the numogram and the
+// whole SVG on the main thread (11 s and 176,296 SVG nodes measured at base 16384), so above the ceiling the natural tier
+// wins. The heartbeat bound is the same one as above: a main-thread build of base CEIL + 2 blocks the page for seconds.
+test('tier=svg above the ceiling hydrates through the worker to the summary, never a main-thread SVG', async ({ page }) => {
+  const errors = trackErrors(page)
+  const workers = trackWorkers(page)
+  await page.addInitScript(installHeartbeat) // installed before navigation: a hydration-time build would show in it
+  await openHeadless(page, `base=${CEIL + 2}&tier=svg`)
+  await expect(page.locator(HEADLESS)).toContainText(overLimit(CEIL + 2))
+  await expect(page.locator(HEADLESS)).not.toContainText('Tier override active')
+  await expect(page.locator(DIAGRAM)).toHaveCount(0)
+  await expect(page.locator('[data-zone]')).toHaveCount(0)
+  await settle(page)
+  expect(workers).toHaveLength(1) // computed in the worker
+  const { maxGapMs, frames } = await readHeartbeat(page)
+  console.log(`heartbeat (tier=svg hydration at ceiling+2) max-gap-ms=${maxGapMs} frames=${frames}`)
+  expect(frames).toBeGreaterThan(5)
+  expect(maxGapMs).toBeLessThan(HEARTBEAT_MAX_GAP_MS)
+  expect(errors).toEqual([])
+})
+
+test('a persisted tier=svg override stays a diagnostic below the ceiling but never takes a typed base above it onto the main thread', async ({ page }) => {
+  const errors = trackErrors(page)
+  const workers = trackWorkers(page)
+  // below the ceiling the diagnostic still works: base svgRichMaxN + 2 would be Canvas, the override draws it as SVG
+  const diagnosticBase = tierTable.boundaries.svgRichMaxN.n + 2
+  await openViewer(page, `base=${diagnosticBase}&tier=svg`)
+  await expect(page.locator('[data-diagram="zones"] [data-zone]')).toHaveCount(diagnosticBase)
+  await expect(page.locator(CANVAS_READY)).toHaveCount(0)
+  expect(workers).toEqual([])
+
+  await page.evaluate(installHeartbeat)
+  await commitBase(page, CEIL + 2)
+  await expect(page.locator(HEADLESS)).toContainText(overLimit(CEIL + 2), { timeout: 60_000 })
+  await expect(page.locator(DIAGRAM)).toHaveCount(0)
+  await settle(page)
+  expect(workers).toHaveLength(1)
+  const { maxGapMs, frames } = await readHeartbeat(page)
+  console.log(`heartbeat (tier=svg picker commit to ceiling+2) max-gap-ms=${maxGapMs} frames=${frames}`)
+  expect(frames).toBeGreaterThan(5)
+  expect(maxGapMs).toBeLessThan(HEARTBEAT_MAX_GAP_MS)
+  expect(errors).toEqual([])
+})
+
 test('no Worker: the main thread computes up to the ceiling and refuses above it', async ({ page }) => {
   const errors = trackErrors(page)
   const workers = trackWorkers(page)
