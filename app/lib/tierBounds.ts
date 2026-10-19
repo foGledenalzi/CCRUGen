@@ -22,6 +22,12 @@ export const SVG_RICH_MAX_N: number = TIER_VIEW.boundaries.svgRichMaxN.n
 export const ALL_CHORDS_MAX_N: number = TIER_VIEW.boundaries.allChordsMaxN.n
 /** The shipped interactive ceiling (D-01): canvas up to here, headless above. Read from the table, never a literal. */
 export const INTERACTIVE_MAX_N: number = interactiveCeiling(TIER_VIEW)
+// `interactiveCeiling` is Infinity when the table carries neither canvasMaxN nor interactiveMaxN (documented and unit-tested in
+// the engine). In the app that would silently stop every tier decision from gating at a ceiling, so a table without one
+// must not build (Phase 6 review IN-05, defence in depth: the shipped table has interactiveMaxN and the engine tests pin it).
+if (!Number.isFinite(INTERACTIVE_MAX_N)) {
+  throw new Error('tier table has no interactive ceiling (boundaries.interactiveMaxN is missing)')
+}
 /** On-screen node radius (CSS px) from which zone labels are painted (level of detail, Phase 3 D-07). */
 export const LABEL_MIN_RADIUS_PX: number = TIER_VIEW.boundaries.labelVisibleMinRadiusPx
 /** The largest canvas backing-store area (device px) the spike found allocatable. */
