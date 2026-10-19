@@ -703,7 +703,9 @@ export default function NumogramPage() {
       }
       return selected
     })
-    suppressNextCanvasClickRef.current = true
+    // Only the SVG wrapper's onClick consumes this flag; the Canvas tier ends a drag on its own pointer events, so arming it
+    // there would leave it set and swallow the first background click of the next SVG-tier base (IN-02).
+    if (renderTier !== 'canvas') suppressNextCanvasClickRef.current = true
     setSelectionStart(null)
     setSelectionNow(null)
   }, [selectionStart, pos, base, renderTier])

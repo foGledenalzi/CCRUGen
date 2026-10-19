@@ -762,3 +762,37 @@ test('returning to a zoomed Canvas layout shows the fit view too (ring, pair gra
 
   expect(errors).toEqual([])
 })
+
+// ── 13 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Phase 6 review IN-02: finalizeSelection armed `suppressNextCanvasClickRef` for every drag, but only the SVG wrapper's onClick ever
+// consumes it, so a Canvas rubber band left it armed and the first background click of the next SVG-tier base was swallowed
+// (clearInfoFocus skipped once). The pin is shown by PinnedBackground (a fixed, pointer-less layer naming the pinned element).
+test('a Canvas rubber band does not swallow the first background click of the next SVG base', async ({ page }) => {
+  const errors = trackErrors(page)
+  const pinned = page.locator('div.fixed.inset-0.pointer-events-none.font-mono', { hasText: 'Zone f' })
+  await openCanvas(page, `base=${CANVAS_BASE}`)
+
+  // a rubber band of a few tens of px from an empty corner of the canvas (it may select nothing; only the drag matters)
+  const start = await emptyCorner(page, 1)
+  const box = await canvasBox(page)
+  const towardsCentre = { x: start.x > box.x + box.width / 2 ? -40 : 40, y: start.y > box.y + box.height / 2 ? -40 : 40 }
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(start.x + towardsCentre.x / 2, start.y + towardsCentre.y / 2, { steps: 3 })
+  await page.mouse.move(start.x + towardsCentre.x, start.y + towardsCentre.y, { steps: 3 })
+  await page.mouse.up()
+
+  // the SVG tier at base 28: pin zone 15, then one click on the empty diagram background must clear the pin
+  const input = page.locator('input[aria-label="Base"]')
+  await input.fill('28')
+  await input.press('Enter')
+  await expect(page.locator('[data-render-tier="svg"] [data-diagram="zones"] [data-zone]')).toHaveCount(28)
+  await page.locator('[data-zone="15"]').first().dispatchEvent('click')
+  await expect(pinned).toHaveCount(1)
+
+  await page.locator('[data-render-tier="svg"] svg[data-diagram]').dispatchEvent('click')
+  await expect(pinned).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
