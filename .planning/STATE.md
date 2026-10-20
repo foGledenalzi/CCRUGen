@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 7 context gathered
-last_updated: "2026-10-19T18:38:10.000Z"
-last_activity: 2026-10-19 -- Phase 7 (Naming Builder) context gathered
+stopped_at: Phase 7 UI-SPEC approved
+last_updated: "2026-10-20T03:00:21.000Z"
+last_activity: 2026-10-19 -- Phase 7 UI-SPEC approved (checker passed after two revisions; user confirmed folding the desktop panel-stack fix, todo 008, into Phase 7)
 progress:
   total_phases: 8
   completed_phases: 6
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 7 — Naming Builder (context gathered)
+**Current focus:** Phase 7 — Naming Builder (context and UI-SPEC done, ready to plan)
 
 ## Current Position
 
@@ -260,9 +260,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-19T18:38:10.000Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-naming-builder/07-CONTEXT.md
+Last session: 2026-10-20T03:00:21.000Z
+Stopped at: Phase 7 UI-SPEC approved
+Resume file: .planning/phases/07-naming-builder/07-UI-SPEC.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
