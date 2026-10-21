@@ -619,22 +619,27 @@ bump(id) { if (counter > 69) { [...ids].sort((a, b) => z[a] - z[b]).forEach((k, 
 | A7 | The draft banks look right (harsh/soft/syllabic) | Appendix A | They are drafts: the plan needs a contact-sheet sign-off checkpoint (precedent 03-08) and then digest pinning |
 | A8 | The 5 MiB per-origin localStorage figure (MDN) applies in every target browser | Pattern 8 | Failure is handled by the UI-SPEC "Couldn't save" line either way |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Style banks need a human sign-off.**
    - What we know: structure, capacity, shape statistics and sample sheets are measured (Appendix A). Harsh draft at n <= 64: all-consonant, 2 to 3 letters, consonant runs of 2/3 split 41/23 vs the CCRU originals' 5/4; but only 2% of sounds have a doubled letter vs 11% (and 73% of canonical *names*), and harsh names have 16% vowel density vs 40% canonical.
    - What's unclear: whether the look is right.
    - Recommendation: a plan task prints a contact sheet (bases 10, 28, 64, 666, 4000, three styles, raw and smoothed) for the user to approve, then pins `sha256` digests of the sound tables like `engine/test/layout.digest.test.ts`. Never update a digest to make a test pass.
+   - RESOLVED: plan 07-06 blocking checkpoint (orchestrator decision 1): contact sheet first, user sign-off, then the digests are pinned.
 
 2. **RESOLVED: generator construction.** Prefix-code tree with Feistel and cycle-walking is validated (bijective, distinct, O(1), prefix-stable, 0 raw collisions); Fisher-Yates rejected. Evidence in Pattern 2.
 
 3. **Letters rule and ZWNJ (D-07).** Recommended `^\p{L}[\p{L}\p{M}]*$` (accepts Indic, Thai, Arabic with marks). Persian ZWNJ and any Cf character are refused as "letters only". Confirm, or allow U+200C explicitly.
+   - RESOLVED: plan 07-02 [default] (orchestrator decision 2): the rule above, with ZWNJ and every Cf character refused as letters only.
 
 4. **Collision-check limit and where it runs.** Recommended: certificate for generated tables at any n, general scan on the main thread in slices up to a data limit of 1024 (not the 4000 ceiling), no new worker. Measured costs are in Pattern 5. If the user wants the scan at 4000 for typed edits, either accept 2 to 4 s (native) background slices or approve the worker route and the two pinned static tests that change.
+   - RESOLVED: plans 07-10 and 07-11 (scheduled by 07-20) (orchestrator decision 3): certificate plus a cancellable main-thread scan, data limit 1024, no new worker.
 
 5. **Smoothing is a no-op for soft and syllabic.** 0.0% of joins change. Options: accept (those styles are already readable), disable or caption the checkbox, or tune the banks to produce occasional clusters. UI-SPEC copy is already approved, so a caption needs a copy decision.
+   - RESOLVED: plans 07-11 and 07-17 (orchestrator decision 4): the checkbox stays for every style and the caption 'Smoothing makes no difference to these sounds.' shows when smoothing changes nothing.
 
 6. **Desktop stack consequence at larger bases.** Measured at 1280 x 800 and base 28: Syzygies top 874, Gates 618 to 1148, Text 1166. Strict no-overlap puts them below the fold (collapsing panels above pulls them up). Confirm, or choose an optional fold-aware tweak (cap panel body heights to the viewport) that is outside the approved contract.
+   - RESOLVED: plans 07-03 and 07-24 (orchestrator decision 5): accepted as the contract states; no fold-aware tweak.
 
 7. **RESOLVED: override key form.** Decimal mesh number in memory and JSON (Pattern 3). Remaining user choice is only `"a:b"` for file readability.
 
@@ -647,6 +652,7 @@ bump(id) { if (counter > 69) { [...ids].sort((a, b) => z[a] - z[b]).forEach((k, 
 11. **RESOLVED: export size.** 33,465 bytes at n = 4000 (dense), 172 bytes seed-only (Pattern 6).
 
 12. **Generator version in links.** `names=seed:` is `names-gen@1` forever; a future change must add a new prefix. Confirm that freezing is acceptable.
+   - RESOLVED: plans 07-01 and 07-09 (orchestrator decision 8): `names=seed:` means `names-gen@1` forever; a future generator adds a new prefix.
 
 ## Environment Availability
 

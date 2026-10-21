@@ -206,7 +206,34 @@ Plans:
   2. Demon names derive from net-span sounds, high-then-low by default with low-then-high as an option, and the user can override individual demon names without affecting the rest
   3. Naming data exports and imports as versioned JSON, a file for the wrong base is rejected with a message, the URL carries only a preset or seed, and name collisions are listed visibly
   4. Base 10 offers a CCRU preset that supplies the 10 zone phonemes and the 45 canonical demon names
-**Plans**: TBD
+**Plans**: 25 plans in 11 waves
+
+Plans:
+- [ ] 07-01-PLAN.md - Pure generator core: sfc32-cyrb128@1 PRNG and Feistel with frozen vectors, three draft syllable banks, names-gen@1 prefix-code generator with locks (wave 1)
+- [ ] 07-02-PLAN.md - Text rules (NFC, graphemes, sound/name/seed validation, upperFirst) and euphony@1 smoothing with its inertness predicate (wave 1)
+- [ ] 07-03-PLAN.md - Pure live desktop stack (computeDesktopStack, Names slot and body room) and drag/z-index reducers with the z cap (wave 1)
+- [ ] 07-04-PLAN.md - Additive Cyber control props with markup-identity tests, LockIcon, quiet/invalid field classes (wave 1)
+- [ ] 07-05-PLAN.md - Naming contract, O(1) layered name resolver (override > CCRU preset > derived, mesh keys), immutable edits, engine barrel (wave 2)
+- [ ] 07-06-PLAN.md - Style-bank contact sheet, user sign-off checkpoint, then sound-table digests pinned (wave 2)
+- [ ] 07-07-PLAN.md - Live desktop stack wired into usePanelDrag and NumogramClient; panel-stack e2e and the todo 008 regression (wave 2)
+- [ ] 07-08-PLAN.md - Versioned JSON ccrug.naming/1 serializer and the hand-written, prototype-safe, capped validator (wave 3)
+- [ ] 07-09-PLAN.md - names= link codec (preset or seed only) in shareParams, labels=sounds mode and the worker guard (wave 3)
+- [ ] 07-10-PLAN.md - Collision certificate for generated tables and the resumable partitioned scan (wave 4)
+- [ ] 07-11-PLAN.md - CCRU preset adapter by reference, naming limits, the single Names copy module (wave 4)
+- [ ] 07-12-PLAN.md - Shared sound-label fit, SVG sounds label slot, Sounds radio and Labels panel wording (wave 5)
+- [ ] 07-13-PLAN.md - Per-base localStorage slot, naming session (defaults, preview/adopt, actions, history helpers), NamingContext (wave 5)
+- [ ] 07-14-PLAN.md - Canvas sounds labels in both passes, sound-aware announcements, live chord callout names (wave 6)
+- [ ] 07-15-PLAN.md - Render-time names in the browser cell (overridden marker), matrix text, demon detail, pinned background; live-name search (wave 6)
+- [ ] 07-16-PLAN.md - Demon name editor with Selection and overlay mounts and hover-proof binding (wave 7)
+- [ ] 07-17-PLAN.md - Names panel shell: controls, states, preview table, notice, header tag, live carrier, import/export with inline Undo (wave 6)
+- [ ] 07-18-PLAN.md - Viewer naming session: history by rev, base-switch load, hydration with preview, URL, autosave, provider; rewritten demons e2e; session smoke e2e (wave 8)
+- [ ] 07-19-PLAN.md - Virtualized editable zone list (locks, validation, paste, keyboard, go-to, pin link) and the shortcuts line (wave 7)
+- [ ] 07-20-PLAN.md - Collision report with cancellable sliced scans, jumps and the inline collision editor (wave 8)
+- [ ] 07-21-PLAN.md - Names panel mounted in both stacks at every tier, sounds pass-through, honest Share title; e2e helpers and smoke spec (wave 9)
+- [ ] 07-22-PLAN.md - E2E: editing, locks, generation, derivation, renaming, scale, undo; sounds label mode on both tiers (wave 10)
+- [ ] 07-23-PLAN.md - E2E: import/export, autosave per base, storage failure, collisions and jumps, CCRU preset, shared-link previews (wave 10)
+- [ ] 07-24-PLAN.md - E2E: Names geometry at every viewport, mobile and planetary clearance, layout re-runs; page weight via --reason (wave 10)
+- [ ] 07-25-PLAN.md - Phase gate: full verify, validation sign-off, todo 008 closed, manual screen-reader/stack/narrow-window checkpoint (wave 11)
 **UI hint**: yes
 **Research**: YES, run `/gsd-research-phase` for the naming generator: euphony rules, phoneme-bank sizing, prefix-free or separator-aware inventory, and generator quality (little prior art).
 **Notes**: PRNG is `sfc32-cyrb128@1` with frozen test vectors; the seeded generator uses Feistel plus cycle-walking as a proposal to validate (fallback seeded Fisher-Yates). Zone-sound distinctness does not imply demon-name distinctness (concatenation is not injective), hence the collision report. Override keys are decimal `"a:b"`; verify against `app/data/demons.ts`. The CCRU preset uses the 45 names as overrides, not derivations. Validator is hand-written, rejects wrong base and caps size; text handling is NFC-normalized and grapheme-safe.
