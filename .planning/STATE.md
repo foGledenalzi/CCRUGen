@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_execute
-stopped_at: Phase 7 planned (25 plans in 11 waves)
-last_updated: "2026-10-21T00:54:32.000Z"
-last_activity: 2026-10-20 -- Phase 7 planned (25 plans in 11 waves, 51 tasks; research, pattern map and validation strategy done; plan checker passed after three revision rounds)
+status: executing
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-11-07T23:00:00.000Z"
+last_activity: 2026-11-07 -- Completed 07-01 (pure generator core)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 74
+  completed_plans: 75
   percent: 75
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 7 — Naming Builder (planned, ready to execute)
+**Current focus:** Phase 7 — Naming Builder
 
 ## Current Position
 
-Phase: 7
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-10-20
+Phase: 7 (Naming Builder) — EXECUTING
+Plan: 2 of 25
+Status: Executing Phase 7
+Last activity: 2026-11-07 -- Completed 07-01 (pure generator core)
 
 Progress: [███████░░░] 75%
 
@@ -129,6 +129,7 @@ Progress: [███████░░░] 75%
 | Phase 06 P12 | ~32min | 3 tasks | 3 files |
 | Phase 06 P13 | ~25min | 2 tasks | 3 files |
 | Phase 06 P14 | ~20min | 2 tasks | 3 files |
+| Phase 07 P01 | ~17min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -227,6 +228,7 @@ Recent decisions affecting current work:
 - [Phase 6 P13] Canvas input e2e shipped (REN-02 input surface observable in Chromium, stays Pending until 06-15): e2e/canvas-interaction.spec.ts (11 tests, 753 lines; every key, string and position computed from createNumogram, buildNumogramView, zoneLabelsFor, resolveLayout, buildZoneScene, pickAt and toScreen, never from the keyboard model under test except PAGE_STEP): 375 x 667 touch window (canvas 359 px at x = 8, overlay as wide as its window, no page overflow), 768 x 1024 (580 px column), a CDP two-finger pinch zooming 1 to 2.6667 for a 36 to 96 px spread and back, a one-finger drag moving tx and ty by exactly 40 and 20, a tap pinning the nearest zone (centre and 5 px beside the node) with the callout persisting and an empty tap clearing it, keyboard traversal (Tab stop 5, arrows wrapping, Home, End, Page keys by PAGE_STEP clamped, Tab through syzygy, current and gate with the gate layer off, Shift+Tab back, Enter selecting with the selected, not selected and pinned announcements), auto-pan after six + presses (zoom 3.8147 under the ceiling 5, every PageDown target at least 20 px inside the window, two of five presses panned), reduced motion (transition 0.01 ms under the preference, 0.15 s without), mute removing Plex from picking and the key order (End to 200, ArrowRight wraps to 1), isolate keeping the other zones pickable and on the keys, and a Regions-row highlight drawing edges. Two production fixes found by the spec, each in its own commit: the page shell pads its row by 16 px so the canvas root (width 359) shrank to 343 px and clipped the diagram's right edge, fixed with flexShrink: 0 (06-10 had measured 359 px on a probe route without the shell); handleFocus now announces the ring's target on keyboard focus (D-08), the one behaviour change, easy to revert if the 06-15 screen-reader pass finds it chatty. Observed and deferred (deferred-items.md): at the default desktop layout the Regions panel's lower rows sit under the Currents panel header, so a mouse click on the Plex and Warp buttons is intercepted (the spec presses them with focus and Space). Full gate: MSYS_NO_PATHCONV=1 npm run verify exit 0 (2411 unit tests x2 timezones, sub-path e2e 10, page-weight OK without an update, e2e 224 passed and 154 skipped, clean-tree and static-out OK); frozen oracles untouched
 - [Phase 6 P14] Worker e2e and worker chunk report shipped (REN-03 observable end to end in Chromium, stays Pending in REQUIREMENTS.md for the orchestrator per 06-15): e2e/worker.spec.ts (11 tests, UTC project only) proves SVG-tier bases never create a worker and a Canvas base exactly one, a typed 2^26 followed by the 100 chip never shows the over-limit summary (a MutationObserver watches every frame), rapid Canvas bases end on the last request (the canvas only ever carried 666 then 1024 while 2048 was computed and discarded), the computing state after the 150 ms grace (Computing base 1024..., picker status, pending dim at opacity 0.5, aria-busy, keys paused, then Base 1024 ready.), 2^26 typed and loaded from the URL under tier=canvas ending on the over-limit summary with a worst rAF gap of 33 to 57 ms against the one timing bound HEARTBEAT_MAX_GAP_MS = 450, the ceiling read from the table (no link or anyway/export button in the over-limit view, the tier-override sentence never says interactive limit), the no-Worker and failing-Worker fallbacks, and the lazy Demons overlay above the ceiling; staleness is made deterministic by holding the chosen base's postMessage until the test releases it (test-only addInitScript wrapper, nothing in app/) and waiting for the stale reply to really arrive; e2e/static-export.spec.ts proves the worker URL is <origin><basePath>/_next/static/chunks/<file>.js at the root and under /ccrug and that the one worker answers base 28 (through ?tier=canvas) with the network off (replies recorded as [64, 28], so a main-thread fallback cannot pass for it; ROADMAP criterion 5 interpreted as research A1, [default] for review at verification); scripts/worker-chunks.mjs reports unreferenced worker chunks (397.35507a7dcb1d10a0.js raw 17,006 B, gzip 6,315 B at the root; 397.f4eb17f60a70adde.js raw 17,012 B under /ccrug) and exits 1 on no chunk or base-10 lore; mutation checks: the two worker.supersede() calls (commit path, desired-key effect) are redundant guards, each single mutant survives as equivalent and the joint mutant is killed by the 2^26-then-chip test, and a main-thread createNumogram(n) in the worker commit path makes the heartbeat gap 676 ms and fails the bound; no production code changed; npm run verify exit 0 (88 files, 2411 unit tests in both timezones, sub-path e2e 12 passed, page-weight OK, e2e 237 passed and 165 skipped, clean-tree and static-out OK)
 - [Phase 6 P15, Task 1 only] Phase gate run, awaiting the user's manual sign-off (Task 2): MSYS_NO_PATHCONV=1 npm run verify exit 0 in 7.0 min on the final tree (88 files and 2411 unit tests in UTC and in America/New_York, sub-path e2e 12 passed, page-weight OK with no update, e2e 237 passed and 165 skipped including the 60 DOM goldens and the 5 behaviour specs, check-repo clean-tree and static-out OK); every frozen oracle byte-identical to the pre-phase commit 75fcbd8 (empty `git diff --stat 75fcbd8` over e2e/__golden__, e2e/__behaviour__, engine/test/fixtures and the layout digest test, empty porcelain, check-repo goldens OK) and the SVG tier, base-10 presets and useCanvasPan unchanged; worker chunk 17,006 B raw and 6,315 B gzip, lore-free; logged heartbeat max gaps 33.7 ms (typed 2^26) and 53.6 ms (hydration at 2^26) against the 450 ms bound, overlay-ms 10.7 at base 4000 select-all, parity 0.304 and 0.715 px; /numogram/ JS 808,864 raw and 245,890 gzip (+11.4 and +12.5 percent over the pre-phase baseline). 06-VALIDATION.md: every map row green except 06-15-T2 (the manual checkpoint stays pending), Wave 0 and the six sign-off boxes ticked, nyquist_compliant and wave_0_complete true, a fourth manual check (narrow windows) and an outcome table added, status stays draft and the approval line stays pending until the user replies. REN-02 and REN-03 stay unchecked in REQUIREMENTS.md and the phase is not marked complete (percent 63, completed_phases 5 unchanged) until the orchestrator does it after the sign-off. Open for the user: keep the page-weight raise or schedule the split (todo 007), the first-focus announcement (06-13 b936206), todo 008, and the [default] decisions list in 06-15-SUMMARY.md.
+- [Phase 7 P01] Pure generator core shipped (NAM-01 groundwork, D-04, D-05; NAM-01 stays Pending until the editable table, locks UI and autosave land): engine/naming/prng.ts is the frozen sfc32-cyrb128@1 (integer-only; all 12 Appendix B vectors plus an independent BigInt cyrb128/sfc32 on 2,000 seeds), engine/naming/feistel.ts the 8-round cycle-walking Feistel permutation with its key schedule (discard 12; Appendix B key and permutation vectors, exhaustive bijection to 2^20, independent BigInt Feistel on 6 sizes), engine/naming/banks.ts the three DRAFT syllable banks (harsh 80/67, soft 60/66, syllabic 64/78, UNSIGNED until the user signs the contact sheet at 07-06; no digest pinned, harsh overlaps eight verbatim CCRU zone sounds), engine/naming/generate.ts names-gen@1 (prefix-code tree, a Feistel permutation per depth class, mixed-radix decode, GENERATOR_MAX_DEPTH 5, limit 2.78 B / 0.87 B / 1.33 B, distinct by construction, base-independent so prefix-stable, lazy and O(1) to 2^26 - 1; DEFAULT_SEED 'ccrug' is a [default] decision; generateSounds keeps locked zones and gives a colliding unlocked zone the next spare soundAt(base + j), counting only in-range locks so spare indices stay below 2 * base < limit; createGenerator validates the style at runtime); 116 new tests (exhaustive 300,000-zone distinctness per style, independent greedy parser over 2,000 zones to 2^26 - 1), 11 mutations all killed (the depth-boundary one by non-termination), whole engine project 848 tests green, tsc and lint clean, no frozen oracle touched; engine/index.ts barrel not extended yet (07-05)
 
 ### Pending Todos
 
@@ -260,9 +262,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-21T00:54:32.000Z
-Stopped at: Phase 7 planned (25 plans in 11 waves)
-Resume file: .planning/phases/07-naming-builder/07-01-PLAN.md
+Last session: 2026-11-07T23:00:00.000Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-02-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z

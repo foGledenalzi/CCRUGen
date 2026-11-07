@@ -209,7 +209,7 @@ Plans:
 **Plans**: 25 plans in 11 waves
 
 Plans:
-- [ ] 07-01-PLAN.md - Pure generator core: sfc32-cyrb128@1 PRNG and Feistel with frozen vectors, three draft syllable banks, names-gen@1 prefix-code generator with locks (wave 1)
+- [x] 07-01-PLAN.md - Pure generator core: sfc32-cyrb128@1 PRNG and Feistel with frozen vectors, three draft syllable banks, names-gen@1 prefix-code generator with locks (wave 1)
 - [ ] 07-02-PLAN.md - Text rules (NFC, graphemes, sound/name/seed validation, upperFirst) and euphony@1 smoothing with its inertness predicate (wave 1)
 - [ ] 07-03-PLAN.md - Pure live desktop stack (computeDesktopStack, Names slot and body room) and drag/z-index reducers with the z cap (wave 1)
 - [ ] 07-04-PLAN.md - Additive Cyber control props with markup-identity tests, LockIcon, quiet/invalid field classes (wave 1)
@@ -280,5 +280,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
 | 6. Canvas Tier and Worker | 15/15 | Complete    | 2026-10-19 |
-| 7. Naming Builder | 0/TBD | Not started | - |
+| 7. Naming Builder | 1/25 | In Progress | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |
