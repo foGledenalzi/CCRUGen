@@ -163,7 +163,7 @@ describe('createGenerator', () => {
       const gen = createGenerator(HOLLOW, style)
       for (const base of [10, 28, 64, 666, 4000]) {
         const table = generateSounds(gen, base)
-        for (let z = 0; z < 12; z++) expect(table[z]).toBe(gen.soundAt(z))
+        for (let z = 0; z < Math.min(12, base); z++) expect(table[z]).toBe(gen.soundAt(z)) // base 10 has only ten zones
       }
     }
   })
