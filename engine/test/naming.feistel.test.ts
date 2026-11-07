@@ -163,15 +163,17 @@ describe('feistelPermutation is a bijection', () => {
   it.each([1, 2, 3, 4, 5, 66, 67, 72, 3960, 5360, 65536, 1048576])('exhaustively on [0, %d)', size => {
     const p = feistelPermutation(size, feistelRoundKeys('hollow-vector', 'harsh', 1))
     const seen = new Uint8Array(size)
+    let outOfRange = 0
+    let repeated = 0
     for (let x = 0; x < size; x++) {
       const y = p(x)
-      expect(Number.isInteger(y) && y >= 0 && y < size).toBe(true)
-      expect(seen[y]).toBe(0)
-      seen[y] = 1
+      if (!(Number.isInteger(y) && y >= 0 && y < size)) outOfRange++
+      else if (seen[y] === 1) repeated++
+      else seen[y] = 1
     }
     let hit = 0
     for (let i = 0; i < size; i++) hit += seen[i]!
-    expect(hit).toBe(size)
+    expect({ outOfRange, repeated, hit }).toEqual({ outOfRange: 0, repeated: 0, hit: size })
   })
 
   it('is a bijection for other keys too (size 5360, two further schedules)', () => {
