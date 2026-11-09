@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-05-PLAN.md
-last_updated: "2026-11-09T21:30:39.000Z"
-last_activity: 2026-11-09 -- Completed 07-05 (naming contract, layered O(1) resolver, immutable edits, engine barrel)
+stopped_at: Completed 07-07-PLAN.md
+last_updated: "2026-11-09T23:10:00.000Z"
+last_activity: 2026-11-09 -- Completed 07-07 (live desktop panel stack wired into usePanelDrag and NumogramClient, todo 008 e2e regression)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 79
+  completed_plans: 80
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 6 of 25
+Plan: 6 of 25 (07-01 to 07-05 and 07-07 complete; 07-06, the bank sign-off, is next)
 Status: Executing Phase 7
-Last activity: 2026-11-09 -- Completed 07-05 (naming contract, layered O(1) resolver, immutable edits, engine barrel)
+Last activity: 2026-11-09 -- Completed 07-07 (live desktop panel stack wired into usePanelDrag and NumogramClient, todo 008 e2e regression)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 79
+- Total plans completed: 80
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -235,13 +235,14 @@ Recent decisions affecting current work:
 - [Phase 7 P03] Live desktop stack and drag reducers shipped as pure functions (NAM-01 groundwork, D-01, closes todo 008 once 07-07 wires it; NAM-01 stays Pending): app/lib/panelStack.ts moves the six NumogramClient layout constants (values unchanged) and adds the Names geometry (width 240, min x 548, bottom reserve 96, body 80..560); computeDesktopStack derives every slot from measured heights with the unrounded `y = y + h + 18` chain and Math.round at the end, null until layers, labels, zones, regions and currents report, and equals a literal copy of the old one-shot effect at the measured base-10 heights and on 20,000 random height sets (whole sets from a double, tenth-pixel and half-pixel arm, because only a shared decimal grid reaches the rounding ties; four tenth-pixel cases pinned); Names sits under Selection at x = clamp(selectionX, 548, vw - 252), body room clamp(80, vh - (y + 34) - 96, 560); app/lib/panelDrag.ts holds the pure reducers (drag seeded from the displayed position so a derived panel never jumps, moved set on the first mouse move and not on mouse down, a moved panel keeps its stored position while its slot stays reserved because the stack takes no moved input, z counter never above 69 with a re-rank onto 40..49 and restart at 50); 73 tests, 21 mutants killed (two survivors found and fixed in the tests, one equivalent mutant), whole oracle project 1765 tests green in UTC (and the two files in America/New_York), typecheck and check-repo clean; no existing file touched, no frozen oracle touched, test:swap and verify not run (nothing imports the new files until 07-07)
 - [Phase 7 P04] Additive Cyber control props, LockIcon and field modifier classes shipped (NAM-01 groundwork, decisions 14 and 18; NAM-01 stays Pending, nothing in the app passes the new props yet): CyberButton gains optional ariaLabel, title, ariaExpanded, ariaPressed and dataAttrs, CyberRadio title (on the label), className (appended only when given, the class-string trap) and dataAttrs (on the input), CyberCheckbox dataAttrs (on the input); each emits nothing when absent, and dataAttrs keeps only keys starting with data- (T-07-22; each component carries its own 4-line helper). Default markup identity: DEFAULT_RADIO_MARKUP, CHECKED_RADIO_MARKUP, DEFAULT_CHECKBOX_MARKUP and CHECKED_CHECKBOX_MARKUP are captured from the unmodified components in the new tests/app/cyberControlsMarkup.test.ts (26 tests) and every new prop is proved to add exactly one attribute by removing it and comparing with the pinned string; eight CyberButton cases were added to demonsOverlayRender.test.ts with DEFAULT_MARKUP and ACTIVE_MARKUP untouched. NumogramIcons.tsx gains LockIcon({ clr, locked }) (closed shackle `M8.5 11V8...v3` locked, open raised `M8.5 11V6...v1` unlocked) and app/globals.css gains .ui-terminal-field--quiet and .ui-terminal-field.ui-terminal-field--invalid (+ its ::after and :focus-within::after rule), 18 lines added and 0 deleted, the original .ui-terminal-field block pinned byte for byte by a test. 4 mutants killed (unconditional className, dataProps filter removed in all three components, closed shackle in both states). MSYS_NO_PATHCONV=1 npm run test:swap exit 0 (65 passed and 5 skipped incl. the 60 DOM goldens and the behaviour baseline, 97 files and 2774 unit tests); typecheck and base-ten gate clean; no frozen oracle touched, Projection and base-10 presets untouched
 - [Phase 7 P05] Naming contract, layered O(1) resolver, immutable edits and the engine/naming barrel shipped (NAM-01 and NAM-02 groundwork, D-06, D-08, D-11, D-14; both stay Pending until the editable panel, derived names in the browser and import/export land): engine/naming/types.ts is the contract (Naming, NamingPreset, NameResolver, JoinOrder), derive.ts has deriveName (join in NFC, smooth, capitalise the first letter only), createNaming (sounds null when base > interactiveMaxN) and createNameResolver (override > preset > rule, no cache and no per-demon array; the preset layer applies only while source is ccru and the preset is for this base), edit.ts has ten operations that return Object.freeze({ ...n, field }) so unchanged parts are shared by reference. Override key = decimal mesh number; the zone check against the naming base runs BEFORE the mesh lookup because meshOf only checks MAX_BASE. Editing or pasting a sound locks its zone; setSeed and setStyle switch the source to generated and regenerate only unlocked zones (locks survive, fast-check at bases 28 and 666); setSource ccru loads the preset sounds and clears locks; an override equal to the layer below is removed, not stored, and a no-op override edit returns its argument so the session can skip a history entry with ===. Seed-only namings refuse every per-zone edit (also setSource ccru and resetOverride). The preset is an argument; engine tests use a synthetic preset and no canonical name or lore string appears in derive.ts or types.ts. engine/index.ts gained exactly one line (export * from './naming/index'); build and page-weight stayed within budget. 14 mutants killed (two survivors found by extra mutants led to a test that starts setSeed and setStyle from a ccru naming); 74 new tests, engine project 1049 passed in two timezones; no bank or digest touched (banks stay drafts until 07-06).
+- [Phase 7 P07] Live desktop panel stack wired in (NAM-01 groundwork, D-01, todo 008 behaviour fixed; NAM-01 stays Pending until the Names panel mounts in 07-21): NumogramClient derives the stack with computeDesktopStack from desktopPanelHeights and selectionX (the info init effect's `left`, INITIAL_INFO_X until measured) on every height change, the one-shot layout effect and the six local layout constants are gone, and usePanelDrag(derivedStack) holds one DragState over the 07-03 reducers (displayed positions, drag seeded from the displayed position, moved on the first move, z never above 69; setPanelPositions and the dead stackPanels deleted; a ref mirrors an active drag so a mouse move with no drag costs no state update); base-10 placement proven identical by diffing every panel box (x, y, width, height) of the plan-base build against the new build at 1440x900, 1280x800, 1280x900 and 1024x768, and at base 28 the old build left Currents at 227 over Regions (64 to 250) while the new stack gives Currents 268; e2e/panel-stack.spec.ts (9 tests) and 3 todo 008 test cases in e2e/region-legend.spec.ts (a real mouse click on every Torque, Warp and Plex Isolate/Mute at base 202 at 1280x800 and 1440x900) pass, three clean repeats of the six layout-sensitive specs (59 passed each); three mutants killed (stack computed once: 7 tests fail; drag seeded from the stored position: both drag tests; Z_CAP 79: the z test); test:swap green after the NumogramClient edit (65 passed, 5 skipped, 2848 unit tests) and MSYS_NO_PATHCONV=1 npm run verify exit 0 (e2e 255 passed and 183 skipped, page-weight OK without an update); no existing spec changed, no frozen oracle touched; 07-21 must add `names` to PANEL_GROUP_DEFAULT_HEIGHTS/PanelId so its height reaches the stack
 
 ### Pending Todos
 
 - 002 (P3): Phase 1 code review findings deferred, not fixed in Phase 1
 - 004 (P3): Phase 2 code review findings deferred, not fixed in Phase 2 (IN-02, IN-03, IN-05, IN-07; MIG-02 closed in Phase 4 plan 04-16)
 - 007 (P2): lazy-load the Canvas tier and the worker fallback core to recover the Phase 6 page-weight raise (the user decides at the 06-15 checkpoint whether to keep the raise or schedule the split)
-- 008 (P2): the Regions panel's lower rows sit under the Currents panel header at the default desktop layout at bases with several regions (pre-existing, found in 06-13)
+- 008 (P2): the Regions panel's lower rows sit under the Currents panel header at the default desktop layout at bases with several regions (pre-existing, found in 06-13); behaviour fixed and covered by e2e in 07-07, the todo file moves to completed at the phase gate (07-25)
 
 ### Blockers/Concerns
 
@@ -268,8 +269,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-09T21:30:39.000Z
-Stopped at: Completed 07-05-PLAN.md
+Last session: 2026-11-09T23:10:00.000Z
+Stopped at: Completed 07-07-PLAN.md
 Resume file: .planning/phases/07-naming-builder/07-06-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
