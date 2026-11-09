@@ -42,6 +42,22 @@ export type {
 
 export { deriveName, createNaming, createNameResolver } from './derive'
 
+// Plan 07-08: the versioned file format and its one validator (export, import and the per-base storage slot).
+export {
+  SCHEMA_ID,
+  SCHEMA_PREFIX,
+  NAMING_IMPORT_MAX_BYTES,
+  NAMING_MAX_OVERRIDES,
+  META_MAX_LENGTH,
+  ISSUES_MAX,
+  UNKNOWN_KEYS_MAX,
+  serializeNaming,
+} from './schema'
+export type { SeedRecord } from './schema'
+
+export { validateNamingJson } from './validate'
+export type { NamingIssue, NamingImport, ValidateNamingOptions } from './validate'
+
 export {
   editSound,
   pasteSounds,

@@ -484,7 +484,7 @@ describe('validateNamingJson: base', () => {
   it('the seed offer is normalised like a seed (NFC, trimmed)', () => {
     const d = docOf()
     d.base = 30
-    sub(d, 'generator').seed = '  cáfe  '
+    sub(d, 'generator').seed = '  café  '
     expect(refusal(run(d)).offerSeed).toEqual({ seed: 'café', style: 'harsh', join: 'hi-lo', smoothing: 0 })
   })
 
