@@ -1,6 +1,6 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import { createNumogram, torqueLabel } from '../engine/index'
-import { openViewer, panel } from './viewer-helpers'
+import { openCanvas, openViewer, panel } from './viewer-helpers'
 
 // UI-05, D-19..D-24: the region legend is a stable-id row per Torque cycle (then Warp, then Plex) at any base, each
 // with independent Isolate (spotlight) and Mute (hard hide) toggles carried in the URL/history (isolate=/mute=) and
@@ -117,3 +117,74 @@ test('switching base clears the pressed states and removes isolate=/mute= from t
   const anyPressed = await panel(page, 'Regions').locator('[aria-pressed="true"]').count()
   expect(anyPressed).toBe(0)
 })
+
+// Panels never cover each other: the Currents panel sits under the Regions panel at every base (the stack follows the measured
+// heights), so the Regions rows and their Isolate/Mute buttons stay reachable with a real mouse.
+async function panelBox(page: Page, title: string) {
+  const b = await panel(page, title).boundingBox()
+  if (!b) throw new Error(`panel ${title} has no bounding box`)
+  return b
+}
+
+test('todo 008: base 10 then 28 through the picker leaves Regions and Currents apart', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await openViewer(page, 'base=10')
+  const before = await panelBox(page, 'Regions')
+
+  await openBaseDropdown(page)
+  await page.getByLabel('Base', { exact: true }).fill('28')
+  await page.getByLabel('Base', { exact: true }).press('Enter')
+  await expect(page.locator('[data-diagram="zones"] [data-zone]')).toHaveCount(28)
+
+  // the 28-zone legend is taller than base 10's (that is what pushed its lower rows under the Currents header)
+  await expect.poll(async () => (await panelBox(page, 'Regions')).height, { timeout: 10_000 }).toBeGreaterThan(before.height + 20)
+  await expect
+    .poll(async () => {
+      const regions = await panelBox(page, 'Regions')
+      const currents = await panelBox(page, 'Currents')
+      return currents.y - (regions.y + regions.height + 18)
+    }, { timeout: 10_000 })
+    .toBeGreaterThanOrEqual(-1)
+})
+
+/** A real mouse click on a legend button flips aria-pressed and the URL's parameter, and a second click restores both. */
+async function roundTrip(page: Page, button: Locator, param: 'isolate' | 'mute'): Promise<void> {
+  const paramValue = () => new URL(page.url()).searchParams.get(param)
+  const pressedBefore = (await button.getAttribute('aria-pressed')) ?? 'false'
+  const urlBefore = paramValue()
+  await button.scrollIntoViewIfNeeded()
+  await button.click()
+  await expect(button).not.toHaveAttribute('aria-pressed', pressedBefore)
+  await expect.poll(paramValue).not.toBe(urlBefore)
+  await button.click()
+  await expect(button).toHaveAttribute('aria-pressed', pressedBefore)
+  await expect.poll(paramValue).toBe(urlBefore)
+}
+
+for (const [w, h] of [[1280, 800], [1440, 900]] as const) {
+  test(`todo 008: a real mouse click on Warp and Plex Isolate/Mute toggles the region at base 202 (${w}x${h})`, async ({ page }) => {
+    const g = createNumogram(202)
+    const labels = [
+      ...Array.from({ length: g.torqueCount }, (_, i) => `Torque ${torqueLabel(i)}`),
+      ...(g.warp !== null ? ['Warp'] : []),
+      'Plex',
+    ]
+    expect(labels).toContain('Plex')
+    await page.setViewportSize({ width: w, height: h })
+    await openCanvas(page, 'base=202')
+
+    // nothing covers the legend: the Currents panel starts below the Regions panel's bottom edge
+    await expect
+      .poll(async () => {
+        const regions = await panelBox(page, 'Regions')
+        const currents = await panelBox(page, 'Currents')
+        return currents.y - (regions.y + regions.height + 18)
+      }, { timeout: 10_000 })
+      .toBeGreaterThanOrEqual(-1)
+
+    for (const label of labels) {
+      await roundTrip(page, isolateButton(page, label), 'isolate')
+      await roundTrip(page, muteButton(page, label), 'mute')
+    }
+  })
+}
