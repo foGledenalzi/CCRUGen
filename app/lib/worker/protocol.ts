@@ -72,7 +72,9 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 function isLabelScheme(v: unknown): v is LabelScheme {
   if (!isRecord(v)) return false
   const mode = v.mode
-  if (mode === 'digits' || mode === 'xeno') return true
+  // 'sounds' is accepted in the same commit as the union member: without it a Sounds toggle at a Canvas base is a
+  // build-failed revert (07-RESEARCH Pitfall 5, T-07-14).
+  if (mode === 'digits' || mode === 'xeno' || mode === 'sounds') return true
   if (mode === 'preset') return typeof v.preset === 'string' && isAlphabetPresetId(v.preset)
   if (mode === 'custom') {
     const chars = v.chars
