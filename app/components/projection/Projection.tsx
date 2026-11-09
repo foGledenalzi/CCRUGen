@@ -13,6 +13,8 @@ import type { RegionLabel, RoutingStyle } from '../../../engine/index'
 import { formatNumeral } from '../../../engine/index'
 import { elementState, regionLabel, ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../lib/regions'
 import { KIND_COLOR } from '../../lib/demonBrowser'
+import { zoneSoundAria } from '../../lib/namingCopy'
+import { fitSoundLabel } from '../../lib/soundLabels'
 
 interface ProjectionProps {
   view: NumogramView
@@ -51,6 +53,11 @@ interface ProjectionProps {
   reducedMotion: boolean
   // Demon focus (DEM-03, D-03): a zone's demons or one demon as chords; null/undefined renders nothing (frozen goldens stay byte-identical).
   focusChords?: readonly Demon[] | null
+  // Sounds label mode (NAM-03, D-03, plan 07-12): per-zone sounds for the zone node label slot, and the on-screen px per world unit
+  // the fit rule needs (R_px = nodeRadius * labelPxPerUnit). Both absent (the default) draws the numeral exactly as before, so the
+  // frozen goldens stay byte-identical; the planetary layout ignores them (spheres vary in size, UI-SPEC decision 10).
+  zoneSounds?: readonly string[] | null
+  labelPxPerUnit?: number
   onHoverInfo: (info: HoverInfo | null) => void
   onPinInfo: (info: HoverInfo) => void
   onZoneNodeClick: (zone: number) => void
@@ -61,13 +68,16 @@ export const Projection = React.memo(function Projection({
   regionLabels, zoneLabels, labelsOn, gateMode,
   pos, ctr, svgHeight, layers, hlZones, selZones, anyFocus,
   tcActive, showOrbits, planetaryPos, zoneOrder, zoneStates, gateRenderData,
-  currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, reducedMotion, focusChords = null, onHoverInfo, onPinInfo, onZoneNodeClick,
+  currentRenderData, gateCalcFocusName, labelVisibility, particlesOn, reducedMotion, focusChords = null,
+  zoneSounds = null, labelPxPerUnit, onHoverInfo, onPinInfo, onZoneNodeClick,
 }: ProjectionProps) {
 
   const [focusKey, setFocusKey] = useState<string | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
   const isPlanetary = routingStyle === 'planetary'
+  // The sounds table the node labels read: null in every other mode, on the planetary layout, and without a scale.
+  const soundTable = !isPlanetary && zoneSounds !== null && labelPxPerUnit ? zoneSounds : null
   const k = nodeRadius / 21
   const ss = strokeScale
   const currentDest = (c: CurrentData) => (presetRouting ? view.presetCurrentDest(c) : c.to)
@@ -724,10 +734,17 @@ export const Projection = React.memo(function Projection({
         const hl = hlZones.has(z)
         const region = view.zoneKind[z]
         const zoneFocusKey = `zone:${z}`
-        const zoneAriaLabel = `Zone ${zoneLabels[z]}, ${regionLabel(view.zoneRegion[z])}${act ? ', selected' : ''}`
+        // Sounds mode: a zone that has a sound is named by it (the full one, the visible text is inside the name); a zone that has
+        // none yet keeps its numeral and its usual name, never a placeholder (UI-SPEC "Fallback label").
+        const sound = soundTable !== null && soundTable[z] ? soundTable[z] : null
+        const zoneAriaLabel = sound !== null
+          ? zoneSoundAria(zoneLabels[z], sound, regionLabel(view.zoneRegion[z]), act)
+          : `Zone ${zoneLabels[z]}, ${regionLabel(view.zoneRegion[z])}${act ? ', selected' : ''}`
         const meta = view.lore ? view.lore.zoneMeta[z] : null
         const xenotation = formatXenotationForDisplay(z)
         const nodeR = isPlanetary ? PLANETARY_SIZE[z] : nodeRadius
+        const soundPx = labelPxPerUnit ?? 0
+        const soundFit = sound !== null ? fitSoundLabel(sound, nodeR * soundPx, labelSize * soundPx) : null
         const isSun = isPlanetary && z === 0
         const showNumber = labelVisibility.numbers && labelsOn
         const showPlanet = labelVisibility.planets && meta !== null
@@ -811,7 +828,18 @@ export const Projection = React.memo(function Projection({
               </>
             ) : (
               <>
-                {showNumber && (
+                {showNumber && sound !== null && soundFit !== null && (
+                  <text x={p.x} y={p.y + 1}
+                    textAnchor="middle" dominantBaseline="central"
+                    fill={act || hl ? clr : `${clr}aa`}
+                    fontSize={soundFit.fontPx === labelSize * soundPx ? labelSize : soundFit.fontPx / soundPx}
+                    fontWeight="bold" fontFamily="monospace"
+                    style={{ pointerEvents: 'none' }}
+                    data-sound-label={sound}
+                    data-truncated={soundFit.truncated ? 'true' : undefined}
+                  >{soundFit.text}</text>
+                )}
+                {showNumber && sound === null && (
                   <text x={p.x} y={p.y + 1}
                     textAnchor="middle" dominantBaseline="central"
                     fill={act || hl ? clr : `${clr}aa`}
