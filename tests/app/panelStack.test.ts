@@ -248,6 +248,15 @@ describe('computeDesktopStack follows every height change', () => {
     expect(out.names.x).toBe(692)
   })
 
+  it('Names x is the clamped namesX while Selection keeps selectionX', () => {
+    const narrow = computeDesktopStack(MEASURED, { selectionX: 489, vw: 821 })!
+    expect(narrow.info.x).toBe(489)
+    expect(narrow.names.x).toBe(548)
+    const wide = computeDesktopStack(MEASURED, { selectionX: 1200, vw: 1280 })!
+    expect(wide.info.x).toBe(1200)
+    expect(wide.names.x).toBe(1028)
+  })
+
   it('does not mutate its inputs and returns a fresh object each call', () => {
     const h: Heights = { ...MEASURED }
     const before = JSON.stringify(h)
@@ -261,25 +270,27 @@ describe('computeDesktopStack follows every height change', () => {
 
 describe('computeDesktopStack identity with the old formula (property)', () => {
   /**
-   * Heights: any double in [20, 700], plus the two grids where the (a + b) + c versus a + (b + c) association flips a
-   * Math.round tie (tenths and halves of a pixel; Selection is 296.5). The pure-double arm alone almost never lands on a tie.
+   * Whole height sets drawn from one of three arms: any double in [20, 700] (the plan's range), tenths of a pixel and halves
+   * of a pixel. The (a + b) + c versus a + (b + c) association only flips a Math.round tie when every term of a chain sits on
+   * the same grid (Selection is 296.5), which the pure-double arm almost never produces, so the grid arms are whole sets.
    */
-  const height = fc.oneof(
-    fc.double({ min: 20, max: 700, noNaN: true }),
-    fc.integer({ min: 200, max: 7000 }).map(n => n / 10),
-    fc.integer({ min: 40, max: 1400 }).map(n => n / 2),
+  const heightsOf = (height: fc.Arbitrary<number>) =>
+    fc.record({
+      layers: height,
+      labels: height,
+      zones: height,
+      syz: height,
+      regions: height,
+      currents: height,
+      gates: height,
+      text: height,
+      info: height,
+    })
+  const heights = fc.oneof(
+    heightsOf(fc.double({ min: 20, max: 700, noNaN: true })),
+    heightsOf(fc.integer({ min: 200, max: 7000 }).map(n => n / 10)),
+    heightsOf(fc.integer({ min: 40, max: 1400 }).map(n => n / 2)),
   )
-  const heights = fc.record({
-    layers: height,
-    labels: height,
-    zones: height,
-    syz: height,
-    regions: height,
-    currents: height,
-    gates: height,
-    text: height,
-    info: height,
-  })
 
   it('matches the old formula for every left-column and right-column y on 20,000 random height sets (no ulp drift)', () => {
     fc.assert(
