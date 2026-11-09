@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-11-09T20:55:00.000Z"
-last_activity: 2026-11-09 -- Completed 07-02 (text rules and euphony@1)
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-11-09T21:12:00.000Z"
+last_activity: 2026-11-09 -- Completed 07-03 (live desktop stack and drag reducers)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 76
+  completed_plans: 77
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 3 of 25
+Plan: 4 of 25
 Status: Executing Phase 7
-Last activity: 2026-11-09 -- Completed 07-02 (text rules and euphony@1)
+Last activity: 2026-11-09 -- Completed 07-03 (live desktop stack and drag reducers)
 
 Progress: [███████░░░] 75%
 
@@ -231,6 +231,7 @@ Recent decisions affecting current work:
 - [Phase 6 P15, Task 1 only] Phase gate run, awaiting the user's manual sign-off (Task 2): MSYS_NO_PATHCONV=1 npm run verify exit 0 in 7.0 min on the final tree (88 files and 2411 unit tests in UTC and in America/New_York, sub-path e2e 12 passed, page-weight OK with no update, e2e 237 passed and 165 skipped including the 60 DOM goldens and the 5 behaviour specs, check-repo clean-tree and static-out OK); every frozen oracle byte-identical to the pre-phase commit 75fcbd8 (empty `git diff --stat 75fcbd8` over e2e/__golden__, e2e/__behaviour__, engine/test/fixtures and the layout digest test, empty porcelain, check-repo goldens OK) and the SVG tier, base-10 presets and useCanvasPan unchanged; worker chunk 17,006 B raw and 6,315 B gzip, lore-free; logged heartbeat max gaps 33.7 ms (typed 2^26) and 53.6 ms (hydration at 2^26) against the 450 ms bound, overlay-ms 10.7 at base 4000 select-all, parity 0.304 and 0.715 px; /numogram/ JS 808,864 raw and 245,890 gzip (+11.4 and +12.5 percent over the pre-phase baseline). 06-VALIDATION.md: every map row green except 06-15-T2 (the manual checkpoint stays pending), Wave 0 and the six sign-off boxes ticked, nyquist_compliant and wave_0_complete true, a fourth manual check (narrow windows) and an outcome table added, status stays draft and the approval line stays pending until the user replies. REN-02 and REN-03 stay unchecked in REQUIREMENTS.md and the phase is not marked complete (percent 63, completed_phases 5 unchanged) until the orchestrator does it after the sign-off. Open for the user: keep the page-weight raise or schedule the split (todo 007), the first-focus announcement (06-13 b936206), todo 008, and the [default] decisions list in 06-15-SUMMARY.md.
 - [Phase 7 P01] Pure generator core shipped (NAM-01 groundwork, D-04, D-05; NAM-01 stays Pending until the editable table, locks UI and autosave land): engine/naming/prng.ts is the frozen sfc32-cyrb128@1 (integer-only; all 12 Appendix B vectors plus an independent BigInt cyrb128/sfc32 on 2,000 seeds), engine/naming/feistel.ts the 8-round cycle-walking Feistel permutation with its key schedule (discard 12; Appendix B key and permutation vectors, exhaustive bijection to 2^20, independent BigInt Feistel on 6 sizes), engine/naming/banks.ts the three DRAFT syllable banks (harsh 80/67, soft 60/66, syllabic 64/78, UNSIGNED until the user signs the contact sheet at 07-06; no digest pinned, harsh overlaps eight verbatim CCRU zone sounds), engine/naming/generate.ts names-gen@1 (prefix-code tree, a Feistel permutation per depth class, mixed-radix decode, GENERATOR_MAX_DEPTH 5, limit 2.78 B / 0.87 B / 1.33 B, distinct by construction, base-independent so prefix-stable, lazy and O(1) to 2^26 - 1; DEFAULT_SEED 'ccrug' is a [default] decision; generateSounds keeps locked zones and gives a colliding unlocked zone the next spare soundAt(base + j), counting only in-range locks so spare indices stay below 2 * base < limit; createGenerator validates the style at runtime); 116 new tests (exhaustive 300,000-zone distinctness per style, independent greedy parser over 2,000 zones to 2^26 - 1), 11 mutations all killed (the depth-boundary one by non-termination), whole engine project 848 tests green, tsc and lint clean, no frozen oracle touched; engine/index.ts barrel not extended yet (07-05)
 - [Phase 7 P02] Text rules and euphony@1 shipped (NAM-01 and NAM-02 groundwork, D-06, D-07, D-08; both stay Pending until the editable table, derived names and import/export land): engine/naming/text.ts is the one place that decides what a zone sound (1 to 16), a demon name (1 to 32) and a seed (1 to 64 UTF-16 units) may contain: NFC then trim, ^p{L}[p{L}p{M}]*$ (so Devanagari, Thai and Arabic with marks pass, and every Cf character such as ZWNJ, joiners and bidi controls is refused as other), typed reasons in the order empty, space, digit, other, long, graphemes counted with Intl.Segmenter ONLY for strings longer than the limit in UTF-16 units (0.67 ms against 36.3 ms for 4,000 sounds) with a lossless mark-aware regex fallback, seeds refuse Cc, Zl and Zp inside but trim them at the edges (the plan's "a + U+2028 -> null" contradicts its own trim-first action, recorded as a deviation), and upperFirst is locale-independent; engine/naming/euphony.ts is euphony@1 (a linear char-code walk, 0.25 us a join: runs of 3 or more consonants chunked in twos with the fill vowel of each chunk's last consonant, a closing vowel after two different final consonants, NO triple-letter collapse, no-op on anything that is not all ASCII letters; all 12 Appendix B vectors, idempotent, insert-only and injective on inputs with no a, u or i) with smoothingInert (research condition B, checked against an independent regex oracle on 20,000 tables); 127 new tests, 21 mutants all killed (the plan's pbzx -> pbuzxi vector does not by itself kill the "fill only before more consonants" mutant because the closing-vowel rule compensates; the identical-pair and long-run tests do), whole engine project 975 tests green, tsc, lint and check-repo clean, no frozen oracle, no banks.ts touched, no digest pinned; engine/index.ts barrel not extended yet (07-05)
+- [Phase 7 P03] Live desktop stack and drag reducers shipped as pure functions (NAM-01 groundwork, D-01, closes todo 008 once 07-07 wires it; NAM-01 stays Pending): app/lib/panelStack.ts moves the six NumogramClient layout constants (values unchanged) and adds the Names geometry (width 240, min x 548, bottom reserve 96, body 80..560); computeDesktopStack derives every slot from measured heights with the unrounded `y = y + h + 18` chain and Math.round at the end, null until layers, labels, zones, regions and currents report, and equals a literal copy of the old one-shot effect at the measured base-10 heights and on 20,000 random height sets (whole sets from a double, tenth-pixel and half-pixel arm, because only a shared decimal grid reaches the rounding ties; four tenth-pixel cases pinned); Names sits under Selection at x = clamp(selectionX, 548, vw - 252), body room clamp(80, vh - (y + 34) - 96, 560); app/lib/panelDrag.ts holds the pure reducers (drag seeded from the displayed position so a derived panel never jumps, moved set on the first mouse move and not on mouse down, a moved panel keeps its stored position while its slot stays reserved because the stack takes no moved input, z counter never above 69 with a re-rank onto 40..49 and restart at 50); 73 tests, 21 mutants killed (two survivors found and fixed in the tests, one equivalent mutant), whole oracle project 1765 tests green in UTC (and the two files in America/New_York), typecheck and check-repo clean; no existing file touched, no frozen oracle touched, test:swap and verify not run (nothing imports the new files until 07-07)
 
 ### Pending Todos
 
@@ -264,9 +265,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-09T20:55:00.000Z
-Stopped at: Completed 07-02-PLAN.md
-Resume file: .planning/phases/07-naming-builder/07-03-PLAN.md
+Last session: 2026-11-09T21:12:00.000Z
+Stopped at: Completed 07-03-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-04-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
