@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-04-PLAN.md
-last_updated: "2026-11-09T21:19:00.000Z"
-last_activity: 2026-11-09 -- Completed 07-04 (additive Cyber props, LockIcon, quiet and invalid field classes)
+stopped_at: Completed 07-05-PLAN.md
+last_updated: "2026-11-09T21:30:39.000Z"
+last_activity: 2026-11-09 -- Completed 07-05 (naming contract, layered O(1) resolver, immutable edits, engine barrel)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 78
+  completed_plans: 79
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 5 of 25
+Plan: 6 of 25
 Status: Executing Phase 7
-Last activity: 2026-11-09 -- Completed 07-04 (additive Cyber props, LockIcon, quiet and invalid field classes)
+Last activity: 2026-11-09 -- Completed 07-05 (naming contract, layered O(1) resolver, immutable edits, engine barrel)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 78
+- Total plans completed: 79
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -131,6 +131,7 @@ Progress: [███████░░░] 75%
 | Phase 06 P14 | ~20min | 2 tasks | 3 files |
 | Phase 07 P01 | ~17min | 2 tasks | 7 files |
 | Phase 07 P02 | ~25min | 2 tasks | 4 files |
+| Phase 07 P05 | ~20min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -233,6 +234,7 @@ Recent decisions affecting current work:
 - [Phase 7 P02] Text rules and euphony@1 shipped (NAM-01 and NAM-02 groundwork, D-06, D-07, D-08; both stay Pending until the editable table, derived names and import/export land): engine/naming/text.ts is the one place that decides what a zone sound (1 to 16), a demon name (1 to 32) and a seed (1 to 64 UTF-16 units) may contain: NFC then trim, ^p{L}[p{L}p{M}]*$ (so Devanagari, Thai and Arabic with marks pass, and every Cf character such as ZWNJ, joiners and bidi controls is refused as other), typed reasons in the order empty, space, digit, other, long, graphemes counted with Intl.Segmenter ONLY for strings longer than the limit in UTF-16 units (0.67 ms against 36.3 ms for 4,000 sounds) with a lossless mark-aware regex fallback, seeds refuse Cc, Zl and Zp inside but trim them at the edges (the plan's "a + U+2028 -> null" contradicts its own trim-first action, recorded as a deviation), and upperFirst is locale-independent; engine/naming/euphony.ts is euphony@1 (a linear char-code walk, 0.25 us a join: runs of 3 or more consonants chunked in twos with the fill vowel of each chunk's last consonant, a closing vowel after two different final consonants, NO triple-letter collapse, no-op on anything that is not all ASCII letters; all 12 Appendix B vectors, idempotent, insert-only and injective on inputs with no a, u or i) with smoothingInert (research condition B, checked against an independent regex oracle on 20,000 tables); 127 new tests, 21 mutants all killed (the plan's pbzx -> pbuzxi vector does not by itself kill the "fill only before more consonants" mutant because the closing-vowel rule compensates; the identical-pair and long-run tests do), whole engine project 975 tests green, tsc, lint and check-repo clean, no frozen oracle, no banks.ts touched, no digest pinned; engine/index.ts barrel not extended yet (07-05)
 - [Phase 7 P03] Live desktop stack and drag reducers shipped as pure functions (NAM-01 groundwork, D-01, closes todo 008 once 07-07 wires it; NAM-01 stays Pending): app/lib/panelStack.ts moves the six NumogramClient layout constants (values unchanged) and adds the Names geometry (width 240, min x 548, bottom reserve 96, body 80..560); computeDesktopStack derives every slot from measured heights with the unrounded `y = y + h + 18` chain and Math.round at the end, null until layers, labels, zones, regions and currents report, and equals a literal copy of the old one-shot effect at the measured base-10 heights and on 20,000 random height sets (whole sets from a double, tenth-pixel and half-pixel arm, because only a shared decimal grid reaches the rounding ties; four tenth-pixel cases pinned); Names sits under Selection at x = clamp(selectionX, 548, vw - 252), body room clamp(80, vh - (y + 34) - 96, 560); app/lib/panelDrag.ts holds the pure reducers (drag seeded from the displayed position so a derived panel never jumps, moved set on the first mouse move and not on mouse down, a moved panel keeps its stored position while its slot stays reserved because the stack takes no moved input, z counter never above 69 with a re-rank onto 40..49 and restart at 50); 73 tests, 21 mutants killed (two survivors found and fixed in the tests, one equivalent mutant), whole oracle project 1765 tests green in UTC (and the two files in America/New_York), typecheck and check-repo clean; no existing file touched, no frozen oracle touched, test:swap and verify not run (nothing imports the new files until 07-07)
 - [Phase 7 P04] Additive Cyber control props, LockIcon and field modifier classes shipped (NAM-01 groundwork, decisions 14 and 18; NAM-01 stays Pending, nothing in the app passes the new props yet): CyberButton gains optional ariaLabel, title, ariaExpanded, ariaPressed and dataAttrs, CyberRadio title (on the label), className (appended only when given, the class-string trap) and dataAttrs (on the input), CyberCheckbox dataAttrs (on the input); each emits nothing when absent, and dataAttrs keeps only keys starting with data- (T-07-22; each component carries its own 4-line helper). Default markup identity: DEFAULT_RADIO_MARKUP, CHECKED_RADIO_MARKUP, DEFAULT_CHECKBOX_MARKUP and CHECKED_CHECKBOX_MARKUP are captured from the unmodified components in the new tests/app/cyberControlsMarkup.test.ts (26 tests) and every new prop is proved to add exactly one attribute by removing it and comparing with the pinned string; eight CyberButton cases were added to demonsOverlayRender.test.ts with DEFAULT_MARKUP and ACTIVE_MARKUP untouched. NumogramIcons.tsx gains LockIcon({ clr, locked }) (closed shackle `M8.5 11V8...v3` locked, open raised `M8.5 11V6...v1` unlocked) and app/globals.css gains .ui-terminal-field--quiet and .ui-terminal-field.ui-terminal-field--invalid (+ its ::after and :focus-within::after rule), 18 lines added and 0 deleted, the original .ui-terminal-field block pinned byte for byte by a test. 4 mutants killed (unconditional className, dataProps filter removed in all three components, closed shackle in both states). MSYS_NO_PATHCONV=1 npm run test:swap exit 0 (65 passed and 5 skipped incl. the 60 DOM goldens and the behaviour baseline, 97 files and 2774 unit tests); typecheck and base-ten gate clean; no frozen oracle touched, Projection and base-10 presets untouched
+- [Phase 7 P05] Naming contract, layered O(1) resolver, immutable edits and the engine/naming barrel shipped (NAM-01 and NAM-02 groundwork, D-06, D-08, D-11, D-14; both stay Pending until the editable panel, derived names in the browser and import/export land): engine/naming/types.ts is the contract (Naming, NamingPreset, NameResolver, JoinOrder), derive.ts has deriveName (join in NFC, smooth, capitalise the first letter only), createNaming (sounds null when base > interactiveMaxN) and createNameResolver (override > preset > rule, no cache and no per-demon array; the preset layer applies only while source is ccru and the preset is for this base), edit.ts has ten operations that return Object.freeze({ ...n, field }) so unchanged parts are shared by reference. Override key = decimal mesh number; the zone check against the naming base runs BEFORE the mesh lookup because meshOf only checks MAX_BASE. Editing or pasting a sound locks its zone; setSeed and setStyle switch the source to generated and regenerate only unlocked zones (locks survive, fast-check at bases 28 and 666); setSource ccru loads the preset sounds and clears locks; an override equal to the layer below is removed, not stored, and a no-op override edit returns its argument so the session can skip a history entry with ===. Seed-only namings refuse every per-zone edit (also setSource ccru and resetOverride). The preset is an argument; engine tests use a synthetic preset and no canonical name or lore string appears in derive.ts or types.ts. engine/index.ts gained exactly one line (export * from './naming/index'); build and page-weight stayed within budget. 14 mutants killed (two survivors found by extra mutants led to a test that starts setSeed and setStyle from a ccru naming); 74 new tests, engine project 1049 passed in two timezones; no bank or digest touched (banks stay drafts until 07-06).
 
 ### Pending Todos
 
@@ -266,9 +268,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-09T21:19:00.000Z
-Stopped at: Completed 07-04-PLAN.md
-Resume file: .planning/phases/07-naming-builder/07-05-PLAN.md
+Last session: 2026-11-09T21:30:39.000Z
+Stopped at: Completed 07-05-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-06-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
