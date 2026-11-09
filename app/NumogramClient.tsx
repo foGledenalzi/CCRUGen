@@ -32,6 +32,7 @@ import type { WorkerBuilt, WorkerResponse } from './lib/worker/protocol'
 import { useNumogramWorker } from './lib/worker/useNumogramWorker'
 import { PENDING_GRACE_MS } from './lib/canvas/diagramModel'
 import { sessionAfterBaseSwitch } from './lib/baseSwitch'
+import { computeDesktopStack, DESKTOP_PANEL_LEFT_X, DESKTOP_PANEL_RIGHT_X, INFO_PANEL_WIDTH, INITIAL_INFO_X, PANEL_WIDTH } from './lib/panelStack'
 import type { DemonFilter } from './lib/demonBrowser'
 import { legacyDemon } from './lib/demonBrowser'
 import {
@@ -102,12 +103,6 @@ const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
   text: 34,
   info: 34,
 }
-const DESKTOP_PANEL_BASE_Y = 64
-const DESKTOP_PANEL_GAP = 18
-const DESKTOP_PANEL_LEFT_X = 12
-const DESKTOP_PANEL_RIGHT_X = 216
-const PANEL_WIDTH = 180
-const INFO_PANEL_WIDTH = 320
 const MAX_HISTORY_ENTRIES = 80
 
 type HistorySnapshot = {
@@ -202,9 +197,10 @@ export default function NumogramPage() {
   const canvasRef = useRef<CanvasHandle | null>(null)
   const selectionAdditiveRef = useRef(false)
   const suppressNextCanvasClickRef = useRef(false)
-  const desktopPanelLayoutInitRef = useRef(false)
   const infoPanelInitRef = useRef(false)
   const [viewport, setViewport] = useState({ w: 0, h: 0 })
+  // Where the Selection column sits (right of the diagram): measured once, null until then (the stack falls back to INITIAL_INFO_X).
+  const [selectionX, setSelectionX] = useState<number | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
   const [urlSyncReady, setUrlSyncReady] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -253,6 +249,13 @@ export default function NumogramPage() {
   // runs on the cheap module-level FALLBACK_TARGET instead, its output unused.
   const { pos, ctr, svgWidth, svgHeight, tweening, switchLayout, jumpToTarget } = useLayoutTween(target ?? FALLBACK_TARGET, mayTween(base) && !reducedMotion)
   const parallax = useParallax()
+  // The desktop panel stack follows every measured panel height (todo 008); null on mobile and until the panels have measured.
+  const derivedStack = useMemo(
+    () => (viewport.w > MOBILE_SELECTOR_BREAKPOINT
+      ? computeDesktopStack(desktopPanelHeights, { selectionX: selectionX ?? INITIAL_INFO_X, vw: viewport.w })
+      : null),
+    [viewport.w, desktopPanelHeights, selectionX],
+  )
   const {
     positions: panelPositions,
     zIndexes: panelZ,
@@ -260,9 +263,8 @@ export default function NumogramPage() {
     startDrag,
     canvasPan,
     setCanvasPan,
-    setPanelPositions,
     startCanvasDrag,
-  } = usePanelDrag()
+  } = usePanelDrag(derivedStack)
   const { positions: mobilePanelPositions, onItemHeight: onMobilePanelHeight } = usePanelGroupLayout<PanelId>({
     order: PANEL_GROUP_ORDER,
     defaultHeights: PANEL_GROUP_DEFAULT_HEIGHTS,
@@ -541,12 +543,9 @@ export default function NumogramPage() {
     const rightOfDiagram = diagramRect ? Math.round(diagramRect.right + gap) : maxLeft
     const left = Math.max(margin, Math.min(rightOfDiagram, maxLeft))
 
-    setPanelPositions(prev => ({
-      ...prev,
-      info: { x: left, y: DESKTOP_PANEL_BASE_Y },
-    }))
+    setSelectionX(left)
     infoPanelInitRef.current = true
-  }, [viewport.w, setPanelPositions])
+  }, [viewport.w])
 
   // ── Callbacks ──────────────────────────────────────────────
   const toggleLayer = useCallback((l: Layer) => {
@@ -1216,37 +1215,6 @@ export default function NumogramPage() {
       return { ...prev, [id]: height }
     })
   }, [isDesktop, isMobile, onMobilePanelHeight])
-
-  useEffect(() => {
-    if (desktopPanelLayoutInitRef.current) return
-    if (!isDesktop) return
-
-    const layersH = desktopPanelHeights.layers
-    const labelsH = desktopPanelHeights.labels
-    const zonesH = desktopPanelHeights.zones
-    const regionsH = desktopPanelHeights.regions
-    const currentsH = desktopPanelHeights.currents
-    if (!(layersH && labelsH && zonesH && regionsH && currentsH)) return
-
-    const labelsY = DESKTOP_PANEL_BASE_Y + layersH + DESKTOP_PANEL_GAP
-    const zonesY = labelsY + labelsH + DESKTOP_PANEL_GAP
-    const syzY = zonesY + zonesH + DESKTOP_PANEL_GAP
-    const currentsY = DESKTOP_PANEL_BASE_Y + regionsH + DESKTOP_PANEL_GAP
-    const gatesY = currentsY + currentsH + DESKTOP_PANEL_GAP
-
-    setPanelPositions(prev => ({
-      ...prev,
-      layers: { x: DESKTOP_PANEL_LEFT_X, y: DESKTOP_PANEL_BASE_Y },
-      labels: { x: DESKTOP_PANEL_LEFT_X, y: Math.round(labelsY) },
-      zones: { x: DESKTOP_PANEL_LEFT_X, y: Math.round(zonesY) },
-      syz: { x: DESKTOP_PANEL_LEFT_X, y: Math.round(syzY) },
-      regions: { x: DESKTOP_PANEL_RIGHT_X, y: DESKTOP_PANEL_BASE_Y },
-      currents: { x: DESKTOP_PANEL_RIGHT_X, y: Math.round(currentsY) },
-      gates: { x: DESKTOP_PANEL_RIGHT_X, y: Math.round(gatesY) },
-      text: { x: DESKTOP_PANEL_RIGHT_X, y: Math.round(gatesY + (desktopPanelHeights.gates ?? 34) + DESKTOP_PANEL_GAP) },
-    }))
-    desktopPanelLayoutInitRef.current = true
-  }, [desktopPanelHeights, isDesktop, setPanelPositions])
 
   // Isolate/mute render filter (UI-05, D-19..D-24): built only when the filter is non-empty and there is a view to
   // filter (SVG tier, D-16); null means "render exactly as before" to both diagrams.

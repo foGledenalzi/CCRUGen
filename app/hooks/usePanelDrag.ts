@@ -1,49 +1,31 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { STACK_PANEL_IDS, type StackPanelId } from '../lib/panelStack'
+import {
+  activate,
+  displayedPositions,
+  dragEnd,
+  dragMove,
+  dragStart,
+  initialDragState,
+  type DragState,
+  type Point,
+} from '../lib/panelDrag'
 
-interface PanelPositions {
-  layers: { x: number; y: number }
-  labels: { x: number; y: number }
-  regions: { x: number; y: number }
-  zones: { x: number; y: number }
-  syz: { x: number; y: number }
-  currents: { x: number; y: number }
-  gates: { x: number; y: number }
-  text: { x: number; y: number }
-  info: { x: number; y: number }
+function isStackPanelId(panel: string): panel is StackPanelId {
+  return (STACK_PANEL_IDS as readonly string[]).includes(panel)
 }
 
-type PanelId = keyof PanelPositions
-
-const INITIAL_Z_INDEX: Record<PanelId, number> = {
-  layers: 40,
-  labels: 41,
-  regions: 42,
-  zones: 43,
-  currents: 44,
-  syz: 45,
-  gates: 46,
-  text: 48,
-  info: 47,
-}
-
-export function usePanelDrag() {
-  const [positions, setPositions] = useState<PanelPositions>({
-    layers: { x: 12, y: 64 },
-    labels: { x: 12, y: 206 },
-    zones: { x: 12, y: 352 },
-    syz: { x: 12, y: 916 },
-    regions: { x: 216, y: 64 },
-    currents: { x: 216, y: 258 },
-    gates: { x: 216, y: 516 },
-    text: { x: 216, y: 760 },
-    info: { x: 420, y: 64 },
-  })
-  const [zIndexes, setZIndexes] = useState<Record<PanelId, number>>(INITIAL_Z_INDEX)
-  const zCounterRef = useRef(Math.max(...Object.values(INITIAL_Z_INDEX)) + 1)
+/**
+ * Panel drag, stacking order and canvas pan. All panel logic lives in the pure reducers of app/lib/panelDrag.ts (this hook has no
+ * jsdom test); the hook holds one DragState and the displayed positions follow `derived`, the live desktop stack from
+ * app/lib/panelStack.ts (null until the panels have measured themselves, and on mobile, where the stored positions apply).
+ */
+export function usePanelDrag(derived: Readonly<Partial<Record<StackPanelId, Point>>> | null) {
+  const [state, setState] = useState<DragState>(initialDragState)
+  const positions = useMemo(() => displayedPositions(state, derived), [state, derived])
   const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 })
-  const dragRef = useRef<{
-    panel: string; startX: number; startY: number; origX: number; origY: number
-  } | null>(null)
+  // True between a header mouse down and the next mouse up, so a window mouse move with no drag costs no state update.
+  const panelDragActiveRef = useRef(false)
   const canvasDragRef = useRef<{
     startX: number; startY: number; origX: number; origY: number
   } | null>(null)
@@ -56,15 +38,14 @@ export function usePanelDrag() {
         setCanvasPan({ x: origX + (e.clientX - startX), y: origY + (e.clientY - startY) })
         return
       }
-      if (!dragRef.current) return
-      const { panel, startX, startY, origX, origY } = dragRef.current
-      const dx = e.clientX - startX
-      const dy = e.clientY - startY
-      const newPos = { x: origX + dx, y: origY + dy }
-      setPositions(prev => ({ ...prev, [panel]: newPos }))
+      if (!panelDragActiveRef.current) return
+      setState(s => dragMove(s, e.clientX, e.clientY))
     }
     const handleMouseUp = () => {
-      dragRef.current = null
+      if (panelDragActiveRef.current) {
+        panelDragActiveRef.current = false
+        setState(dragEnd)
+      }
       canvasDragRef.current = null
     }
     window.addEventListener('mousemove', handleMouseMove)
@@ -75,18 +56,13 @@ export function usePanelDrag() {
     }
   }, [])
 
+  // The drag is seeded from the DISPLAYED position: for a panel on the derived stack the stored position is not where it is drawn.
   const startDrag = useCallback((panel: string, e: React.MouseEvent) => {
-    const pos = positions[panel as keyof PanelPositions]
-    if (!pos) return
-    const id = panel as PanelId
-    setZIndexes(prev => ({ ...prev, [id]: zCounterRef.current++ }))
-    dragRef.current = {
-      panel,
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: pos.x,
-      origY: pos.y,
-    }
+    if (!isStackPanelId(panel)) return
+    const { clientX, clientY } = e
+    const seed = positions[panel]
+    panelDragActiveRef.current = true
+    setState(s => dragStart(s, panel, clientX, clientY, seed))
   }, [positions])
 
   const startCanvasDrag = useCallback((e: React.MouseEvent) => {
@@ -99,44 +75,21 @@ export function usePanelDrag() {
   }, [canvasPan])
 
   const activatePanel = useCallback((panel: string) => {
-    if (!(panel in positions)) return
-    const id = panel as PanelId
-    setZIndexes(prev => ({ ...prev, [id]: zCounterRef.current++ }))
-  }, [positions])
+    if (!isStackPanelId(panel)) return
+    setState(s => activate(s, panel))
+  }, [])
 
   const setCanvasPanValue = useCallback((next: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => {
     setCanvasPan(prev => typeof next === 'function' ? (next as (p: { x: number; y: number }) => { x: number; y: number })(prev) : next)
   }, [])
 
-  const setPanelPositions = useCallback((next: PanelPositions | ((prev: PanelPositions) => PanelPositions)) => {
-    setPositions(prev => typeof next === 'function'
-      ? (next as (p: PanelPositions) => PanelPositions)(prev)
-      : next)
-  }, [])
-
-  const stackPanels = useCallback((baseX = 10, baseY = 64, rowStep = 42) => {
-    setPositions({
-      layers: { x: baseX, y: baseY + rowStep * 0 },
-      labels: { x: baseX, y: baseY + rowStep * 1 },
-      zones: { x: baseX, y: baseY + rowStep * 2 },
-      regions: { x: baseX, y: baseY + rowStep * 3 },
-      syz: { x: baseX, y: baseY + rowStep * 4 },
-      currents: { x: baseX, y: baseY + rowStep * 5 },
-      gates: { x: baseX, y: baseY + rowStep * 6 },
-      text: { x: baseX, y: baseY + rowStep * 7 },
-      info: { x: baseX, y: baseY + rowStep * 8 },
-    })
-  }, [])
-
   return {
     positions,
-    zIndexes,
+    zIndexes: state.z,
     activatePanel,
     startDrag,
     canvasPan,
     setCanvasPan: setCanvasPanValue,
-    setPanelPositions,
     startCanvasDrag,
-    stackPanels,
   }
 }
