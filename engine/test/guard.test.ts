@@ -99,6 +99,13 @@ describe('ESLint engine boundary', () => {
     const code = "import { it } from 'vitest'\nexport const a = process.env.X\nexport { it }"
     expect(await boundaryRules(code, 'engine/test/__guard__.test.ts')).toEqual([])
   })
+
+  // Plan 07-05: the seeded naming generator must stay deterministic, so engine/naming/ is inside the override's scope.
+  it('applies the purity rules under engine/naming/', async () => {
+    for (const code of ['export const a = Math.random()', 'export const a = Date.now()']) {
+      expect(await boundaryRules(code, 'engine/naming/__guard__.ts')).toContain('no-restricted-syntax')
+    }
+  })
 })
 
 // WR-04: `include: ["**/*.ts"]` left .tsx, .mts, .cts, .js, .mjs and .cjs under engine/ outside tsc entirely.
