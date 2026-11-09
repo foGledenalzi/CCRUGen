@@ -513,6 +513,7 @@ describe('paste and go-to messages', () => {
   it('paste results', () => {
     expect(copy.pasted(5, 'c')).toBe('Pasted 5 sounds from zone c.')
     expect(copy.pastedPartial(8, 5, 'c', 3)).toBe('Pasted 8 sounds. 5 fit from zone c and 3 were not used.')
+    expect(copy.pastedPartial(6, 5, 'c', 1)).toBe('Pasted 6 sounds. 5 fit from zone c and 1 was not used.')
     expect(copy.pasteRefused('c', 'digit')).toBe("Paste not applied. Zone c: Sounds can't contain digits.")
   })
 
@@ -583,6 +584,13 @@ describe('the module source', () => {
     for (const name of ['INTERACTIVE_MAX_N', 'SOUND_MAX_LENGTH', 'NAME_MAX_LENGTH', 'SEED_MAX_LENGTH']) {
       expect(COPY_SOURCE, name).toContain(name)
     }
+  })
+
+  it('types no base and no page step as prose either: the CCRU base and the page step come from their constants', () => {
+    expect(COPY_SOURCE).not.toMatch(/\bbase 10\b/)
+    expect(COPY_SOURCE).not.toMatch(/\bjump 10 rows\b/)
+    expect(COPY_SOURCE).toContain('CCRU_LINK_BASE')
+    expect(COPY_SOURCE).toContain('ZONE_PAGE_STEP')
   })
 
   it('holds no em dash and no invisible format character', () => {
