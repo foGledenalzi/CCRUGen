@@ -65,6 +65,79 @@ describe('CyberButton: markup identity (T-05-31)', () => {
     const markup = renderToStaticMarkup(createElement(CyberButton, { active: true, shortcut: 'z', children: 'A' }))
     expect(markup).toBe(ACTIVE_MARKUP)
   })
+
+  // Plan 07-04: every new optional prop adds exactly one attribute and nothing else. Each case removes that one
+  // attribute again and compares with the pinned DEFAULT_MARKUP, so "exactly one" is proven, not just "contains".
+  it('passing every new prop as undefined renders the pinned default markup', () => {
+    const markup = renderToStaticMarkup(
+      createElement(CyberButton, {
+        ariaLabel: undefined,
+        title: undefined,
+        ariaExpanded: undefined,
+        ariaPressed: undefined,
+        dataAttrs: undefined,
+        children: 'A',
+      }),
+    )
+    expect(markup).toBe(DEFAULT_MARKUP)
+    expect(renderToStaticMarkup(createElement(CyberButton, { dataAttrs: {}, children: 'A' }))).toBe(DEFAULT_MARKUP)
+  })
+
+  it('ariaLabel adds exactly aria-label', () => {
+    const markup = renderToStaticMarkup(createElement(CyberButton, { ariaLabel: 'a', children: 'A' }))
+    expect(markup).toContain('aria-label="a"')
+    expect(markup.replace(' aria-label="a"', '')).toBe(DEFAULT_MARKUP)
+  })
+
+  it('title adds exactly title', () => {
+    const markup = renderToStaticMarkup(createElement(CyberButton, { title: 't', children: 'A' }))
+    expect(markup).toContain('title="t"')
+    expect(markup.replace(' title="t"', '')).toBe(DEFAULT_MARKUP)
+  })
+
+  it('ariaExpanded false adds exactly aria-expanded="false" (a false value is still emitted)', () => {
+    const markup = renderToStaticMarkup(createElement(CyberButton, { ariaExpanded: false, children: 'A' }))
+    expect(markup).toContain('aria-expanded="false"')
+    expect(markup.replace(' aria-expanded="false"', '')).toBe(DEFAULT_MARKUP)
+    const open = renderToStaticMarkup(createElement(CyberButton, { ariaExpanded: true, children: 'A' }))
+    expect(open).toContain('aria-expanded="true"')
+  })
+
+  it('ariaPressed true adds exactly aria-pressed="true", and false is emitted too', () => {
+    const markup = renderToStaticMarkup(createElement(CyberButton, { ariaPressed: true, children: 'A' }))
+    expect(markup).toContain('aria-pressed="true"')
+    expect(markup.replace(' aria-pressed="true"', '')).toBe(DEFAULT_MARKUP)
+    const off = renderToStaticMarkup(createElement(CyberButton, { ariaPressed: false, children: 'A' }))
+    expect(off).toContain('aria-pressed="false"')
+  })
+
+  it('dataAttrs adds exactly the data-* attribute', () => {
+    const markup = renderToStaticMarkup(createElement(CyberButton, { dataAttrs: { 'data-names-export': '' }, children: 'A' }))
+    expect(markup).toContain('data-names-export=""')
+    expect(markup.replace(' data-names-export=""', '')).toBe(DEFAULT_MARKUP)
+  })
+
+  it('dataAttrs drops keys that do not start with data- (T-07-22)', () => {
+    const markup = renderToStaticMarkup(
+      createElement(CyberButton, {
+        dataAttrs: { onclick: 'alert(1)', 'aria-x': 'y', style: 'color:red', class: 'evil', id: 'z', 'data-ok': '1' },
+        children: 'A',
+      }),
+    )
+    expect(markup).not.toContain('onclick')
+    expect(markup).not.toContain('aria-x')
+    expect(markup).not.toContain('color:red')
+    expect(markup).not.toContain('evil')
+    expect(markup).not.toContain('id="z"')
+    expect(markup.replace(' data-ok="1"', '')).toBe(DEFAULT_MARKUP)
+  })
+
+  it('the new props leave the active+shortcut markup alone too', () => {
+    const markup = renderToStaticMarkup(
+      createElement(CyberButton, { active: true, shortcut: 'z', ariaPressed: true, children: 'A' }),
+    )
+    expect(markup.replace(' aria-pressed="true"', '')).toBe(ACTIVE_MARKUP)
+  })
 })
 
 describe('CyberButton: new tab semantics', () => {
