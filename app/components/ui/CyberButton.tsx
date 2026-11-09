@@ -20,7 +20,25 @@ type CyberButtonProps = {
   selected?: boolean
   id?: string
   controls?: string
+  /** Names-panel additions (Phase 7 plan 07-04): all default to undefined and emit nothing when absent, so every existing
+   * call site renders the same DOM as before (tests/app/demonsOverlayRender.test.ts pins this). */
+  ariaLabel?: string
+  title?: string
+  ariaExpanded?: boolean
+  ariaPressed?: boolean
+  /** Extra `data-*` attributes; any key that does not start with `data-` is dropped (T-07-22). */
+  dataAttrs?: Readonly<Record<string, string>>
   children: React.ReactNode
+}
+
+/** Keeps only the entries whose key starts with `data-`, so a caller can never put an event handler, style or id on the element. */
+function dataProps(attrs?: Readonly<Record<string, string>>): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!attrs) return out
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key.startsWith('data-')) out[key] = value
+  }
+  return out
 }
 
 export function CyberButton({
@@ -38,6 +56,11 @@ export function CyberButton({
   selected,
   id,
   controls,
+  ariaLabel,
+  title,
+  ariaExpanded,
+  ariaPressed,
+  dataAttrs,
   children,
 }: CyberButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -88,6 +111,11 @@ export function CyberButton({
       id={id}
       aria-controls={controls}
       tabIndex={role === 'tab' ? (selected ? 0 : -1) : undefined}
+      aria-label={ariaLabel}
+      title={title}
+      aria-expanded={ariaExpanded}
+      aria-pressed={ariaPressed}
+      {...dataProps(dataAttrs)}
       onClick={onClick}
       disabled={disabled}
       onMouseEnter={onMouseEnter}

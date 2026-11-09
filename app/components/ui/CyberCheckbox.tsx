@@ -10,6 +10,19 @@ type CyberCheckboxProps = {
   icon?: React.ReactNode
   accent?: string
   className?: string
+  /** Extra `data-*` attributes for the input (Phase 7 plan 07-04); any key that does not start with `data-` is dropped
+   * (T-07-22). Absent, it emits nothing, so every existing call site renders the same DOM as before. */
+  dataAttrs?: Readonly<Record<string, string>>
+}
+
+/** Keeps only the entries whose key starts with `data-`, so a caller can never put an event handler, style or id on the element. */
+function dataProps(attrs?: Readonly<Record<string, string>>): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!attrs) return out
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key.startsWith('data-')) out[key] = value
+  }
+  return out
 }
 
 export function CyberCheckbox({
@@ -20,6 +33,7 @@ export function CyberCheckbox({
   icon,
   accent = '#10ff50',
   className = '',
+  dataAttrs,
 }: CyberCheckboxProps) {
   const borderActive = checked ? accent : 'rgba(75,85,99,0.55)'
   const checkedBackground = `color-mix(in srgb, ${accent} 10%, rgba(10,14,20,0.9))`
@@ -41,6 +55,7 @@ export function CyberCheckbox({
         onChange={onChange}
         disabled={disabled}
         className="sr-only"
+        {...dataProps(dataAttrs)}
       />
       {icon && (
         <span
