@@ -343,6 +343,8 @@ export default function NumogramPage() {
     demonFilter,
     demonFocus,
     demonsOpen,
+    // the naming session (plan 07-18) supplies the displayed naming's link form; until then no names= is written
+    names: null,
   }), [
     base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, regionFilter,
     packer, tierOverride, demonFilter, demonFocus, demonsOpen,

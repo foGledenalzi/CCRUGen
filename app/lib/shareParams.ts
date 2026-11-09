@@ -18,6 +18,7 @@ import type { DemonFilter } from './demonBrowser'
 import { formatDemonFocus, parseDemonFilter, parseDemonFocus, type DemonFocus } from './demonState'
 import { DEFAULT_LABEL_SCHEME, formatLabelScheme, parseLabelScheme, type LabelScheme } from './labelScheme'
 import { defaultLayoutFor, isLayoutIdFor, type ViewLayoutId } from './layoutIds'
+import { parseNamesLink, writeNamesLink, type NamesLink } from './namesLink'
 import { parseRegionId, type RegionId } from './regions'
 import { tierFor, tierOverrideFrom } from './tierBounds'
 
@@ -49,6 +50,8 @@ export interface ShareState {
   readonly demonFilter: DemonFilter | null
   readonly demonFocus: DemonFocus | null
   readonly demonsOpen: boolean
+  /** The naming a link expresses (NAM-03): a preset or a seed, or null for "the default naming of this base" (omitted from the URL). */
+  readonly names: NamesLink | null
 }
 
 /**
@@ -85,6 +88,7 @@ export function defaultShareState(base = 10): ShareState {
     demonFilter: null,
     demonFocus: null,
     demonsOpen: false,
+    names: null,
   }
 }
 
@@ -215,6 +219,10 @@ export function parseShareParams(input: string | URLSearchParams): ParsedShare {
   const demonFocus = parseDemonFocus(params.get('demonFocus'), base)
   const demonsOpen = params.get('demonsOpen') === '1'
 
+  // NAM-03: deliberately OUTSIDE the natural-tier guard above. A seed-only naming is exactly what survives above the
+  // interactive ceiling, and reading the link needs no numogram (T-07-02c), so it is never dropped and never builds one.
+  const names = parseNamesLink(params, base)
+
   return {
     state: {
       base,
@@ -234,6 +242,7 @@ export function parseShareParams(input: string | URLSearchParams): ParsedShare {
       demonFilter,
       demonFocus,
       demonsOpen,
+      names,
     },
     baseRefusal,
   }
@@ -292,6 +301,10 @@ export function buildShareParams(state: ShareState, opts: BuildShareParamsOption
   if (state.demonFilter !== null) params.set('demonFilter', state.demonFilter)
   if (state.demonFocus !== null) params.set('demonFocus', formatDemonFocus(state.demonFocus))
   if (state.demonsOpen) params.set('demonsOpen', '1')
+
+  // NAM-03: names (and its lenient companions) only when the state carries a link; null writes nothing, so every
+  // existing URL is unchanged. Written before sortedParams so the key order stays deterministic.
+  writeNamesLink(params, state.names)
 
   return sortedParams(params)
 }
