@@ -112,6 +112,23 @@ describe('constants and the barrel', () => {
   })
 })
 
+describe('the NFC shortcut of the scan', () => {
+  // collisions.ts skips normalisation for a name whose UTF-16 units are all below U+0300 (no combining mark, nothing composes).
+  // This pins that assumption for this runtime's Unicode tables: every such unit and every pair of them is already NFC.
+  it('every code unit below U+0300, alone and in any pair, is already in NFC', () => {
+    const bad: string[] = []
+    for (let x = 0; x < 0x300; x++) {
+      const one = String.fromCharCode(x)
+      if (one.normalize('NFC') !== one) bad.push(x.toString(16))
+      for (let y = 0; y < 0x300; y++) {
+        const two = one + String.fromCharCode(y)
+        if (two.normalize('NFC') !== two) bad.push(`${x.toString(16)} ${y.toString(16)}`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+})
+
 describe('provablyUnique', () => {
   it.each([28, 64, 300])('is true for the generated tables at base %i, every style, smoothing 0 and 1', base => {
     for (const style of STYLE_IDS) {
@@ -243,6 +260,16 @@ describe('the certified job (hand-checked table)', () => {
     expect(createNameResolver(naming, null).nameOf(2, 0)).toBe('Dbu')
     expect(run(naming, null)).toEqual({ groups: 1, demons: 2, list: [{ name: 'Dbu', size: 2, meshes: [0, 1] }] })
     expect(run(naming, null)).toEqual(bruteForce(naming, null))
+  })
+
+  it('does not report a text that only looks like a smoothed name (the exact name must match)', () => {
+    // with the fill vowels removed, 'Dub' and 'Dbuu' read as d + b, the join of demon 1, but its real smoothed name is Dbu
+    for (const text of ['Dub', 'Dbuu', 'Dbi']) {
+      const naming = with_([[0, text]], 'hi-lo', 1)
+      expect(createNameResolver(naming, null).nameOf(2, 0)).toBe('Dbu')
+      expect(run(naming, null)).toEqual(NONE)
+      expect(bruteForce(naming, null)).toEqual(NONE)
+    }
   })
 
   it('finds a collision in the lo-hi order', () => {
@@ -455,31 +482,56 @@ describe('bounded output with exact counts', () => {
     expect([...group.meshes]).toEqual(Array.from({ length: 16 }, (_, i) => i))
   })
 
-  it('keeps the 2,000 groups with the lowest meshes of 2,475, in mesh order, on both paths', () => {
-    // base 100: 4,950 demons, every one overridden in pairs (2k, 2k + 1) with a name whose first letter varies, so the
-    // first-letter order of a partitioned scan differs from the mesh order of the report. Inserted in descending order.
-    const pairs = 2475
+  // base 100 has 2,475 pairs of demons (the list is cut once, at the end); base 150 has 5,587 (more than twice the list bound, so
+  // the running trim and its cutoff are used too). Every pair (2k, 2k + 1) is overridden with one name whose first letter varies,
+  // so the first-letter order of a partitioned scan differs from the mesh order of the report. Inserted in descending order.
+  it.each([
+    [100, 2475],
+    [150, 5587],
+  ])('keeps the 2,000 groups with the lowest meshes at base %i (%i groups), in mesh order, on both paths', (baseN, pairs) => {
     const overrides = new Map<number, string>()
     for (let k = pairs - 1; k >= 0; k--) {
       const name = String.fromCharCode(65 + ((k * 7) % 26)) + lettersOf(k)
       overrides.set(2 * k + 1, name)
       overrides.set(2 * k, name)
     }
-    const base = createNaming({ base: 100, interactiveMaxN: CEILING })
+    const base = createNaming({ base: baseN, interactiveMaxN: CEILING })
     const naming: Naming = { ...base, overrides }
     const expected = bruteForce(naming, null)
     expect(expected.groups).toBe(pairs)
     expect(expected.demons).toBe(2 * pairs)
     expect(expected.list).toHaveLength(COLLISION_GROUPS_MAX)
+    expect(expected.list.map(g => g.meshes[0])).toEqual(Array.from({ length: COLLISION_GROUPS_MAX }, (_, i) => 2 * i))
 
     const certified = createCollisionJob(naming, null)
     expect(certified.certified).toBe(true)
     expect(certified.step(() => false)).toEqual(expected)
     const forced = forceScan(naming)
+    expect(createCollisionJob(forced.naming, forced.preset).certified).toBe(false)
     expect(run(forced.naming, forced.preset)).toEqual(expected)
+  })
+})
 
-    const got = run(forced.naming, forced.preset)
-    expect(got.list.map(g => g.meshes[0])).toEqual(Array.from({ length: COLLISION_GROUPS_MAX }, (_, i) => 2 * i))
+describe('the running trim of the group list', () => {
+  it('keeps a late group that belongs in the list: its lowest mesh falls in a one-group gap below the running cutoff', () => {
+    // Groups arrive in override insertion order (certified path). The first 4,000 groups (pairs k = 0, 2, ..., 7998 on meshes
+    // 2k and 2k + 1) fill the buffer and trigger the trim, which keeps k = 0 .. 3998. Group k = 3997 arrives afterwards: it is
+    // lower than the cutoff (k = 3998), so it must replace k = 3998 in the final list of 2,000.
+    const overrides = new Map<number, string>()
+    const add = (k: number): void => {
+      const name = 'Q' + lettersOf(k)
+      overrides.set(2 * k, name)
+      overrides.set(2 * k + 1, name)
+    }
+    for (let k = 0; k < 8000; k += 2) add(k)
+    add(3997)
+    const naming: Naming = { ...createNaming({ base: 200, interactiveMaxN: CEILING }), overrides }
+    const got = run(naming, null)
+    expect(got.groups).toBe(4001)
+    expect(got.demons).toBe(8002)
+    expect(got.list).toHaveLength(COLLISION_GROUPS_MAX)
+    expect((got.list[COLLISION_GROUPS_MAX - 1] as CollisionGroup).meshes[0]).toBe(2 * 3997)
+    expect(got).toEqual(bruteForce(naming, null))
   })
 })
 
@@ -499,6 +551,8 @@ describe('the resumable job', () => {
       if (steps > 100000) throw new Error('the job does not make progress')
     }
     expect(steps).toBeGreaterThan(1)
+    // shouldYield is asked every few hundred demons while names are computed: 44,850 demons need at least 44,850 / 512 steps
+    expect(steps).toBeGreaterThanOrEqual(Math.floor(44850 / 512))
     expect(report).toEqual(findCollisions(naming, null))
     expect(report).toEqual(bruteForce(naming, null))
     expect(job.step(() => true)).toBe(report) // finished: the same report every time
@@ -550,6 +604,8 @@ describe('refusals', () => {
     const dup = sounds.slice()
     dup[0] = sounds[1] as string
     expect(() => createCollisionJob({ ...generated, sounds: dup }, null)).toThrow(RangeError)
+    // the cap itself refused it (not only the 2^23 index guard, which holds at this base too)
+    expect(() => createCollisionJob({ ...generated, sounds: dup }, null)).toThrow(`limited to ${COLLISION_SCAN_MAX_N} zones`)
     // a ccru naming with a preset must be scanned as well
     const forced = forceScan(generated)
     expect(() => createCollisionJob(forced.naming, forced.preset)).toThrow(RangeError)

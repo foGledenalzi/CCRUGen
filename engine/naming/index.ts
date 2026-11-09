@@ -58,6 +58,18 @@ export type { SeedRecord } from './schema'
 export { validateNamingJson } from './validate'
 export type { NamingIssue, NamingImport, ValidateNamingOptions } from './validate'
 
+// Plan 07-10: name collisions (the certificate for generated tables, the resumable scan for the rest).
+export {
+  COLLISION_GROUPS_MAX,
+  COLLISION_GROUP_MESHES_MAX,
+  COLLISION_SCAN_MAX_N,
+  provablyUnique,
+  canCertify,
+  createCollisionJob,
+  findCollisions,
+} from './collisions'
+export type { CollisionGroup, CollisionReport, CollisionJob } from './collisions'
+
 export {
   editSound,
   pasteSounds,
