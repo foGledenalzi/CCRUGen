@@ -48,9 +48,9 @@ function snapshot(n: Naming): string {
 describe('editSound', () => {
   it('sets the sound (validated, NFC), locks the zone and shares the overrides Map by reference', () => {
     const n = n28()
-    const n2 = editSound(n, 3, 'Gl')
+    const n2 = editSound(n, 3, 'Bq')
     expect(n2).not.toBe(n)
-    expect(n2.sounds![3]).toBe('Gl')
+    expect(n2.sounds![3]).toBe('Bq')
     expect(n2.locks.has(3)).toBe(true)
     expect(n2.locks.size).toBe(1)
     expect(n2.overrides).toBe(n.overrides)
@@ -62,7 +62,7 @@ describe('editSound', () => {
   it('does not change its argument', () => {
     const n = n28()
     const before = snapshot(n)
-    editSound(n, 3, 'Gl')
+    editSound(n, 3, 'Bq')
     expect(snapshot(n)).toBe(before)
     expect(n.locks.size).toBe(0)
   })
@@ -72,10 +72,10 @@ describe('editSound', () => {
   })
 
   it('shares the locks Set when the zone is already locked', () => {
-    const once = editSound(n28(), 3, 'Gl')
-    const twice = editSound(once, 3, 'Zx')
+    const once = editSound(n28(), 3, 'Bq')
+    const twice = editSound(once, 3, 'Qv')
     expect(twice.locks).toBe(once.locks)
-    expect(twice.sounds![3]).toBe('Zx')
+    expect(twice.sounds![3]).toBe('Qv')
   })
 
   it('refuses an invalid sound, a zone outside the table and a non-string with a RangeError', () => {
@@ -86,7 +86,7 @@ describe('editSound', () => {
   })
 
   it('refuses a seed-only naming', () => {
-    expect(() => editSound(seedOnly(), 3, 'Gl')).toThrow(RangeError)
+    expect(() => editSound(seedOnly(), 3, 'Bq')).toThrow(RangeError)
   })
 })
 
@@ -152,13 +152,13 @@ describe('toggleLock', () => {
 
 describe('setSeed and setStyle regenerate the unlocked zones and keep the locked ones', () => {
   it('setSeed: locked zones keep their sound, the rest equals generateSounds with the locked map, source becomes generated', () => {
-    const n = editSound(editSound(n28(), 3, 'Gl'), 20, 'Zx')
+    const n = editSound(editSound(n28(), 3, 'Bq'), 20, 'Qv')
     const n2 = setSeed(n, HOLLOW)
     expect(n2.seed).toBe(HOLLOW)
     expect(n2.source).toBe('generated')
-    expect(n2.sounds![3]).toBe('Gl')
-    expect(n2.sounds![20]).toBe('Zx')
-    expect(n2.sounds).toEqual(generateSounds(createGenerator(HOLLOW, DEFAULT_STYLE), 28, new Map([[3, 'Gl'], [20, 'Zx']])))
+    expect(n2.sounds![3]).toBe('Bq')
+    expect(n2.sounds![20]).toBe('Qv')
+    expect(n2.sounds).toEqual(generateSounds(createGenerator(HOLLOW, DEFAULT_STYLE), 28, new Map([[3, 'Bq'], [20, 'Qv']])))
     expect(n2.locks).toBe(n.locks)
     expect(n2.overrides).toBe(n.overrides)
     expect(n.seed).toBe(DEFAULT_SEED) // argument untouched
@@ -174,12 +174,12 @@ describe('setSeed and setStyle regenerate the unlocked zones and keep the locked
   })
 
   it('setStyle: same rule with the new style, and refuses an unknown style', () => {
-    const n = editSound(n28(), 9, 'Gl')
+    const n = editSound(n28(), 9, 'Bq')
     const n2 = setStyle(n, 'soft')
     expect(n2.style).toBe('soft')
     expect(n2.source).toBe('generated')
-    expect(n2.sounds![9]).toBe('Gl')
-    expect(n2.sounds).toEqual(generateSounds(createGenerator(DEFAULT_SEED, 'soft'), 28, new Map([[9, 'Gl']])))
+    expect(n2.sounds![9]).toBe('Bq')
+    expect(n2.sounds).toEqual(generateSounds(createGenerator(DEFAULT_SEED, 'soft'), 28, new Map([[9, 'Bq']])))
     expect(() => setStyle(n, 'loud' as never)).toThrow(RangeError)
   })
 
@@ -272,7 +272,7 @@ describe('setSource', () => {
   const ten = (): Naming => createNaming({ base: 10, interactiveMaxN: CEILING })
 
   it('ccru loads the preset sounds, clears the locks and keeps the overrides', () => {
-    const n = setOverride(editSound(ten(), 2, 'Zx'), 1, 'Zed', null)
+    const n = setOverride(editSound(ten(), 2, 'Qv'), 1, 'Zed', null)
     const c = setSource(n, 'ccru', SYNTHETIC)
     expect(c.source).toBe('ccru')
     expect(c.sounds).toEqual([...SYNTHETIC.sounds])
@@ -284,11 +284,11 @@ describe('setSource', () => {
   })
 
   it('generated regenerates the unlocked zones and keeps the locked ones', () => {
-    const c = editSound(setSource(ten(), 'ccru', SYNTHETIC), 2, 'Zx')
+    const c = editSound(setSource(ten(), 'ccru', SYNTHETIC), 2, 'Qv')
     const g = setSource(c, 'generated', SYNTHETIC)
     expect(g.source).toBe('generated')
-    expect(g.sounds![2]).toBe('Zx')
-    expect(g.sounds).toEqual(generateSounds(createGenerator(DEFAULT_SEED, DEFAULT_STYLE), 10, new Map([[2, 'Zx']])))
+    expect(g.sounds![2]).toBe('Qv')
+    expect(g.sounds).toEqual(generateSounds(createGenerator(DEFAULT_SEED, DEFAULT_STYLE), 10, new Map([[2, 'Qv']])))
     expect(g.locks).toBe(c.locks)
     expect(g.overrides).toBe(c.overrides)
     expect(createNameResolver(g, SYNTHETIC).presetNameOf(9, 8)).toBeNull()

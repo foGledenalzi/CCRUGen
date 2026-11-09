@@ -1,5 +1,8 @@
 // NAM-02 euphony@1 (D-06): the optional smoothing pass over a raw join of two zone sounds. It is a frozen convenience, so this
 // file pins it with a vector table and properties, never with the canonical demon names (the pass does not reproduce them).
+// Inputs are NEUTRAL consonant strings: no CCRU zone sound and no canonical-name fragment appears anywhere in this file (plan 07-06
+// step A re-derived the vectors). The expected outputs come from the rule text (07-RESEARCH Pattern 4), computed by a separate
+// regex implementation that was first proved against the research-verified original vector table.
 // Independence: the inertness oracle below is written with regexes, a different mechanism from the char-code walk.
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
@@ -24,20 +27,27 @@ describe('EUPHONY_VERSION', () => {
   })
 })
 
-describe('smoothName vectors (research Appendix B)', () => {
+describe('smoothName vectors (neutral inputs, the shapes of research Appendix B)', () => {
   it.each([
-    ['tnmnm', 'tnamnam'],
-    ['kttdt', 'ktatdit'],
-    ['skrzx', 'skurzax'],
-    ['pbzx', 'pbuzxi'],
-    ['mnmdt', 'mnamdit'],
-    ['gleiaoung', 'gleiaoungu'],
-    ['eiaounggl', 'eiaoungugla'],
-    ['zxskr', 'zxiskur'],
-    ['dtktt', 'dtaktat'],
-    ['zxpb', 'zxipbu'],
-    ['dtmnm', 'dtamnam'],
-    ['mnmtn', 'mnamtan'],
+    // a leading cluster of 2 and a trailing cluster of 3, one run of 5 (chunks 2 + 2 + 1)
+    ['xgsdr', 'xgusdir'],
+    // 3 with a doubled letter, then 2
+    ['pssgb', 'psasgub'],
+    // 3 then 2
+    ['sdrtb', 'sdirtab'],
+    // 2 then 2, one run of 4 (chunks 2 + 2, so the closing rule does not fire); x is the last letter of a chunk, so its fill vowel is pinned
+    ['kxbp', 'kxibpa'],
+    ['bsrdk', 'bsardik'],
+    // a leading cluster of 2, five vowels, and a trailing cluster of two different consonants (closing vowel)
+    ['prieaoumd', 'prieaoumdi'],
+    // five vowels, then a run of 4 with a doubled letter
+    ['oeiaubllk', 'oeiaublalku'],
+    ['tbrst', 'tbursat'],
+    // 2 then 3 that ends in a doubled letter (no closing vowel)
+    ['kdlss', 'kdilsas'],
+    ['gbtb', 'gbutbu'],
+    ['lbpzr', 'lbupzar'],
+    ['mptrp', 'mpatrap'],
   ])('%s -> %s', (raw, smoothed) => {
     expect(smoothName(raw)).toBe(smoothed)
   })
@@ -45,7 +55,7 @@ describe('smoothName vectors (research Appendix B)', () => {
   it.each([
     ['abc-def'],
     ['dk pdd'],
-    ['tn1'],
+    ['xg1'],
     ['n' + cp(0x303) + 'and' + cp(0xfa)],
     [cp(0x3a9, 0x3bc, 0xe9, 0x3b3, 0x3b1)],
     [cp(0x4e2d, 0x6587)],
@@ -59,28 +69,28 @@ describe('smoothName vectors (research Appendix B)', () => {
 
 describe('smoothName rules', () => {
   it('copies vowels, short consonant runs and a name that already ends well', () => {
-    for (const s of ['a', 'e', 'ba', 'ab', 'gle', 'tona', 'oxo', 'tt', 'ky', 'yk', 'kyk']) {
-      // 'tt' ends in two identical consonants, which is allowed; none of these is changed
+    for (const s of ['a', 'e', 'ba', 'ab', 'ble', 'tona', 'oxo', 'ss', 'ky', 'yk', 'kyk']) {
+      // 'ss' ends in two identical consonants, which is allowed; none of these is changed
       expect(smoothName(s)).toBe(s)
     }
   })
 
   it('appends the fill vowel when the name ends in two different consonants', () => {
     expect(smoothName('bl')).toBe('bla')
-    expect(smoothName('agla')).toBe('agla') // already ends in a vowel
-    expect(smoothName('agl')).toBe('agla')
-    expect(smoothName('abgl')).toBe('abgul') // a run of three is chunked first (bg + fill of g), then l stands alone
-    expect(smoothName('GL')).toBe('GLA')
-    expect(smoothName('gL')).toBe('gLA')
+    expect(smoothName('abla')).toBe('abla') // already ends in a vowel
+    expect(smoothName('abl')).toBe('abla')
+    expect(smoothName('abdl')).toBe('abdil') // a run of three is chunked first (bd + fill of d), then l stands alone
+    expect(smoothName('BL')).toBe('BLA')
+    expect(smoothName('bL')).toBe('bLA')
   })
 
   it('treats the end as a pair of identical consonants regardless of case', () => {
-    expect(smoothName('tT')).toBe('tT')
-    expect(smoothName('aTt')).toBe('aTt')
+    expect(smoothName('sS')).toBe('sS')
+    expect(smoothName('aSs')).toBe('aSs')
   })
 
   it('cuts long runs into chunks of two with a fill after each full chunk', () => {
-    expect(smoothName('tttt')).toBe('ttatta')
+    expect(smoothName('ssss')).toBe('ssassa')
     expect(smoothName('xyzzy')).toBe('xyzzy')
     expect(smoothName('bcdfg')).toBe('bcadfag')
   })
@@ -94,28 +104,28 @@ describe('smoothName rules', () => {
   })
 
   it('gives the inserted vowel the case of the consonant before it', () => {
-    expect(smoothName('TNMNM')).toBe('TNAMNAM')
-    expect(smoothName('Tnmnm')).toBe('Tnamnam')
-    expect(smoothName('tNmnm')).toBe('tNAmnam')
+    expect(smoothName('XGSDR')).toBe('XGUSDIR')
+    expect(smoothName('Xgsdr')).toBe('Xgusdir')
+    expect(smoothName('xGsdr')).toBe('xGUsdir')
   })
 
   it('y is a vowel: it separates runs and has no fill', () => {
-    expect(smoothName('tnyntn')).toBe('tnyntan')
+    expect(smoothName('kdylpk')).toBe('kdylpak')
     expect(smoothName('kyt')).toBe('kyt')
-    expect(smoothName('bytnm')).toBe('bytnam')
+    expect(smoothName('bylpk')).toBe('bylpak')
   })
 
   it('has no collapse rule: three identical letters stay distinct from two', () => {
-    expect(smoothName('kppp')).toBe('kpappa')
-    expect(smoothName('kpp')).toBe('kpap')
-    expect(smoothName('kppp')).not.toBe(smoothName('kpp'))
+    expect(smoothName('kggg')).toBe('kguggu')
+    expect(smoothName('kgg')).toBe('kgug')
+    expect(smoothName('kggg')).not.toBe(smoothName('kgg'))
   })
 
   it('is linear: a very long consonant run is processed at once', () => {
     const n = 200000
-    const out = smoothName('t'.repeat(n))
+    const out = smoothName('s'.repeat(n))
     expect(out.length).toBe(n + n / 2)
-    expect(out.startsWith('ttattatta')).toBe(true)
+    expect(out.startsWith('ssassassa')).toBe(true)
   })
 })
 
@@ -230,11 +240,11 @@ describe('smoothingInert', () => {
     expect(smoothingInert(['lavedia', 'kin'])).toBe(true)
     expect(smoothingInert([''])).toBe(false)
     expect(smoothingInert(['dk'])).toBe(false) // no vowel
-    expect(smoothingInert(['gle'])).toBe(false) // leading run of two
-    expect(smoothingInert(['egl'])).toBe(false) // trailing run of two
-    expect(smoothingInert(['ekke'])).toBe(true) // an internal run of two is fine
-    expect(smoothingInert(['ekkle'])).toBe(false) // an internal run of three (kkl) is not
-    expect(smoothingInert(['ekkkle'])).toBe(false)
+    expect(smoothingInert(['ble'])).toBe(false) // leading run of two
+    expect(smoothingInert(['ebl'])).toBe(false) // trailing run of two
+    expect(smoothingInert(['esse'])).toBe(true) // an internal run of two is fine
+    expect(smoothingInert(['essle'])).toBe(false) // an internal run of three (ssl) is not
+    expect(smoothingInert(['esssle'])).toBe(false)
     expect(smoothingInert(['ke', 'ak'])).toBe(true)
     expect(smoothingInert(['ke', 'a-k'])).toBe(false) // not all letters
     expect(smoothingInert(['ke', 'a' + cp(0xe9)])).toBe(false)
