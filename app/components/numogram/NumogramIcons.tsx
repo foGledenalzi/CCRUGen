@@ -234,3 +234,19 @@ export function DemonsIcon({ clr }: IconProps) {
     </svg>
   )
 }
+
+// Names panel lock toggle (07-04, NAM-01): a padlock whose shape, not only its colour, says the state. Locked draws the
+// shackle closed on both sides of the body; unlocked raises it and leaves the right side unjoined (open).
+export function LockIcon({ clr, locked }: { clr: string; locked: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="6" y="11" width="12" height="9" rx="1" stroke={clr} strokeWidth="1.1" />
+      {locked ? (
+        <path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" stroke={clr} strokeWidth="1.1" strokeLinecap="round" />
+      ) : (
+        <path d="M8.5 11V6a3.5 3.5 0 0 1 7 0v1" stroke={clr} strokeWidth="1.1" strokeLinecap="round" />
+      )}
+      <circle cx="12" cy="15.5" r="1.2" fill={clr} opacity="0.6" />
+    </svg>
+  )
+}

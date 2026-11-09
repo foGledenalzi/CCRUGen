@@ -93,6 +93,24 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   padding-right: 16px;
 }
 
+/* Names panel field modifiers (07-04). Quiet: a grey idle underline and no right padding, for fields that repeat (the
+   zone sound rows); the existing focus-within gradient above still marks the focused field. Invalid: a red underline
+   that also replaces the green focus gradient (doubled class = higher specificity than the focus-within rule). */
+.ui-terminal-field--quiet {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  padding-right: 0;
+}
+
+.ui-terminal-field.ui-terminal-field--invalid {
+  border-bottom-color: #f87171;
+}
+
+.ui-terminal-field.ui-terminal-field--invalid::after,
+.ui-terminal-field.ui-terminal-field--invalid:focus-within::after {
+  background: #f87171;
+  opacity: 1;
+}
+
 .ui-terminal-input {
   background: transparent;
   border: none;

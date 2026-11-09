@@ -1,12 +1,15 @@
 // Markup identity for CyberRadio and CyberCheckbox (plan 07-04, T-07-13, T-07-22). The default strings below were
 // captured from the UNMODIFIED components before plan 07-04's edit and are frozen: never re-capture them to make a test
 // pass. Each new optional prop, when given, must add exactly its one attribute (or one class), checked by removing it
-// again and comparing with the frozen string.
+// again and comparing with the frozen string. The same file also covers LockIcon and the two new field modifier classes
+// in app/globals.css (no existing rule edited).
+import { readFileSync } from 'node:fs'
 import { createElement, type ComponentProps } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { CyberRadio } from '../../app/components/ui/CyberRadio'
 import { CyberCheckbox } from '../../app/components/ui/CyberCheckbox'
+import { LockIcon } from '../../app/components/numogram/NumogramIcons'
 
 const noop = () => {}
 
@@ -138,5 +141,102 @@ describe('CyberCheckbox: the new prop adds exactly one thing', () => {
     expect(markup).not.toContain('color:red')
     expect(markup).not.toContain('evil')
     expect(markup.replace(' data-ok="1"', '')).toBe(DEFAULT_CHECKBOX_MARKUP)
+  })
+})
+
+// ── LockIcon (plan 07-04, NAM-01): the two states differ by shape, not only by colour ──────────────────────────────
+
+describe('LockIcon: closed shackle when locked, open and raised when not', () => {
+  const COLOUR = '#12ab34'
+  const lock = (locked: boolean): string => renderToStaticMarkup(createElement(LockIcon, { clr: COLOUR, locked }))
+  // The shackle path of each state, spelled out so the two stay distinguishable.
+  const CLOSED = 'M8.5 11V8a3.5 3.5 0 0 1 7 0v3'
+  const OPEN = 'M8.5 11V6a3.5 3.5 0 0 1 7 0v1'
+
+  it('locked draws the closed shackle and not the open one', () => {
+    const markup = lock(true)
+    expect(markup).toContain('M8.5 11V8')
+    expect(markup).not.toContain('M8.5 11V6')
+    expect(markup).toContain(`d="${CLOSED}"`)
+  })
+
+  it('unlocked draws the open shackle and not the closed one', () => {
+    const markup = lock(false)
+    expect(markup).toContain('M8.5 11V6')
+    expect(markup).not.toContain('M8.5 11V8')
+    expect(markup).toContain(`d="${OPEN}"`)
+  })
+
+  it('the closed shackle returns to the body on the right (v3) and the open one stops short of it (v1)', () => {
+    expect(CLOSED.endsWith('v3')).toBe(true)
+    expect(OPEN.endsWith('v1')).toBe(true)
+  })
+
+  it('both states carry the given colour on the body, the shackle and the accent dot', () => {
+    for (const locked of [true, false]) {
+      const markup = lock(locked)
+      expect(markup.split(`stroke="${COLOUR}"`).length - 1).toBe(2)
+      expect(markup).toContain(`fill="${COLOUR}"`)
+    }
+  })
+
+  it('is a decorative 14px glyph (aria-hidden) so the lock button keeps its own accessible name', () => {
+    const markup = lock(true)
+    expect(markup).toContain('aria-hidden="true"')
+    expect(markup).toContain('width="14"')
+    expect(markup).toContain('height="14"')
+    expect(markup).toContain('viewBox="0 0 24 24"')
+  })
+
+  it('the two states are different markup', () => {
+    expect(lock(true)).not.toBe(lock(false))
+  })
+})
+
+// ── The two field modifier classes in app/globals.css (plan 07-04, UI-SPEC Color) ─────────────────────────────────
+
+describe('globals.css: ui-terminal-field--quiet and --invalid are added without editing the base rules', () => {
+  const css = readFileSync(new URL('../../app/globals.css', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  const baseStart = css.indexOf('.ui-terminal-field {')
+  // The original block, spelled out: if anyone edits an existing rule this fails.
+  const BASE_BLOCK =
+    '.ui-terminal-field {\n  position: relative;\n  display: block;\n  padding-right: 14px;\n  border-bottom: 1px solid rgba(16, 255, 80, 0.35);\n}'
+
+  it('finds the base .ui-terminal-field block and it still has padding-right 14px', () => {
+    expect(baseStart).toBeGreaterThanOrEqual(0)
+    const block = css.slice(baseStart, css.indexOf('}', baseStart) + 1)
+    expect(block).toContain('padding-right: 14px')
+    expect(block).toBe(BASE_BLOCK)
+  })
+
+  it('the focus-within gradient rule is unchanged', () => {
+    expect(css).toContain('.ui-terminal-field:focus-within::after {\n  opacity: 1;\n}')
+    expect(css).toContain('background: linear-gradient(90deg, rgba(16,255,80,0.7), rgba(16,255,80,0.08));')
+  })
+
+  it('both new selectors appear after the first .ui-terminal-field { occurrence', () => {
+    const quiet = css.indexOf('.ui-terminal-field--quiet {')
+    const invalid = css.indexOf('.ui-terminal-field.ui-terminal-field--invalid {')
+    const invalidAfter = css.indexOf('.ui-terminal-field.ui-terminal-field--invalid::after')
+    expect(quiet).toBeGreaterThan(baseStart)
+    expect(invalid).toBeGreaterThan(baseStart)
+    expect(invalidAfter).toBeGreaterThan(baseStart)
+  })
+
+  it('--quiet is a grey idle underline with no right padding', () => {
+    const at = css.indexOf('.ui-terminal-field--quiet {')
+    const block = css.slice(at, css.indexOf('}', at) + 1)
+    expect(block).toContain('border-bottom-color: rgba(255, 255, 255, 0.12);')
+    expect(block).toContain('padding-right: 0;')
+  })
+
+  it('--invalid is a red underline that beats the focus gradient (idle and focused)', () => {
+    const at = css.indexOf('.ui-terminal-field.ui-terminal-field--invalid {')
+    expect(css.slice(at, css.indexOf('}', at) + 1)).toContain('border-bottom-color: #f87171;')
+    const afterAt = css.indexOf('.ui-terminal-field.ui-terminal-field--invalid::after,')
+    const afterBlock = css.slice(afterAt, css.indexOf('}', afterAt) + 1)
+    expect(afterBlock).toContain('.ui-terminal-field.ui-terminal-field--invalid:focus-within::after')
+    expect(afterBlock).toContain('background: #f87171;')
+    expect(afterBlock).toContain('opacity: 1;')
   })
 })
