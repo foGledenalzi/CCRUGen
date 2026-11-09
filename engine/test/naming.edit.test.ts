@@ -183,6 +183,16 @@ describe('setSeed and setStyle regenerate the unlocked zones and keep the locked
     expect(() => setStyle(n, 'loud' as never)).toThrow(RangeError)
   })
 
+  it('setSeed and setStyle leave source ccru: the preset is replaced by generated sounds and its layer stops applying', () => {
+    const c = setSource(createNaming({ base: 10, interactiveMaxN: CEILING }), 'ccru', SYNTHETIC)
+    expect(c.source).toBe('ccru')
+    for (const next of [setSeed(c, HOLLOW), setStyle(c, 'soft')]) {
+      expect(next.source).toBe('generated')
+      expect(next.sounds).not.toEqual([...SYNTHETIC.sounds])
+      expect(createNameResolver(next, SYNTHETIC).presetNameOf(9, 8)).toBeNull()
+    }
+  })
+
   it.each([28, 666])('property: random lock sets at base %i survive setSeed and setStyle and the table stays distinct', base => {
     const gen = createGenerator(HOLLOW, DEFAULT_STYLE)
     const softGen = createGenerator(DEFAULT_SEED, 'soft')

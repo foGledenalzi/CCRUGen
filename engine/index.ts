@@ -32,3 +32,4 @@ export type {
 } from './core/types'
 export * from './layout/index'
 export * from './scene/index'
+export * from './naming/index'
