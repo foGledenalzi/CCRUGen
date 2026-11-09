@@ -170,6 +170,15 @@ describe('parseShareParams', () => {
     expect(parseShareParams('?labels=custom:abca').state.labels).toEqual({ mode: 'digits' })
   })
 
+  it('labels=sounds reads the sounds scheme and builds back to labels=sounds (NAM-03)', () => {
+    expect(parseShareParams('?labels=sounds').state.labels).toEqual({ mode: 'sounds' })
+    expect(parseShareParams('?base=28&labels=sounds').state.labels).toEqual({ mode: 'sounds' })
+    const state = { ...defaultShareState(28), labels: { mode: 'sounds' } as LabelScheme }
+    expect(buildShareParams(state).toString()).toBe('base=28&labels=sounds')
+    // A fresh digits state still builds no labels= at all.
+    expect(buildShareParams(defaultShareState(28)).has('labels')).toBe(false)
+  })
+
   it('packer accepts a known value and falls back to shelf otherwise', () => {
     expect(parseShareParams('?packer=spiral').state.packer).toBe('spiral')
     expect(parseShareParams('?packer=zig').state.packer).toBe('shelf')
@@ -412,6 +421,7 @@ describe('round trip', () => {
   const LABEL_SCHEMES: readonly LabelScheme[] = [
     { mode: 'digits' },
     { mode: 'xeno' },
+    { mode: 'sounds' },
     ...ALPHABET_PRESET_IDS.map((preset) => ({ mode: 'preset', preset }) as LabelScheme),
   ]
 

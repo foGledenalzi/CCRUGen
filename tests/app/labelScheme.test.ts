@@ -1,12 +1,14 @@
 // Tests for app/lib/labelScheme.ts (UI-03, D-08, D-09, D-11, D-13): every zone label the app can show, and the
 // labels= URL form. Behaviour pinned from 04-02-PLAN.md.
 import { describe, expect, it } from 'vitest'
+import { formatNumeral } from '../../engine/index'
 import {
   DEFAULT_LABEL_SCHEME,
   formatLabelScheme,
   formatZoneLabel,
   labelSchemeKey,
   parseLabelScheme,
+  schemeAlphabet,
   zoneLabelsFor,
 } from '../../app/lib/labelScheme'
 import type { LabelScheme } from '../../app/lib/labelScheme'
@@ -58,6 +60,54 @@ describe('zoneLabelsFor', () => {
   })
 })
 
+// NAM-03 (D-03, UI-SPEC decision 10): sounds is a label MODE, not a label source. Every zone label stays the digit
+// label in every existing slot; the node label slot reads the naming's sounds separately (plan 07-12).
+describe('sounds mode', () => {
+  const SOUNDS: LabelScheme = { mode: 'sounds' }
+
+  it('has no alphabet', () => {
+    expect(schemeAlphabet(SOUNDS)).toBeNull()
+  })
+
+  it('formatZoneLabel is the engine numeral at every base', () => {
+    expect(formatZoneLabel(12, 28, SOUNDS)).toBe(formatNumeral(12, 28))
+    expect(formatZoneLabel(12, 28, SOUNDS)).toBe('c')
+    expect(formatZoneLabel(5, 10, SOUNDS)).toBe('5')
+    expect(formatZoneLabel(36, 38, SOUNDS)).toBe(formatNumeral(36, 38))
+    expect(formatZoneLabel(0, 10, SOUNDS)).toBe('0')
+    expect(formatZoneLabel(57, 202, SOUNDS)).toBe(formatZoneLabel(57, 202, DEFAULT_LABEL_SCHEME))
+  })
+
+  it('zoneLabelsFor deep-equals the digit labels at several bases', () => {
+    for (const base of [2, 10, 28, 40, 66, 202]) {
+      expect(zoneLabelsFor(base, SOUNDS)).toEqual(zoneLabelsFor(base, { mode: 'digits' }))
+    }
+    expect(zoneLabelsFor(28, SOUNDS)).toHaveLength(28)
+  })
+
+  it('formats as labels=sounds, parses back, and is distinct from digits and xeno', () => {
+    expect(formatLabelScheme(SOUNDS)).toBe('sounds')
+    expect(parseLabelScheme('sounds')).toEqual(SOUNDS)
+    expect(labelSchemeKey(SOUNDS)).toBe('sounds')
+    expect(labelSchemeKey(SOUNDS)).not.toBe(labelSchemeKey({ mode: 'digits' }))
+    expect(labelSchemeKey(SOUNDS)).not.toBe(labelSchemeKey({ mode: 'xeno' }))
+  })
+
+  it('the parse is exact: other spellings fall back to the default', () => {
+    for (const raw of ['Sounds', 'SOUNDS', 'sound', 'sounds ', ' sounds', 'sounds:x', 'sounds=1']) {
+      expect(parseLabelScheme(raw), raw).toEqual(DEFAULT_LABEL_SCHEME)
+    }
+  })
+
+  it('round-trips through URLSearchParams', () => {
+    const sent = new URLSearchParams()
+    const formatted = formatLabelScheme(SOUNDS)
+    if (formatted !== null) sent.set('labels', formatted)
+    expect(sent.toString()).toBe('labels=sounds')
+    expect(parseLabelScheme(new URLSearchParams(sent.toString()).get('labels'))).toEqual(SOUNDS)
+  })
+})
+
 describe('URL form', () => {
   it('formatLabelScheme: digits is omitted (null), the others are one string form', () => {
     expect(formatLabelScheme({ mode: 'digits' })).toBeNull()
@@ -84,6 +134,7 @@ describe('URL form', () => {
     const cases: LabelScheme[] = [
       { mode: 'digits' },
       { mode: 'xeno' },
+      { mode: 'sounds' },
       { mode: 'preset', preset: 'base62' },
       { mode: 'custom', chars: ['a', 'b', 'c'] },
     ]
@@ -99,15 +150,17 @@ describe('URL form', () => {
   it('labelSchemeKey is stable for equal schemes and distinct across modes/values', () => {
     const digits: LabelScheme = { mode: 'digits' }
     const xeno: LabelScheme = { mode: 'xeno' }
+    const sounds: LabelScheme = { mode: 'sounds' }
     const presetA: LabelScheme = { mode: 'preset', preset: 'base62' }
     const presetB: LabelScheme = { mode: 'preset', preset: 'ascii' }
     const customA: LabelScheme = { mode: 'custom', chars: ['a', 'b'] }
     const customB: LabelScheme = { mode: 'custom', chars: ['a', 'c'] }
 
     expect(labelSchemeKey(digits)).toBe(labelSchemeKey({ mode: 'digits' }))
+    expect(labelSchemeKey(sounds)).toBe(labelSchemeKey({ mode: 'sounds' }))
     expect(labelSchemeKey(customA)).toBe(labelSchemeKey({ mode: 'custom', chars: ['a', 'b'] }))
 
-    const keys = [digits, xeno, presetA, presetB, customA, customB].map(labelSchemeKey)
+    const keys = [digits, xeno, sounds, presetA, presetB, customA, customB].map(labelSchemeKey)
     expect(new Set(keys).size).toBe(keys.length)
   })
 })

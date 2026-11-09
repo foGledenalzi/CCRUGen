@@ -85,6 +85,15 @@ describe('protocol: resultKey', () => {
     expect(resultKey(28, 'ring', 'spiral', DIGITS)).not.toBe(base)
     expect(resultKey(28, 'ring', 'shelf', { mode: 'xeno' })).not.toBe(base)
   })
+
+  // NAM-03 (D-03): sounds is a real fourth label mode. Its key must differ from digits (the echoed request labels re-set the
+  // scheme, so normalising it away would revert the visitor's choice); the cost is one cheap worker rebuild on a toggle.
+  it('differs between digits and sounds for the same base, layout and packer', () => {
+    const SOUNDS: LabelScheme = { mode: 'sounds' }
+    expect(resultKey(28, 'ring', 'shelf', SOUNDS)).toBe('28:ring:shelf:sounds')
+    expect(resultKey(28, 'ring', 'shelf', SOUNDS)).not.toBe(resultKey(28, 'ring', 'shelf', DIGITS))
+    expect(resultKey(202, 'ring', 'spiral', SOUNDS)).not.toBe(resultKey(202, 'ring', 'spiral', DIGITS))
+  })
 })
 
 describe('protocol: isWorkerRequest', () => {
@@ -94,6 +103,7 @@ describe('protocol: isWorkerRequest', () => {
     const schemes: LabelScheme[] = [
       { mode: 'digits' },
       { mode: 'xeno' },
+      { mode: 'sounds' },
       { mode: 'preset', preset: 'base62' },
       { mode: 'custom', chars: ['a', 'b', 'c'] },
     ]
@@ -131,6 +141,8 @@ describe('protocol: isWorkerRequest', () => {
     ['array labels', { ...request(), labels: [] }],
     ['labels with no mode', { ...request(), labels: {} }],
     ['labels with an unknown mode', { ...request(), labels: { mode: 'weird' } }],
+    ['labels with a near-miss mode (the check is exact)', { ...request(), labels: { mode: 'Sounds' } }],
+    ['labels with the plural-less mode', { ...request(), labels: { mode: 'sound' } }],
     ['a preset label scheme with an unknown preset', { ...request(), labels: { mode: 'preset', preset: 'nope' } }],
     ['a custom label scheme without chars', { ...request(), labels: { mode: 'custom' } }],
     ['a custom label scheme with a non-string char', { ...request(), labels: { mode: 'custom', chars: ['a', 2] } }],
@@ -198,6 +210,26 @@ describe('buildResult: base 28, ring, shelf, digits', () => {
     expect(xeno.labels).toEqual({ mode: 'xeno' })
     expect(xeno.key).toBe(resultKey(28, 'ring', 'shelf', { mode: 'xeno' }))
     expect(xeno.key).not.toBe(res.key)
+  })
+
+  // NAM-03 (D-03): the worker accepts the sounds scheme (no build-failed revert at a Canvas base) and every zone label it
+  // renders stays a digit, because the node label slot reads the naming's sounds separately (plan 07-12).
+  it('accepts the sounds scheme, echoing it, with digit zone labels in the text', () => {
+    const sounds: LabelScheme = { mode: 'sounds' }
+    const res2 = built(handleRequest(request({ labels: sounds })))
+    expect(res2.labels).toEqual(sounds)
+    expect(res2.key).toBe(resultKey(28, 'ring', 'shelf', sounds))
+    expect(res2.key).not.toBe(res.key)
+    expect(res2.text).toBe(res.text)
+    expect(res2.text).toBe(numogramText(g, z => formatZoneLabel(z, 28, sounds)))
+  })
+
+  it('accepts the sounds scheme at a Canvas base too (no build-failed revert)', () => {
+    const sounds: LabelScheme = { mode: 'sounds' }
+    for (const base of [202, INTERACTIVE_MAX_N]) {
+      const out = handleRequest(request({ base, labels: sounds, wantScene: false }))
+      expect(built(out).labels).toEqual(sounds)
+    }
   })
 
   it('has closed-form facet counts as plain objects', () => {
