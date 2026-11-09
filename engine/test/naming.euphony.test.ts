@@ -67,7 +67,9 @@ describe('smoothName rules', () => {
 
   it('appends the fill vowel when the name ends in two different consonants', () => {
     expect(smoothName('gl')).toBe('gla')
-    expect(smoothName('abgl')).toBe('abgla')
+    expect(smoothName('agla')).toBe('agla') // already ends in a vowel
+    expect(smoothName('agl')).toBe('agla')
+    expect(smoothName('abgl')).toBe('abgul') // a run of three is chunked first (bg + fill of g), then l stands alone
     expect(smoothName('GL')).toBe('GLA')
     expect(smoothName('gL')).toBe('gLA')
   })
@@ -230,8 +232,9 @@ describe('smoothingInert', () => {
     expect(smoothingInert(['tn'])).toBe(false) // no vowel
     expect(smoothingInert(['gle'])).toBe(false) // leading run of two
     expect(smoothingInert(['egl'])).toBe(false) // trailing run of two
-    expect(smoothingInert(['ekkle'])).toBe(true) // an internal run of two is fine
-    expect(smoothingInert(['ekkkle'])).toBe(false) // an internal run of three is not
+    expect(smoothingInert(['ekke'])).toBe(true) // an internal run of two is fine
+    expect(smoothingInert(['ekkle'])).toBe(false) // an internal run of three (kkl) is not
+    expect(smoothingInert(['ekkkle'])).toBe(false)
     expect(smoothingInert(['ke', 'ak'])).toBe(true)
     expect(smoothingInert(['ke', 'a-k'])).toBe(false) // not all letters
     expect(smoothingInert(['ke', 'a' + cp(0xe9)])).toBe(false)
