@@ -7,11 +7,19 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { createNumogram, DEMON_SUBTYPES, DEMON_TYPES, PACKERS, type RenderTier } from '../../engine/index'
+import {
+  createNumogram,
+  DEMON_SUBTYPES,
+  DEMON_TYPES,
+  PACKERS,
+  STYLE_IDS,
+  type RenderTier,
+} from '../../engine/index'
 import { ALPHABET_PRESET_IDS } from '../../app/lib/customAlphabet'
 import { demonFocusOf, zoneFocus, type DemonFocus } from '../../app/lib/demonState'
 import type { LabelScheme } from '../../app/lib/labelScheme'
 import { layoutIdsForBase } from '../../app/lib/layoutIds'
+import type { NamesLink } from '../../app/lib/namesLink'
 import { regionRows } from '../../app/lib/regions'
 import {
   DEFAULT_LAYERS,
@@ -61,6 +69,7 @@ describe('parseShareParams', () => {
       demonFilter: null,
       demonFocus: null,
       demonsOpen: false,
+      names: null,
     })
   })
 
@@ -417,6 +426,19 @@ describe('round trip', () => {
     return fc.oneof(zoneArb, pairArb)
   }
 
+  // The naming link: none, a seed link at any base, and the CCRU preset link only where it is honoured (base 10).
+  function namesArb(base: number): fc.Arbitrary<NamesLink | null> {
+    const seedLinkArb: fc.Arbitrary<NamesLink> = fc.record({
+      kind: fc.constant('seed' as const),
+      seed: fc.constantFrom('ccrug', 'a', 'a&b=c', '100%', 'x+y', 'sigil: one', '漢字', String.fromCodePoint(0x1f600), 'a'.repeat(64)),
+      style: fc.constantFrom(...STYLE_IDS),
+      join: fc.constantFrom('hi-lo' as const, 'lo-hi' as const),
+      smoothing: fc.constantFrom(0 as const, 1 as const),
+    })
+    const ccruArb: fc.Arbitrary<NamesLink> = fc.constant({ kind: 'ccru' as const })
+    return fc.option(base === 10 ? fc.oneof(seedLinkArb, ccruArb) : seedLinkArb, { nil: null })
+  }
+
   function arbitraryState(base: number): fc.Arbitrary<ShareState> {
     const g = createNumogram(base)
     const regionIds = regionRows(g).map((r) => r.id)
@@ -438,6 +460,7 @@ describe('round trip', () => {
         demonFilter: fc.option(fc.constantFrom(...DEMON_FILTERS), { nil: null }),
         demonFocus: fc.option(demonFocusArb(base), { nil: null }),
         demonsOpen: fc.boolean(),
+        names: namesArb(base),
       })
       .map(
         (partial): ShareState => ({
@@ -458,6 +481,7 @@ describe('round trip', () => {
           demonFilter: partial.demonFilter,
           demonFocus: partial.demonFocus,
           demonsOpen: partial.demonsOpen,
+          names: partial.names,
         }),
       )
   }
@@ -482,6 +506,7 @@ describe('round trip', () => {
           expect(parsed.demonFilter).toBe(state.demonFilter)
           expect(parsed.demonFocus).toEqual(state.demonFocus)
           expect(parsed.demonsOpen).toBe(state.demonsOpen)
+          expect(parsed.names).toEqual(state.names)
           if (state.layout === 'planetary') {
             expect(parsed.date).toBe(state.date)
             expect(parsed.orbits).toBe(state.orbits)
