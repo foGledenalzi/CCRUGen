@@ -218,7 +218,7 @@ Plans:
 - [x] 07-07-PLAN.md - Live desktop stack wired into usePanelDrag and NumogramClient; panel-stack e2e and the todo 008 regression (wave 2)
 - [x] 07-08-PLAN.md - Versioned JSON ccrug.naming/1 serializer and the hand-written, prototype-safe, capped validator (wave 3)
 - [x] 07-09-PLAN.md - names= link codec (preset or seed only) in shareParams, labels=sounds mode and the worker guard (wave 3)
-- [ ] 07-10-PLAN.md - Collision certificate for generated tables and the resumable partitioned scan (wave 4)
+- [x] 07-10-PLAN.md - Collision certificate for generated tables and the resumable partitioned scan (wave 4)
 - [ ] 07-11-PLAN.md - CCRU preset adapter by reference, naming limits, the single Names copy module (wave 4)
 - [ ] 07-12-PLAN.md - Shared sound-label fit, SVG sounds label slot, Sounds radio and Labels panel wording (wave 5)
 - [ ] 07-13-PLAN.md - Per-base localStorage slot, naming session (defaults, preview/adopt, actions, history helpers), NamingContext (wave 5)
@@ -280,5 +280,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
 | 6. Canvas Tier and Worker | 15/15 | Complete    | 2026-10-19 |
-| 7. Naming Builder | 9/25 | In Progress | - |
+| 7. Naming Builder | 10/25 | In Progress | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |
