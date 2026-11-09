@@ -844,6 +844,36 @@ describe('validateNamingJson: overrides', () => {
     expect(res.naming.overrides.size).toBe(1)
   })
 
+  it('reads own properties only: a polluted Object.prototype adds no locks, overrides or meta to a file that has none', () => {
+    const d = docOf()
+    delete d.locks
+    delete d.overrides
+    const text = JSON.stringify(d)
+    const before = protoNames()
+    const polluted = Object.prototype as Record<string, unknown>
+    const names = ['locks', 'overrides', 'meta', 'zones'] as const
+    for (const name of names) {
+      Object.defineProperty(Object.prototype, name, {
+        value: name === 'overrides' ? { '1': 'Pol' } : name === 'meta' ? { title: 'P' } : name === 'locks' ? [1, 2] : ['x'],
+        configurable: true,
+        enumerable: false,
+        writable: true,
+      })
+    }
+    let res: NamingImport
+    try {
+      res = run(text)
+    } finally {
+      for (const name of names) delete polluted[name]
+    }
+    expect(protoNames()).toBe(before)
+    const ok = acceptance(res)
+    expect(ok.naming.locks.size).toBe(0)
+    expect(ok.naming.overrides.size).toBe(0)
+    expect(ok.naming.meta).toBeNull()
+    expect(ok.naming.sounds).toHaveLength(28)
+  })
+
   it('refuses a bad value with its mesh number and reason', () => {
     const d = docOf()
     d.overrides = { '44': 'Na me', '45': '', '46': 'ab1', '47': 'x'.repeat(33), '48': 5, '49': null, '50': ['a'], '51': { a: 1 }, '52': 'ab‮cd' }
