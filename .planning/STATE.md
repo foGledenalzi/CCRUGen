@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-08-PLAN.md
-last_updated: "2026-11-09T22:40:00.000Z"
-last_activity: 2026-11-09 -- Completed 07-08 (ccrug.naming/1 serializer and the prototype-safe validator)
+stopped_at: Completed 07-09-PLAN.md
+last_updated: "2026-11-09T22:58:00.000Z"
+last_activity: 2026-11-09 -- Completed 07-09 (names= link codec and labels=sounds mode)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 82
+  completed_plans: 83
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 9 of 25 (07-01 to 07-08 complete; 07-09, the names= link codec, labels=sounds mode and the worker guard, is next)
+Plan: 10 of 25 (07-01 to 07-09 complete; 07-10, the collision certificate and the resumable partitioned scan, is next)
 Status: Executing Phase 7
-Last activity: 2026-11-09 -- Completed 07-08 (ccrug.naming/1 serializer and the prototype-safe validator)
+Last activity: 2026-11-09 -- Completed 07-09 (names= link codec and labels=sounds mode)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 82
+- Total plans completed: 83
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -133,6 +133,7 @@ Progress: [███████░░░] 75%
 | Phase 07 P02 | ~25min | 2 tasks | 4 files |
 | Phase 07 P05 | ~20min | 2 tasks | 8 files |
 | Phase 07 P08 | ~18min | 2 tasks | 4 files |
+| Phase 07 P09 | ~16min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -239,6 +240,7 @@ Recent decisions affecting current work:
 - [Phase 7 P07] Live desktop panel stack wired in (NAM-01 groundwork, D-01, todo 008 behaviour fixed; NAM-01 stays Pending until the Names panel mounts in 07-21): NumogramClient derives the stack with computeDesktopStack from desktopPanelHeights and selectionX (the info init effect's `left`, INITIAL_INFO_X until measured) on every height change, the one-shot layout effect and the six local layout constants are gone, and usePanelDrag(derivedStack) holds one DragState over the 07-03 reducers (displayed positions, drag seeded from the displayed position, moved on the first move, z never above 69; setPanelPositions and the dead stackPanels deleted; a ref mirrors an active drag so a mouse move with no drag costs no state update); base-10 placement proven identical by diffing every panel box (x, y, width, height) of the plan-base build against the new build at 1440x900, 1280x800, 1280x900 and 1024x768, and at base 28 the old build left Currents at 227 over Regions (64 to 250) while the new stack gives Currents 268; e2e/panel-stack.spec.ts (9 tests) and 3 todo 008 test cases in e2e/region-legend.spec.ts (a real mouse click on every Torque, Warp and Plex Isolate/Mute at base 202 at 1280x800 and 1440x900) pass, three clean repeats of the six layout-sensitive specs (59 passed each); three mutants killed (stack computed once: 7 tests fail; drag seeded from the stored position: both drag tests; Z_CAP 79: the z test); test:swap green after the NumogramClient edit (65 passed, 5 skipped, 2848 unit tests) and MSYS_NO_PATHCONV=1 npm run verify exit 0 (e2e 255 passed and 183 skipped, page-weight OK without an update); no existing spec changed, no frozen oracle touched; 07-21 must add `names` to PANEL_GROUP_DEFAULT_HEIGHTS/PanelId so its height reaches the stack
 - [Phase 7 P06] Style-bank contact sheet, user sign-off and digest pin shipped (NAM-01 groundwork, D-04, orchestrator decision 1; NAM-01 stays Pending until the editable table and import/export land): scripts/naming-sheet/build.ts is the pure deterministic buildNamingSheet() (three styles x seeds ccrug and hollow-vector x bases 10, 28, 64, 666, 4000: zone grids, 24 demon names per base raw and smoothed side by side with the inserted vowels marked, shape statistics over up to 400 names, smoothingInert, lazy samples at zones 65535, 1048576 and 67108863; 161,469 bytes, sha256 prefix 08ee872c19a8, no script or network reference, opened in headless Chromium without an error) and scripts/naming-sheet.ts writes it to the gitignored .review/naming-sheet.html. Blocking checkpoint, round 1: the user approved the style character of all three banks as shown and chose to DROP the eight verbatim CCRU zone sounds from the harsh bank (NOTICE section 3); the eight leaves were replaced in place by sdr pdd lkk mnn and kd xg gb tb (none a fragment of a canonical demon name), bank sizes unchanged (harsh 80/67, soft 60/66, syllabic 64/78) so the generator limit 2,779,058,227 and the 15-letter longest sound did not move, and the doubled-letter share of harsh sounds rose from about 1.5 to about 3 to 5 percent (originals 11 percent) with length and vowel statistics unchanged. Round 2: the user approved the revised bank on 2026-11-09 and chose to re-derive the twelve pinned euphony vectors with neutral inputs (a separate regex implementation of the rule text matched all twelve research vectors and the engine on 1,000,000 random strings, then computed the new table; euphony@1 rules and version unchanged; eight euphony mutants killed). tests/presets/naming-banks-lore.test.ts compares every syllable, every depth 1 and 2 sound and every generated table (3 styles x 2 seeds x 5 bases) with the ten ZONE_PARTICLE strings by import (0 hits; a mutant reinstating one is killed by 3 tests) and lives under tests/presets because the engine lint forbids importing app/; the zone-sound, base-10-join and canonical-name examples in the derive, text, edit and euphony tests are neutral (the only remaining lore strings under engine/ and scripts/ are the sentinel names of the worker-chunk leak detector). engine/test/naming.vectors.test.ts pins 30 sha256 digests (3 styles x 2 seeds x 5 bases) and 12 lazy samples (zones 4001, 65535, 1048576, 67108863) with the approval date 2026-11-09 in its header and the message "needs a new contact-sheet sign-off, not a test update" (swapping two syllables in any bank fails 4, 5 or 8 entries). Whole engine project 1093 tests green (also under America/New_York for the three naming files), typecheck and check-repo clean, no frozen oracle touched, test:swap and verify not run (no app/ file changed).
 - [Phase 7 P08] Naming file format `ccrug.naming/1` (engine/naming/schema.ts, validate.ts): `serializeNaming` is deterministic (fixed key order, locks and override keys explicitly sorted ascending, no clock; a seed-only naming is the seed record alone; compact for storage slots, pretty with 2 spaces and a newline for export) and `validateNamingJson(text, { base, interactiveMaxN, preset, maxBytes? })` is the one total, non-recursive, all-or-nothing reader of files and slots (typed `NamingIssue`s, at most 5 kept with an exact `issueCount`, unknown keys listed and never blocking). Override keys must match `/^(0|[1-9][0-9]{0,15})$/` and be below base(base-1)/2 and go into a `Map`, so `__proto__`, `constructor` and `toString` are refused and never assigned; every field is read as an own property; caps: 8 MiB text, 250,000 overrides, meta 200. Decisions: an unknown generator id or a `join.smoothing` above `EUPHONY_VERSION` is refused alone as `unknown-version` (read first, before any other field); required blocks and a null `meta` are strict bad fields; the wrong-base `offerSeed` exists only when the whole seed record (both generator ids, seed, style, join order, smoothing) is valid; a ccru file needs the caller's preset for the current base. Export -> import is the identity (300 base-28, 50 base-666, seed-only base 4002, ccru, above-2^32 meshes), 2,000 random JSON values, 2,000 random strings and 1,500 single-field replacements never throw, 17 mutants killed (one equivalent survivor: the doubled issue cap); NAM-03 stays pending until the import/export UI, link codec and collision report ship (07-09 to 07-23).
+- [Phase 7 P09] URL naming link and `labels=sounds` shipped through the single codec (NAM-03 and NAM-01 groundwork, D-03, D-13; both stay Pending: nothing writes `names=` or offers the Sounds option until 07-12, 07-18 and 07-21): app/lib/namesLink.ts has `parseNamesLink`, `writeNamesLink` and `sameNamesLink`; the URL carries only `names=ccru` (honoured at base 10 only, `CCRU_LINK_BASE = 10`) or `names=seed:<seed>` with the lenient companions `nstyle`, `njoin=lh`, `nsmooth=1`, each omitted at its default and never any sounds, locks or overrides; the value is bounded at 77 characters before any processing, control characters and line or paragraph separators are refused anywhere in the raw value BEFORE the trim (the plan's trim-first algorithm would read `seed:a` plus U+2028 as seed `a`, the same contradiction 07-02 recorded), the seed goes through `normalizeSeed`, the raw text is never an object key. `ShareState.names` (null by default, omitted from every URL; `currentShareState` passes `names: null` until 07-18) is parsed OUTSIDE the natural-tier guard, so a seed link survives at base 4002 and 2^26 with `createNumogram` never called (vi.mock spy). `LabelScheme` gains `{ mode: 'sounds' }` (`labels=sounds`, key `sounds`, no alphabet, digit zone labels in every slot) and `isLabelScheme` in the worker protocol accepts it in the same commit, so a Canvas-base request with sounds is built, not a build-failed revert; its `resultKey` differs from digits (one cheap rebuild on a toggle). A hand-edited `?labels=sounds` link shows no label radio checked until the Sounds option arrives (the picker is not in this plan). 53 new tests plus extended round trips (576-run seed round trip over `&=%+:?#`, CJK, emoji), 17 mutants killed and 2 equivalent survivors (the explicit sounds branches of `formatZoneLabel` and `zoneLabelsFor` fall through to the same numeral); the plan's named length-bound mutant is not killed by its named 65-character case (`normalizeSeed` refuses it anyway), so an exact 77/78 padding test was added. MSYS_NO_PATHCONV=1 npm run test:swap exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 104 files and 3107 unit tests at the end), typecheck and check-repo clean, no frozen oracle, engine file, Projection or base-10 preset touched.
 
 ### Pending Todos
 
@@ -272,9 +274,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-09T22:40:00.000Z
-Stopped at: Completed 07-08-PLAN.md
-Resume file: .planning/phases/07-naming-builder/07-09-PLAN.md
+Last session: 2026-11-09T22:58:00.000Z
+Stopped at: Completed 07-09-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-10-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
