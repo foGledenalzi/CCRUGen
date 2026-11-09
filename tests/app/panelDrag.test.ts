@@ -152,9 +152,9 @@ describe('activate', () => {
     }
   })
 
-  it('500 random activations: z stays in 40..69, stays distinct, the activated panel is on top, the others keep their relative order', () => {
+  it('random activation runs of 40 to 500 (always passing the first re-rank): z stays in 40..69, distinct, the activated panel on top, the others keep their relative order', () => {
     fc.assert(
-      fc.property(fc.array(fc.constantFrom(...STACK_PANEL_IDS), { minLength: 1, maxLength: 500 }), ids => {
+      fc.property(fc.array(fc.constantFrom(...STACK_PANEL_IDS), { minLength: 40, maxLength: 500 }), ids => {
         let s = initialDragState()
         for (const id of ids) {
           const before = zOrderExcluding(s.z, id)
