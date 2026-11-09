@@ -33,12 +33,14 @@ function syllables(text: string): readonly string[] {
 
 export const SYLLABLE_BANKS: Readonly<Record<StyleId, SyllableBank>> = Object.freeze({
   // Consonant clusters between o / e; the fill vowels a u i never occur naturally, which keeps smoothing injective on this style.
+  // No syllable equals a CCRU zone sound (the CCRU lore is outside the MIT licence, NOTICE section 3); the leaves are generic
+  // clusters and tests/presets/naming-banks-lore.test.ts compares every syllable of every bank with the lore file by import.
   harsh: Object.freeze({
     internal: syllables(
       'sko ske sto ste tko tke kto kte dgo dge gdo gde zdo zde zgo zge xko xke rko rke lko lke nko nke mpo mpe bro bre kro kre tro tre dro dre gro gre pro pre blo ble klo kle plo ple glo gle zro zre xto xte spo spe sbo sbe sdo sde sgo sge zto zte zbo zbe xpo xpe xbo xbe xdo xde pto pte kpo kpe bdo bde rto rte rdo rde lto lte',
     ),
     leaf: syllables(
-      'skr skl str spl zgr zdr xkr ktt tch mnm nch rkt lkt mpt ngr tkt dgd pkt nmn zbr xtr rnk bgb lgr dt zx pb tn tp bp bt bk nt nd rg ld sm sn zm zn kn gn dn ch th kh sh zh xz mb md mg tm dm km gm bn pn rb lb rm lm ln rp lp rs ls',
+      'sdr skl str spl zgr zdr xkr pdd lkk mnn nch rkt lkt mpt ngr tkt dgd pkt nmn zbr xtr rnk bgb lgr kd xg gb tb tp bp bt bk nt nd rg ld sm sn zm zn kn gn dn ch th kh sh zh xz mb md mg tm dm km gm bn pn rb lb rm lm ln rp lp rs ls',
     ),
   }),
   // Open consonant + vowel syllables, with diphthong leaves.

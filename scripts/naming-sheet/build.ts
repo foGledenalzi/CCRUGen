@@ -36,8 +36,8 @@ const NAMES_SPREAD = 12 // evenly spaced meshes above them
 const NAME_STAT_SAMPLE = 400 // names behind the statistics (research Appendix A used 400)
 
 const NOTE =
-  'Draft banks (07-RESEARCH Appendix A). The harsh bank contains 8 of the CCRU clusters (skr ktt tch mnm dt zx pb tn) as syllables; ' +
-  "this is the generator's inventory, not the CCRU zone table."
+  'Draft banks (07-RESEARCH Appendix A), harsh bank revised once after review (07-06): it no longer contains the verbatim CCRU zone sounds. ' +
+  "This is the generator's inventory, not the CCRU zone table."
 
 function esc(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')

@@ -97,7 +97,8 @@ describe('buildNamingSheet', () => {
   it('has the draft-bank note and the zone grids (64 leading zones at base 64, 16 spaced and the last 4 above it)', () => {
     const html = buildNamingSheet()
     expect(html).toContain('Draft banks (07-RESEARCH Appendix A)')
-    expect(html).toContain("this is the generator's inventory, not the CCRU zone table.")
+    expect(html).toContain('it no longer contains the verbatim CCRU zone sounds')
+    expect(html).toContain("This is the generator's inventory, not the CCRU zone table.")
     const section = sectionsById(html).get('soft-ccrug') ?? ''
     expect(section).toContain('<h4>zones 0 to 9</h4>')
     expect(section).toContain('<h4>zones 0 to 63</h4>')
