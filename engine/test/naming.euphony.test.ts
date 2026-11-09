@@ -44,13 +44,13 @@ describe('smoothName vectors (research Appendix B)', () => {
 
   it.each([
     ['abc-def'],
-    ['tn mnm'],
+    ['dk pdd'],
     ['tn1'],
     ['n' + cp(0x303) + 'and' + cp(0xfa)],
     [cp(0x3a9, 0x3bc, 0xe9, 0x3b3, 0x3b1)],
     [cp(0x4e2d, 0x6587)],
     [cp(0x1f600)],
-    ['tnmnm' + cp(0xe9)],
+    ['dkpdd' + cp(0xe9)],
     [''],
   ])('leaves %j unchanged (not all ASCII letters)', raw => {
     expect(smoothName(raw)).toBe(raw)
@@ -66,7 +66,7 @@ describe('smoothName rules', () => {
   })
 
   it('appends the fill vowel when the name ends in two different consonants', () => {
-    expect(smoothName('gl')).toBe('gla')
+    expect(smoothName('bl')).toBe('bla')
     expect(smoothName('agla')).toBe('agla') // already ends in a vowel
     expect(smoothName('agl')).toBe('agla')
     expect(smoothName('abgl')).toBe('abgul') // a run of three is chunked first (bg + fill of g), then l stands alone
@@ -106,9 +106,9 @@ describe('smoothName rules', () => {
   })
 
   it('has no collapse rule: three identical letters stay distinct from two', () => {
-    expect(smoothName('kttt')).toBe('ktatta')
-    expect(smoothName('ktt')).toBe('ktat')
-    expect(smoothName('kttt')).not.toBe(smoothName('ktt'))
+    expect(smoothName('kppp')).toBe('kpappa')
+    expect(smoothName('kpp')).toBe('kpap')
+    expect(smoothName('kppp')).not.toBe(smoothName('kpp'))
   })
 
   it('is linear: a very long consonant run is processed at once', () => {
@@ -226,10 +226,10 @@ function inertOracle(sounds: readonly string[]): boolean {
 describe('smoothingInert', () => {
   it('examples', () => {
     expect(smoothingInert([])).toBe(true)
-    expect(smoothingInert(['tn', 'mnm'])).toBe(false)
+    expect(smoothingInert(['dk', 'pdd'])).toBe(false)
     expect(smoothingInert(['lavedia', 'kin'])).toBe(true)
     expect(smoothingInert([''])).toBe(false)
-    expect(smoothingInert(['tn'])).toBe(false) // no vowel
+    expect(smoothingInert(['dk'])).toBe(false) // no vowel
     expect(smoothingInert(['gle'])).toBe(false) // leading run of two
     expect(smoothingInert(['egl'])).toBe(false) // trailing run of two
     expect(smoothingInert(['ekke'])).toBe(true) // an internal run of two is fine
@@ -243,7 +243,7 @@ describe('smoothingInert', () => {
   })
 
   it('a table with one bad sound is not inert', () => {
-    expect(smoothingInert(['ke', 'ak', 'tn', 'oa'])).toBe(false)
+    expect(smoothingInert(['ke', 'ak', 'dk', 'oa'])).toBe(false)
   })
 
   const unit = fc.oneof(
@@ -279,8 +279,8 @@ describe('smoothingInert', () => {
   })
 
   it('is not an if-and-only-if: it is only sufficient, and a non-inert table can still be unchanged', () => {
-    expect(smoothingInert(['tn'])).toBe(false)
-    expect(smoothName('tn' + 'a')).toBe('tna') // this particular join happens to be fine
-    expect(smoothName('tn' + 'mnm')).not.toBe('tn' + 'mnm') // and this one changes
+    expect(smoothingInert(['dk'])).toBe(false)
+    expect(smoothName('dk' + 'a')).toBe('dka') // this particular join happens to be fine
+    expect(smoothName('dk' + 'pdd')).not.toBe('dk' + 'pdd') // and this one changes
   })
 })

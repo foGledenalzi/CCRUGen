@@ -39,12 +39,12 @@ describe('JoinOrder', () => {
 
 describe('deriveName', () => {
   it.each<[string, string, JoinOrder, Smoothing, string]>([
-    ['tn', 'mnm', 'hi-lo', 0, 'Tnmnm'],
-    ['tn', 'mnm', 'lo-hi', 0, 'Mnmtn'],
-    ['tn', 'mnm', 'hi-lo', 1, 'Tnamnam'],
-    ['ktt', 'dt', 'hi-lo', 1, 'Ktatdit'],
-    ['TN', 'mnm', 'hi-lo', 0, 'TNmnm'], // a sound typed in capitals keeps its case; only the first letter is forced up
-    ['tn', 'MNM', 'lo-hi', 0, 'MNMtn'],
+    ['dk', 'pdd', 'hi-lo', 0, 'Dkpdd'],
+    ['dk', 'pdd', 'lo-hi', 0, 'Pdddk'],
+    ['dk', 'pdd', 'hi-lo', 1, 'Dkupdid'],
+    ['bgg', 'nd', 'hi-lo', 1, 'Bgugnad'],
+    ['DK', 'pdd', 'hi-lo', 0, 'DKpdd'], // a sound typed in capitals keeps its case; only the first letter is forced up
+    ['dk', 'PDD', 'lo-hi', 0, 'PDDdk'],
   ])('joins %s and %s (%s, smoothing %i) into %s', (hi, lo, join, smoothing, expected) => {
     expect(deriveName(hi, lo, join, smoothing)).toBe(expected)
   })
@@ -56,7 +56,7 @@ describe('deriveName', () => {
   })
 
   it('smooths before capitalising: smoothing 1 equals upperFirst of smoothName of the raw join', () => {
-    expect(deriveName('ktt', 'dt', 'hi-lo', 1)).toBe(smoothName('kttdt').replace(/^./, c => c.toUpperCase()))
+    expect(deriveName('bgg', 'nd', 'hi-lo', 1)).toBe(smoothName('bggnd').replace(/^./, c => c.toUpperCase()))
     // a non-ASCII name is untouched by smoothing (script-safe no-op)
     expect(deriveName('ωx', 'βy', 'hi-lo', 1)).toBe(deriveName('ωx', 'βy', 'hi-lo', 0))
   })

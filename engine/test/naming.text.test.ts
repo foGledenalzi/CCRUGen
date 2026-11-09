@@ -56,7 +56,7 @@ describe('toNfc', () => {
   })
   it('leaves an already composed or plain string alone', () => {
     expect(toNfc(E_ACUTE)).toBe(E_ACUTE)
-    expect(toNfc('tnmnm')).toBe('tnmnm')
+    expect(toNfc('dkpdd')).toBe('dkpdd')
   })
 })
 
@@ -71,8 +71,8 @@ describe('validateSound', () => {
   const marked = (n: number) => ('q' + ACUTE).repeat(n)
 
   it.each([
-    ['plain letters', 'gl', ok('gl')],
-    ['trimmed', '  skr ', ok('skr')],
+    ['plain letters', 'brk', ok('brk')],
+    ['trimmed', '  pdr ', ok('pdr')],
     ['empty', '', bad('empty')],
     ['blank', '   ', bad('empty')],
     ['only tabs and newlines', '\t\n ', bad('empty')],
@@ -88,7 +88,7 @@ describe('validateSound', () => {
     ['zero width non-joiner', 'g' + ZWNJ + 'l', bad('other')],
     ['zero width joiner', 'g' + ZWJ + 'l', bad('other')],
     ['left-to-right mark', 'g' + LRM + 'l', bad('other')],
-    ['right-to-left override', RLO + 'gl', bad('other')],
+    ['right-to-left override', RLO + 'bl', bad('other')],
     ['bidi isolate', 'g' + ISOLATE + 'l', bad('other')],
     ['soft hyphen', 'g' + SOFT_HYPHEN + 'l', bad('other')],
     ['tag character', 'g' + cp(0xe0041) + 'l', bad('other')],
@@ -133,8 +133,8 @@ describe('validateSound', () => {
 
 describe('validateName', () => {
   it('uses the same character rule with a limit of 32', () => {
-    expect(validateName('Ummnu')).toEqual(ok('Ummnu'))
-    expect(validateName('  Ummnu ')).toEqual(ok('Ummnu'))
+    expect(validateName('Bggnu')).toEqual(ok('Bggnu'))
+    expect(validateName('  Bggnu ')).toEqual(ok('Bggnu'))
     expect(validateName('a'.repeat(32))).toEqual(ok('a'.repeat(32)))
     expect(validateName('a'.repeat(33))).toEqual(bad('long'))
     expect(validateName('')).toEqual(bad('empty'))
@@ -195,8 +195,8 @@ describe('normalizeSeed', () => {
 
 describe('upperFirst', () => {
   it('capitalises the first letter', () => {
-    expect(upperFirst('tnmnm')).toBe('Tnmnm')
-    expect(upperFirst('Ummnu')).toBe('Ummnu')
+    expect(upperFirst('dkpdd')).toBe('Dkpdd')
+    expect(upperFirst('Bggnu')).toBe('Bggnu')
     expect(upperFirst('')).toBe('')
     expect(upperFirst('x')).toBe('X')
   })
@@ -216,7 +216,7 @@ describe('upperFirst', () => {
 
 describe('splitGraphemes / graphemeCount', () => {
   const samples: ReadonlyArray<readonly [string, string]> = [
-    ['ASCII', 'tnmnm'],
+    ['ASCII', 'dkpdd'],
     ['CJK', cp(0x4e00, 0x4e01, 0x4e02)],
     ['combining marks', 'q' + ACUTE + 'x' + cp(0x308) + 'z'],
     ['empty', ''],
@@ -264,7 +264,7 @@ describe('splitGraphemes / graphemeCount', () => {
     const fresh = await import('../naming/text')
 
     // short strings never reach the Segmenter, in any script, however many are checked
-    for (let i = 0; i < 4000; i++) fresh.validateSound('tn')
+    for (let i = 0; i < 4000; i++) fresh.validateSound('dk')
     fresh.validateSound(cp(0x4e00).repeat(16))
     fresh.validateSound('a'.repeat(16))
     fresh.validateName('a'.repeat(32))

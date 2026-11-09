@@ -12,7 +12,7 @@
 //   - afterwards, a name that ends in two different consonants gets the fill vowel of its last consonant appended;
 //   - an inserted vowel takes the case of the consonant before it, and is only ever a, u or i.
 // There is deliberately NO rule that collapses three identical letters: it was the only source of collisions between smoothed
-// names (kttt and ktt merged), and without it the pass is insert-only, hence injective on inputs with no a, u or i.
+// names (a run of three equal letters and a run of two merged), and without it the pass is insert-only, hence injective on inputs with no a, u or i.
 //
 // The pass is a linear walk over char codes with a string builder (no per-character regex), about 0.2 microseconds a join.
 
