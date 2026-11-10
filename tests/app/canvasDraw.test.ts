@@ -57,6 +57,7 @@ import { DEFAULT_LABEL_SCHEME, zoneLabelsFor } from '../../app/lib/labelScheme'
 import { buildNumogramView, type NumogramView } from '../../app/lib/numogramView'
 import { formatXenotationForDisplay } from '../../app/lib/xenotation'
 import { ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../../app/lib/regions'
+import { fitSoundLabel } from '../../app/lib/soundLabels'
 import { labelsShown } from '../../app/lib/tierBounds'
 import type { Demon, Layer } from '../../app/data/types'
 
@@ -2270,5 +2271,257 @@ describe('NaN scan over the overlay', () => {
       drawOverlay(rec.env, overlayFor(fx, { zoneStates: states, hlZones: everyZoneSet(base), selZones: everyZoneSet(base) }), fx.index)
       expectAllFinite(rec)
     }
+  })
+})
+
+// ── Sounds label mode (Phase 7 plan 07-14): both zone-label passes paint the one shared fit ─────────────────────────────
+
+describe('sounds label mode: zoneSounds on the Canvas tier', () => {
+  const LONG = 'abcdefghijklmnop' // 16 letters: cut at the 6 px floor
+  const MID = 'tomari' // 6 letters: shrinks to fit
+  const SHORT = 'ka' // fits at the layout's own label size
+  /** One sound per zone: zone 12 the long one, zones 5 and 7 the mid one, every other zone the short one. */
+  const soundsFor = (n: number): readonly string[] =>
+    Array.from({ length: n }, (_, z) => (z === 12 ? LONG : z === 5 || z === 7 ? MID : SHORT))
+  const near = (a: unknown, b: number): boolean => Math.abs(Number(a) - b) < 1e-9
+
+  /** The label fillText at a zone's centre (one world unit below it, the digits label's own spot). */
+  function labelAt(events: readonly Ev[], fx: Fx, z: number, t: CanvasTransform = IDENTITY_TRANSFORM): Ev | undefined {
+    const p = screenOf(fx, fx.scene.x[z] as number, (fx.scene.y[z] as number) + 1, t)
+    return ofType(events, 'fillText').find(e => near(e.args[1], p.x) && near(e.args[2], p.y))
+  }
+
+  /** Every text call with the style it was made under, for whole-list equality between two recordings. */
+  const textCalls = (events: readonly Ev[]) =>
+    ofType(events, 'fillText').map(e => ({
+      args: e.args,
+      font: e.style.font,
+      fill: e.style.fillStyle,
+      alpha: e.style.globalAlpha,
+      align: e.style.textAlign,
+      base: e.style.textBaseline,
+    }))
+
+  const fitFor = (fx: Fx, sound: string, t: CanvasTransform = IDENTITY_TRANSFORM): ReturnType<typeof fitSoundLabel> =>
+    fitSoundLabel(sound, onScreenRadius(t, fx.frame, fx.w, fx.h), fx.scene.labelSize * scaleFor(fx, t))
+
+  it('the static pass paints, per visible zone, the fitted sound in the fitted font, at the digits label spot', () => {
+    const fx = zoneFx(28)
+    const sounds = soundsFor(28)
+    expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, fx.frame, fx.w, fx.h))).toBe(true)
+    const full = fx.scene.labelSize * scaleFor(fx)
+    const fits = sounds.map(s => fitFor(fx, s))
+    // all three outcomes of the fit occur, so the per-label font is genuinely exercised
+    expect(fits[12]?.truncated).toBe(true)
+    expect(fits[5]?.truncated).toBe(false)
+    expect(fits[5]?.fontPx).toBeLessThan(full)
+    expect(fits[0]?.fontPx).toBe(full)
+
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), zoneSounds: sounds }), fx.index)
+    expect(ofType(rec.events, 'fillText')).toHaveLength(28)
+    for (let z = 0; z < 28; z++) {
+      const e = labelAt(rec.events, fx, z) as Ev
+      expect(e, `zone ${z}`).toBeDefined()
+      expect(e.args[0]).toBe((fits[z] as { text: string }).text)
+      expect(e.style.font).toBe(`bold ${(fits[z] as { fontPx: number }).fontPx}px monospace`)
+      expect(e.style.textAlign).toBe('center')
+      expect(e.style.fillStyle).toBe(`${fx.view.zoneColors[z]}aa`)
+    }
+    // none of the digits labels is painted any more
+    expect(ofType(rec.events, 'fillText').some(e => fx.labels.includes(e.args[0] as string) && !sounds.includes(e.args[0] as string))).toBe(false)
+  })
+
+  it('the highlight overlay paints the same text and the same font string as the static pass for the same zone (no ghosting)', () => {
+    const fx = zoneFx(28)
+    const sounds = soundsFor(28)
+    const hl = [0, 5, 12]
+    const cases: [string, CanvasTransform, number[]][] = [
+      ['at fit', IDENTITY_TRANSFORM, hl],
+      ['zoomed to the long sound', centerOn(fx, fx.scene.x[12] as number, fx.scene.y[12] as number, 2), [12]],
+    ]
+    for (const [name, t, zones] of cases) {
+      const st = rec2(fx, t, sounds, new Set(zones))
+      for (const z of zones) {
+        const a = labelAt(st.statics.events, fx, z, t) as Ev
+        const b = labelAt(st.overlay.events, fx, z, t) as Ev
+        expect(a, `${name}: static ${z}`).toBeDefined()
+        expect(b, `${name}: overlay ${z}`).toBeDefined()
+        expect(b.args[0], `${name}: text of zone ${z}`).toBe(a.args[0])
+        expect(b.style.font, `${name}: font of zone ${z}`).toBe(a.style.font)
+        expect(a.args[0]).toBe(fitFor(fx, sounds[z] as string, t).text)
+        // the overlay label is in the full zone colour, the static one in the aa suffix colour
+        expect(b.style.fillStyle).toBe(fx.view.zoneColors[z])
+      }
+      expect(ofType(st.overlay.events, 'fillText')).toHaveLength(zones.length)
+    }
+    // the long sound really is cut at fit and shows more of itself zoomed in: the two cases differ
+    expect(fitFor(fx, LONG).text).not.toBe(fitFor(fx, LONG, centerOn(fx, fx.scene.x[12] as number, fx.scene.y[12] as number, 2)).text)
+
+    function rec2(f: Fx, t: CanvasTransform, soundTable: readonly string[], hlSet: ReadonlySet<number>) {
+      const statics = makeRecorder()
+      drawNodeLayer(statics.env, stateFor(f, { ...bare(f), transform: t, zoneSounds: soundTable }), f.index)
+      const overlay = makeRecorder()
+      drawOverlay(
+        overlay.env,
+        overlayFor(f, { transform: t, layers: new Set<Layer>(), hlZones: hlSet, zoneSounds: soundTable }),
+        f.index,
+      )
+      return { statics, overlay }
+    }
+  })
+
+  it('an isolate-dimmed zone paints its sound at alpha 0.2 and a muted zone paints none, in both passes', () => {
+    const fx = zoneFx(28)
+    const sounds = soundsFor(28)
+    const zoneStates = statesWith(28, { 1: ZONE_DIMMED, 2: ZONE_HIDDEN })
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), zoneStates, zoneSounds: sounds }), fx.index)
+    expect((labelAt(rec.events, fx, 1) as Ev).style.globalAlpha).toBeCloseTo(0.2, 12)
+    expect(labelAt(rec.events, fx, 2)).toBeUndefined()
+    expect((labelAt(rec.events, fx, 3) as Ev).style.globalAlpha).toBe(1)
+
+    const ov = makeRecorder()
+    drawOverlay(ov.env, overlayFor(fx, { layers: new Set<Layer>(), zoneStates, hlZones: new Set([1, 2, 3]), zoneSounds: sounds }), fx.index)
+    expect((labelAt(ov.events, fx, 1) as Ev).style.globalAlpha).toBeCloseTo(0.2, 12)
+    expect(labelAt(ov.events, fx, 2)).toBeUndefined()
+    expect(ofType(ov.events, 'fillText')).toHaveLength(2)
+  })
+
+  it('without zoneSounds (undefined or null) every text call is what the digits path made before, in both passes', () => {
+    const fx = zoneFx(28)
+    const plain = makeRecorder()
+    drawNodeLayer(plain.env, stateFor(fx, { labelVisibility: { numbers: true, xenotation: true, planets: false } }), fx.index)
+    const plainOv = makeRecorder()
+    drawOverlay(plainOv.env, overlayFor(fx, { hlZones: new Set([5, 12]), labelVisibility: { numbers: true, xenotation: true, planets: false } }), fx.index)
+    for (const zoneSounds of [undefined, null] as const) {
+      const rec = makeRecorder()
+      drawNodeLayer(rec.env, stateFor(fx, { zoneSounds, labelVisibility: { numbers: true, xenotation: true, planets: false } }), fx.index)
+      expect(textCalls(rec.events)).toEqual(textCalls(plain.events))
+      expect(rec.events.length).toBe(plain.events.length)
+      const ov = makeRecorder()
+      drawOverlay(ov.env, overlayFor(fx, { zoneSounds, hlZones: new Set([5, 12]), labelVisibility: { numbers: true, xenotation: true, planets: false } }), fx.index)
+      expect(textCalls(ov.events)).toEqual(textCalls(plainOv.events))
+      expect(ov.events.length).toBe(plainOv.events.length)
+    }
+    // and the digits themselves are painted at the layout's label size, one font for the whole pass
+    const digits = textCalls(plain.events).filter(c => c.font.startsWith('bold'))
+    expect(new Set(digits.map(c => c.font)).size).toBe(1)
+  })
+
+  it('level of detail is unchanged: below the label threshold neither pass paints any sound text', () => {
+    for (const base of [202, 4000]) {
+      const fx = zoneFx(base)
+      expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, fx.frame, fx.w, fx.h))).toBe(false)
+      const sounds = soundsFor(base)
+      const rec = makeRecorder()
+      drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), zoneSounds: sounds }), fx.index)
+      expect(ofType(rec.events, 'fillText')).toHaveLength(0)
+      const ov = makeRecorder()
+      drawOverlay(ov.env, overlayFor(fx, { layers: new Set<Layer>(), hlZones: new Set([5, 12]), selZones: new Set([7]), zoneSounds: sounds }), fx.index)
+      expect(ofType(ov.events, 'fillText')).toHaveLength(0)
+    }
+  })
+
+  it('the numbers toggle hides the sounds in both passes', () => {
+    const fx = zoneFx(28)
+    const sounds = soundsFor(28)
+    const off = { numbers: false, xenotation: false, planets: false }
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), labelVisibility: off, zoneSounds: sounds }), fx.index)
+    expect(ofType(rec.events, 'fillText')).toHaveLength(0)
+    const ov = makeRecorder()
+    drawOverlay(ov.env, overlayFor(fx, { layers: new Set<Layer>(), hlZones: new Set([5, 12]), labelVisibility: off, zoneSounds: sounds }), fx.index)
+    expect(ofType(ov.events, 'fillText')).toHaveLength(0)
+  })
+
+  it('the xenotation labels are untouched by sounds mode in both passes', () => {
+    const fx = zoneFx(28)
+    const xenoOnly = { numbers: false, xenotation: true, planets: false }
+    const without = makeRecorder()
+    drawNodeLayer(without.env, stateFor(fx, { labelVisibility: xenoOnly }), fx.index)
+    const withSounds = makeRecorder()
+    drawNodeLayer(withSounds.env, stateFor(fx, { labelVisibility: xenoOnly, zoneSounds: soundsFor(28) }), fx.index)
+    expect(ofType(withSounds.events, 'fillText').length).toBeGreaterThan(0)
+    expect(textCalls(withSounds.events)).toEqual(textCalls(without.events))
+
+    const ovWithout = makeRecorder()
+    drawOverlay(ovWithout.env, overlayFor(fx, { hlZones: new Set([7]), labelVisibility: xenoOnly }), fx.index)
+    const ovWith = makeRecorder()
+    drawOverlay(ovWith.env, overlayFor(fx, { hlZones: new Set([7]), labelVisibility: xenoOnly, zoneSounds: soundsFor(28) }), fx.index)
+    expect(textCalls(ovWith.events)).toEqual(textCalls(ovWithout.events))
+  })
+
+  it('a zone with no sound (an empty or a missing entry) keeps its digits label at the layout size, in both passes', () => {
+    const fx = zoneFx(28)
+    const full = fx.scene.labelSize * scaleFor(fx)
+    const sounds = soundsFor(28).slice(0, 20) // zones 20 to 27 have no entry
+    const holey = sounds.map((s, z) => (z === 3 ? '' : s))
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), zoneSounds: holey }), fx.index)
+    const ov = makeRecorder()
+    drawOverlay(ov.env, overlayFor(fx, { layers: new Set<Layer>(), hlZones: new Set([3, 24, 12]), zoneSounds: holey }), fx.index)
+    for (const z of [3, 24]) {
+      for (const events of [rec.events, ov.events]) {
+        const e = labelAt(events, fx, z) as Ev
+        expect(e.args[0]).toBe(fx.labels[z])
+        expect(e.style.font).toBe(`bold ${full}px monospace`)
+      }
+    }
+    // the neighbours that do have a sound still paint it
+    expect((labelAt(rec.events, fx, 12) as Ev).args[0]).toBe(fitFor(fx, LONG).text)
+    expect((labelAt(ov.events, fx, 12) as Ev).args[0]).toBe(fitFor(fx, LONG).text)
+  })
+
+  it('a sound is painted as one plain text argument, never as markup', () => {
+    const fx = zoneFx(28)
+    const sounds = soundsFor(28).map((s, z) => (z === 0 ? '<b>x' : s))
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), zoneSounds: sounds }), fx.index)
+    const e = labelAt(rec.events, fx, 0) as Ev
+    expect(e.args[0]).toBe(fitFor(fx, '<b>x').text)
+    expect(typeof e.args[0]).toBe('string')
+  })
+
+  it('the pair graph ignores zoneSounds: pills keep their hi::lo numerals in both passes', () => {
+    const fx = pairFx(28)
+    expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, fx.frame, fx.w, fx.h))).toBe(true)
+    const sounds = soundsFor(28)
+    const plain = makeRecorder()
+    drawNodeLayer(plain.env, stateFor(fx, bare(fx)), fx.index)
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { ...bare(fx), zoneSounds: sounds }), fx.index)
+    expect(textCalls(rec.events)).toEqual(textCalls(plain.events))
+    for (let q = 0; q < 14; q++) {
+      const { lo, hi } = fx.g.pair(q)
+      expect(ofType(rec.events, 'fillText').some(e => e.args[0] === `${fx.labels[hi]}::${fx.labels[lo]}`)).toBe(true)
+    }
+    const plainOv = makeRecorder()
+    drawOverlay(plainOv.env, overlayFor(fx, { hlZones: new Set([0, 1, 5]) }), fx.index)
+    const ov = makeRecorder()
+    drawOverlay(ov.env, overlayFor(fx, { hlZones: new Set([0, 1, 5]), zoneSounds: sounds }), fx.index)
+    expect(textCalls(ov.events)).toEqual(textCalls(plainOv.events))
+  })
+
+  it('the gate labels and the layout captions keep their numerals and fonts with sounds on', () => {
+    const fx = zoneFx(28)
+    const sounds = soundsFor(28)
+    // layout captions stay (only the zone slot changes): the caption texts are identical to the digits run
+    const plain = makeRecorder()
+    drawNodeLayer(plain.env, stateFor(fx), fx.index)
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { zoneSounds: sounds }), fx.index)
+    const captions = fx.scene.regionLabels.map(l => l.text)
+    expect(captions.length).toBeGreaterThan(0)
+    const captionCalls = (events: readonly Ev[]) => textCalls(events).filter(c => captions.includes(c.args[0] as string) && !c.font.startsWith('bold '))
+    expect(captionCalls(rec.events)).toEqual(captionCalls(plain.events))
+    // gate meeting labels come from the overlay's edge text: hovering a zone with sounds on leaves those calls as they were
+    const g0 = makeRecorder()
+    drawOverlay(g0.env, overlayFor(fx, { hlZones: new Set([5]) }), fx.index)
+    const g1 = makeRecorder()
+    drawOverlay(g1.env, overlayFor(fx, { hlZones: new Set([5]), zoneSounds: sounds }), fx.index)
+    const edgeText = (events: readonly Ev[]) => textCalls(events).filter(c => !(c.font.startsWith('bold ') && c.fill === fx.view.zoneColors[5]))
+    expect(edgeText(g1.events)).toEqual(edgeText(g0.events))
+    expect(edgeText(g0.events).length).toBeGreaterThan(0)
   })
 })
