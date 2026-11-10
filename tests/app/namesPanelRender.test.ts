@@ -12,24 +12,55 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_SEED,
+  ISSUES_MAX,
+  NAMING_IMPORT_MAX_BYTES,
+  SCHEMA_ID,
   SEED_MAX_LENGTH,
+  UNKNOWN_KEYS_MAX,
   createNameResolver,
   createNaming,
   meshOf,
   netSpanOf,
   normalizeSeed,
+  serializeNaming,
   smoothingInert,
+  validateNamingJson,
   type Naming,
+  type NamingImport,
 } from '../../engine/index'
 import {
   NamesHeaderTag,
   NamesPanel,
+  NamesStatusSlot,
+  downloadJson,
+  exportFileName,
+  exportNaming,
+  importOutcome,
   previewMeshes,
+  readImportFile,
   rerollSeed,
   seedCommitOf,
+  type DownloadEnv,
+  type NamesStatus,
 } from '../../app/components/names/NamesPanel'
 import { NamingContext, type NamingContextValue } from '../../app/components/names/NamingContext'
-import { NAMES_COPY, noticeBody, pendingLine, savedLine, seedOnlySentence, summaryLine } from '../../app/lib/namingCopy'
+import {
+  NAMES_COPY,
+  exportSeedOnly,
+  exportSuccess,
+  formatBytes,
+  importError,
+  importSeedOnly,
+  importSuccess,
+  invalidEntries,
+  noticeBody,
+  pendingLine,
+  savedLine,
+  seedOnlySentence,
+  summaryLine,
+  unknownKeysSuffix,
+  type ImportCopyContext,
+} from '../../app/lib/namingCopy'
 import { NAMES_PREVIEW_ROWS, NAMES_SCROLL_INSET_PX, REROLL_SEED_LENGTH } from '../../app/lib/namingLimits'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
 import { CCRU_NAMING_PRESET } from '../../app/presets/base10/naming'
@@ -795,5 +826,486 @@ describe('NamesPanel source', () => {
     expect(source).not.toContain('dangerouslySetInnerHTML')
     expect(/\beval\s*\(|new Function\s*\(/.test(source)).toBe(false)
     expect(source).not.toContain('innerHTML')
+  })
+})
+
+// ══ Task 2: export, import, Use its seed here, the status slot and the inline Undo ═══════════════════════════════════════════════════
+
+const copyCtx: ImportCopyContext = {
+  base: OTHER_BASE,
+  zoneLabel: zone => String(zone),
+  netSpan: mesh => {
+    const [a, b] = netSpanOf(mesh)
+    return `${a}::${b}`
+  },
+}
+
+/** The result of validating `text` for the test base, through the one validator the panel uses. */
+function validated(text: string, base = OTHER_BASE, maxBytes?: number): NamingImport {
+  return validateNamingJson(text, { base, interactiveMaxN: INTERACTIVE_MAX_N, preset: CCRU_NAMING_PRESET, maxBytes })
+}
+
+/** The export text of a naming, parsed, so a test can break one field and write it back. */
+function docOf(naming: Naming): Record<string, unknown> {
+  return JSON.parse(serializeNaming(naming)) as Record<string, unknown>
+}
+
+describe('exportFileName', () => {
+  it('names the file after the base', () => {
+    expect(exportFileName(OTHER_BASE)).toBe('ccrug-names-base28.json')
+    expect(exportFileName(CCRU_BASE)).toBe('ccrug-names-base10.json')
+    expect(exportFileName(SEED_ONLY_BASE)).toBe(`ccrug-names-base${SEED_ONLY_BASE}.json`)
+  })
+})
+
+describe('importOutcome: success', () => {
+  it('a file of this base is a success with the sound and override counts', () => {
+    const outcome = importOutcome(validated(serializeNaming(namingOf(OTHER_BASE))), copyCtx)
+    expect(outcome).toEqual({ kind: 'success', text: importSuccess(OTHER_BASE, OTHER_BASE, 0), offerSeed: null })
+    expect(outcome.text).toBe('Imported names for base 28: 28 sounds, 0 renamed demons.')
+    const withOverride = importOutcome(
+      validated(serializeNaming({ ...namingOf(OTHER_BASE), overrides: new Map([[5, 'Zed']]) })),
+      copyCtx,
+    )
+    expect(withOverride.text).toBe('Imported names for base 28: 28 sounds, 1 renamed demon.')
+    expect(withOverride.kind).toBe('success')
+  })
+
+  it('keys this version does not know are listed after the success line and never block', () => {
+    const doc = { ...docOf(namingOf(OTHER_BASE)), extraOne: 1, extraTwo: 2 }
+    const result = validated(JSON.stringify(doc))
+    if (!result.ok) throw new Error('expected the file with unknown keys to be accepted')
+    const outcome = importOutcome(result, copyCtx)
+    expect(outcome.kind).toBe('success')
+    expect(outcome.text).toBe(importSuccess(OTHER_BASE, OTHER_BASE, 0) + unknownKeysSuffix(result.unknownKeys, result.unknownKeyCount))
+    expect(outcome.text).toContain(' Ignored unknown keys: extraOne, extraTwo.')
+  })
+
+  it('more unknown keys than the cap say how many more', () => {
+    const extras: Record<string, number> = {}
+    for (let i = 0; i < UNKNOWN_KEYS_MAX + 3; i++) extras[`extra${i}`] = i
+    const outcome = importOutcome(validated(JSON.stringify({ ...docOf(namingOf(OTHER_BASE)), ...extras })), copyCtx)
+    expect(outcome.text).toContain(' and 3 more.')
+  })
+
+  it('a seed-only file at a seed-only base reads as the seed-only success', () => {
+    const ctx: ImportCopyContext = { ...copyCtx, base: SEED_ONLY_BASE }
+    const outcome = importOutcome(validated(serializeNaming(namingOf(SEED_ONLY_BASE)), SEED_ONLY_BASE), ctx)
+    expect(outcome).toEqual({ kind: 'success', text: importSeedOnly(SEED_ONLY_BASE), offerSeed: null })
+  })
+})
+
+describe('importOutcome: refusals', () => {
+  const expectError = (text: string, sentence: string, offerSeed: unknown = null, ctx: ImportCopyContext = copyCtx): void => {
+    const outcome = importOutcome(validated(text, ctx.base), ctx)
+    expect(outcome.kind).toBe('error')
+    expect(outcome.text).toBe(sentence)
+    expect(outcome.offerSeed).toEqual(offerSeed)
+  }
+
+  it('text that is not JSON', () => {
+    expectError(
+      'not json {',
+      "This file isn't valid JSON. Nothing was imported. Choose a file exported from the Names panel.",
+    )
+  })
+
+  it('a text over the cap prints the cap through the one formatter', () => {
+    const outcome = importOutcome(validated(serializeNaming(namingOf(OTHER_BASE)), OTHER_BASE, 10), copyCtx)
+    expect(outcome.kind).toBe('error')
+    expect(outcome.text).toBe(importError({ kind: 'too-large', maxBytes: 10 }))
+    expect(outcome.text).toContain(formatBytes(10))
+    expect(outcome.offerSeed).toBeNull()
+  })
+
+  it('a format version this app cannot read', () => {
+    const outcome = importOutcome(validated('{"schema":"ccrug.naming/99"}'), copyCtx)
+    expect(outcome.kind).toBe('error')
+    expect(outcome.text).toBe(
+      "This file uses names format 99, which this version can't read. Nothing was imported. Export the names again from this version.",
+    )
+  })
+
+  it('a JSON file that is not a names file', () => {
+    expectError(
+      '{"hello":1}',
+      "This file isn't a names file for this app. Nothing was imported. Choose a file exported from the Names panel.",
+    )
+    expectError('[1,2]', importError({ kind: 'not-names-file' }))
+  })
+
+  it('a file of another base is refused, and its seed is offered when it carries one', () => {
+    const text = serializeNaming(namingOf(30, { seed: 'offered', style: 'soft', join: 'lo-hi', smoothing: 1 }))
+    expectError(
+      text,
+      'This file is for base 30, and you are on base 28. Nothing was imported. Switch to base 30 to import it.',
+      { seed: 'offered', style: 'soft', join: 'lo-hi', smoothing: 1 },
+    )
+  })
+
+  it('a file of another base with no usable generator record offers nothing', () => {
+    expectError(
+      `{"schema":"${SCHEMA_ID}","base":30}`,
+      'This file is for base 30, and you are on base 28. Nothing was imported. Switch to base 30 to import it.',
+      null,
+    )
+  })
+
+  it('a zone list at a seed-only base is refused with the seed-only message', () => {
+    const doc = { ...docOf(namingOf(SEED_ONLY_BASE)), zones: ['a', 'b'] }
+    const ctx: ImportCopyContext = { ...copyCtx, base: SEED_ONLY_BASE }
+    const outcome = importOutcome(validated(JSON.stringify(doc), SEED_ONLY_BASE), ctx)
+    expect(outcome.kind).toBe('error')
+    expect(outcome.text).toBe(importError({ kind: 'seed-only-base' }, ctx))
+    expect(outcome.text).toContain(`Base ${SEED_ONLY_BASE} is above ${INTERACTIVE_MAX_N} zones`)
+    expect(outcome.offerSeed).toBeNull()
+  })
+
+  it('bad sounds are listed by zone, with the reasons, and the zones closing sentence', () => {
+    const doc = docOf(namingOf(OTHER_BASE))
+    const zones = [...(doc.zones as string[])]
+    zones[3] = 'a b'
+    zones[5] = 'x1'
+    const result = validated(JSON.stringify({ ...doc, zones }))
+    const outcome = importOutcome(result, copyCtx)
+    expect(outcome.kind).toBe('error')
+    expect(outcome.text).toBe(
+      "Nothing was imported. Zone 3: Sounds can't contain spaces. Zone 5: Sounds can't contain digits. Fix these zones in the file and import it again.",
+    )
+    expect(outcome.offerSeed).toBeNull()
+    if (!result.ok) expect(outcome.text).toBe(invalidEntries(result.issues, result.issueCount, copyCtx))
+  })
+
+  it('more issues than the cap say how many more, from the exact total', () => {
+    const doc = docOf(namingOf(OTHER_BASE))
+    const zones = [...(doc.zones as string[])]
+    for (let zone = 0; zone < ISSUES_MAX + 2; zone++) zones[zone] = 'x1'
+    const outcome = importOutcome(validated(JSON.stringify({ ...doc, zones })), copyCtx)
+    expect(outcome.text).toContain('And 2 more.')
+    expect(outcome.text.endsWith('Fix these zones in the file and import it again.')).toBe(true)
+  })
+
+  it('a bad override name or key reads as a refused entry, with no zone wording', () => {
+    const doc = docOf(namingOf(OTHER_BASE))
+    const name = importOutcome(validated(JSON.stringify({ ...doc, overrides: { '5': 'a1' } })), copyCtx)
+    const [a, b] = netSpanOf(5)
+    expect(name.kind).toBe('error')
+    expect(name.text).toBe(
+      `Nothing was imported. ${a}::${b}: Names can't contain digits. Fix these entries in the file and import it again.`,
+    )
+    // JSON.parse makes __proto__ an own key; the validator must refuse it as a key, never assign it
+    const key = importOutcome(validated(JSON.stringify({ ...doc, overrides: { ['__proto__']: 'Zed' } })), copyCtx)
+    expect(key.kind).toBe('error')
+    expect(key.text).toContain('Override key "__proto__" is not a demon of base 28.')
+    expect(key.offerSeed).toBeNull()
+  })
+
+  it('a missing field reads as a field problem', () => {
+    const doc = docOf(namingOf(OTHER_BASE))
+    const outcome = importOutcome(validated(JSON.stringify({ ...doc, generator: { ...(doc.generator as object), seed: 5 } })), copyCtx)
+    expect(outcome.kind).toBe('error')
+    expect(outcome.text).toContain('Field generator.seed is not valid.')
+    expect(outcome.text.endsWith('Fix these entries in the file and import it again.')).toBe(true)
+  })
+
+  it('only a wrong-base refusal carries a seed offer', () => {
+    const doc = docOf(namingOf(OTHER_BASE))
+    const refusals = [
+      validated('nope'),
+      validated('{"x":1}'),
+      validated(JSON.stringify({ ...doc, zones: ['a b'] })),
+      validated(JSON.stringify({ ...doc, generator: 5 })),
+    ]
+    for (const result of refusals) expect(importOutcome(result, copyCtx).offerSeed).toBeNull()
+  })
+})
+
+describe('readImportFile', () => {
+  const env = { base: OTHER_BASE, interactiveMaxN: INTERACTIVE_MAX_N, preset: CCRU_NAMING_PRESET, copy: copyCtx }
+
+  it('refuses a file over the cap by its size, without reading it', async () => {
+    let reads = 0
+    const file = {
+      size: NAMING_IMPORT_MAX_BYTES + 1,
+      text: (): Promise<string> => {
+        reads++
+        return Promise.resolve('')
+      },
+    }
+    const result = await readImportFile(file, env)
+    expect(reads).toBe(0)
+    expect(result.naming).toBeNull()
+    expect(result.outcome).toEqual({
+      kind: 'error',
+      text: importError({ kind: 'too-large', maxBytes: NAMING_IMPORT_MAX_BYTES }),
+      offerSeed: null,
+    })
+  })
+
+  it('a file exactly at the cap is read', async () => {
+    let reads = 0
+    const file = {
+      size: NAMING_IMPORT_MAX_BYTES,
+      text: (): Promise<string> => {
+        reads++
+        return Promise.resolve('{}')
+      },
+    }
+    const result = await readImportFile(file, env)
+    expect(reads).toBe(1)
+    expect(result.outcome.text).toBe(importError({ kind: 'not-names-file' }))
+  })
+
+  it('a file the browser cannot read is the unreadable refusal', async () => {
+    const file = { size: 10, text: (): Promise<string> => Promise.reject(new Error('denied')) }
+    const result = await readImportFile(file, env)
+    expect(result.naming).toBeNull()
+    expect(result.outcome).toEqual({ kind: 'error', text: importError({ kind: 'unreadable' }), offerSeed: null })
+    expect(result.outcome.text).toBe("Couldn't read this file. Nothing was imported. Choose the file again.")
+  })
+
+  it('a real File of an exported naming comes back as that naming with the success line', async () => {
+    const naming = { ...namingOf(OTHER_BASE, { seed: 'roundtrip' }), locks: new Set([2]), overrides: new Map([[7, 'Zed']]) }
+    const text = serializeNaming(naming, { pretty: true })
+    const file = new File([text], 'ccrug-names-base28.json', { type: 'application/json' })
+    const result = await readImportFile(file, env)
+    expect(result.outcome).toEqual({ kind: 'success', text: importSuccess(OTHER_BASE, OTHER_BASE, 1), offerSeed: null })
+    expect(result.naming).not.toBeNull()
+    expect(result.naming?.seed).toBe('roundtrip')
+    expect(result.naming?.sounds).toEqual(naming.sounds)
+    expect([...(result.naming?.locks ?? [])]).toEqual([2])
+    expect([...(result.naming?.overrides ?? [])]).toEqual([[7, 'Zed']])
+  })
+
+  it('a file that fails validation applies nothing and keeps a wrong-base seed offer', async () => {
+    const other = new File([serializeNaming(namingOf(30, { seed: 'kept' }))], 'x.json')
+    const result = await readImportFile(other, env)
+    expect(result.naming).toBeNull()
+    expect(result.outcome.kind).toBe('error')
+    expect(result.outcome.offerSeed).toEqual({ seed: 'kept', style: 'harsh', join: 'hi-lo', smoothing: 0 })
+  })
+
+  it('reads text as data: a hostile key is refused, echoed as text, and escaped when shown', async () => {
+    const hostile = new File(['{"schema":"' + SCHEMA_ID + '","base":28,"overrides":{"<img src=x onerror=alert(1)>":"x"}}'], 'x.json')
+    const result = await readImportFile(hostile, env)
+    expect(result.naming).toBeNull()
+    expect(result.outcome.kind).toBe('error')
+    expect(result.outcome.text).toContain('<img src=x onerror=alert(1)>')
+    const markup = renderToStaticMarkup(
+      createElement(NamesStatusSlot, { status: { ...result.outcome, undo: false }, onUndo: noop, onUseSeed: noop }),
+    )
+    expect(markup).not.toContain('<img')
+    expect(markup).toContain('&lt;img')
+  })
+})
+
+// A recording stand-in for the browser's download machinery.
+function fakeDownload(): {
+  readonly env: DownloadEnv
+  readonly log: string[]
+  readonly blobs: Blob[]
+  readonly anchors: { href: string; download: string }[]
+  runDeferred(): void
+} {
+  const log: string[] = []
+  const blobs: Blob[] = []
+  const anchors: { href: string; download: string }[] = []
+  const deferred: (() => void)[] = []
+  const env: DownloadEnv = {
+    makeUrl: blob => {
+      blobs.push(blob)
+      log.push('makeUrl')
+      return `blob:fake-${blobs.length}`
+    },
+    revokeUrl: url => {
+      log.push(`revoke ${url}`)
+    },
+    makeAnchor: () => {
+      const anchor = {
+        href: '',
+        download: '',
+        click: () => log.push(`click ${anchor.href} as ${anchor.download}`),
+        remove: () => log.push('remove'),
+      }
+      anchors.push(anchor)
+      log.push('makeAnchor')
+      return anchor
+    },
+    defer: fn => {
+      deferred.push(fn)
+    },
+  }
+  return { env, log, blobs, anchors, runDeferred: () => deferred.splice(0).forEach(fn => fn()) }
+}
+
+describe('downloadJson and exportNaming', () => {
+  it('downloads one JSON blob through a temporary anchor and revokes the URL after the click', () => {
+    const fake = fakeDownload()
+    downloadJson('{"a":1}', 'x.json', fake.env)
+    expect(fake.blobs).toHaveLength(1)
+    expect(fake.blobs[0].type).toBe('application/json')
+    expect(fake.anchors).toHaveLength(1)
+    expect(fake.anchors[0]).toMatchObject({ href: 'blob:fake-1', download: 'x.json' })
+    expect(fake.log).toEqual(['makeUrl', 'makeAnchor', 'click blob:fake-1 as x.json', 'remove'])
+    // the URL is revoked once, after the click, and not before the deferred step runs
+    fake.runDeferred()
+    expect(fake.log).toEqual(['makeUrl', 'makeAnchor', 'click blob:fake-1 as x.json', 'remove', 'revoke blob:fake-1'])
+  })
+
+  it('exports the naming through the one serializer, pretty-printed, under the fixed file name', async () => {
+    const naming = { ...namingOf(OTHER_BASE, { seed: 'exported' }), locks: new Set([1]) }
+    const fake = fakeDownload()
+    const text = exportNaming(naming, OTHER_BASE, fake.env)
+    expect(text).toBe(exportSuccess(OTHER_BASE))
+    expect(text).toBe('Exported names for base 28.')
+    expect(fake.anchors[0].download).toBe('ccrug-names-base28.json')
+    const written = await fake.blobs[0].text()
+    expect(written).toBe(serializeNaming(naming, { pretty: true }))
+    expect(written.endsWith('\n')).toBe(true)
+    // and what it wrote reads back through the validator
+    const back = validated(written)
+    expect(back.ok).toBe(true)
+  })
+
+  it('above the ceiling the file carries the seed and style only, and the status says so', async () => {
+    const naming = namingOf(SEED_ONLY_BASE, { seed: 'big', style: 'syllabic' })
+    const fake = fakeDownload()
+    const text = exportNaming(naming, SEED_ONLY_BASE, fake.env)
+    expect(text).toBe(exportSeedOnly(SEED_ONLY_BASE))
+    expect(fake.anchors[0].download).toBe(`ccrug-names-base${SEED_ONLY_BASE}.json`)
+    const doc = JSON.parse(await fake.blobs[0].text()) as Record<string, unknown>
+    expect(doc.zones).toBeUndefined()
+    expect(doc.locks).toBeUndefined()
+    expect(doc.overrides).toBeUndefined()
+    expect((doc.generator as { seed: string; style: string }).seed).toBe('big')
+    expect((doc.generator as { seed: string; style: string }).style).toBe('syllabic')
+  })
+})
+
+// ── the status slot ────────────────────────────────────────────────────────
+
+describe('NamesStatusSlot', () => {
+  const noopHandlers = { onUndo: noop, onUseSeed: noop }
+  const slot = (status: NamesStatus | null): string =>
+    renderToStaticMarkup(createElement(NamesStatusSlot, { status, ...noopHandlers }))
+  const success: NamesStatus = { text: 'Generated names for base 28 from seed abc.', kind: 'success', undo: true, offerSeed: null }
+
+  it('renders nothing without a status', () => {
+    expect(slot(null)).toBe('')
+  })
+
+  it('a replace-all result is plain text with no role, and Undo on its own line', () => {
+    const markup = slot(success)
+    const line = need(markup, 'data-names-status')
+    expect(line.tag).toBe('p')
+    expect(attrOf(line.open, 'data-kind')).toBe('success')
+    expect(attrOf(line.open, 'role')).toBeNull()
+    expect(attrOf(line.open, 'aria-live')).toBeNull()
+    expect(textOf(line.inner)).toBe(success.text)
+    expect(classOf(line.open)).toContain('text-gray-300')
+    const undo = need(markup, 'data-names-undo')
+    expect(undo.tag).toBe('button')
+    expect(textOf(undo.inner)).toBe('Undo this change')
+    expect(textOf(undo.inner)).toBe(NAMES_COPY.undoChange)
+    expect(classOf(undo.open)).toContain('min-h-[24px]')
+    expect(undo.index).toBeGreaterThan(line.index)
+    // its own line: a wrapper around the button holds nothing else
+    expect(markup).toMatch(/<div><button[^>]*data-names-undo[^>]*>[^<]*<\/button><\/div>/)
+    expect(find(markup, 'data-names-use-seed')).toBeNull()
+  })
+
+  it('a status that replaces nothing has no Undo', () => {
+    const markup = slot({ text: 'Smoothing on.', kind: 'info', undo: false, offerSeed: null })
+    expect(attrOf(need(markup, 'data-names-status').open, 'data-kind')).toBe('info')
+    expect(find(markup, 'data-names-undo')).toBeNull()
+  })
+
+  it('an error is red and offers Use its seed here only with a seed', () => {
+    const plain = slot({ text: 'This file isn\'t valid JSON.', kind: 'error', undo: false, offerSeed: null })
+    expect(attrOf(need(plain, 'data-names-status').open, 'data-kind')).toBe('error')
+    expect(classOf(need(plain, 'data-names-status').open)).toContain('#f87171')
+    expect(find(plain, 'data-names-use-seed')).toBeNull()
+    const offer = slot({
+      text: 'This file is for base 30.',
+      kind: 'error',
+      undo: false,
+      offerSeed: { seed: 'abc', style: 'harsh', join: 'hi-lo', smoothing: 0 },
+    })
+    const button = need(offer, 'data-names-use-seed')
+    expect(button.tag).toBe('button')
+    expect(textOf(button.inner)).toBe('Use its seed here')
+    expect(textOf(button.inner)).toBe(NAMES_COPY.useSeed)
+    expect(find(offer, 'data-names-undo')).toBeNull()
+  })
+
+  it('shows text as text: markup in a status is escaped', () => {
+    const markup = slot({ text: '<img src=x onerror=alert(1)>', kind: 'error', undo: false, offerSeed: null })
+    expect(markup).not.toContain('<img')
+    expect(markup).toContain('&lt;img')
+  })
+})
+
+// ── block 10 in the panel ──────────────────────────────────────────────────
+
+describe('NamesPanel: import and export block', () => {
+  const ready = render(valueFor(namingOf(OTHER_BASE)))
+
+  it('sits between the summary and the autosave line, in a wrapping button row', () => {
+    expect(at(ready, 'data-names-summary')).toBeLessThan(at(ready, 'data-names-export'))
+    expect(at(ready, 'data-names-export')).toBeLessThan(at(ready, 'data-names-import'))
+    expect(at(ready, 'data-names-import')).toBeLessThan(at(ready, 'data-names-saved'))
+    expect(ready).toMatch(/<div class="flex flex-wrap gap-2"><button[^>]*data-names-export[^>]*>[^<]*<\/button><button[^>]*data-names-import[^>]*>/)
+    const exportButton = need(ready, 'data-names-export')
+    const importButton = need(ready, 'data-names-import')
+    expect(exportButton.tag).toBe('button')
+    expect(textOf(exportButton.inner)).toBe('Export names')
+    expect(textOf(importButton.inner)).toBe('Import names')
+    expect(classOf(exportButton.open)).toContain('min-h-[24px]')
+    expect(classOf(importButton.open)).toContain('min-h-[24px]')
+    expect(flagOf(exportButton.open, 'disabled')).toBe(false)
+    expect(flagOf(importButton.open, 'disabled')).toBe(false)
+  })
+
+  it('has a hidden file input for json, and no status until something happens', () => {
+    const input = need(ready, 'data-names-import-input')
+    expect(input.tag).toBe('input')
+    expect(attrOf(input.open, 'type')).toBe('file')
+    expect(attrOf(input.open, 'accept')).toBe('.json,application/json')
+    expect(flagOf(input.open, 'hidden')).toBe(true)
+    expect(find(ready, 'data-names-status')).toBeNull()
+    expect(find(ready, 'data-names-undo')).toBeNull()
+    expect(find(ready, 'data-names-use-seed')).toBeNull()
+  })
+
+  it('Import is disabled in preview and pending, Export never is', () => {
+    const naming = namingOf(OTHER_BASE)
+    for (const state of ['preview', 'pending'] as const) {
+      const markup = render(valueFor(naming, { state }))
+      expect(flagOf(need(markup, 'data-names-import').open, 'disabled'), state).toBe(true)
+      expect(flagOf(need(markup, 'data-names-export').open, 'disabled'), state).toBe(false)
+    }
+    const seedOnly = render(valueFor(namingOf(SEED_ONLY_BASE)))
+    expect(flagOf(need(seedOnly, 'data-names-import').open, 'disabled')).toBe(false)
+    expect(flagOf(need(seedOnly, 'data-names-export').open, 'disabled')).toBe(false)
+    expect(at(seedOnly, 'data-names-import')).toBeLessThan(at(seedOnly, 'data-names-saved'))
+  })
+})
+
+// ── Task 2 source assertions ───────────────────────────────────────────────
+
+describe('NamesPanel source: the file path', () => {
+  const source = readFileSync(PANEL_SOURCE, 'utf8')
+  const count = (needle: string): number => source.split(needle).length - 1
+
+  it('uses one serializer, one validator, a size check before reading and one revoke', () => {
+    expect(count('serializeNaming(')).toBe(1)
+    expect(count('validateNamingJson(')).toBe(1)
+    expect(count('file.size > NAMING_IMPORT_MAX_BYTES')).toBe(1)
+    expect(count('URL.revokeObjectURL')).toBe(1)
+  })
+
+  it('clears the file input after every attempt and has no drop path', () => {
+    expect(count("input.value = ''")).toBeGreaterThanOrEqual(1)
+    expect(/onDrop|FileReader|dataTransfer/.test(source)).toBe(false)
   })
 })
