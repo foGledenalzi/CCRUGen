@@ -303,3 +303,140 @@ describe('emptyFilterMessage', () => {
     })
   })
 })
+
+// ── live names (plan 07-15, D-03, NAM-02, NAM-04, T-07-06c) ─────────────────────────────────────────────────────────────────
+// An optional `nameOf` (the resolver's method) makes the name branch read the names the visitor sees, at any base, within the
+// same NAME_SEARCH_MAX_COUNT cap. Without it every case above is unchanged. The canonical base-10 name is read from the frozen
+// oracle by index; no name is typed here, and the generated names come from the engine's own naming.
+import { createNameResolver, createNaming, setOverride, type Naming } from '../../engine/index'
+import { CCRU_NAMING_PRESET } from '../../app/presets/base10/naming'
+import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
+
+type NameOf = (a: number, b: number) => string
+
+const generatedNaming = (base: number): Naming => createNaming({ base, interactiveMaxN: INTERACTIVE_MAX_N })
+const ccruNaming = (): Naming =>
+  createNaming({ base: CCRU_NAMING_PRESET.base, interactiveMaxN: INTERACTIVE_MAX_N, source: 'ccru', preset: CCRU_NAMING_PRESET })
+const nameOfOf = (naming: Naming): NameOf =>
+  createNameResolver(naming, naming.source === 'ccru' ? CCRU_NAMING_PRESET : null).nameOf
+
+describe('parseDemonQuery: live names', () => {
+  const canonical0 = golden.demons[0]?.name as string
+  const generated10 = nameOfOf(generatedNaming(10))
+  const ccru10 = nameOfOf(ccruNaming())
+  const generated28 = nameOfOf(generatedNaming(28))
+  const nameAt28 = (mesh: number): string => {
+    const [a, b] = g28.demons.netSpanOf(mesh)
+    return generated28(a, b)
+  }
+
+  it('the canonical name stops matching once base 10 shows generated names, and matches again under the preset naming', () => {
+    expect(canonical0).toBe(CCRU_NAMING_PRESET.names[0])
+    expect(parseDemonQuery(canonical0, g10)).toEqual({ kind: 'name', mesh: 0 }) // the table path, unchanged
+    expect(parseDemonQuery(canonical0, g10, generated10)).toEqual({ kind: 'not-found' })
+    expect(parseDemonQuery(canonical0, g10, ccru10)).toEqual({ kind: 'name', mesh: 0 })
+    expect(parseDemonQuery(canonical0.toLowerCase(), g10, ccru10)).toEqual({ kind: 'name', mesh: 0 })
+  })
+
+  it('a generated name at base 28 finds its mesh, exact and in any letter case, where there was no name table before', () => {
+    expect(parseDemonQuery('xyz', g28)).toEqual({ kind: 'syntax' }) // no nameOf: unchanged
+    const [a, b] = g28.demons.netSpanOf(100)
+    const name = generated28(a, b)
+    expect(name).toMatch(/^[a-z]+$/i)
+    expect(parseDemonQuery(name, g28, generated28)).toEqual({ kind: 'name', mesh: 100 })
+    expect(parseDemonQuery(name.toUpperCase(), g28, generated28)).toEqual({ kind: 'name', mesh: 100 })
+    expect(parseDemonQuery(name.toLowerCase(), g28, generated28)).toEqual({ kind: 'name', mesh: 100 })
+  })
+
+  it('a prefix finds the lowest mesh whose name starts with it, and no match is not-found rather than syntax', () => {
+    const prefix = nameAt28(250).slice(0, 2).toLowerCase()
+    let expected = -1
+    for (let mesh = 0; mesh < g28.demons.count && expected === -1; mesh++) {
+      if (nameAt28(mesh).toLowerCase().startsWith(prefix)) expected = mesh
+    }
+    expect(expected).toBeGreaterThanOrEqual(0)
+    expect(expected).toBeLessThanOrEqual(250)
+    expect(parseDemonQuery(prefix, g28, generated28)).toEqual({ kind: 'name', mesh: expected })
+    expect(parseDemonQuery('qqqqqqqqqqqq', g28, generated28)).toEqual({ kind: 'not-found' })
+  })
+
+  it('an override is searchable and the name it replaced is not', () => {
+    const [a, b] = g28.demons.netSpanOf(5)
+    const before = generated28(a, b)
+    const renamed = nameOfOf(setOverride(generatedNaming(28), 5, 'Zorb', null))
+    expect(parseDemonQuery('zorb', g28, generated28)).toEqual({ kind: 'not-found' })
+    expect(parseDemonQuery('zorb', g28, renamed)).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(before, g28, renamed)).not.toEqual({ kind: 'name', mesh: 5 })
+  })
+
+  it('mesh and pair queries read no names at all', () => {
+    const never: NameOf = () => {
+      throw new Error('nameOf must not be called')
+    }
+    expect(parseDemonQuery('42', g28, never)).toEqual({ kind: 'mesh', mesh: 42 })
+    expect(parseDemonQuery('c::3', g28, never)).toEqual({ kind: 'pair', a: 12, b: 3 })
+    expect(parseDemonQuery('', g28, never)).toEqual({ kind: 'empty' })
+    expect(parseDemonQuery('1e3', g28, never)).toEqual({ kind: 'syntax' })
+  })
+
+  it('above NAME_SEARCH_MAX_COUNT a name query is syntax with or without nameOf, and nameOf is never called (T-07-06c)', () => {
+    expect(g666.demons.count).toBeGreaterThan(NAME_SEARCH_MAX_COUNT)
+    let calls = 0
+    const counting: NameOf = () => {
+      calls++
+      return 'x'
+    }
+    expect(parseDemonQuery('abc', g666)).toEqual({ kind: 'syntax' })
+    expect(parseDemonQuery('abc', g666, counting)).toEqual({ kind: 'syntax' })
+    expect(calls).toBe(0)
+  })
+
+  it('reads names for every mesh within the cap, not only a first few', () => {
+    const last = g28.demons.count - 1
+    const name = nameAt28(last)
+    expect(parseDemonQuery(name, g28, generated28)).toEqual({ kind: 'name', mesh: last })
+  })
+
+  it('a naming of another base is syntax, not a throw: only the engine RangeError is swallowed', () => {
+    expect(parseDemonQuery('abc', g28, ccru10)).toEqual({ kind: 'syntax' })
+    const broken: NameOf = () => {
+      throw new TypeError('not a range problem')
+    }
+    expect(() => parseDemonQuery('abc', g28, broken)).toThrow(TypeError)
+  })
+})
+
+describe('resolveDemonSearch: live names', () => {
+  const generated28 = nameOfOf(generatedNaming(28))
+
+  it('forwards nameOf: a generated name resolves to its row, and is a syntax error without it', () => {
+    const [a, b] = g28.demons.netSpanOf(60)
+    const name = generated28(a, b)
+    const outcome = resolveDemonSearch(name, g28, null, DEFAULT_DEMON_SORT, generated28)
+    expect(outcome.kind).toBe('found')
+    if (outcome.kind !== 'found') throw new Error('expected found')
+    expect(outcome.demon.mesh).toBe(60)
+    expect(outcome.index).toBe(60)
+    expect(resolveDemonSearch(name, g28, null, DEFAULT_DEMON_SORT)).toEqual({ kind: 'syntax', echo: name })
+  })
+
+  it('reports a live-name hit outside the active filter and an unknown name as not-found', () => {
+    const [a, b] = g28.demons.netSpanOf(0)
+    const name = generated28(a, b)
+    const demon = g28.demons.at(0)
+    const filtered = resolveDemonSearch(name, g28, demon.type === 'chrono' ? 'xeno' : 'chrono', DEFAULT_DEMON_SORT, generated28)
+    expect(filtered.kind).toBe('outside-filter')
+    expect(resolveDemonSearch('qqqqqqqqqqqq', g28, null, DEFAULT_DEMON_SORT, generated28)).toEqual({
+      kind: 'not-found',
+      echo: 'qqqqqqqqqqqq',
+    })
+  })
+
+  it('base 10 under the preset naming still resolves the canonical name to its row', () => {
+    const canonical = (golden.demons[0]?.name as string).toLowerCase()
+    const outcome = resolveDemonSearch(canonical, g10, null, DEFAULT_DEMON_SORT, nameOfOf(ccruNaming()))
+    expect(outcome.kind).toBe('found')
+    if (outcome.kind !== 'found') throw new Error('expected found')
+    expect(outcome.demon.mesh).toBe(0)
+  })
+})
