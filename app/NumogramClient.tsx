@@ -34,12 +34,15 @@ import { PENDING_GRACE_MS } from './lib/canvas/diagramModel'
 import { sessionAfterBaseSwitch } from './lib/baseSwitch'
 import { computeDesktopStack, DESKTOP_PANEL_LEFT_X, DESKTOP_PANEL_RIGHT_X, INFO_PANEL_WIDTH, INITIAL_INFO_X, PANEL_WIDTH } from './lib/panelStack'
 import {
-  applyNamingAction, hasUncarriedEdits, keepPreview, namesPanelState, restoreNaming, revertPreview, sessionForBase, snapshotNaming,
+  applyNamingAction, autosaveWanted, hasUncarriedEdits, keepPreview, linkFormOf, namesPanelState, restoreNaming, revertPreview,
+  sessionForBase, snapshotNaming,
   type NamingAction, type NamingEnv, type NamingSession,
 } from './lib/namingSession'
-import { browserStorage, readSlot } from './lib/namingStorage'
-import { NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
+import { browserStorage, readSlot, writeSlot } from './lib/namingStorage'
+import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
 import { NAMES_COPY } from './lib/namingCopy'
+import { historySnapshotKey, singleChangedZone, withHydratedNaming } from './lib/historyHydration'
+import { NAMES_PARAM } from './lib/namesLink'
 import type { DemonFilter } from './lib/demonBrowser'
 import { legacyDemon } from './lib/demonBrowser'
 import {
@@ -140,18 +143,6 @@ type HistorySnapshot = {
   namingRev: number
 }
 
-// The one zone whose sound or lock differs between two namings of a base (the list scrolls to it after an undo or redo), else null:
-// no zone differs, several differ, or there is no per-zone table (seed-only).
-function singleChangedZone(a: Naming, b: Naming): number | null {
-  if (a.sounds === null || b.sounds === null || a.sounds.length !== b.sounds.length) return null
-  let changed: number | null = null
-  for (let zone = 0; zone < a.sounds.length; zone++) {
-    if (a.sounds[zone] === b.sounds[zone] && a.locks.has(zone) === b.locks.has(zone)) continue
-    if (changed !== null) return null
-    changed = zone
-  }
-  return changed
-}
 
 function toggleTerminalSelection(prev: Set<number>, terminals: Iterable<number>): Set<number> {
   const terminalList = Array.from(new Set(terminals))
@@ -243,6 +234,15 @@ export default function NumogramPage() {
     sessionRef.current = next
     setNamingSession(next)
   }, [])
+  // The naming whose debounced slot write is still waiting. A base switch and the page being hidden write it at once, so an edit made
+  // less than the debounce before either is not lost (the slot is read back right after a switch, so the write must come first).
+  const pendingSaveRef = useRef<Naming | null>(null)
+  const flushPendingSave = useCallback(() => {
+    const pending = pendingSaveRef.current
+    if (pending === null) return
+    pendingSaveRef.current = null
+    writeSlot(browserStorage(), pending)
+  }, [])
 
   const svgWrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<CanvasHandle | null>(null)
@@ -332,6 +332,10 @@ export default function NumogramPage() {
   const skipFirstUrlSyncRef = useRef(true)
   const lastSyncedQueryRef = useRef('')
   const historyReadyRef = useRef(false)
+  // Set by a load that commits a saved or linked naming (the mount-time hydration): the history effect then rewrites the naming of its
+  // previous snapshot once, so the load is never an undo entry for the naming (D-09). A base switch needs no flag: it nulls the current
+  // snapshot instead.
+  const historyNamingAdoptRef = useRef(false)
   const historyCurrentRef = useRef<HistorySnapshot | null>(null)
   const historyApplyingRef = useRef(false)
   const currentOrientationRef = useRef<Record<string, 1 | -1>>({})
@@ -394,11 +398,11 @@ export default function NumogramPage() {
     demonFilter,
     demonFocus,
     demonsOpen,
-    // the naming session (plan 07-18) supplies the displayed naming's link form; until then no names= is written
-    names: null,
+    // D-13: the displayed naming's link form (null for the default naming of the base, so a default view writes no names=)
+    names: linkFormOf(namingSession.working, NAMING_ENV),
   }), [
     base, layout, layers, selZones, hlRegion, tcActive, particlesOn, planetDate, showOrbits, labelScheme, regionFilter,
-    packer, tierOverride, demonFilter, demonFocus, demonsOpen,
+    packer, tierOverride, demonFilter, demonFocus, demonsOpen, namingSession.working,
   ])
 
   const snapshotState = useCallback((): HistorySnapshot => {
@@ -429,10 +433,8 @@ export default function NumogramPage() {
     }
   }, [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, showOrbits, planetDate, orbiting, labelVisibility, labelScheme, packer, regionFilter, namingSession])
 
-  // Pitfall 7: the key never stringifies the naming (a table of thousands of sounds), only its revision number.
-  const snapshotKey = useCallback((snapshot: HistorySnapshot): string => {
-    return JSON.stringify(snapshot, (k, v) => (k === 'naming' ? undefined : v))
-  }, [])
+  // Pitfall 7: the key never stringifies the naming (a table of thousands of sounds), only its revision number (historySnapshotKey).
+  const snapshotKey = useCallback((snapshot: HistorySnapshot): string => historySnapshotKey(snapshot), [])
 
   const applySnapshot = useCallback((snapshot: HistorySnapshot) => {
     // UI-08: a snapshot from a different base can never be restored (its zone/region ids don't exist at the current
@@ -488,6 +490,7 @@ export default function NumogramPage() {
   // The naming joins the same batch (D-10): the new base's saved slot, or its fresh default, replaces the old base's session.
   const resetForBaseSwitch = useCallback((nextDemons: DemonSessionState, nextBase: number) => {
     jumpToTarget()
+    flushPendingSave()
     commitSession(sessionForBase(nextBase, readSlot(browserStorage(), nextBase, NAMING_ENV), null, NAMING_ENV, nextRev))
     setNamesSaved('none')
     setNamesAnnouncement('')
@@ -510,7 +513,7 @@ export default function NumogramPage() {
     setDemonFilter(nextDemons.filter)
     setDemonFocus(null)
     setDemonFocusMode(false)
-  }, [jumpToTarget, setCanvasPan, setZoom, setZoomOrigin, setOrbiting, commitSession, nextRev])
+  }, [jumpToTarget, setCanvasPan, setZoom, setZoomOrigin, setOrbiting, commitSession, nextRev, flushPendingSave])
 
   // A URL state waiting for its worker result is void the moment anything else commits: drop it and let the URL sync start.
   const dropPendingHydration = useCallback(() => {
@@ -804,6 +807,13 @@ export default function NumogramPage() {
     urlHydratedRef.current = true
 
     if (!window.location.search.replace(/^\?/, '')) {
+      // D-09: a bare URL still restores the base-10 slot (the page opens on the initial base, whose session is the current one);
+      // with no slot nothing is committed and no adopt flag is left pending, so the first real edit keeps its undo entry.
+      const savedSlot = readSlot(browserStorage(), sessionRef.current.base, NAMING_ENV)
+      if (savedSlot !== null) {
+        commitSession(sessionForBase(sessionRef.current.base, savedSlot, null, NAMING_ENV, nextRev))
+        historyNamingAdoptRef.current = true
+      }
       setUrlSyncReady(true)
       return
     }
@@ -849,6 +859,12 @@ export default function NumogramPage() {
     setLabelScheme(state.labels)
     setPacker(state.packer)
     setTierOverride(state.tier)
+    // D-09, D-13: the naming of the linked base is its saved slot, or the link's naming (an unsaved preview, and the Names panel
+    // opens once, when the link differs from the slot). The commit always yields a new revision, so the adopt flag is always consumed.
+    const hydratedNaming = sessionForBase(state.base, readSlot(browserStorage(), state.base, NAMING_ENV), state.names, NAMING_ENV, nextRev)
+    commitSession(hydratedNaming)
+    historyNamingAdoptRef.current = true
+    if (hydratedNaming.preview) setNamesOpen(true)
     setDemonFilter(state.demonFilter)
     setDemonFocus(state.demonFocus)
     setDemonFocusMode(state.demonFocus !== null)
@@ -876,7 +892,7 @@ export default function NumogramPage() {
       pendingShareSelectionRef.current = pendingZones
     }
     setUrlSyncReady(true)
-  }, [setPlanetaryAngles, setOrbiting])
+  }, [setPlanetaryAngles, setOrbiting, commitSession, nextRev])
 
   useEffect(() => {
     const zones = pendingShareSelectionRef.current
@@ -893,22 +909,55 @@ export default function NumogramPage() {
     if (!urlSyncReady) return
     if (typeof window === 'undefined') return
 
-    const query = buildShareParams(currentShareState(), { includeLayoutAlways: false }).toString()
+    const shareState = currentShareState()
+    const query = buildShareParams(shareState, { includeLayoutAlways: false }).toString()
+    const url = `${window.location.pathname}${query ? `?${query}` : ''}`
     if (skipFirstUrlSyncRef.current) {
       skipFirstUrlSyncRef.current = false
       lastSyncedQueryRef.current = query
+      // D-13: the address always names the displayed naming. A slot restored at load can carry a link form the opening URL did not
+      // name; only then is the first sync written. Every other first sync stays a record only, so merely loading never rewrites a URL.
+      if (shareState.names !== null && !new URLSearchParams(window.location.search).has(NAMES_PARAM)) {
+        window.history.replaceState(window.history.state, '', url)
+      }
       return
     }
     if (query === lastSyncedQueryRef.current) return
 
-    const url = `${window.location.pathname}${query ? `?${query}` : ''}`
     window.history.replaceState(window.history.state, '', url)
     lastSyncedQueryRef.current = query
   }, [urlSyncReady, currentShareState])
 
+  // ── Naming autosave (D-09, D-11) ─────────────────────────────
+  // The slot is written after the debounce time that follows the last committed change, and only when the rules want it: after a first
+  // edit (never at load), never while previewing a link and never above the interactive ceiling. The pending naming is kept in a ref
+  // so a base switch or the page being hidden can write it at once; a failed write turns the quiet save line to failed.
+  useEffect(() => {
+    if (!autosaveWanted(namingSession, NAMING_ENV)) return
+    const naming = namingSession.working
+    pendingSaveRef.current = naming
+    const timer = window.setTimeout(() => {
+      // flushed or superseded in the meantime: nothing left to write
+      if (pendingSaveRef.current !== naming) return
+      pendingSaveRef.current = null
+      setNamesSaved(writeSlot(browserStorage(), naming))
+    }, NAMING_AUTOSAVE_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [namingSession])
+
+  useEffect(() => {
+    window.addEventListener('pagehide', flushPendingSave)
+    return () => window.removeEventListener('pagehide', flushPendingSave)
+  }, [flushPendingSave])
+
   // ── Worker results (Phase 6 REN-03, D-07) ───────────────────
   // The URL state of a worker-path base, applied by the swap that lands its result (everything base-shaped was reset first).
   const applyHydratedState = (state: ShareState, resp: WorkerBuilt) => {
+    // The same naming rule as the synchronous hydration (D-09, D-13), applied after the swap's reset in the same batch. No adopt flag:
+    // the reset has already nulled the current history snapshot, so the history effect takes the swap render as its new start.
+    const hydratedNaming = sessionForBase(resp.base, readSlot(browserStorage(), resp.base, NAMING_ENV), state.names, NAMING_ENV, nextRev)
+    commitSession(hydratedNaming)
+    if (hydratedNaming.preview) setNamesOpen(true)
     setHlRegion(state.region)
     setRegionFilter({ isolate: new Set(state.isolate), mute: new Set(state.mute) })
     setTcActive(state.tc)
@@ -1123,10 +1172,22 @@ export default function NumogramPage() {
       return
     }
 
-    const previousSnapshot = historyCurrentRef.current
+    let previousSnapshot = historyCurrentRef.current
     if (!previousSnapshot) {
       historyCurrentRef.current = currentSnapshot
       return
+    }
+
+    // A naming that was LOADED (a saved slot or a shared link, D-09) is not an edit: on the render where it arrives the previous
+    // snapshot takes over its naming and revision. The rewritten snapshot is stored back, because the bare return below does not
+    // touch the ref and the next change of any kind would otherwise push the pre-load naming (Undo would restore it and autosave
+    // would write it over the slot). The rest of the previous snapshot is kept, so a load that also changes the layout still pushes
+    // its one post-load entry exactly as before (the frozen behaviour baseline records Undo enabled after such a load), now carrying
+    // the loaded naming.
+    if (historyNamingAdoptRef.current && previousSnapshot.namingRev !== currentSnapshot.namingRev) {
+      historyNamingAdoptRef.current = false
+      previousSnapshot = withHydratedNaming(previousSnapshot, currentSnapshot)
+      historyCurrentRef.current = previousSnapshot
     }
 
     if (snapshotKey(previousSnapshot) === snapshotKey(currentSnapshot)) return
