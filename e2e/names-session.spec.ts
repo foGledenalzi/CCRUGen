@@ -451,3 +451,51 @@ test('an edit after Undo clears Redo and Undo returns to the previous edit (laye
 
   expect(errors).toEqual([])
 })
+
+// The residual of that fix: an Undo that applySnapshot REFUSES used to set the apply flag and put the foreign snapshot into the
+// current-snapshot ref anyway, but nothing renders differently, so nothing cleared them and the next real edit was swallowed. A
+// `?base=28` load leaves one post-load history entry that is a base-10 snapshot, so Undo is enabled and refuses it. The refusal must
+// change nothing but drop that dead entry (as it always did): no Redo entry appears, and the edits made afterwards are all recorded.
+test('a refused Undo leaves the history alone: the next edits are recorded and Undo walks back through them', async ({ page }) => {
+  const errors = trackErrors(page)
+  await page.goto('/numogram/?base=28')
+  await settle(page)
+  const [a, b] = netSpanOf(69)
+  const engineName = createNameResolver(defaultNamingFor(28, NAMING_ENV), CCRU_NAMING_PRESET).nameOf(a, b)
+
+  // the post-load entry belongs to base 10: Undo is enabled, the click is refused and only drops that entry
+  await expect(undoButton(page)).toBeEnabled()
+  await undoButton(page).click()
+  await expect(undoButton(page)).toBeDisabled()
+  // nothing was undone, so there is nothing to redo
+  await expect(redoButton(page)).toBeDisabled()
+
+  await pinFromOverlay(page, 'c::3', 69)
+  const selection = panel(page, 'Selection')
+  await expect(selection).toContainText(engineName)
+
+  await renamePinned(page, 'Aaa')
+  await expect(selection).toContainText('Aaa')
+  await expect(undoButton(page)).toBeEnabled()
+  await renamePinned(page, 'Bbb')
+  await expect(selection).toContainText('Bbb')
+  await expect(redoButton(page)).toBeDisabled()
+
+  // both edits are recorded: the first Undo shows Aaa, the second the engine's name (the swallowed edit left nothing to go back to)
+  await undoButton(page).click()
+  await expect(selection).toContainText('Aaa')
+  await expect(selection).not.toContainText('Bbb')
+  await undoButton(page).click()
+  await expect(selection).toContainText(engineName)
+  await expect(selection).not.toContainText('Aaa')
+  await expect(undoButton(page)).toBeDisabled()
+
+  // and Redo walks forward through the same two edits
+  await redoButton(page).click()
+  await expect(selection).toContainText('Aaa')
+  await redoButton(page).click()
+  await expect(selection).toContainText('Bbb')
+  await expect(redoButton(page)).toBeDisabled()
+
+  expect(errors).toEqual([])
+})
