@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-15-PLAN.md
-last_updated: "2026-11-10T16:40:00.000Z"
-last_activity: 2026-11-10 -- Completed 07-15 (render-time names in the browser cell, matrix text, demon detail and pinned background, live-name search)
+stopped_at: Completed 07-17-PLAN.md
+last_updated: "2026-11-10T17:05:00.000Z"
+last_activity: 2026-11-10 -- Completed 07-17 (Names panel shell with states, controls, preview table, notice, header tag, live carrier, import and export with inline Undo)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 89
+  completed_plans: 90
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 16 of 25 (07-01 to 07-15 complete; 07-16, the demon name editor with Selection and overlay mounts and hover-proof binding, is next)
+Plan: 16 of 25 (07-01 to 07-15 and 07-17 complete; 07-16 (the demon name editor with Selection and overlay mounts and hover-proof binding) is next)
 Status: Executing Phase 7
-Last activity: 2026-11-10 -- Completed 07-15 (render-time names in the browser cell, matrix text, demon detail and pinned background, live-name search)
+Last activity: 2026-11-10 -- Completed 07-17 (Names panel shell with states, controls, preview table, notice, header tag, live carrier, import and export with inline Undo)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 89
+- Total plans completed: 90
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -248,6 +248,7 @@ Recent decisions affecting current work:
 - [Phase 7 P13] Per-base naming slot, pure naming session rules and the null-default NamingContext shipped (NAM-03 and NAM-01 groundwork, D-09, D-10, D-11, D-13; both stay Pending: nothing imports the three new modules until NumogramClient wires them in 07-18): app/lib/namingSession.ts has `defaultNamingFor` (the preset base is `env.preset.base`, the ceiling is `env.interactiveMaxN`, neither typed), `linkFormOf` (fields only, null for every default and for a ccru naming), `namingFromLink`, `sessionForBase(base, saved, link, env, nextRev)` (preview exactly when a slot exists and its canonical link form differs from the link's, else the slot or the link; a seed-only base ignores any slot and never previews; nothing edited at open), `applyNamingAction` (13 action types, refused with the SAME session object while previewing, for an invalid value, a dense-only action at a seed-only base, an import of another base or table shape, and an edit that changes nothing; otherwise `edited` and a new rev), `keepPreview`, `revertPreview`, `snapshotNaming` (the SAVED naming while previewing, so Keep is one undoable entry and Back none), `restoreNaming`, `hasUncarriedEdits`, `namesPanelState` and `autosaveWanted`. app/lib/namingStorage.ts guards the `window.localStorage` getter, `getItem` and `setItem`, reads through `validateNamingJson` (one validator, one call) and writes the compact export text under `ccrug.naming.v1.<base>`; every failure is no slot or `'failed'`; a seed-only naming is never read or written. app/components/names/NamingContext.tsx has `createContext<NamingContextValue | null>(null)` and `useNaming()` returning null outside a provider. Decisions: a no-op edit returns the same session (no history entry, no slot write); a paste is all-or-nothing over every token; 07-18 must take the history snapshot BEFORE `keepPreview`, pass `nextRev` to it, and memoise `hasUncarriedEdits`. 96 tests in two timezones, 55 mutants run (50 killed, 5 equivalent; one weak seed-only slot test found by a survivor and fixed), typecheck, check-repo, build and check:weight clean, test:swap not run (new files only, no importer), no frozen oracle, engine file, `NumogramClient.tsx`, `Projection.tsx` or base-10 preset touched.
 - [Phase 7 P14] Canvas sounds labels, sound-aware announcements and live chord callout names shipped (NAM-01 and NAM-02 groundwork, D-03; both stay Pending: nothing passes `zoneSounds` to `CanvasDiagram` until 07-21 and the `NamingContext` provider comes in 07-18): `DrawState.zoneSounds` (optional, inherited by `OverlayState`) and a sounds branch beside the old loop in BOTH zone-label passes of `app/lib/canvas/draw.ts`, each calling the shared `fitSoundLabel(sound, geo.rPx, scene.labelSize * geo.s)` per label with the font set per label, so the static pass and the highlight overlay agree (ghost test at fit and zoomed); without a table the digits loops are unchanged (the diff against the plan base removes only the two `if` headers), pair pills, gate labels and the xenotation passes never read it, level of detail and the numbers toggle gate both passes; a zone with an empty or missing sound keeps its digits label and wording (the plan's `?? ''` would paint empty text, the same fallback 07-12 chose for the SVG tier). `TargetText.zoneSounds` makes `zoneText` return the shared `zoneSoundAria` wording (full sound, selected suffix after it, edges and pairs keep numerals); `targetTextFor` takes `zoneSounds` as a sixth argument; `chordCalloutText(chord, zoneLabels, nameOf)` gives `a::b`, a middle dot and the LIVE name (the chord's own name without a naming and on a RangeError), and `CanvasDiagram` asks only a naming whose base equals the scene's. 35 new tests, 10 mutants killed (the plan's overlay-only fullPx mutant fails exactly the ghost test; one survivor of the fallback test was killed by a tighter test), `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 112 files and 3499 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `Projection.tsx`, `NumogramClient.tsx` or base-10 preset touched.
 - [Phase 7 P15] Render-time names in every display and live-name search shipped (NAM-02 and NAM-04 groundwork, D-03, D-08, Pitfall 6; both stay Pending: no `NamingContext` provider is mounted until 07-18, so the app still renders as before): the browser NAME cell, the matrix tooltip and keyboard text, both `DemonInfo` headings, the exported `selectedInfoMeta(info, ctx, naming)` title and `PinnedBackground` read the name from `useNaming()`'s resolver at render time, never from the name baked into `HoverInfo` by `legacyDemon` (which, with `demonName` and `demonNameTable`, is unchanged). An overridden name gets a sibling post-baseline span `*` with hidden text `, overridden` outside the truncating span; canonical and generated names carry no marker, so base-10 `Lurgo` and `Ummnu` stay exact. The matrix name is cut at `NAME_TOOLTIP_GRAPHEMES` (31 graphemes plus U+2026) by grapheme, not code unit. `parseDemonQuery` and `resolveDemonSearch` take an optional `nameOf` and read the live names within `NAME_SEARCH_MAX_COUNT` (exact beats an earlier prefix match; no table path change without it), so `Lurgo` stops matching once base 10 shows generated names. Decision beyond the plan: every display asks a naming only when `naming.base` equals the displayed base (a switch in flight must not call `nameOf` for a foreign zone), and a RangeError from `nameOf` in the search reads as no name search. Known limits: name search matches ASCII-letter queries only (`NAME_RE` unchanged), a rename re-reveals a found search row, the hover tooltip text is captured at pointer-move time. 39 new tests (26 render, 13 search), 24 mutants killed, `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 113 files and 3538 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `Projection.tsx`, `NumogramClient.tsx` or base-10 preset touched.
+- [Phase 7 P17] Names panel shell, states, import and export shipped (NAM-01, NAM-03 and NAM-04 groundwork, D-02, D-04, D-06, D-09, D-11, D-13, D-14; all three stay Pending: no NamingContext provider and no panel mount until 07-18 and 07-21): app/components/names/NamesPanel.tsx has `NamesPanel({ open, bodyMax, pinnedMesh, pinnedZone })` and `NamesHeaderTag()`. The root and the sr-only live carrier (role status, aria-live polite, data-names-live) are always mounted; the body mounts only while open and is keyed by the displayed base, so a base switch or a collapse clears the status and draft with no effect. Blocks in UI-SPEC order: preview notice, Source (only where the preset is for the base), Seed (draft with a dirty flag, Enter and deferred-blur commit, Reroll on its own row, seed error), Style and Join radiogroups with visible descriptions, Smoothing with the inert caption, a real preview table (pinned demon then the lowest meshes, aria-current on the column in use, CCRU caption), summary and share note, Import/Export with one plain-text status slot and the inline Undo, the autosave line; commented insertion points remain for the collision report (07-20) and the zone list (07-19). States come from the base alone: pending and preview disable every editing control and Import (Export stays on), seed-only drops Source, summary and list. Export serializes through `serializeNaming(.., { pretty: true })` into one JSON Blob under `ccrug-names-base{n}.json` (revoke after the click); import checks `File.size` before reading, runs the one validator, is all or nothing, clears the input in a finally, drops a late result when the base or state moved on, and offers Use its seed here only for a wrong-base file. Decisions: join and smoothing results are info statuses with no inline Undo (not replace-all); the autosave line follows the state first; Escape reverts the seed draft; focus moves to the seed after Keep or Back; handler logic lives in exported pure helpers (rerollSeed, seedCommitOf, previewMeshes, importOutcome, readImportFile, exportNaming, downloadJson with an injected environment, importAllowed, statusFate) because the repo has no DOM test library. 07-18 must make `rev` change on every committed change and restore (it clears the panel status). 99 tests (UTC and America/New_York), the whole unit suite 114 files and 3637 tests, 53 mutants killed with 0 survivors (the plan's wrong-base mutant fails 3 tests; planning them added four missing tests first), typecheck and check-repo clean, test:swap not run (one new app file and one test, nothing imports the panel), no frozen oracle, golden, engine file, `NumogramClient.tsx`, `Projection.tsx` or base-10 preset touched.
 
 ### Pending Todos
 
@@ -281,8 +282,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-10T16:40:00.000Z
-Stopped at: Completed 07-15-PLAN.md
+Last session: 2026-11-10T17:05:00.000Z
+Stopped at: Completed 07-17-PLAN.md
 Resume file: .planning/phases/07-naming-builder/07-16-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
