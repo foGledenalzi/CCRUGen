@@ -7,11 +7,11 @@
 // field, is disabled while the naming is a preview or a base is building, and is not offered above the interactive ceiling.
 // Everything the visitor types stays a React text node or an input value. Original CCRUG code (MIT, NOTICE section 1).
 import React, { useContext, useEffect, useId, useRef, useState } from 'react'
-import { NAME_MAX_LENGTH, meshOf, toNfc, validateName, type NameState } from '../../../engine/index'
+import { NAME_MAX_LENGTH, meshOf, toNfc, validateName, type NameResolver, type NameState, type Smoothing } from '../../../engine/index'
 import { netSpanLabel } from '../../lib/demonBrowser'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../../lib/labelScheme'
 import { NAMES_COPY, backTo, demonIssue, nameFieldAria, renamed, renamingUnavailable } from '../../lib/namingCopy'
-import type { NamesPanelState } from '../../lib/namingSession'
+import type { NamesPanelState, NamingAction } from '../../lib/namingSession'
 import { NumogramViewContext, type NumogramViewContextValue } from '../numogram/ViewContext'
 import { CyberButton } from '../ui/CyberButton'
 import { useNaming, type NamingContextValue } from './NamingContext'
@@ -99,6 +99,47 @@ export function editKeyAction(key: string, composing: boolean, onInput: boolean)
 export function resetLabelOf(state: NameState, presetName: string | null): string | null {
   if (state !== 'overridden') return null
   return presetName !== null ? NAMES_COPY.resetCcru : NAMES_COPY.resetGenerated
+}
+
+/** A demon's net-span as shown to people: the text `A::B` and the two labels it is made of (higher zone first). */
+export interface ShownSpan {
+  readonly text: string
+  readonly hi: string
+  readonly lo: string
+}
+
+/** The naming action of one type. */
+type ActionOf<T extends NamingAction['type']> = Extract<NamingAction, { readonly type: T }>
+
+/** What saving a draft leads to: a refusal to show under the field, nothing to change, or the naming action with the sentence to announce. */
+export type SaveOutcome =
+  | { readonly kind: 'refused'; readonly message: string }
+  | { readonly kind: 'unchanged' }
+  | { readonly kind: 'rename'; readonly action: ActionOf<'override'>; readonly status: string }
+
+/**
+ * The decision behind Save name. An accepted draft becomes the override action even when it equals what the rule or the preset
+ * gives: the engine then removes the override instead of storing one, so saving the generated or CCRU name clears the override.
+ */
+export function saveOutcome(draft: string, current: string, mesh: number, span: ShownSpan): SaveOutcome {
+  const result = commitName(draft, current, span.text)
+  if (!result.ok) return { kind: 'refused', message: result.message }
+  if (result.unchanged) return { kind: 'unchanged' }
+  return { kind: 'rename', action: { type: 'override', mesh, name: result.text }, status: renamed(span.hi, span.lo, result.text) }
+}
+
+/** What the demon is called once its override is gone: the preset's name where one applies, else the rule's name under the naming's smoothing. */
+export function nameAfterReset(resolver: NameResolver, a: number, b: number, smoothing: Smoothing): string {
+  return resolver.presetNameOf(a, b) ?? resolver.ruleNameOf(a, b, smoothing)
+}
+
+/** The decision behind the reset buttons: the naming action and the sentence to announce, `after` being the name the demon goes back to. */
+export function resetOutcome(
+  mesh: number,
+  after: string,
+  span: ShownSpan,
+): { readonly action: ActionOf<'reset-override'>; readonly status: string } {
+  return { action: { type: 'reset-override', mesh }, status: backTo(span.hi, span.lo, after) }
 }
 
 // ----- presentation -----
@@ -229,7 +270,7 @@ function EditorBody({ a, b, context, autoEdit = false, onEditingChange, onDone, 
   const name = resolver.nameOf(a, b)
   const nameState = resolver.stateOf(a, b)
   const zoneLabel = (zone: number): string => (view !== null ? view.zoneLabel(zone) : formatZoneLabel(zone, base, DEFAULT_LABEL_SCHEME))
-  const netSpan = netSpanLabel(hi, lo, zoneLabel)
+  const span: ShownSpan = { text: netSpanLabel(hi, lo, zoneLabel), hi: zoneLabel(hi), lo: zoneLabel(lo) }
   const availability = editorAvailability(naming.state, base, naming.interactiveMaxN)
   const ids = useId()
   const messageId = `${ids}-message`
@@ -302,23 +343,21 @@ function EditorBody({ a, b, context, autoEdit = false, onEditingChange, onDone, 
 
   function save(): void {
     if (active === null) return
-    const result = commitName(active.draft, name, netSpan)
-    if (!result.ok) {
-      setEdit({ ...active, message: result.message })
-      naming.announce(result.message)
+    // the draft is checked here and again by the engine when the override is applied (T-07-03e); a refusal keeps the draft
+    const outcome = saveOutcome(active.draft, name, active.mesh, span)
+    if (outcome.kind === 'refused') {
+      setEdit({ ...active, message: outcome.message })
+      naming.announce(outcome.message)
       return
     }
-    if (!result.unchanged && naming.apply({ type: 'override', mesh: active.mesh, name: result.text })) {
-      naming.announce(renamed(zoneLabel(hi), zoneLabel(lo), result.text))
-    }
+    if (outcome.kind === 'rename' && naming.apply(outcome.action)) naming.announce(outcome.status)
     close()
   }
 
   function reset(): void {
     if (availability !== 'open') return
-    // what the demon is called once its override is gone: the preset's name where one applies, else the rule's
-    const after = resolver.presetNameOf(a, b) ?? resolver.ruleNameOf(a, b, naming.naming.smoothing)
-    if (naming.apply({ type: 'reset-override', mesh })) naming.announce(backTo(zoneLabel(hi), zoneLabel(lo), after))
+    const outcome = resetOutcome(mesh, nameAfterReset(resolver, a, b, naming.naming.smoothing), span)
+    if (naming.apply(outcome.action)) naming.announce(outcome.status)
     // the reset button is about to unmount, so focus moves to the Rename button that stays
     focusRename()
   }
@@ -328,13 +367,14 @@ function EditorBody({ a, b, context, autoEdit = false, onEditingChange, onDone, 
     // a refusal already on show follows the draft, so it clears the moment the draft is fixed
     let message = active.message
     if (message !== null) {
-      const again = commitName(text, name, netSpan)
+      const again = commitName(text, name, span.text)
       message = again.ok ? null : again.message
     }
     setEdit({ ...active, draft: text, message })
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>): void {
+    if (active === null) return
     const composing = e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229
     const action = editKeyAction(e.key, composing, (e.target as HTMLElement).tagName === 'INPUT')
     if (action === null) return
@@ -352,7 +392,7 @@ function EditorBody({ a, b, context, autoEdit = false, onEditingChange, onDone, 
       locked={availability === 'locked'}
       tag={TAGS[nameState]}
       resetLabel={resetLabelOf(nameState, resolver.presetNameOf(a, b))}
-      fieldAria={nameFieldAria(zoneLabel(hi), zoneLabel(lo))}
+      fieldAria={nameFieldAria(span.hi, span.lo)}
       draft={active !== null ? active.draft : ''}
       message={active !== null ? active.message : null}
       messageId={messageId}

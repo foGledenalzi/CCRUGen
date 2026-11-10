@@ -6,7 +6,7 @@
 // the preset by reference: no canonical name or CCRU sound is typed. No JSX (plain node test file).
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { createElement } from 'react'
+import { createElement, type ReactElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import {
@@ -14,6 +14,7 @@ import {
   createNameResolver,
   createNaming,
   createNumogram,
+  resetOverride,
   setOverride,
   toNfc,
   type Naming,
@@ -26,7 +27,10 @@ import {
   commitName,
   editKeyAction,
   editorAvailability,
+  nameAfterReset,
   resetLabelOf,
+  resetOutcome,
+  saveOutcome,
   type DemonNameEditorProps,
   type DemonNameEditorViewProps,
 } from '../../app/components/names/DemonNameEditor'
@@ -167,11 +171,12 @@ describe('DemonNameEditor: read mode', () => {
     expect(markup).not.toContain('data-demon-name-save')
   })
 
-  it('the Rename button is a small 24px target and is enabled', () => {
+  it('the Rename button is a small 24px target and is enabled, in a wrapping row', () => {
     const rename = tagWith(markup, 'data-demon-rename')
     expect(rename).toContain('min-h-[24px]')
     expect(rename).toContain('type="button"')
     expect(rename).not.toContain('disabled')
+    expect(markup).toContain('<div class="flex flex-wrap gap-1"><button')
   })
 
   it('the context hook follows the prop: overlay and collision', () => {
@@ -252,10 +257,11 @@ describe('DemonNameEditor: edit mode (autoEdit)', () => {
     expect(input).toContain('class="ui-terminal-input w-full px-0 py-1 text-sm text-gray-100"')
   })
 
-  it('the field is bounded so an absurd paste is cut before validation', () => {
+  it('the field is bounded so an absurd paste is cut, with room for a full-length name of letters that carry marks', () => {
     const max = /maxLength="(\d+)"/.exec(input)
     expect(max).not.toBeNull()
-    expect(Number((max as RegExpExecArray)[1])).toBeGreaterThanOrEqual(NAME_MAX_LENGTH)
+    // more code units than characters: a base letter and its marks are one character of several units
+    expect(Number((max as RegExpExecArray)[1])).toBeGreaterThanOrEqual(NAME_MAX_LENGTH * 2)
     expect(Number((max as RegExpExecArray)[1])).toBeLessThanOrEqual(1024)
   })
 
@@ -294,8 +300,8 @@ describe('DemonNameEditor: edit mode (autoEdit)', () => {
 
 // ── the presentational view: the invalid draft ──────────────────────────────
 
-function renderView(over: Partial<DemonNameEditorViewProps> = {}): string {
-  const props: DemonNameEditorViewProps = {
+function viewProps(over: Partial<DemonNameEditorViewProps> = {}): DemonNameEditorViewProps {
+  return {
     context: 'selection',
     nameState: 'generated',
     mode: 'edit',
@@ -314,7 +320,32 @@ function renderView(over: Partial<DemonNameEditorViewProps> = {}): string {
     onKeyDown: noop,
     ...over,
   }
-  return renderToStaticMarkup(createElement(DemonNameEditorView, props))
+}
+
+function renderView(over: Partial<DemonNameEditorViewProps> = {}): string {
+  return renderToStaticMarkup(createElement(DemonNameEditorView, viewProps(over)))
+}
+
+type AnyElement = ReactElement<Record<string, unknown> & { children?: ReactNode }>
+
+/** Every element of a React tree, in order (the view has no hooks, so calling it as a function gives its element tree). */
+function elementsOf(node: ReactNode, into: AnyElement[] = []): AnyElement[] {
+  if (Array.isArray(node)) {
+    for (const child of node) elementsOf(child as ReactNode, into)
+    return into
+  }
+  if (node === null || typeof node !== 'object') return into
+  const el = node as AnyElement
+  into.push(el)
+  elementsOf(el.props.children, into)
+  return into
+}
+
+/** The CyberButton element that carries the data marker, whose handler props the markup cannot show. */
+function buttonElement(over: Partial<DemonNameEditorViewProps>, marker: string): AnyElement {
+  const found = elementsOf(DemonNameEditorView(viewProps(over))).find(el => (el.props.dataAttrs as Record<string, string> | undefined)?.[marker] === '')
+  if (found === undefined) throw new Error(`no button with ${marker}`)
+  return found
 }
 
 describe('DemonNameEditorView: an invalid draft', () => {
@@ -488,7 +519,10 @@ describe('commitName', () => {
     expect(commitName('Alpha', 'Alpha', span)).toEqual({ ok: true, text: 'Alpha', unchanged: true })
     expect(commitName(' Alpha ', 'Alpha', span)).toMatchObject({ unchanged: true })
     expect(commitName('Alphb', 'Alpha', span)).toMatchObject({ unchanged: false })
-    expect(commitName('é', toNfc('é'), span)).toMatchObject({ unchanged: true })
+    // the same name written composed and decomposed is still the same name
+    expect(commitName('é', 'é', span)).toMatchObject({ unchanged: true })
+    expect(commitName('é', 'é', span)).toMatchObject({ unchanged: true })
+    expect(commitName('é', 'é', span)).toMatchObject({ unchanged: true })
   })
 })
 
@@ -519,22 +553,160 @@ describe('activeEdit', () => {
   })
 })
 
+// ── the decisions behind Save name and the reset buttons ────────────────────
+
+const SPAN = { text: 'c::3', hi: 'c', lo: '3' }
+
+describe('saveOutcome', () => {
+  it('a refused draft carries the sentence for under the field and no action', () => {
+    const out = saveOutcome('ab1', 'cur', 69, SPAN)
+    expect(out).toEqual({ kind: 'refused', message: demonIssue('c::3', 'digit') })
+  })
+
+  it('a changed draft becomes one override action on the mesh it was opened on, with the announcement', () => {
+    const out = saveOutcome(' Zed ', 'cur', 69, SPAN)
+    expect(out).toEqual({
+      kind: 'rename',
+      action: { type: 'override', mesh: 69, name: 'Zed' },
+      status: 'Renamed c::3 to Zed.',
+    })
+  })
+
+  it('a draft equal to the name shown has nothing to save', () => {
+    expect(saveOutcome('cur', 'cur', 69, SPAN)).toEqual({ kind: 'unchanged' })
+  })
+
+  it('saving the name the rule gives is a rename action the engine turns into removing the override', () => {
+    const base = overridden28()
+    const ruleName = base.resolver.ruleNameOf(12, 3, base.naming.smoothing)
+    expect(ruleName).not.toBe(CUSTOM)
+    const out = saveOutcome(ruleName, base.resolver.nameOf(12, 3), 69, SPAN)
+    expect(out.kind).toBe('rename')
+    if (out.kind !== 'rename') return
+    const after = setOverride(base.naming, out.action.mesh, out.action.name, null)
+    expect(after.overrides.has(69)).toBe(false)
+    expect(createNameResolver(after, null).nameOf(12, 3)).toBe(ruleName)
+    expect(createNameResolver(after, null).stateOf(12, 3)).toBe('generated')
+  })
+
+  it('saving the CCRU name over an override clears it too (mesh 44 at base 10)', () => {
+    const naming = setOverride(ccru10(), 44, CUSTOM, CCRU_NAMING_PRESET)
+    const resolver = createNameResolver(naming, CCRU_NAMING_PRESET)
+    const preset = resolver.presetNameOf(9, 8)
+    expect(preset).not.toBeNull()
+    const out = saveOutcome(preset as string, resolver.nameOf(9, 8), 44, { text: '9::8', hi: '9', lo: '8' })
+    expect(out.kind).toBe('rename')
+    if (out.kind !== 'rename') return
+    const after = setOverride(naming, out.action.mesh, out.action.name, CCRU_NAMING_PRESET)
+    expect(after.overrides.has(44)).toBe(false)
+    expect(createNameResolver(after, CCRU_NAMING_PRESET).stateOf(9, 8)).toBe('preset')
+  })
+})
+
+describe('resetOutcome and nameAfterReset', () => {
+  it('the reset action names the mesh and the announcement says what the demon is called now', () => {
+    expect(resetOutcome(69, 'Back', SPAN)).toEqual({ action: { type: 'reset-override', mesh: 69 }, status: 'c::3 is back to Back.' })
+  })
+
+  it('without a preset the name after a reset is the rule name under the naming smoothing', () => {
+    const base = overridden28()
+    const reset = createNameResolver(resetOverride(base.naming, 69), null)
+    expect(nameAfterReset(base.resolver, 12, 3, base.naming.smoothing)).toBe(reset.nameOf(12, 3))
+    const smoothed: Naming = { ...base.naming, smoothing: 1 }
+    const resolver = createNameResolver(smoothed, null)
+    expect(nameAfterReset(resolver, 12, 3, 1)).toBe(createNameResolver(resetOverride(smoothed, 69), null).nameOf(12, 3))
+    expect(nameAfterReset(resolver, 12, 3, 1)).toBe(resolver.ruleNameOf(12, 3, 1))
+  })
+
+  it('with the CCRU preset it is the preset name, not the rule name', () => {
+    const naming = setOverride(ccru10(), 44, CUSTOM, CCRU_NAMING_PRESET)
+    const resolver = createNameResolver(naming, CCRU_NAMING_PRESET)
+    const preset = resolver.presetNameOf(9, 8) as string
+    expect(nameAfterReset(resolver, 9, 8, naming.smoothing)).toBe(preset)
+    expect(createNameResolver(resetOverride(naming, 44), CCRU_NAMING_PRESET).nameOf(9, 8)).toBe(preset)
+    expect(preset).not.toBe(resolver.ruleNameOf(9, 8, naming.smoothing))
+  })
+})
+
+// ── the handlers the markup cannot show ─────────────────────────────────────
+
+describe('DemonNameEditorView: handler wiring', () => {
+  it('each button calls its own handler', () => {
+    const calls: string[] = []
+    const over = {
+      resetLabel: 'Reset',
+      onRename: () => calls.push('rename'),
+      onReset: () => calls.push('reset'),
+      onSave: () => calls.push('save'),
+      onCancel: () => calls.push('cancel'),
+    }
+    ;(buttonElement({ ...over, mode: 'read' }, 'data-demon-rename').props.onClick as () => void)()
+    ;(buttonElement({ ...over, mode: 'read' }, 'data-demon-name-reset').props.onClick as () => void)()
+    ;(buttonElement({ ...over, mode: 'edit' }, 'data-demon-name-save').props.onClick as () => void)()
+    ;(buttonElement({ ...over, mode: 'edit' }, 'data-demon-name-cancel').props.onClick as () => void)()
+    expect(calls).toEqual(['rename', 'reset', 'save', 'cancel'])
+  })
+
+  it('the read buttons are disabled exactly when locked, the edit buttons never', () => {
+    expect(buttonElement({ mode: 'read', locked: true }, 'data-demon-rename').props.disabled).toBe(true)
+    expect(buttonElement({ mode: 'read', locked: false }, 'data-demon-rename').props.disabled).toBe(false)
+    expect(buttonElement({ mode: 'read', locked: true, resetLabel: 'R' }, 'data-demon-name-reset').props.disabled).toBe(true)
+    expect(buttonElement({ mode: 'read', locked: false, resetLabel: 'R' }, 'data-demon-name-reset').props.disabled).toBe(false)
+    expect(buttonElement({ mode: 'edit', locked: false }, 'data-demon-name-save').props.disabled).toBeUndefined()
+  })
+
+  it('typing in the field reports the new text', () => {
+    const typed: string[] = []
+    const input = elementsOf(DemonNameEditorView(viewProps({ mode: 'edit', onDraft: t => typed.push(t) }))).find(el => el.type === 'input')
+    expect(input).toBeDefined()
+    ;(input?.props.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'typed' } })
+    expect(typed).toEqual(['typed'])
+    expect(input?.props.value).toBe('abc')
+  })
+
+  it('the key handler is on the root only in edit mode, so a read-mode Escape still reaches the overlay', () => {
+    const handler = () => undefined
+    expect(DemonNameEditorView(viewProps({ mode: 'edit', onKeyDown: handler })).props.onKeyDown).toBe(handler)
+    expect(DemonNameEditorView(viewProps({ mode: 'read', onKeyDown: handler })).props.onKeyDown).toBeUndefined()
+    expect(DemonNameEditorView(viewProps({ mode: 'unavailable', onKeyDown: handler })).props.onKeyDown).toBeUndefined()
+  })
+})
+
 // ── the wiring a server render cannot reach ─────────────────────────────────
 
 describe('DemonNameEditor: source wiring', () => {
   const src = readFileSync(EDITOR_SOURCE, 'utf8')
   const count = (needle: string): number => src.split(needle).length - 1
 
-  it('applies one override action and one reset action, each through the naming context', () => {
+  it('names one override action and one reset action, applied through the naming context', () => {
     expect(count("type: 'override'")).toBe(1)
     expect(count("type: 'reset-override'")).toBe(1)
-    expect(src).toContain('naming.apply(')
+    expect(count('naming.apply(outcome.action)')).toBe(2)
   })
 
-  it('announces a result through the live carrier with the copy functions, never a typed sentence', () => {
-    expect(src).toContain('naming.announce(')
+  it('announces a result and a refusal through the live carrier, only after the action was accepted', () => {
+    expect(count('naming.announce(outcome.status)')).toBe(2)
+    expect(count('naming.announce(outcome.message)')).toBe(1)
+    expect(src).toMatch(/naming\.apply\(outcome\.action\)\) naming\.announce\(outcome\.status\)/)
     expect(src).toContain('renamed(')
     expect(src).toContain('backTo(')
+  })
+
+  it('a key event is ignored unless an edit is showing', () => {
+    expect(src).toMatch(/function onKeyDown\([^)]*\): void \{\s*if \(active === null\) return/)
+  })
+
+  it('tells its owner when an edit opens and closes, and when it unmounts while open', () => {
+    expect(src).toContain('onEditingChange?.(true)')
+    expect(src).toContain('onEditingChange?.(false)')
+    expect(src).toContain('changeRef.current?.(true)')
+    expect(count('changeRef.current?.(false)')).toBe(2)
+  })
+
+  it('returns focus to the Rename button after a save, a cancel or a reset, except in the collision mount', () => {
+    expect(src).toContain("refocusRename.current = context !== 'collision'")
+    expect(src).toContain("[data-demon-rename]")
+    expect(src).toContain('onDone?.()')
   })
 
   it('stops the key events it handles, so the overlay does not close on Escape', () => {
