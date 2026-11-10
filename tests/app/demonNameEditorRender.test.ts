@@ -754,6 +754,16 @@ function renderIn(g: Numogram, withView: boolean, naming: NamingContextValue | n
 
 const occurrences = (haystack: string, needle: string): number => haystack.split(needle).length - 1
 
+/** The detail frame (SectionFrame's root div) is closed before the editor's root starts, so the editor is its sibling. */
+function expectFrameClosedBeforeEditor(markup: string): void {
+  const frameStart = markup.indexOf('<div class="pl-2 py-1">')
+  const editorStart = markup.indexOf('<div data-post-baseline="" data-demon-name-editor=""')
+  expect(frameStart).toBeGreaterThanOrEqual(0)
+  expect(editorStart).toBeGreaterThan(frameStart)
+  const between = markup.slice(frameStart, editorStart)
+  expect(occurrences(between, '<div')).toBe(occurrences(between, '</div>'))
+}
+
 describe('DemonInfo: the editor mount', () => {
   const info28 = demonInfo(g28, 12, 3)
 
@@ -763,8 +773,9 @@ describe('DemonInfo: the editor mount', () => {
     expect(markup).toContain('data-demon-name-context="selection"')
     expect(markup.indexOf('Cyclic chrono')).toBeGreaterThan(0)
     expect(markup.indexOf('data-demon-name-editor')).toBeGreaterThan(markup.indexOf('Cyclic chrono'))
-    // the editor root is the last element inside the space-y-1.5 wrapper
+    // the editor root is the last element inside the space-y-1.5 wrapper, a sibling after the frame and not inside it
     expect(markup.endsWith('</div></div>')).toBe(true)
+    expectFrameClosedBeforeEditor(markup)
     expect(buttonText(markup, 'data-demon-rename')).toBe('Rename demon')
   })
 
@@ -777,6 +788,17 @@ describe('DemonInfo: the editor mount', () => {
     expect(markup).toContain(`>${NAMES_COPY.tagCcru}<`)
     expect(markup.indexOf('data-demon-name-editor')).toBeGreaterThan(markup.indexOf('TYPE'))
     expect(markup.endsWith('</div></div>')).toBe(true)
+    expectFrameClosedBeforeEditor(markup)
+  })
+
+  it('the editor is for the demon on show: an override of that demon alone changes its tag', () => {
+    const markup = renderIn(g28, true, overridden28(), createElement(DemonInfo, { data: info28, editorContext: 'selection' }))
+    expect(tagWith(markup, 'data-demon-name-editor')).toContain('data-demon-name-state="overridden"')
+    expect(buttonText(markup, 'data-demon-name-reset')).toBe('Reset to generated name')
+    // another demon of the same numogram is not overridden
+    const other = renderIn(g28, true, overridden28(), createElement(DemonInfo, { data: demonInfo(g28, 12, 4), editorContext: 'selection' }))
+    expect(tagWith(other, 'data-demon-name-editor')).toContain('data-demon-name-state="generated"')
+    expect(other).not.toContain('data-demon-name-reset')
   })
 
   it('the overlay context is passed through to the root', () => {
@@ -874,8 +896,10 @@ describe('DemonsOverlay: the detail pane mount', () => {
     const src = readFileSync(OVERLAY_SOURCE, 'utf8')
     expect(src).toContain('const shown = detailShown(hoverInfo, pinnedInfo, boundEdit)')
     expect(occurrences(src, 'editorContext="overlay"')).toBe(1)
-    expect(src).toContain('onEditingChange={editing =>')
+    // an opened editor binds the pane to the demon on show (with its base), a closed one releases it
+    expect(src).toContain('onEditingChange={editing => setBound(editing ? { base, info: shown } : null)}')
     expect(src).toContain('export function detailShown')
+    expect(src).toContain('const boundEdit = bound !== null && bound.base === base ? bound.info : null')
   })
 
   it('clears the bound demon when the base changes or the overlay closes (source)', () => {
