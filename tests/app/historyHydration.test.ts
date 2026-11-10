@@ -112,6 +112,21 @@ describe('singleChangedZone', () => {
     expect(singleChangedZone(a, b)).toBe(0)
   })
 
+  it('names a zone whose sound differs even when no lock differs', () => {
+    const a = naming28()
+    const sounds = (a.sounds as readonly string[]).map((s, zone) => (zone === 4 ? `${s}x` : s))
+    const b: Naming = { ...a, sounds }
+    expect(b.locks).toBe(a.locks)
+    expect(singleChangedZone(a, b)).toBe(4)
+  })
+
+  it('is null for tables of different length even when exactly one zone of the common part differs', () => {
+    const a = naming28()
+    const longer: Naming = { ...a, sounds: [...(a.sounds as readonly string[]).map((s, zone) => (zone === 3 ? `${s}x` : s)), 'aa', 'bb'] }
+    expect(singleChangedZone(a, longer)).toBeNull()
+    expect(singleChangedZone(longer, a)).toBeNull()
+  })
+
   it('is null when nothing differs', () => {
     const a = naming28()
     expect(singleChangedZone(a, a)).toBeNull()
