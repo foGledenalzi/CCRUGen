@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test'
-import { createNumogram } from '../engine/index'
+import { createNameResolver, createNumogram, netSpanOf } from '../engine/index'
+import { defaultNamingFor, type NamingEnv } from '../app/lib/namingSession'
+import { INTERACTIVE_MAX_N } from '../app/lib/tierBounds'
+import { CCRU_NAMING_PRESET } from '../app/presets/base10/naming'
 import { openCanvas, openViewer } from './viewer-helpers'
 import { demonList, demonRow, demonsDialog, facet, openDemons, searchDemons } from './demons-helpers'
 
@@ -11,6 +14,9 @@ import { demonList, demonRow, demonsDialog, facet, openDemons, searchDemons } fr
 test.beforeEach(({}, info) => test.skip(info.project.name !== 'chromium-utc', 'Phase 5 UI specs run once (UTC context)'))
 
 const EN_DASH = String.fromCodePoint(0x2013)
+
+/** The naming environment of the app (the ceiling from the tier table, the CCRU preset by reference), for the default naming of a base. */
+const NAMING_ENV: NamingEnv = { interactiveMaxN: INTERACTIVE_MAX_N, preset: CCRU_NAMING_PRESET }
 
 test('base 28 facets show closed-form counts incl. the cross-Torque sub-facet', async ({ page }) => {
   const g = createNumogram(28)
@@ -169,16 +175,29 @@ test('base 10 shows the canonical CCRU names in the browser and the detail pane'
   await expect(demonList(page, 'browser').locator('[role="columnheader"][data-col="name"]')).toBeVisible()
 })
 
-test('other bases keep an empty NAME column', async ({ page }) => {
+// Phase 7 D-03 (rewritten: this test used to pin an empty NAME column at generated bases): every base now carries a naming, so the NAME column of a
+// generated base shows the names the engine derives from the base's default naming. The expected text is computed here from the
+// engine (the default naming of the base, the demon's net-span from its mesh number), never read back from the app's display code.
+test('other bases show generated names in the NAME column (Phase 7 D-03)', async ({ page }) => {
   await openViewer(page, 'base=28')
   await openDemons(page)
 
   await expect(demonList(page, 'browser').locator('[role="columnheader"][data-col="name"]')).toBeVisible()
-  const nameCells = demonList(page, 'browser').locator('[role="gridcell"][data-col="name"]')
-  expect(await nameCells.count()).toBeGreaterThan(0)
-  for (const text of await nameCells.allTextContents()) {
-    expect(text).toBe('')
+  const resolver = createNameResolver(defaultNamingFor(28, NAMING_ENV), CCRU_NAMING_PRESET)
+  const rows = demonList(page, 'browser').locator('[data-demon-row]')
+  const shown = Math.min(10, await rows.count())
+  expect(shown).toBeGreaterThanOrEqual(5)
+  for (let i = 0; i < shown; i++) {
+    const row = rows.nth(i)
+    const mesh = Number(await row.getAttribute('data-demon-row'))
+    const [a, b] = netSpanOf(mesh)
+    const expected = resolver.nameOf(a, b)
+    expect(expected).not.toBe('')
+    expect(expected).toMatch(/^\p{Lu}/u)
+    await expect(row.locator('[role="gridcell"][data-col="name"]')).toHaveText(expected)
   }
+  // a generated naming has no overrides, so nothing carries the overridden marker
+  await expect(demonList(page, 'browser').locator('[data-name-overridden]')).toHaveCount(0)
 })
 
 test('filter and open state survive a reload', async ({ page }) => {

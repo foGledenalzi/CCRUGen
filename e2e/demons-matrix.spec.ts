@@ -1,6 +1,10 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
-import { createNumogram, formatNumeral, type Numogram } from '../engine/index'
+import { createNameResolver, createNumogram, formatNumeral, type NameResolver, type Numogram } from '../engine/index'
 import { SUBTYPE_LABEL } from '../app/lib/demonBrowser'
+import { NAME_TOOLTIP_GRAPHEMES } from '../app/lib/namingLimits'
+import { defaultNamingFor, type NamingEnv } from '../app/lib/namingSession'
+import { INTERACTIVE_MAX_N } from '../app/lib/tierBounds'
+import { CCRU_NAMING_PRESET } from '../app/presets/base10/naming'
 import { openFor } from './viewer-helpers'
 import { matrixCellPoint, openDemons, waitRaster } from './demons-helpers'
 
@@ -13,10 +17,35 @@ test.beforeEach(({}, info) => test.skip(info.project.name !== 'chromium-utc', 'P
 
 const MIDDLE_DOT = String.fromCodePoint(0xb7)
 
-/** `A::B · MESH · SubtypeLabel`, matching DemonMatrix.tsx's own `demonText` exactly (digits label scheme, default). */
+const NAMING_ENV: NamingEnv = { interactiveMaxN: INTERACTIVE_MAX_N, preset: CCRU_NAMING_PRESET }
+const ELLIPSIS = String.fromCodePoint(0x2026)
+
+/** One resolver per base: the engine's own names for the default naming of the base (Phase 7 D-03), never the app's display code. */
+const resolvers = new Map<number, NameResolver>()
+function resolverFor(base: number): NameResolver {
+  let resolver = resolvers.get(base)
+  if (resolver === undefined) {
+    resolver = createNameResolver(defaultNamingFor(base, NAMING_ENV), CCRU_NAMING_PRESET)
+    resolvers.set(base, resolver)
+  }
+  return resolver
+}
+
+/** A name cut to NAME_TOOLTIP_GRAPHEMES user-perceived characters (the first limit minus one and an ellipsis), as the matrix cuts it. */
+function cutName(name: string): string {
+  const graphemes = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name), s => s.segment)
+  if (graphemes.length <= NAME_TOOLTIP_GRAPHEMES) return name
+  return graphemes.slice(0, NAME_TOOLTIP_GRAPHEMES - 1).join('') + ELLIPSIS
+}
+
+/**
+ * `A::B · Name · MESH · SubtypeLabel`, matching DemonMatrix.tsx's own `demonText` exactly (digits label scheme, default). The name is the
+ * engine's name for the default naming of the base (Phase 7 D-03: every base has a naming now), cut like the tooltip cuts it.
+ */
 function cellText(g: Numogram, a: number, b: number, base: number): string {
   const d = g.demons.ref(a, b)
-  return `${formatNumeral(a, base)}::${formatNumeral(b, base)} ${MIDDLE_DOT} ${d.mesh} ${MIDDLE_DOT} ${SUBTYPE_LABEL[d.subtype]}`
+  const name = cutName(resolverFor(base).nameOf(a, b))
+  return [`${formatNumeral(a, base)}::${formatNumeral(b, base)}`, name, d.mesh, SUBTYPE_LABEL[d.subtype]].join(` ${MIDDLE_DOT} `)
 }
 
 async function liveScale(matrix: Locator): Promise<number> {
@@ -40,7 +69,8 @@ test('base 28: hover identifies the exact cell at fit and after zooming', async 
 
   let p = await matrixCellPoint(page, 12, 3)
   await page.mouse.move(p.x, p.y)
-  await expect(tooltip).toHaveText('c::3 · 69 · Cyclic chrono')
+  // the pre-naming literal tooltip text (net-span, mesh, subtype) is gone: the tooltip now carries the demon's generated name between
+  // the net-span and the mesh number, so the expected text is built from the engine's name for the default naming of the base
   await expect(tooltip).toHaveText(cellText(g, 12, 3, 28))
 
   const beforeScale = await liveScale(matrix)
@@ -121,7 +151,7 @@ test('base 666 matrix renders beside the canvas diagram and resolves exactly aft
 
   const p = await matrixCellPoint(page, 15, 3)
   await page.mouse.move(p.x, p.y)
-  await expect(dialog.locator('[data-matrix-tooltip]')).toHaveText('15::3 · 108 · Cross-Torque chrono')
+  // the pre-naming literal tooltip text is gone for the same reason (the name now sits before the mesh number)
   await expect(dialog.locator('[data-matrix-tooltip]')).toHaveText(cellText(g, 15, 3, 666))
 })
 
