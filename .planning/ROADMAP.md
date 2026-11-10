@@ -224,7 +224,7 @@ Plans:
 - [x] 07-13-PLAN.md - Per-base localStorage slot, naming session (defaults, preview/adopt, actions, history helpers), NamingContext (wave 5)
 - [x] 07-14-PLAN.md - Canvas sounds labels in both passes, sound-aware announcements, live chord callout names (wave 6)
 - [x] 07-15-PLAN.md - Render-time names in the browser cell (overridden marker), matrix text, demon detail, pinned background; live-name search (wave 6)
-- [ ] 07-16-PLAN.md - Demon name editor with Selection and overlay mounts and hover-proof binding (wave 7)
+- [x] 07-16-PLAN.md - Demon name editor with Selection and overlay mounts and hover-proof binding (wave 7)
 - [x] 07-17-PLAN.md - Names panel shell: controls, states, preview table, notice, header tag, live carrier, import/export with inline Undo (wave 6)
 - [ ] 07-18-PLAN.md - Viewer naming session: history by rev, base-switch load, hydration with preview, URL, autosave, provider; rewritten demons e2e; session smoke e2e (wave 8)
 - [ ] 07-19-PLAN.md - Virtualized editable zone list (locks, validation, paste, keyboard, go-to, pin link) and the shortcuts line (wave 7)
@@ -280,5 +280,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
 | 6. Canvas Tier and Worker | 15/15 | Complete    | 2026-10-19 |
-| 7. Naming Builder | 16/25 | In Progress | - |
+| 7. Naming Builder | 17/25 | In Progress | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |
