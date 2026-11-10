@@ -169,3 +169,75 @@ export function pinScrollTarget(pinned: number | null, scrolled: number | null, 
 export function restoredScrollTarget(restored: { readonly tick: number; readonly zone: number | null }, seenTick: number): number | null {
   return restored.tick !== seenTick ? restored.zone : null
 }
+
+// ----- the list state: drafts, refusals, the message -----
+
+/**
+ * What the list remembers between renders: the text typed into a field that is not committed yet (a row scrolled out of view
+ * keeps its draft), the rows whose draft is refused and why, the row the message belongs to, and a note (a refused paste, an unknown
+ * zone). Maps only ever hold the zones the visitor touched, so the state stays small at the interactive ceiling (T-07-02d).
+ */
+export interface ListState {
+  readonly drafts: ReadonlyMap<number, string>
+  readonly problems: ReadonlyMap<number, TextProblem>
+  readonly messageZone: number | null
+  readonly note: string | null
+}
+
+export const EMPTY_LIST_STATE: ListState = Object.freeze({ drafts: new Map(), problems: new Map(), messageZone: null, note: null })
+
+function without<K, V>(map: ReadonlyMap<K, V>, key: K): ReadonlyMap<K, V> {
+  if (!map.has(key)) return map
+  const next = new Map(map)
+  next.delete(key)
+  return next
+}
+
+function withEntry<K, V>(map: ReadonlyMap<K, V>, key: K, value: V): ReadonlyMap<K, V> {
+  return new Map(map).set(key, value)
+}
+
+/**
+ * A keystroke in the field of `zone`: the draft takes the text. A refusal already on show follows the draft, so it updates with the
+ * new first failing rule and clears the moment the text is valid (or equals the stored sound) again. A note is dropped.
+ */
+export function typeInto(s: ListState, zone: number, text: string, stored: string): ListState {
+  let problems = s.problems
+  if (problems.has(zone)) {
+    const again = soundCommitOf(text, stored)
+    problems = again.kind === 'invalid' ? withEntry(problems, zone, again.reason) : without(problems, zone)
+  }
+  return { ...s, drafts: withEntry(s.drafts, zone, text), problems, note: null }
+}
+
+/** The row is settled (committed, unchanged, or reverted): its draft and refusal go, and so does a message that was about it, and any note. */
+export function settleRow(s: ListState, zone: number): ListState {
+  return {
+    drafts: without(s.drafts, zone),
+    problems: without(s.problems, zone),
+    messageZone: s.messageZone === zone ? null : s.messageZone,
+    note: null,
+  }
+}
+
+/** A paste is about to overwrite `count` rows from `from`: their drafts and refusals go (the pasted sounds replace whatever was typed). */
+export function settleRows(s: ListState, from: number, count: number): ListState {
+  let next = s
+  for (let zone = from; zone < from + count; zone++) next = settleRow(next, zone)
+  return { ...next, note: null }
+}
+
+/** The draft of `zone` was refused for `reason`: it stays, the row is marked, and the message is about this row. */
+export function refuseRow(s: ListState, zone: number, reason: TextProblem): ListState {
+  return { ...s, problems: withEntry(s.problems, zone, reason), messageZone: zone, note: null }
+}
+
+/** The list-level note (a refused paste, an unknown zone), or null to drop it. */
+export function withNote(s: ListState, note: string | null): ListState {
+  return s.note === note ? s : { ...s, note }
+}
+
+/** True when Escape has something to undo in this row: an uncommitted draft or a refusal. */
+export function hasRowEdit(s: ListState, zone: number): boolean {
+  return s.drafts.has(zone) || s.problems.has(zone)
+}

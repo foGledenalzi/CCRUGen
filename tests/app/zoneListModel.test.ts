@@ -10,16 +10,23 @@ import { formatNumeral, type TextProblem } from '../../engine/index'
 import { zoneIssue } from '../../app/lib/namingCopy'
 import { SOUND_FIELD_MAX_INPUT, ZONE_PAGE_STEP } from '../../app/lib/namingLimits'
 import {
+  EMPTY_LIST_STATE,
   GOTO_MAX_LENGTH,
+  hasRowEdit,
   listMessageOf,
   nextRowIndex,
   pinScrollTarget,
   planPaste,
+  refuseRow,
   resolveGoTo,
   restoredScrollTarget,
+  settleRow,
+  settleRows,
   soundCommitOf,
   splitPaste,
   tabStopZone,
+  typeInto,
+  withNote,
 } from '../../app/lib/zoneListModel'
 
 const MODEL_SOURCE = fileURLToPath(new URL('../../app/lib/zoneListModel.ts', import.meta.url))
@@ -327,6 +334,139 @@ describe('restoredScrollTarget', () => {
   it('does not scroll for a restore it has already seen, nor for a multi-row change', () => {
     expect(restoredScrollTarget({ tick: 3, zone: 14 }, 3)).toBeNull()
     expect(restoredScrollTarget({ tick: 4, zone: null }, 3)).toBeNull()
+  })
+})
+
+describe('the list state', () => {
+  const label = (zone: number): string => `L${zone}`
+
+  it('starts empty', () => {
+    expect(EMPTY_LIST_STATE.drafts.size).toBe(0)
+    expect(EMPTY_LIST_STATE.problems.size).toBe(0)
+    expect(EMPTY_LIST_STATE.messageZone).toBeNull()
+    expect(EMPTY_LIST_STATE.note).toBeNull()
+    expect(listMessageOf(EMPTY_LIST_STATE.note, EMPTY_LIST_STATE.messageZone, EMPTY_LIST_STATE.problems, label)).toBe('')
+  })
+
+  it('typing keeps a draft per zone without touching the others, and never mutates the state it was given', () => {
+    const one = typeInto(EMPTY_LIST_STATE, 3, 'ab', 'gl')
+    const two = typeInto(one, 9, 'cd', 'xy')
+    expect(one.drafts.get(3)).toBe('ab')
+    expect(two.drafts.get(3)).toBe('ab')
+    expect(two.drafts.get(9)).toBe('cd')
+    expect(one.drafts.has(9)).toBe(false)
+    expect(EMPTY_LIST_STATE.drafts.size).toBe(0)
+    expect(typeInto(two, 3, 'abc', 'gl').drafts.get(3)).toBe('abc')
+    expect(two.drafts.get(3)).toBe('ab')
+  })
+
+  it('a draft is kept as typed, not trimmed (the commit trims)', () => {
+    expect(typeInto(EMPTY_LIST_STATE, 1, ' ab ', 'gl').drafts.get(1)).toBe(' ab ')
+  })
+
+  it('typing does not mark a row invalid by itself: a refusal is made by a commit', () => {
+    expect(typeInto(EMPTY_LIST_STATE, 1, 'a1', 'gl').problems.size).toBe(0)
+  })
+
+  it('a refusal marks the row, keeps its draft, and makes the message about it', () => {
+    const typed = typeInto(EMPTY_LIST_STATE, 4, 'a1', 'gl')
+    const refused = refuseRow(typed, 4, 'digit')
+    expect(refused.problems.get(4)).toBe('digit')
+    expect(refused.drafts.get(4)).toBe('a1')
+    expect(refused.messageZone).toBe(4)
+    expect(listMessageOf(refused.note, refused.messageZone, refused.problems, label)).toBe(zoneIssue('L4', 'digit'))
+  })
+
+  it('a refusal replaces a note, so the message says what is wrong with the row that is marked', () => {
+    const noted = withNote(typeInto(EMPTY_LIST_STATE, 4, 'a1', 'gl'), 'Paste not applied.')
+    const refused = refuseRow(noted, 4, 'digit')
+    expect(refused.note).toBeNull()
+    expect(listMessageOf(refused.note, refused.messageZone, refused.problems, label)).toBe(zoneIssue('L4', 'digit'))
+  })
+
+  it('a refusal on show follows the draft: it updates with the first failing rule and clears when the draft is valid', () => {
+    const refused = refuseRow(typeInto(EMPTY_LIST_STATE, 4, 'a1', 'gl'), 4, 'digit')
+    const spaced = typeInto(refused, 4, 'a b', 'gl')
+    expect(spaced.problems.get(4)).toBe('space')
+    const fixed = typeInto(spaced, 4, 'ab', 'gl')
+    expect(fixed.problems.has(4)).toBe(false)
+    expect(fixed.drafts.get(4)).toBe('ab')
+    expect(listMessageOf(fixed.note, fixed.messageZone, fixed.problems, label)).toBe('')
+    // typing the stored text back is valid too
+    expect(typeInto(refused, 4, 'gl', 'gl').problems.has(4)).toBe(false)
+  })
+
+  it('settling a row drops its draft, its refusal and a message that was about it, and any note', () => {
+    const refused = withNote(refuseRow(typeInto(EMPTY_LIST_STATE, 4, 'a1', 'gl'), 4, 'digit'), 'a note')
+    const settled = settleRow(refused, 4)
+    expect(settled.drafts.size).toBe(0)
+    expect(settled.problems.size).toBe(0)
+    expect(settled.messageZone).toBeNull()
+    expect(settled.note).toBeNull()
+  })
+
+  it('settling a row leaves another row and the message about it alone', () => {
+    const a = refuseRow(typeInto(EMPTY_LIST_STATE, 4, 'a1', 'gl'), 4, 'digit')
+    const both = refuseRow(typeInto(a, 8, 'b2', 'xy'), 8, 'digit')
+    const settled = settleRow(both, 4)
+    expect(settled.drafts.get(8)).toBe('b2')
+    expect(settled.problems.get(8)).toBe('digit')
+    expect(settled.messageZone).toBe(8)
+    expect(settled.drafts.has(4)).toBe(false)
+  })
+
+  it('settling a row that was never touched changes nothing but the note', () => {
+    const state = typeInto(EMPTY_LIST_STATE, 2, 'ab', 'gl')
+    const settled = settleRow(state, 99)
+    expect(settled.drafts.get(2)).toBe('ab')
+    expect(settled.problems.size).toBe(0)
+  })
+
+  it('settling a range clears every row of it (a paste overwrites them) and keeps the rows outside', () => {
+    let state = typeInto(EMPTY_LIST_STATE, 5, 'aa', 'x')
+    state = refuseRow(typeInto(state, 6, 'b1', 'x'), 6, 'digit')
+    state = typeInto(state, 7, 'cc', 'x')
+    state = typeInto(state, 4, 'before', 'x')
+    state = typeInto(state, 8, 'after', 'x')
+    state = typeInto(state, 9, 'dd', 'x')
+    const settled = settleRows(state, 5, 3)
+    expect([...settled.drafts.keys()].sort((a, b) => a - b)).toEqual([4, 8, 9])
+    expect(settled.problems.size).toBe(0)
+    expect(settled.messageZone).toBeNull()
+    expect(settled.note).toBeNull()
+  })
+
+  it('a note is shown over a row refusal, and dropping it shows the refusal again', () => {
+    const refused = refuseRow(typeInto(EMPTY_LIST_STATE, 4, 'a1', 'gl'), 4, 'digit')
+    const noted = withNote(refused, 'No zone')
+    expect(listMessageOf(noted.note, noted.messageZone, noted.problems, label)).toBe('No zone')
+    const dropped = withNote(noted, null)
+    expect(listMessageOf(dropped.note, dropped.messageZone, dropped.problems, label)).toBe(zoneIssue('L4', 'digit'))
+  })
+
+  it('setting the note it already has returns the same state (no needless render)', () => {
+    const noted = withNote(EMPTY_LIST_STATE, 'x')
+    expect(withNote(noted, 'x')).toBe(noted)
+    expect(withNote(EMPTY_LIST_STATE, null)).toBe(EMPTY_LIST_STATE)
+  })
+
+  it('a keystroke drops a note', () => {
+    const noted = withNote(EMPTY_LIST_STATE, 'x')
+    expect(typeInto(noted, 1, 'a', 'gl').note).toBeNull()
+  })
+
+  it('knows whether Escape has anything to undo in a row', () => {
+    const typed = typeInto(EMPTY_LIST_STATE, 3, 'ab', 'gl')
+    expect(hasRowEdit(typed, 3)).toBe(true)
+    expect(hasRowEdit(typed, 4)).toBe(false)
+    expect(hasRowEdit(refuseRow(EMPTY_LIST_STATE, 5, 'long'), 5)).toBe(true)
+    expect(hasRowEdit(EMPTY_LIST_STATE, 3)).toBe(false)
+  })
+
+  it('stays small at the largest list: only touched zones are held', () => {
+    let state = EMPTY_LIST_STATE
+    for (const zone of [0, 3999, 2000]) state = typeInto(state, zone, 'ab', 'gl')
+    expect(state.drafts.size).toBe(3)
   })
 })
 

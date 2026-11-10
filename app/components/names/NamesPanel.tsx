@@ -56,6 +56,7 @@ import { CyberCheckbox } from '../ui/CyberCheckbox'
 import { CyberRadio } from '../ui/CyberRadio'
 import { NumogramViewContext } from '../numogram/ViewContext'
 import { useNaming, type NamingContextValue } from './NamingContext'
+import { ZoneList, useObservedHeight } from './ZoneList'
 
 // ----- shared classes (Typography: 8px eyebrows, 10px body; Spacing: 24px targets, 8px between blocks) -----
 
@@ -279,7 +280,7 @@ export interface NamesPanelProps {
   pinnedZone: number | null
 }
 
-export function NamesPanel({ open, bodyMax, pinnedMesh }: NamesPanelProps): JSX.Element | null {
+export function NamesPanel({ open, bodyMax, pinnedMesh, pinnedZone }: NamesPanelProps): JSX.Element | null {
   const naming = useNaming()
   if (naming === null) return null
   return (
@@ -289,7 +290,7 @@ export function NamesPanel({ open, bodyMax, pinnedMesh }: NamesPanelProps): JSX.
         {naming.announcement}
       </div>
       {/* Keyed by the displayed base: a base switch starts the body afresh (scroll at the top, no status, no draft). */}
-      {open && <NamesBody key={naming.base} nc={naming} bodyMax={bodyMax} pinnedMesh={pinnedMesh} />}
+      {open && <NamesBody key={naming.base} nc={naming} bodyMax={bodyMax} pinnedMesh={pinnedMesh} pinnedZone={pinnedZone} />}
     </div>
   )
 }
@@ -405,9 +406,10 @@ interface NamesBodyProps {
   readonly nc: NamingContextValue
   readonly bodyMax: number
   readonly pinnedMesh: number | null
+  readonly pinnedZone: number | null
 }
 
-function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
+function NamesBody({ nc, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps): JSX.Element {
   const n: Naming = nc.naming
   const { base, state, preset } = nc
   const view = useContext(NumogramViewContext)
@@ -415,6 +417,8 @@ function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
   const styleDescriptionId = `${ids}-style`
   const joinDescriptionId = `${ids}-join`
   const seedErrorId = `${ids}-seed-error`
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [controlsRef, controlsHeight] = useObservedHeight<HTMLDivElement>()
 
   // The latest context value for callbacks that run after a timer (the deferred seed blur).
   const ncRef = useRef(nc)
@@ -644,6 +648,7 @@ function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
 
   return (
     <div
+      ref={scrollRef}
       data-names-scroll=""
       className="space-y-2 px-3 pb-2.5"
       style={{
@@ -654,267 +659,272 @@ function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
         touchAction: 'pan-y',
       }}
     >
-      {/* block 1: the unsaved-preview notice */}
-      {state === 'preview' && (
-        <div
-          data-names-preview-notice=""
-          className="space-y-1.5 p-2"
-          style={{ border: '1px solid rgba(16,255,80,0.35)', background: 'rgba(16,255,80,0.04)' }}
-        >
-          <span className={EYEBROW}>{NAMES_COPY.noticeLabel}</span>
-          <p className={HELPER}>{noticeBody(base)}</p>
-          <div className="flex flex-col gap-1">
-            <CyberButton size="sm" className={`w-full ${TARGET}`} onClick={onKeep} dataAttrs={{ 'data-names-keep': '' }}>
-              {NAMES_COPY.keep}
-            </CyberButton>
-            <CyberButton size="sm" className={`w-full ${TARGET}`} onClick={onRevert} dataAttrs={{ 'data-names-revert': '' }}>
-              {NAMES_COPY.revert}
+      <div ref={controlsRef} data-names-controls="" className="space-y-2">
+        {/* block 1: the unsaved-preview notice */}
+        {state === 'preview' && (
+          <div
+            data-names-preview-notice=""
+            className="space-y-1.5 p-2"
+            style={{ border: '1px solid rgba(16,255,80,0.35)', background: 'rgba(16,255,80,0.04)' }}
+          >
+            <span className={EYEBROW}>{NAMES_COPY.noticeLabel}</span>
+            <p className={HELPER}>{noticeBody(base)}</p>
+            <div className="flex flex-col gap-1">
+              <CyberButton size="sm" className={`w-full ${TARGET}`} onClick={onKeep} dataAttrs={{ 'data-names-keep': '' }}>
+                {NAMES_COPY.keep}
+              </CyberButton>
+              <CyberButton size="sm" className={`w-full ${TARGET}`} onClick={onRevert} dataAttrs={{ 'data-names-revert': '' }}>
+                {NAMES_COPY.revert}
+              </CyberButton>
+            </div>
+          </div>
+        )}
+
+        {/* block 2: source, at the base that has a CCRU preset */}
+        {showSource && (
+          <RadioGroup
+            eyebrow={NAMES_COPY.sourceEyebrow}
+            ariaLabel={NAMES_COPY.sourceGroupAria}
+            name="ccrug-names-source"
+            dataKey="data-names-source"
+            options={['ccru', 'generated'] as const}
+            labels={{ ccru: NAMES_COPY.sourceCcru, generated: NAMES_COPY.sourceGenerated }}
+            value={n.source}
+            disabled={locked}
+            onSelect={onSource}
+          />
+        )}
+
+        {/* block 3: seed */}
+        <div>
+          <span className={EYEBROW}>{NAMES_COPY.seedEyebrow}</span>
+          <span className={seedProblem ? 'ui-terminal-field ui-terminal-field--invalid' : 'ui-terminal-field'}>
+            <input
+              ref={seedRef}
+              data-names-seed=""
+              aria-label={NAMES_COPY.seedEyebrow}
+              aria-invalid={seedProblem ? 'true' : undefined}
+              aria-describedby={seedProblem ? seedErrorId : undefined}
+              aria-disabled={locked ? 'true' : undefined}
+              readOnly={locked}
+              value={draft}
+              maxLength={SEED_MAX_LENGTH}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="ui-terminal-input w-full px-0 py-1 text-[14px] text-gray-100"
+              onChange={onSeedChange}
+              onKeyDown={onSeedKeyDown}
+              onBlur={onSeedBlur}
+            />
+          </span>
+          {seedProblem && (
+            <p id={seedErrorId} data-names-seed-error="" className="mt-1 text-[10px] leading-[1.4] text-[#f87171]">
+              {seedError()}
+            </p>
+          )}
+          <div className={`${BUTTON_ROW} mt-1`}>
+            <CyberButton size="sm" className={TARGET} disabled={locked} onClick={onReroll} dataAttrs={{ 'data-names-reroll': '' }}>
+              {NAMES_COPY.reroll}
             </CyberButton>
           </div>
-        </div>
-      )}
-
-      {/* block 2: source, at the base that has a CCRU preset */}
-      {showSource && (
-        <RadioGroup
-          eyebrow={NAMES_COPY.sourceEyebrow}
-          ariaLabel={NAMES_COPY.sourceGroupAria}
-          name="ccrug-names-source"
-          dataKey="data-names-source"
-          options={['ccru', 'generated'] as const}
-          labels={{ ccru: NAMES_COPY.sourceCcru, generated: NAMES_COPY.sourceGenerated }}
-          value={n.source}
-          disabled={locked}
-          onSelect={onSource}
-        />
-      )}
-
-      {/* block 3: seed */}
-      <div>
-        <span className={EYEBROW}>{NAMES_COPY.seedEyebrow}</span>
-        <span className={seedProblem ? 'ui-terminal-field ui-terminal-field--invalid' : 'ui-terminal-field'}>
-          <input
-            ref={seedRef}
-            data-names-seed=""
-            aria-label={NAMES_COPY.seedEyebrow}
-            aria-invalid={seedProblem ? 'true' : undefined}
-            aria-describedby={seedProblem ? seedErrorId : undefined}
-            aria-disabled={locked ? 'true' : undefined}
-            readOnly={locked}
-            value={draft}
-            maxLength={SEED_MAX_LENGTH}
-            autoComplete="off"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            className="ui-terminal-input w-full px-0 py-1 text-[14px] text-gray-100"
-            onChange={onSeedChange}
-            onKeyDown={onSeedKeyDown}
-            onBlur={onSeedBlur}
-          />
-        </span>
-        {seedProblem && (
-          <p id={seedErrorId} data-names-seed-error="" className="mt-1 text-[10px] leading-[1.4] text-[#f87171]">
-            {seedError()}
-          </p>
-        )}
-        <div className={`${BUTTON_ROW} mt-1`}>
-          <CyberButton size="sm" className={TARGET} disabled={locked} onClick={onReroll} dataAttrs={{ 'data-names-reroll': '' }}>
-            {NAMES_COPY.reroll}
-          </CyberButton>
-        </div>
-        {!showSource && <p className={`${HELPER} mt-1`}>{NAMES_COPY.ccruHint}</p>}
-        {seedOnly && (
-          <p data-names-seed-only="" className={`${HELPER} mt-1`}>
-            {seedOnlySentence()}
-          </p>
-        )}
-      </div>
-
-      {/* block 4: style */}
-      <RadioGroup
-        eyebrow={NAMES_COPY.styleEyebrow}
-        ariaLabel={NAMES_COPY.styleGroupAria}
-        name="ccrug-names-style"
-        dataKey="data-names-style"
-        options={STYLE_IDS}
-        labels={NAMES_COPY.styleLabels}
-        value={n.style}
-        disabled={locked}
-        onSelect={onStyle}
-        description={{
-          id: styleDescriptionId,
-          text: NAMES_COPY.styleDescriptions[n.style],
-          props: { 'data-names-style-description': '' },
-        }}
-      />
-
-      {/* block 5: join order */}
-      <RadioGroup
-        eyebrow={NAMES_COPY.joinEyebrow}
-        ariaLabel={NAMES_COPY.joinGroupAria}
-        name="ccrug-names-join"
-        dataKey="data-names-join"
-        options={JOIN_ORDERS}
-        labels={NAMES_COPY.joinLabels}
-        value={n.join}
-        disabled={locked}
-        onSelect={onJoin}
-        description={{
-          id: joinDescriptionId,
-          text: NAMES_COPY.joinDescriptions[n.join],
-          props: { 'data-names-join-description': '' },
-        }}
-      />
-
-      {/* block 6: smoothing */}
-      <div className="space-y-1">
-        <CyberCheckbox
-          checked={n.smoothing === 1}
-          label={NAMES_COPY.smoothingLabel}
-          disabled={locked}
-          onChange={onSmoothing}
-          className={TARGET}
-          dataAttrs={{ 'data-names-smoothing': '' }}
-        />
-        <p className={HELPER}>{NAMES_COPY.smoothingHelper}</p>
-        {inert && (
-          <p data-names-smoothing-note="" className={HELPER}>
-            {NAMES_COPY.smoothingInert}
-          </p>
-        )}
-      </div>
-
-      {/* block 7: the raw and smoothed names of a few demons, side by side */}
-      <div>
-        <span className={EYEBROW}>{NAMES_COPY.previewEyebrow}</span>
-        <table
-          data-names-preview=""
-          aria-label="Name preview"
-          className="w-full text-left"
-          style={{ tableLayout: 'fixed', borderCollapse: 'collapse' }}
-        >
-          <colgroup>
-            <col style={{ width: 56 }} />
-            <col />
-            <col />
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col" className="py-0.5 text-[8px] font-normal uppercase tracking-[0.12em] text-gray-400">
-                {NAMES_COPY.previewHeaderAb}
-              </th>
-              <th
-                scope="col"
-                data-col="raw"
-                aria-current={n.smoothing === 0 ? 'true' : undefined}
-                className="py-0.5 text-[8px] font-normal uppercase tracking-[0.12em] text-gray-400"
-                style={n.smoothing === 0 ? { boxShadow: ACCENT_UNDERLINE } : undefined}
-              >
-                {NAMES_COPY.previewHeaderRaw}
-              </th>
-              <th
-                scope="col"
-                data-col="smoothed"
-                aria-current={n.smoothing === 1 ? 'true' : undefined}
-                className="py-0.5 text-[8px] font-normal uppercase tracking-[0.12em] text-gray-400"
-                style={n.smoothing === 1 ? { boxShadow: ACCENT_UNDERLINE } : undefined}
-              >
-                {NAMES_COPY.previewHeaderSmoothed}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {previewMeshes(base, pinnedMesh, NAMES_PREVIEW_ROWS).map(mesh => {
-              const [a, b] = netSpanOf(mesh)
-              const raw = nc.resolver.ruleNameOf(a, b, 0)
-              const smoothed = nc.resolver.ruleNameOf(a, b, 1)
-              return (
-                <tr key={mesh} data-names-preview-row={mesh} className="h-6">
-                  <td data-names-preview-cell="" className="truncate text-[10px] text-gray-400" title={netSpanLabel(a, b, zoneLabel)}>
-                    {netSpanLabel(a, b, zoneLabel)}
-                  </td>
-                  <td
-                    data-names-preview-cell=""
-                    className={n.smoothing === 0 ? 'truncate text-[10px] text-gray-100' : 'truncate text-[10px] text-gray-400'}
-                    style={{ unicodeBidi: 'plaintext' }}
-                    title={raw}
-                  >
-                    {raw}
-                  </td>
-                  <td
-                    data-names-preview-cell=""
-                    className={n.smoothing === 1 ? 'truncate text-[10px] text-gray-100' : 'truncate text-[10px] text-gray-400'}
-                    style={{ unicodeBidi: 'plaintext' }}
-                    title={smoothed}
-                  >
-                    {smoothed}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        {n.source === 'ccru' && (
-          <p data-names-preview-caption="" className={`${HELPER} mt-1`}>
-            {NAMES_COPY.previewCaption}
-          </p>
-        )}
-      </div>
-
-      {/* block 8: summary, and the share note while edits exist that a link cannot carry */}
-      {showSummary && (
-        <div className="space-y-1">
-          <p data-names-summary="" className={HELPER}>
-            {summaryLine(n.locks.size, n.overrides.size)}
-          </p>
-          {nc.uncarried && (
-            <p data-names-share-note="" className={HELPER}>
-              {NAMES_COPY.shareNote}
+          {!showSource && <p className={`${HELPER} mt-1`}>{NAMES_COPY.ccruHint}</p>}
+          {seedOnly && (
+            <p data-names-seed-only="" className={`${HELPER} mt-1`}>
+              {seedOnlySentence()}
             </p>
           )}
         </div>
-      )}
 
-      {/* block 9: CollisionReport (plan 07-20) */}
+        {/* block 4: style */}
+        <RadioGroup
+          eyebrow={NAMES_COPY.styleEyebrow}
+          ariaLabel={NAMES_COPY.styleGroupAria}
+          name="ccrug-names-style"
+          dataKey="data-names-style"
+          options={STYLE_IDS}
+          labels={NAMES_COPY.styleLabels}
+          value={n.style}
+          disabled={locked}
+          onSelect={onStyle}
+          description={{
+            id: styleDescriptionId,
+            text: NAMES_COPY.styleDescriptions[n.style],
+            props: { 'data-names-style-description': '' },
+          }}
+        />
 
-      {/* block 10: import and export, one status slot with the inline Undo */}
-      <div className="space-y-1">
-        <div className={BUTTON_ROW}>
-          <CyberButton size="sm" className={TARGET} onClick={onExport} dataAttrs={{ 'data-names-export': '' }}>
-            {NAMES_COPY.exportNames}
-          </CyberButton>
-          <CyberButton
-            size="sm"
+        {/* block 5: join order */}
+        <RadioGroup
+          eyebrow={NAMES_COPY.joinEyebrow}
+          ariaLabel={NAMES_COPY.joinGroupAria}
+          name="ccrug-names-join"
+          dataKey="data-names-join"
+          options={JOIN_ORDERS}
+          labels={NAMES_COPY.joinLabels}
+          value={n.join}
+          disabled={locked}
+          onSelect={onJoin}
+          description={{
+            id: joinDescriptionId,
+            text: NAMES_COPY.joinDescriptions[n.join],
+            props: { 'data-names-join-description': '' },
+          }}
+        />
+
+        {/* block 6: smoothing */}
+        <div className="space-y-1">
+          <CyberCheckbox
+            checked={n.smoothing === 1}
+            label={NAMES_COPY.smoothingLabel}
+            disabled={locked}
+            onChange={onSmoothing}
             className={TARGET}
-            disabled={!importAllowed(state)}
-            onClick={() => fileRef.current?.click()}
-            dataAttrs={{ 'data-names-import': '' }}
-          >
-            {NAMES_COPY.importNames}
-          </CyberButton>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json,application/json"
-            data-names-import-input=""
-            hidden
-            tabIndex={-1}
-            onChange={onFileChosen}
+            dataAttrs={{ 'data-names-smoothing': '' }}
           />
+          <p className={HELPER}>{NAMES_COPY.smoothingHelper}</p>
+          {inert && (
+            <p data-names-smoothing-note="" className={HELPER}>
+              {NAMES_COPY.smoothingInert}
+            </p>
+          )}
         </div>
-        <NamesStatusSlot status={status} onUndo={onUndo} onUseSeed={onUseSeed} />
+
+        {/* block 7: the raw and smoothed names of a few demons, side by side */}
+        <div>
+          <span className={EYEBROW}>{NAMES_COPY.previewEyebrow}</span>
+          <table
+            data-names-preview=""
+            aria-label="Name preview"
+            className="w-full text-left"
+            style={{ tableLayout: 'fixed', borderCollapse: 'collapse' }}
+          >
+            <colgroup>
+              <col style={{ width: 56 }} />
+              <col />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col" className="py-0.5 text-[8px] font-normal uppercase tracking-[0.12em] text-gray-400">
+                  {NAMES_COPY.previewHeaderAb}
+                </th>
+                <th
+                  scope="col"
+                  data-col="raw"
+                  aria-current={n.smoothing === 0 ? 'true' : undefined}
+                  className="py-0.5 text-[8px] font-normal uppercase tracking-[0.12em] text-gray-400"
+                  style={n.smoothing === 0 ? { boxShadow: ACCENT_UNDERLINE } : undefined}
+                >
+                  {NAMES_COPY.previewHeaderRaw}
+                </th>
+                <th
+                  scope="col"
+                  data-col="smoothed"
+                  aria-current={n.smoothing === 1 ? 'true' : undefined}
+                  className="py-0.5 text-[8px] font-normal uppercase tracking-[0.12em] text-gray-400"
+                  style={n.smoothing === 1 ? { boxShadow: ACCENT_UNDERLINE } : undefined}
+                >
+                  {NAMES_COPY.previewHeaderSmoothed}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {previewMeshes(base, pinnedMesh, NAMES_PREVIEW_ROWS).map(mesh => {
+                const [a, b] = netSpanOf(mesh)
+                const raw = nc.resolver.ruleNameOf(a, b, 0)
+                const smoothed = nc.resolver.ruleNameOf(a, b, 1)
+                return (
+                  <tr key={mesh} data-names-preview-row={mesh} className="h-6">
+                    <td data-names-preview-cell="" className="truncate text-[10px] text-gray-400" title={netSpanLabel(a, b, zoneLabel)}>
+                      {netSpanLabel(a, b, zoneLabel)}
+                    </td>
+                    <td
+                      data-names-preview-cell=""
+                      className={n.smoothing === 0 ? 'truncate text-[10px] text-gray-100' : 'truncate text-[10px] text-gray-400'}
+                      style={{ unicodeBidi: 'plaintext' }}
+                      title={raw}
+                    >
+                      {raw}
+                    </td>
+                    <td
+                      data-names-preview-cell=""
+                      className={n.smoothing === 1 ? 'truncate text-[10px] text-gray-100' : 'truncate text-[10px] text-gray-400'}
+                      style={{ unicodeBidi: 'plaintext' }}
+                      title={smoothed}
+                    >
+                      {smoothed}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {n.source === 'ccru' && (
+            <p data-names-preview-caption="" className={`${HELPER} mt-1`}>
+              {NAMES_COPY.previewCaption}
+            </p>
+          )}
+        </div>
+
+        {/* block 8: summary, and the share note while edits exist that a link cannot carry */}
+        {showSummary && (
+          <div className="space-y-1">
+            <p data-names-summary="" className={HELPER}>
+              {summaryLine(n.locks.size, n.overrides.size)}
+            </p>
+            {nc.uncarried && (
+              <p data-names-share-note="" className={HELPER}>
+                {NAMES_COPY.shareNote}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* block 9: CollisionReport (plan 07-20) */}
+
+        {/* block 10: import and export, one status slot with the inline Undo */}
+        <div className="space-y-1">
+          <div className={BUTTON_ROW}>
+            <CyberButton size="sm" className={TARGET} onClick={onExport} dataAttrs={{ 'data-names-export': '' }}>
+              {NAMES_COPY.exportNames}
+            </CyberButton>
+            <CyberButton
+              size="sm"
+              className={TARGET}
+              disabled={!importAllowed(state)}
+              onClick={() => fileRef.current?.click()}
+              dataAttrs={{ 'data-names-import': '' }}
+            >
+              {NAMES_COPY.importNames}
+            </CyberButton>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".json,application/json"
+              data-names-import-input=""
+              hidden
+              tabIndex={-1}
+              onChange={onFileChosen}
+            />
+          </div>
+          <NamesStatusSlot status={status} onUndo={onUndo} onUseSeed={onUseSeed} />
+        </div>
+
+        {/* block 11: the autosave line */}
+        <p
+          data-names-saved={savedKey}
+          className={savedKey === 'failed' ? 'text-[10px] leading-[1.4] text-[#f87171]' : HELPER}
+        >
+          {savedText}
+        </p>
       </div>
 
-      {/* block 11: the autosave line */}
-      <p
-        data-names-saved={savedKey}
-        className={savedKey === 'failed' ? 'text-[10px] leading-[1.4] text-[#f87171]' : HELPER}
-      >
-        {savedText}
-      </p>
-
-      {/* block 12: ZoneList (plan 07-19) */}
+      {/* block 12: the zone list, editable while ready and read only while previewing; the pending line stands in while a base builds */}
+      {(state === 'ready' || state === 'preview') && (
+        <ZoneList scrollEl={() => scrollRef.current} scrollMargin={controlsHeight} pinnedZone={pinnedZone} />
+      )}
       {state === 'pending' && (
         <p data-names-pending="" className={HELPER}>
           {pendingLine(nc.pendingBase ?? base)}

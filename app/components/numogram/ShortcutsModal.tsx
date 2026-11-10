@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { NAMES_COPY } from '../../lib/namingCopy'
 import { useNumogramView } from './ViewContext'
 
 interface ShortcutsModalProps {
@@ -50,6 +51,8 @@ export function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
             <div><span style={{ color: '#10ff50' }}>Diagram:</span> Up to {svgRichMaxN} zones: Tab moves into the diagram, arrow keys step through zones, syzygies, currents and gates, Home/End jump, Enter or Space selects</div>
             <div className="text-gray-400">Above {svgRichMaxN} zones: arrow keys step between zones, Tab steps through a zone&apos;s syzygy, current and gate, Page Up and Page Down jump 10 zones, Enter or Space selects. Touch: drag pans, pinch zooms, tap selects.</div>
             <div><span style={{ color: '#10ff50' }}>Gate keys:</span> digits 0-9 work at base 10 only</div>
+            {/* Names panel: the keyboard line of the zone list, from the copy module (plan 07-19) */}
+            <div className="text-gray-400">{NAMES_COPY.shortcutLine}</div>
           </div>
         </div>
       </div>

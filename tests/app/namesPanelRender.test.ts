@@ -1602,8 +1602,10 @@ describe('ZoneList: a row', () => {
   })
 
   it('shows the zone label the rest of the panel uses: the numeral of the base', () => {
-    expect(textOf(rowOf(markup, 12).inner)).toBe('c')
-    expect(attrOf(need(rowOf(markup, 12).inner, 'data-names-sound').open, 'aria-label')).toBe(zoneAria('c'))
+    // a margin of zero puts more rows in the first window, so zone 12 is mounted
+    const wide = renderList(valueFor(naming), { scrollMargin: 0 })
+    expect(textOf(rowOf(wide, 12).inner)).toBe('c')
+    expect(attrOf(need(rowOf(wide, 12).inner, 'data-names-sound').open, 'aria-label')).toBe(zoneAria('c'))
   })
 
   it('has a sound field with the stored sound and the spelling attributes of a name field', () => {
@@ -1703,7 +1705,7 @@ describe('ZoneList: a row', () => {
           createElement(
             NamingContext.Provider,
             { value: valueFor(naming) },
-            createElement(ZoneList, { scrollEl: () => null, scrollMargin: MARGIN, pinnedZone: null }),
+            createElement(ZoneList, { scrollEl: () => null, scrollMargin: 0, pinnedZone: null }),
           ),
         ),
       )
@@ -1791,6 +1793,11 @@ describe('ZoneRowView: the presentational row', () => {
     expect(attrOf(field.open, 'aria-invalid')).toBeNull()
     expect(attrOf(field.open, 'aria-describedby')).toBeNull()
     expect(out).not.toContain('ui-terminal-field--invalid')
+  })
+
+  it('points at the message only while the row is invalid, even when it is handed the id', () => {
+    const out = html({ invalid: false, describedBy: 'list-message-1' })
+    expect(attrOf(need(out, 'data-names-sound').open, 'aria-describedby')).toBeNull()
   })
 
   it('shows the value it is given (the draft while one exists) and places the row at its offset', () => {
