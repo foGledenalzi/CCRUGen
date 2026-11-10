@@ -120,7 +120,9 @@ describe('LabelSchemeControls: the Sounds radio', () => {
 
   it('selectSounds closes the custom disclosure before it reports the choice', () => {
     const source = readFileSync(fileURLToPath(new URL('../../app/components/numogram/LabelSchemeControls.tsx', import.meta.url)), 'utf8')
-    const body = /function selectSounds\(\): void \{([^}]*)\}/.exec(source)
+      .replace(/\r\n/g, '\n')
+    // the function ends at the first closing brace on its own line, indented like the function
+    const body = /function selectSounds\(\): void \{\n([\s\S]*?)\n  \}\n/.exec(source)
     expect(body).not.toBeNull()
     const lines = ((body as RegExpExecArray)[1]).split('\n').map(l => l.trim()).filter(Boolean)
     expect(lines).toEqual(["setOpen(false)", "onChange({ mode: 'sounds' })"])

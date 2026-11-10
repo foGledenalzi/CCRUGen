@@ -9,6 +9,7 @@ import { evaluateCustomAlphabet } from '../../lib/basePicker'
 import { ALPHABET_PRESET_IDS, ALPHABET_PRESET_LABELS, presetChars, validateAlphabet } from '../../lib/customAlphabet'
 import { createCanvasGlyphCanvas, glyphRisks, makeGlyphProbe } from '../../lib/glyphCoverage'
 import { DEFAULT_LABEL_SCHEME, type LabelScheme } from '../../lib/labelScheme'
+import { NAMES_COPY } from '../../lib/namingCopy'
 import { CyberButton } from '../ui/CyberButton'
 import { CyberInput } from '../ui/CyberInput'
 import { CyberRadio } from '../ui/CyberRadio'
@@ -17,12 +18,14 @@ export interface LabelSchemeControlsProps {
   base: number
   scheme: LabelScheme
   onChange(s: LabelScheme): void
+  /** True when the drawn layout keeps numerals in sounds mode (the pair graph and planetary): the note under the row says so. */
+  numeralsLayout?: boolean
 }
 
 /** The first N glyph-risk warnings shown at once — a hostile 1000+ character alphabet never floods the disclosure. */
 const MAX_GLYPH_WARNINGS = 5
 
-export function LabelSchemeControls({ base, scheme, onChange }: LabelSchemeControlsProps): JSX.Element {
+export function LabelSchemeControls({ base, scheme, onChange, numeralsLayout = false }: LabelSchemeControlsProps): JSX.Element {
   const [open, setOpen] = useState(() => scheme.mode === 'preset' || scheme.mode === 'custom')
   const [text, setText] = useState(() => (scheme.mode === 'custom' ? scheme.chars.join('') : ''))
 
@@ -34,6 +37,7 @@ export function LabelSchemeControls({ base, scheme, onChange }: LabelSchemeContr
   const customChecked = scheme.mode === 'preset' || scheme.mode === 'custom' || open
   const digitsChecked = !customChecked && scheme.mode === 'digits'
   const xenoChecked = !customChecked && scheme.mode === 'xeno'
+  const soundsChecked = !customChecked && scheme.mode === 'sounds'
 
   function selectDigits(): void {
     setOpen(false)
@@ -43,6 +47,11 @@ export function LabelSchemeControls({ base, scheme, onChange }: LabelSchemeContr
   function selectXeno(): void {
     setOpen(false)
     onChange({ mode: 'xeno' })
+  }
+
+  function selectSounds(): void {
+    setOpen(false)
+    onChange({ mode: 'sounds' })
   }
 
   function selectCustom(): void {
@@ -66,12 +75,19 @@ export function LabelSchemeControls({ base, scheme, onChange }: LabelSchemeContr
 
   return (
     <div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 gap-y-1">
         <span className="text-[8px] uppercase tracking-[0.3em] text-gray-400">Labels:</span>
         <CyberRadio name="ccrug-labels" label="Digits" checked={digitsChecked} onChange={selectDigits} />
         <CyberRadio name="ccrug-labels" label="Xeno" checked={xenoChecked} onChange={selectXeno} />
+        <CyberRadio name="ccrug-labels" label={NAMES_COPY.soundsRadio} checked={soundsChecked} onChange={selectSounds} />
         <CyberRadio name="ccrug-labels" label="Custom" checked={customChecked} onChange={selectCustom} />
       </div>
+
+      {scheme.mode === 'sounds' && (
+        <p data-post-baseline="" className="text-[10px] text-gray-400">
+          {numeralsLayout ? NAMES_COPY.numeralsNote : NAMES_COPY.soundsNote}
+        </p>
+      )}
 
       {customChecked && (
         <div className="mt-1 space-y-1 border-t border-white/[0.04] pt-1">

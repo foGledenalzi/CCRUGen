@@ -42,6 +42,8 @@ export interface BasePickerProps {
   computing?: boolean
   /** Persistent sr-only status text: the computing line, then the ready line (checker recommendation 1). */
   announcement?: string
+  /** True when the drawn layout keeps numerals in sounds mode (the pair graph and planetary); handed to the label controls' note. Default false. */
+  numeralsLayout?: boolean
 }
 
 export function BasePicker(props: BasePickerProps): JSX.Element {
@@ -58,6 +60,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
     requestedBase,
     computing = false,
     announcement = '',
+    numeralsLayout = false,
   } = props
 
   // While a worker request is pending `base` is still the DISPLAYED base, so every editable value and every commit
@@ -246,7 +249,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
               </div>
             )}
 
-            <LabelSchemeControls base={base} scheme={labelScheme} onChange={onLabelSchemeChange} />
+            <LabelSchemeControls base={base} scheme={labelScheme} onChange={onLabelSchemeChange} numeralsLayout={numeralsLayout} />
 
             {refusal && (
               <p role="status" className="text-[10px] text-[#f87171]">
