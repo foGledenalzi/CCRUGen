@@ -1,7 +1,9 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { createNameResolver, netSpanOf, serializeNaming, setSeed, setSource } from '../engine/index'
 import { defaultNamingFor, type NamingEnv } from '../app/lib/namingSession'
-import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_STORAGE_PREFIX } from '../app/lib/namingLimits'
+import {
+  NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_STORAGE_PREFIX, NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT,
+} from '../app/lib/namingLimits'
 import { NAMES_COPY } from '../app/lib/namingCopy'
 import { INTERACTIVE_MAX_N } from '../app/lib/tierBounds'
 import { CCRU_NAMING_PRESET } from '../app/presets/base10/naming'
@@ -307,3 +309,46 @@ for (const base of [28, 666]) {
     expect(errors).toEqual([])
   })
 }
+
+// Pitfall 18, T-07-20c: a naming with more than NAMING_UNDO_OVERRIDE_LIMIT overrides keeps only NAMING_UNDO_HEAVY_DEPTH undo entries,
+// however many edits are made. The slot is seeded with a naming one override over the limit (base 102 has 5,151 demons and is still an
+// SVG base); twelve renames then leave exactly the heavy depth to undo, where the normal depth would keep all twelve and the load entry.
+test('a naming over the override limit keeps a short undo depth', async ({ page }) => {
+  const errors = trackErrors(page)
+  const base = 102
+  const doc = JSON.parse(serializeNaming(defaultNamingFor(base, NAMING_ENV))) as { overrides?: Record<string, string> }
+  const letters = (n: number): string => {
+    let out = ''
+    for (let rest = n + 1; rest > 0; rest = Math.floor((rest - 1) / 26)) out = String.fromCharCode(97 + ((rest - 1) % 26)) + out
+    return out
+  }
+  const overrides: Record<string, string> = {}
+  for (let mesh = 1; mesh <= NAMING_UNDO_OVERRIDE_LIMIT + 1; mesh++) overrides[String(mesh)] = `Heavy${letters(mesh)}`
+  doc.overrides = overrides
+  await page.addInitScript(
+    ({ key, text }: { key: string; text: string }) => {
+      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, text)
+    },
+    { key: `${NAMING_STORAGE_PREFIX}${base}`, text: JSON.stringify(doc) },
+  )
+  await page.goto(`/numogram/?base=${base}`)
+  await settle(page)
+  // the saved naming is the heavy one: an override of the seeded range shows its text
+  await expectBrowserName(page, '', 1, 'Heavyb', true)
+
+  await pinFromOverlay(page, '', 0)
+  const renames = NAMING_UNDO_HEAVY_DEPTH + 4
+  for (let i = 0; i < renames; i++) {
+    const name = `Rename${letters(i)}`
+    await renamePinned(page, name)
+    await expect(panel(page, 'Selection')).toContainText(name)
+  }
+  let undone = 0
+  while (undone < 100 && (await undoButton(page).isEnabled())) {
+    await undoButton(page).click()
+    undone++
+  }
+  expect(undone).toBe(NAMING_UNDO_HEAVY_DEPTH)
+
+  expect(errors).toEqual([])
+})
