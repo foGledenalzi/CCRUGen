@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-13-PLAN.md
-last_updated: "2026-11-10T16:00:00.000Z"
-last_activity: 2026-11-10 -- Completed 07-13 (per-base naming slot, naming session rules, NamingContext)
+stopped_at: Completed 07-14-PLAN.md
+last_updated: "2026-11-10T16:20:00.000Z"
+last_activity: 2026-11-10 -- Completed 07-14 (Canvas sounds labels in both passes, sound-aware announcements, live chord callout names)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 87
+  completed_plans: 88
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 14 of 25 (07-01 to 07-13 complete; 07-14, the Canvas sounds labels in both passes, sound-aware announcements and live chord callout names, is next)
+Plan: 15 of 25 (07-01 to 07-14 complete; 07-15, render-time names in the browser cell, matrix text, demon detail and pinned background with live-name search, is next)
 Status: Executing Phase 7
-Last activity: 2026-11-10 -- Completed 07-13 (per-base naming slot, naming session rules, NamingContext)
+Last activity: 2026-11-10 -- Completed 07-14 (Canvas sounds labels in both passes, sound-aware announcements, live chord callout names)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 87
+- Total plans completed: 88
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -246,6 +246,7 @@ Recent decisions affecting current work:
 - [Phase 7 P11] CCRU preset adapter, naming limits and the single Names copy module shipped (NAM-04 and NAM-03 groundwork, orchestrator decisions 3 and 6; both stay Pending: nothing imports the three new modules until 07-12 onward): app/presets/base10/naming.ts exports the frozen `CCRU_NAMING_PRESET` (id ccru, base from `BASE10.zoneCount`, the ten sounds built by a loop over `ZONE_PARTICLE` in zone order, `names: DEMON_NAMES` by reference, a lore gap throws), the lore scanner walks it automatically and a mutant pasting a canonical name fails the scanner and the new test; app/lib/namingLimits.ts holds sixteen named `[default]` constants and `collisionScanLimit()` = `Math.min(NAMING_COLLISION_SCAN_MAX_N 1024, INTERACTIVE_MAX_N)` (1024 asserted at most `COLLISION_SCAN_MAX_N` 4096 and the ceiling; proved with the tier table mocked at 512, 1024 and 8000; no `4000` typed); app/lib/namingCopy.ts has `NAMES_COPY` (76 frozen keys, each equal to its UI-SPEC row) and 41 sentence functions with every limit, `INTERACTIVE_MAX_N`, `CCRU_LINK_BASE` and `ZONE_PAGE_STEP` imported (source assertions forbid typing them), user-text echoes through `clipEcho`, no em dash or exclamation mark, two-word buttons. Decisions: `importError` is overloaded (the context-free kinds take the issue alone, as 07-17 calls it; `{ kind: 'unreadable' }` joins `NamingIssue` as `ImportFailure`; an entry issue alone reads as a one-entry `invalidEntries`); `matrixTooltip` only assembles, 07-15 cuts the name; `plural` returns the count and the word; `formatBytes` has KB and byte fallbacks. 289 tests in two timezones, 33 mutants killed (the first copy mutation run had a red baseline because of a comment, so all 20 were re-run green), typecheck and check-repo clean, test:swap not run (new files only, no importer), no frozen oracle, bank, vector or existing app file touched.
 - [Phase 7 P12] Sounds label mode shipped on the SVG tier with its controls (NAM-01 groundwork, D-03, UI-SPEC decision 10; NAM-01 stays Pending: nothing passes the sounds to a diagram until 07-21 and the Canvas passes come in 07-14): app/lib/soundLabels.ts is the one pure fit rule (`fitSoundLabel(sound, rPx, fullPx)` and `isWideGrapheme`; 0.62 em per grapheme, 1.0 em for Han, Hiragana, Katakana, Hangul, Bopomofo and the fullwidth forms, budget `1.8 x R_px`, 6 px floor, longest whole-grapheme prefix plus U+2026, one grapheme without an ellipsis when fewer than two fit; the UI-SPEC worked example is reproduced); `Projection.tsx` gained optional `zoneSounds` and `labelPxPerUnit` and only off the planetary layout, with a table and a scale, the zone label shows the fitted sound (`data-sound-label`, `data-truncated` when cut, size `fontPx / scale`, or the layout `labelSize` itself when it fits) and the node is named `Zone {digits}, sound {sound}, {Region}`; a zone without a sound keeps its numeral and usual name; `LabelSchemeControls` has the Sounds radio between Xeno and Custom on a `flex-wrap` row with the sounds note (or the numerals note via the new `numeralsLayout` prop, forwarded by `BasePicker`); `LabelsPanel` reads `Sounds` and the sounds hover text only in sounds mode. Decisions: all copy from `NAMES_COPY` (so the plan's `label="Sounds"` grep counts 0, the rendered label is pinned by a test); a one-grapheme sound is never reported cut (the plan text says true); a NaN radius keeps one grapheme (a test found the first draft keeping the whole sound). `NumogramClient.tsx` is untouched, so picking Sounds currently sets the scheme and the note and the diagram still draws digits until 07-21. 49 new tests, 9 mutants killed (the plan's two plus 7 extras), `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 110 files and 3368 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `PairGraphProjection.tsx` or base-10 preset touched.
 - [Phase 7 P13] Per-base naming slot, pure naming session rules and the null-default NamingContext shipped (NAM-03 and NAM-01 groundwork, D-09, D-10, D-11, D-13; both stay Pending: nothing imports the three new modules until NumogramClient wires them in 07-18): app/lib/namingSession.ts has `defaultNamingFor` (the preset base is `env.preset.base`, the ceiling is `env.interactiveMaxN`, neither typed), `linkFormOf` (fields only, null for every default and for a ccru naming), `namingFromLink`, `sessionForBase(base, saved, link, env, nextRev)` (preview exactly when a slot exists and its canonical link form differs from the link's, else the slot or the link; a seed-only base ignores any slot and never previews; nothing edited at open), `applyNamingAction` (13 action types, refused with the SAME session object while previewing, for an invalid value, a dense-only action at a seed-only base, an import of another base or table shape, and an edit that changes nothing; otherwise `edited` and a new rev), `keepPreview`, `revertPreview`, `snapshotNaming` (the SAVED naming while previewing, so Keep is one undoable entry and Back none), `restoreNaming`, `hasUncarriedEdits`, `namesPanelState` and `autosaveWanted`. app/lib/namingStorage.ts guards the `window.localStorage` getter, `getItem` and `setItem`, reads through `validateNamingJson` (one validator, one call) and writes the compact export text under `ccrug.naming.v1.<base>`; every failure is no slot or `'failed'`; a seed-only naming is never read or written. app/components/names/NamingContext.tsx has `createContext<NamingContextValue | null>(null)` and `useNaming()` returning null outside a provider. Decisions: a no-op edit returns the same session (no history entry, no slot write); a paste is all-or-nothing over every token; 07-18 must take the history snapshot BEFORE `keepPreview`, pass `nextRev` to it, and memoise `hasUncarriedEdits`. 96 tests in two timezones, 55 mutants run (50 killed, 5 equivalent; one weak seed-only slot test found by a survivor and fixed), typecheck, check-repo, build and check:weight clean, test:swap not run (new files only, no importer), no frozen oracle, engine file, `NumogramClient.tsx`, `Projection.tsx` or base-10 preset touched.
+- [Phase 7 P14] Canvas sounds labels, sound-aware announcements and live chord callout names shipped (NAM-01 and NAM-02 groundwork, D-03; both stay Pending: nothing passes `zoneSounds` to `CanvasDiagram` until 07-21 and the `NamingContext` provider comes in 07-18): `DrawState.zoneSounds` (optional, inherited by `OverlayState`) and a sounds branch beside the old loop in BOTH zone-label passes of `app/lib/canvas/draw.ts`, each calling the shared `fitSoundLabel(sound, geo.rPx, scene.labelSize * geo.s)` per label with the font set per label, so the static pass and the highlight overlay agree (ghost test at fit and zoomed); without a table the digits loops are unchanged (the diff against the plan base removes only the two `if` headers), pair pills, gate labels and the xenotation passes never read it, level of detail and the numbers toggle gate both passes; a zone with an empty or missing sound keeps its digits label and wording (the plan's `?? ''` would paint empty text, the same fallback 07-12 chose for the SVG tier). `TargetText.zoneSounds` makes `zoneText` return the shared `zoneSoundAria` wording (full sound, selected suffix after it, edges and pairs keep numerals); `targetTextFor` takes `zoneSounds` as a sixth argument; `chordCalloutText(chord, zoneLabels, nameOf)` gives `a::b`, a middle dot and the LIVE name (the chord's own name without a naming and on a RangeError), and `CanvasDiagram` asks only a naming whose base equals the scene's. 35 new tests, 10 mutants killed (the plan's overlay-only fullPx mutant fails exactly the ghost test; one survivor of the fallback test was killed by a tighter test), `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 112 files and 3499 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `Projection.tsx`, `NumogramClient.tsx` or base-10 preset touched.
 
 ### Pending Todos
 
@@ -279,9 +280,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-10T16:00:00.000Z
-Stopped at: Completed 07-13-PLAN.md
-Resume file: .planning/phases/07-naming-builder/07-14-PLAN.md
+Last session: 2026-11-10T16:20:00.000Z
+Stopped at: Completed 07-14-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-15-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
