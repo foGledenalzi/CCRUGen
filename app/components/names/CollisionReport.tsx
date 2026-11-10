@@ -267,11 +267,33 @@ interface BodyProps extends CollisionReportProps {
   readonly nc: NamingContextValue
 }
 
-/** Puts focus on the jump button of a demon after its editor closed; when that demon no longer repeats a name, on the toggle, else on the block. */
-function focusAfterEditor(root: HTMLElement | null, mesh: number): void {
+/** The demon whose editor just closed and the name its line had, so focus can find its way back when the line changed. */
+interface FocusReturn {
+  readonly mesh: number
+  readonly name: string | null
+}
+
+/**
+ * Puts focus back after an editor closed: on that demon's own jump button; when the rename took the demon out of its group, on the
+ * first jump button of the line that kept the name (the next demon to fix); when no such line is left, on the toggle, else on the
+ * block itself (it takes programmatic focus), so focus is never dropped to the page.
+ */
+function focusAfterEditor(root: HTMLElement | null, back: FocusReturn): void {
   if (root === null) return
+  let sibling: HTMLElement | null = null
+  if (back.name !== null) {
+    for (const line of root.querySelectorAll<HTMLElement>('[data-collision-name]')) {
+      if (line.getAttribute('data-collision-name') === back.name) {
+        sibling = line.querySelector<HTMLElement>('[data-collision-jump]')
+        break
+      }
+    }
+  }
   const target =
-    root.querySelector<HTMLElement>(`[data-collision-jump="${mesh}"]`) ?? root.querySelector<HTMLElement>('[data-collision-toggle]') ?? root
+    root.querySelector<HTMLElement>(`[data-collision-jump="${back.mesh}"]`) ??
+    sibling ??
+    root.querySelector<HTMLElement>('[data-collision-toggle]') ??
+    root
   target.focus()
 }
 
@@ -284,7 +306,7 @@ function CollisionBody({ nc, open, initialReport = null }: BodyProps): JSX.Eleme
   const genRef = useRef(0)
   const ncRef = useRef(nc)
   const lastGroups = useRef<number | null>(initialReport === null ? null : initialReport.groups)
-  const focusMesh = useRef<number | null>(null)
+  const focusBack = useRef<FocusReturn | null>(null)
 
   const [shown, setShown] = useState<ShownReport | null>(() => (initialReport === null ? null : { naming, report: initialReport }))
   const [checking, setChecking] = useState(false)
@@ -351,11 +373,11 @@ function CollisionBody({ nc, open, initialReport = null }: BodyProps): JSX.Eleme
 
   // After an editor closed, focus returns to its jump button, once the answer for the naming it left behind is in.
   useEffect(() => {
-    const mesh = focusMesh.current
-    if (mesh === null || editing !== null) return
+    const back = focusBack.current
+    if (back === null || editing !== null) return
     if (shown === null || shown.naming !== naming) return
-    focusMesh.current = null
-    focusAfterEditor(rootRef.current, mesh)
+    focusBack.current = null
+    focusAfterEditor(rootRef.current, back)
   }, [focusTick, editing, shown, naming])
 
   function onToggle(): void {
@@ -377,8 +399,9 @@ function CollisionBody({ nc, open, initialReport = null }: BodyProps): JSX.Eleme
   }
 
   function onEditorDone(mesh: number): void {
+    const line = shown === null || shown.report === null ? undefined : shown.report.list.find(group => group.meshes.includes(mesh))
     setEditing(null)
-    focusMesh.current = mesh
+    focusBack.current = { mesh, name: line === undefined ? null : line.name }
     setFocusTick(tick => tick + 1)
   }
 
