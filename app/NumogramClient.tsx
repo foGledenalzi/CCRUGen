@@ -6,7 +6,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { Layout, Layer, Pos, HoverInfo, LabelVisibility } from './data/types'
 
 // Engine (base-generic layout plumbing, 04-11)
-import { createNameResolver, createNumogram, routePairGraph } from '../engine/index'
+import { createNameResolver, createNumogram, meshOf, routePairGraph } from '../engine/index'
 import type { Naming, Numogram, Packer, PairGraphLayout, RenderTier } from '../engine/index'
 
 // Lib
@@ -32,7 +32,9 @@ import type { WorkerBuilt, WorkerResponse } from './lib/worker/protocol'
 import { useNumogramWorker } from './lib/worker/useNumogramWorker'
 import { PENDING_GRACE_MS } from './lib/canvas/diagramModel'
 import { sessionAfterBaseSwitch } from './lib/baseSwitch'
-import { computeDesktopStack, DESKTOP_PANEL_LEFT_X, DESKTOP_PANEL_RIGHT_X, INFO_PANEL_WIDTH, INITIAL_INFO_X, PANEL_WIDTH } from './lib/panelStack'
+import {
+  computeDesktopStack, DESKTOP_PANEL_LEFT_X, DESKTOP_PANEL_RIGHT_X, INFO_PANEL_WIDTH, INITIAL_INFO_X, NAMES_PANEL_WIDTH, namesBodyMax, PANEL_WIDTH,
+} from './lib/panelStack'
 import {
   applyNamingAction, autosaveWanted, hasUncarriedEdits, keepPreview, linkFormOf, namesPanelState, restoreNaming, revertPreview,
   sessionForBase, snapshotNaming,
@@ -96,15 +98,19 @@ import { CyberPageHeader } from './components/ui/CyberPageHeader'
 import { NumogramViewContext } from './components/numogram/ViewContext'
 import type { NumogramViewContextValue } from './components/numogram/ViewContext'
 import { NamingContext, type NamingContextValue } from './components/names/NamingContext'
+import { NamesHeaderTag, NamesPanel } from './components/names/NamesPanel'
 
 /* ═══════════════════════════════════════════════════════════════
    THE NUMOGRAM — The Decimal Labyrinth (CCRU)
    ═══════════════════════════════════════════════════════════════ */
 
 const MOBILE_SELECTOR_BREAKPOINT = 820
-const PANEL_GROUP_ORDER = ['layers', 'labels', 'zones', 'regions', 'syz', 'currents', 'gates', 'text', 'info'] as const
+// `names` is first: the mobile stack lists the Names header at y 64 with no precondition (07-UI-SPEC "Mobile stack"); the desktop stack
+// takes its slot under Selection from computeDesktopStack and reads the same height reports.
+const PANEL_GROUP_ORDER = ['names', 'layers', 'labels', 'zones', 'regions', 'syz', 'currents', 'gates', 'text', 'info'] as const
 type PanelId = (typeof PANEL_GROUP_ORDER)[number]
 const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
+  names: 34,
   layers: 34,
   labels: 34,
   zones: 34,
@@ -223,8 +229,7 @@ export default function NumogramPage() {
   // set inside a state updater (React may run an updater lazily or twice).
   const sessionRef = useRef(namingSession)
   sessionRef.current = namingSession
-  // Whether the Names panel is open; the panel mount that reads and toggles it is plan 07-21 (a link preview opens it once, below).
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- namesOpen is read by the panel mount in plan 07-21
+  // Whether the Names panel is open (collapsed on first load at every width; a link preview opens it once, below). Not persisted.
   const [namesOpen, setNamesOpen] = useState(false)
   const [namesSaved, setNamesSaved] = useState<'none' | 'saved' | 'failed'>('none')
   const [namesAnnouncement, setNamesAnnouncement] = useState('')
@@ -1498,6 +1503,9 @@ export default function NumogramPage() {
   }, [selZones, layers, view])
 
   const onShareExplanation = useCallback(async () => {
+    // Honest sharing (D-13): a link cannot carry edited sounds or renamed demons, so pressing Share says so (the button's title says the
+    // same sentence; its label and the sharing itself are unchanged). `namingUncarried` and `announceNaming` are declared above.
+    if (namingUncarried) announceNaming(NAMES_COPY.shareTitleUncarried)
     const selectedIds = Array.from(selZones).sort((a, b) => a - b)
     const layerIds = Array.from(layers).sort()
     const defaultLayerIds = [...DEFAULT_LAYERS].sort()
@@ -1540,7 +1548,7 @@ export default function NumogramPage() {
     } catch {
       // User-cancelled share or unavailable clipboard permissions.
     }
-  }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, base, currentShareState])
+  }, [layout, selZones, layers, hlRegion, tcActive, particlesOn, planetDate, showOrbits, base, currentShareState, namingUncarried, announceNaming])
 
   const anyFocus = hlZones.size > 0
 
@@ -1627,6 +1635,17 @@ export default function NumogramPage() {
     () => (renderTier === 'svg' ? numogramText(g as Numogram, z => formatZoneLabel(z, base, labelScheme)) : (shownForBase?.text ?? '')),
     [renderTier, shownForBase, g, base, labelScheme],
   )
+
+  // The naming's sounds for the zone node labels (D-03): only in labels=sounds mode and only within the interactive ceiling (above it a
+  // naming has no sound table and the labels stay digits). Null in every other mode, so every diagram renders exactly as before.
+  const zoneSounds = labelScheme.mode === 'sounds' && base <= INTERACTIVE_MAX_N ? namingSession.working.sounds : null
+
+  // The Names panel's slot and body room: the same recipe on both stacks (on mobile the panel is first, so its y is always the stack's top).
+  const namesPos = isMobile ? mobilePanelPositions.names : panelPositions.names
+  const namesBodyRoom = namesBodyMax(namesPos.y, viewport.h)
+  // What the panel highlights for the pinned element: the pinned zone's row, or the pinned demon's row in the preview table.
+  const pinnedZone = pinnedInfo?.type === 'zone' ? pinnedInfo.zone : null
+  const pinnedDemonMesh = pinnedInfo?.type === 'demon' ? meshOf(pinnedInfo.demon.a, pinnedInfo.demon.b) : null
 
   // ── Render ─────────────────────────────────────────────────
   return (
@@ -1813,6 +1832,8 @@ export default function NumogramPage() {
                   particlesOn={particlesOn}
                   reducedMotion={reducedMotion}
                   focusChords={focusChords}
+                  zoneSounds={zoneSounds}
+                  labelPxPerUnit={zoneSounds !== null ? (DIAGRAM_CSS_WIDTH / svgWidth) * zoom : undefined}
                   onHoverInfo={onHoverInfo}
                   onPinInfo={onPinInfo}
                   onZoneNodeClick={onZoneNodeClick}
@@ -1827,6 +1848,7 @@ export default function NumogramPage() {
               scene={shownForBase.scene}
               view={view}
               zoneLabels={zoneLabels}
+              zoneSounds={zoneSounds}
               layers={layers}
               labelVisibility={labelVisibility}
               gateMode={zoneGateMode}
@@ -1895,6 +1917,7 @@ export default function NumogramPage() {
                 onCommitBase={commitBase}
                 labelScheme={labelScheme}
                 onLabelSchemeChange={setLabelScheme}
+                numeralsLayout={layout === 'pairGraph' || layout === 'planetary'}
                 packer={packer}
                 onPackerChange={onPackerChange}
                 packerVisible={layout === 'ring' || layout === 'pairGraph'}
@@ -1941,7 +1964,7 @@ export default function NumogramPage() {
                   opacity: 1,
                 }}
                 onClick={onShareExplanation}
-                title="Share current state"
+                title={namingUncarried ? NAMES_COPY.shareTitleUncarried : NAMES_COPY.shareTitle}
                 aria-label="Share current state"
               >
                 <ShareIcon clr={shareCopied ? '#10ff50' : '#6b7280'} />
@@ -2122,6 +2145,25 @@ export default function NumogramPage() {
             onHoverSelectedInfo={onHoverInfo}
           />
         </div>
+      </Panel>
+
+      {/* === Names Panel (Phase 7, D-01) ===
+          Mounted at EVERY tier and base (no hasDiagram guard): the naming state always exists, and the panel depends on the base only.
+          Directly under Selection on desktop, first in the mobile stack; collapsed on first load. Its height reaches both stacks through
+          onPanelHeight, and its body room keeps an open box above the zoom toolbar and the shortcuts button. */}
+      <Panel id="names" title="Names"
+        postBaseline
+        position={namesPos}
+        width={isMobile ? mobilePanelWidth : NAMES_PANEL_WIDTH}
+        zIndex={panelZ.names}
+        draggable={!isMobile}
+        collapseDirection="vertical"
+        maxBodyHeight={namesBodyRoom}
+        headerRight={<NamesHeaderTag />}
+        onHeightChange={onPanelHeight}
+        onActivate={activatePanel}
+        open={namesOpen} onToggle={() => setNamesOpen(o => !o)} onDragStart={startDrag}>
+        <NamesPanel open={namesOpen} bodyMax={namesBodyRoom} pinnedMesh={pinnedDemonMesh} pinnedZone={pinnedZone} />
       </Panel>
 
       {hasDiagram && (
