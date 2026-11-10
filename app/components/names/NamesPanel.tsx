@@ -10,20 +10,32 @@
 import React, { useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   JOIN_ORDERS,
+  NAMING_IMPORT_MAX_BYTES,
   SEED_MAX_LENGTH,
   STYLE_IDS,
   netSpanOf,
   normalizeSeed,
+  serializeNaming,
   smoothingInert,
+  validateNamingJson,
   type JoinOrder,
   type Naming,
+  type NamingImport,
+  type NamingPreset,
+  type SeedRecord,
   type StyleId,
 } from '../../../engine/index'
 import { netSpanLabel } from '../../lib/demonBrowser'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../../lib/labelScheme'
 import {
   NAMES_COPY,
+  exportSeedOnly,
+  exportSuccess,
   generated,
+  importError,
+  importSeedOnly,
+  importSuccess,
+  invalidEntries,
   joinStatus,
   noticeBody,
   pendingLine,
@@ -34,8 +46,11 @@ import {
   seedOnlySentence,
   smoothingStatus,
   summaryLine,
+  unknownKeysSuffix,
+  type ImportCopyContext,
 } from '../../lib/namingCopy'
 import { NAMES_PREVIEW_ROWS, NAMES_SCROLL_INSET_PX, REROLL_SEED_LENGTH } from '../../lib/namingLimits'
+import type { NamesPanelState } from '../../lib/namingSession'
 import { CyberButton } from '../ui/CyberButton'
 import { CyberCheckbox } from '../ui/CyberCheckbox'
 import { CyberRadio } from '../ui/CyberRadio'
@@ -88,6 +103,148 @@ export function previewMeshes(base: number, pinnedMesh: number | null, rows: num
     if (!out.includes(mesh)) out.push(mesh)
   }
   return out
+}
+
+// ----- export and import (NAM-03): one serializer, one validator, all or nothing -----
+
+/** The fixed name of the downloaded file: it carries only the base (no user text), so it can never be a path or a script. */
+export function exportFileName(base: number): string {
+  return `ccrug-names-base${base}.json`
+}
+
+/** The temporary anchor of a download; an HTMLAnchorElement satisfies it. */
+export interface AnchorLike {
+  href: string
+  download: string
+  click(): void
+  remove(): void
+}
+
+/** The browser machinery of a download, injected so the order of its steps can be tested without a DOM. */
+export interface DownloadEnv {
+  makeUrl(blob: Blob): string
+  revokeUrl(url: string): void
+  makeAnchor(): AnchorLike
+  /** Runs `fn` after the click has been handled (a timer in the browser). */
+  defer(fn: () => void): void
+}
+
+/** The real environment: an object URL, a hidden anchor appended to the body, and a zero-delay timer. Every member reads the browser lazily. */
+export function browserDownloadEnv(): DownloadEnv {
+  return {
+    makeUrl: blob => URL.createObjectURL(blob),
+    revokeUrl: url => URL.revokeObjectURL(url),
+    makeAnchor: () => {
+      const anchor = document.createElement('a')
+      anchor.rel = 'noopener'
+      anchor.style.display = 'none'
+      document.body.appendChild(anchor)
+      return anchor
+    },
+    defer: fn => {
+      window.setTimeout(fn, 0)
+    },
+  }
+}
+
+/** Downloads `text` as one JSON file through a Blob and a temporary anchor (no network); the object URL is revoked after the click. */
+export function downloadJson(text: string, fileName: string, env: DownloadEnv = browserDownloadEnv()): void {
+  const url = env.makeUrl(new Blob([text], { type: 'application/json' }))
+  const anchor = env.makeAnchor()
+  anchor.href = url
+  anchor.download = fileName
+  anchor.click()
+  anchor.remove()
+  env.defer(() => env.revokeUrl(url))
+}
+
+/**
+ * Exports the naming (pretty-printed, the form people read) under its fixed file name and returns the status sentence. Above the ceiling
+ * the naming has no table, so the file carries the seed, style, join order and smoothing flag only and the sentence says so.
+ */
+export function exportNaming(naming: Naming, base: number, env: DownloadEnv = browserDownloadEnv()): string {
+  downloadJson(serializeNaming(naming, { pretty: true }), exportFileName(base), env)
+  return naming.sounds === null ? exportSeedOnly(base) : exportSuccess(base)
+}
+
+/** Import changes the working naming, so it is offered only where editing is: not while previewing a link and not while a base is building. */
+export function importAllowed(state: NamesPanelState): boolean {
+  return state === 'ready' || state === 'seed-only'
+}
+
+/** What an import attempt shows: a success or an error sentence, and for a wrong-base file that carries one, the seed it could offer. */
+export interface ImportOutcome {
+  readonly kind: 'success' | 'error'
+  readonly text: string
+  readonly offerSeed: SeedRecord | null
+}
+
+/**
+ * The sentence for one validator result. A success counts the sounds and the renamed demons (a seed-only naming has its own line) and
+ * lists the keys this version ignored. A refusal that ends the read by itself, or a wrong base, gets its own sentence; anything else
+ * is a list of refused entries. Only a wrong-base refusal can offer a seed.
+ */
+export function importOutcome(result: NamingImport, ctx: ImportCopyContext): ImportOutcome {
+  if (result.ok) {
+    const { naming } = result
+    const line =
+      naming.sounds === null ? importSeedOnly(ctx.base) : importSuccess(ctx.base, naming.sounds.length, naming.overrides.size)
+    return { kind: 'success', text: line + unknownKeysSuffix(result.unknownKeys, result.unknownKeyCount), offerSeed: null }
+  }
+  const first = result.issues[0]
+  if (first !== undefined) {
+    switch (first.kind) {
+      case 'not-json':
+      case 'too-large':
+      case 'unknown-version':
+      case 'not-names-file':
+      case 'seed-only-base':
+        return { kind: 'error', text: importError(first, ctx), offerSeed: null }
+      case 'wrong-base':
+        return { kind: 'error', text: importError(first, ctx), offerSeed: result.offerSeed }
+      default:
+        break
+    }
+  }
+  return { kind: 'error', text: invalidEntries(result.issues, result.issueCount, ctx), offerSeed: null }
+}
+
+/** What the import reader needs of a chosen file: its size and its text (a File satisfies it). */
+export interface FileLike {
+  readonly size: number
+  text(): Promise<string>
+}
+
+/** What the import reader needs of the app: the base, the ceiling, the CCRU preset and the label helpers of the copy. */
+export interface ImportFileEnv {
+  readonly base: number
+  readonly interactiveMaxN: number
+  readonly preset: NamingPreset | null
+  readonly copy: ImportCopyContext
+}
+
+/** The naming to apply (null when the file was refused) and the sentence to show. */
+export interface ImportRead {
+  readonly naming: Naming | null
+  readonly outcome: ImportOutcome
+}
+
+const refused = (text: string): ImportRead => ({ naming: null, outcome: { kind: 'error', text, offerSeed: null } })
+
+/**
+ * Reads a chosen file as untrusted data (T-07-05b, T-07-04b): its size is checked before anything is read, its text goes through the
+ * one validator, and the result is all or nothing. Never throws; a file the browser cannot read is the `unreadable` refusal.
+ */
+export async function readImportFile(file: FileLike, env: ImportFileEnv): Promise<ImportRead> {
+  if (file.size > NAMING_IMPORT_MAX_BYTES) return refused(importError({ kind: 'too-large', maxBytes: NAMING_IMPORT_MAX_BYTES }))
+  let text: string
+  try {
+    text = await file.text()
+  } catch {
+    return refused(importError({ kind: 'unreadable' }))
+  }
+  const result = validateNamingJson(text, { base: env.base, interactiveMaxN: env.interactiveMaxN, preset: env.preset })
+  return { naming: result.ok ? result.naming : null, outcome: importOutcome(result, env.copy) }
 }
 
 // ----- the header tag -----
@@ -186,6 +343,64 @@ function RadioGroup<T extends string>(props: RadioGroupProps<T>): JSX.Element {
   )
 }
 
+export type StatusKind = 'success' | 'error' | 'info'
+
+/**
+ * What a shown status does when the naming revision changes. The render that first shows a status adopts the revision it shows (the
+ * action and its status are batched into that render); any later revision, from this panel or from anywhere else, clears it.
+ */
+export function statusFate(statusRev: number | null, rev: number): 'adopt' | 'keep' | 'clear' {
+  if (statusRev === null) return 'adopt'
+  return statusRev === rev ? 'keep' : 'clear'
+}
+
+/** The panel-local status line of block 10: the latest result, with the buttons that belong to it. */
+export interface NamesStatus {
+  readonly text: string
+  readonly kind: StatusKind
+  /** True for a replace-all result: the inline `Undo this change` button shows. */
+  readonly undo: boolean
+  /** A wrong-base file's seed record: the `Use its seed here` button shows. */
+  readonly offerSeed: SeedRecord | null
+}
+
+interface NamesStatusSlotProps {
+  readonly status: NamesStatus | null
+  readonly onUndo: () => void
+  readonly onUseSeed: (record: SeedRecord) => void
+}
+
+/** The status line (plain text, no role: the carrier announces), then `Use its seed here` and `Undo this change` each on their own line. */
+export function NamesStatusSlot({ status, onUndo, onUseSeed }: NamesStatusSlotProps): JSX.Element | null {
+  if (status === null) return null
+  const offer = status.offerSeed
+  return (
+    <div className="space-y-1">
+      <p
+        data-names-status=""
+        data-kind={status.kind}
+        className={status.kind === 'error' ? 'text-[10px] leading-[1.4] text-[#f87171]' : 'text-[10px] leading-[1.4] text-gray-300'}
+      >
+        {status.text}
+      </p>
+      {offer !== null && (
+        <div>
+          <CyberButton size="sm" className={TARGET} onClick={() => onUseSeed(offer)} dataAttrs={{ 'data-names-use-seed': '' }}>
+            {NAMES_COPY.useSeed}
+          </CyberButton>
+        </div>
+      )}
+      {status.undo && (
+        <div>
+          <CyberButton size="sm" className={TARGET} onClick={onUndo} dataAttrs={{ 'data-names-undo': '' }}>
+            {NAMES_COPY.undoChange}
+          </CyberButton>
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface NamesBodyProps {
   readonly nc: NamingContextValue
   readonly bodyMax: number
@@ -245,10 +460,26 @@ function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
     setFocusSeed(false)
   }, [focusSeed, state])
 
-  // ----- the carrier: every result is announced through the persistent sr-only status -----
-  function say(text: string): void {
+  // ----- the status slot of block 10 and the carrier -----
+  // One status line (plain text, no role) for the latest result; the same text goes through the persistent sr-only carrier. It stays
+  // until the next naming action, a base change (the body is keyed by base) or the panel collapsing (the body unmounts). `statusRev`
+  // is the naming revision the status was produced at: a later revision, from this panel or from anywhere else, clears it.
+  const [status, setStatus] = useState<NamesStatus | null>(null)
+  const [statusRev, setStatusRev] = useState<number | null>(null)
+  function say(text: string, kind: StatusKind, undo: boolean, offerSeed: SeedRecord | null = null): void {
+    setStatus({ text, kind, undo, offerSeed })
+    setStatusRev(null)
     ncRef.current.announce(text)
   }
+  useEffect(() => {
+    if (status === null) return
+    const fate = statusFate(statusRev, nc.rev)
+    if (fate === 'adopt') setStatusRev(nc.rev)
+    else if (fate === 'clear') {
+      setStatus(null)
+      setStatusRev(null)
+    }
+  }, [status, statusRev, nc.rev])
 
   // ----- handlers -----
   function commitSeed(): void {
@@ -263,7 +494,7 @@ function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
     setSeedProblem(false)
     setDirty(false)
     if (result.kind === 'commit' && current.apply({ type: 'seed', seed: result.seed })) {
-      say(generated(current.base, result.seed))
+      say(generated(current.base, result.seed), 'success', true)
     }
   }
 
@@ -300,41 +531,99 @@ function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
     setDirty(false)
     setSeedProblem(false)
     const locks = n.locks.size
-    say(n.sounds === null ? generated(base, seed) : rerolled(base - locks, locks))
+    say(n.sounds === null ? generated(base, seed) : rerolled(base - locks, locks), 'success', true)
   }
 
   function onSource(source: 'generated' | 'ccru'): void {
     if (!nc.apply({ type: 'source', source })) return
-    say(source === 'ccru' ? NAMES_COPY.loadedCcru : generated(base, n.seed))
+    say(source === 'ccru' ? NAMES_COPY.loadedCcru : generated(base, n.seed), 'success', true)
   }
 
   function onStyle(style: StyleId): void {
     if (!nc.apply({ type: 'style', style })) return
     const locks = n.locks.size
-    say(n.sounds === null ? generated(base, n.seed) : regenerated(base - locks, style, locks))
+    say(n.sounds === null ? generated(base, n.seed) : regenerated(base - locks, style, locks), 'success', true)
   }
 
   function onJoin(join: JoinOrder): void {
     if (!nc.apply({ type: 'join', join })) return
-    say(joinStatus(join))
+    say(joinStatus(join), 'info', false)
   }
 
   function onSmoothing(): void {
     const smoothing = n.smoothing === 1 ? 0 : 1
     if (!nc.apply({ type: 'smoothing', smoothing })) return
-    say(smoothingStatus(smoothing === 1))
+    say(smoothingStatus(smoothing === 1), 'info', false)
   }
 
   function onKeep(): void {
     nc.keep()
     setFocusSeed(true)
-    say(NAMES_COPY.kept)
+    say(NAMES_COPY.kept, 'success', true)
   }
 
   function onRevert(): void {
     nc.revert()
     setFocusSeed(true)
-    say(NAMES_COPY.backToSaved)
+    say(NAMES_COPY.backToSaved, 'info', false)
+  }
+
+  // ----- export and import (block 10) -----
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function onExport(): void {
+    say(exportNaming(n, base), 'success', false)
+  }
+
+  function importCopyContext(): ImportCopyContext {
+    return {
+      base,
+      zoneLabel,
+      netSpan: mesh => {
+        const [a, b] = netSpanOf(mesh)
+        return netSpanLabel(a, b, zoneLabel)
+      },
+    }
+  }
+
+  // The file is untrusted data: its size is checked first, its text goes through the one validator, nothing is half-applied.
+  async function importFile(file: File, input: HTMLInputElement): Promise<void> {
+    const start = ncRef.current
+    const copy = importCopyContext()
+    let read: ImportRead
+    try {
+      read = await readImportFile(file, { base: start.base, interactiveMaxN: start.interactiveMaxN, preset: start.preset, copy })
+    } finally {
+      input.value = ''
+    }
+    // the base or the state moved on while the file was being read (a base switch finished, a link opened a preview): drop it
+    const now = ncRef.current
+    if (now.base !== start.base || !importAllowed(now.state)) return
+    if (read.naming === null) {
+      say(read.outcome.text, 'error', false, read.outcome.offerSeed)
+      return
+    }
+    if (!now.apply({ type: 'import', naming: read.naming })) return
+    say(read.outcome.text, 'success', true)
+  }
+
+  function onFileChosen(e: React.ChangeEvent<HTMLInputElement>): void {
+    const input = e.currentTarget
+    const file = input.files?.[0]
+    if (file === undefined) return
+    void importFile(file, input)
+  }
+
+  function onUseSeed(record: SeedRecord): void {
+    if (!nc.apply({ type: 'use-seed', record })) return
+    say(generated(base, record.seed), 'success', true)
+  }
+
+  // The inline Undo is the app's own undo; the revision it restores clears the status.
+  function onUndo(): void {
+    nc.undo()
+    setStatus(null)
+    setStatusRev(null)
   }
 
   // ----- derived display data -----
@@ -589,7 +878,33 @@ function NamesBody({ nc, bodyMax, pinnedMesh }: NamesBodyProps): JSX.Element {
 
       {/* block 9: CollisionReport (plan 07-20) */}
 
-      {/* block 10: import and export (task 2) */}
+      {/* block 10: import and export, one status slot with the inline Undo */}
+      <div className="space-y-1">
+        <div className={BUTTON_ROW}>
+          <CyberButton size="sm" className={TARGET} onClick={onExport} dataAttrs={{ 'data-names-export': '' }}>
+            {NAMES_COPY.exportNames}
+          </CyberButton>
+          <CyberButton
+            size="sm"
+            className={TARGET}
+            disabled={!importAllowed(state)}
+            onClick={() => fileRef.current?.click()}
+            dataAttrs={{ 'data-names-import': '' }}
+          >
+            {NAMES_COPY.importNames}
+          </CyberButton>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            data-names-import-input=""
+            hidden
+            tabIndex={-1}
+            onChange={onFileChosen}
+          />
+        </div>
+        <NamesStatusSlot status={status} onUndo={onUndo} onUseSeed={onUseSeed} />
+      </div>
 
       {/* block 11: the autosave line */}
       <p

@@ -35,11 +35,13 @@ import {
   downloadJson,
   exportFileName,
   exportNaming,
+  importAllowed,
   importOutcome,
   previewMeshes,
   readImportFile,
   rerollSeed,
   seedCommitOf,
+  statusFate,
   type DownloadEnv,
   type NamesStatus,
 } from '../../app/components/names/NamesPanel'
@@ -1085,6 +1087,17 @@ describe('readImportFile', () => {
     expect(result.outcome.offerSeed).toEqual({ seed: 'kept', style: 'harsh', join: 'hi-lo', smoothing: 0 })
   })
 
+  it('a CCRU file is accepted only where the environment has the preset', async () => {
+    const text = serializeNaming(ccruNaming())
+    const at10 = { base: CCRU_BASE, interactiveMaxN: INTERACTIVE_MAX_N, preset: CCRU_NAMING_PRESET, copy: { ...copyCtx, base: CCRU_BASE } }
+    const accepted = await readImportFile(new File([text], 'x.json'), at10)
+    expect(accepted.outcome.kind).toBe('success')
+    expect(accepted.naming?.source).toBe('ccru')
+    const withoutPreset = await readImportFile(new File([text], 'x.json'), { ...at10, preset: null })
+    expect(withoutPreset.naming).toBeNull()
+    expect(withoutPreset.outcome.kind).toBe('error')
+  })
+
   it('reads text as data: a hostile key is refused, echoed as text, and escaped when shown', async () => {
     const hostile = new File(['{"schema":"' + SCHEMA_ID + '","base":28,"overrides":{"<img src=x onerror=alert(1)>":"x"}}'], 'x.json')
     const result = await readImportFile(hostile, env)
@@ -1179,6 +1192,30 @@ describe('downloadJson and exportNaming', () => {
     expect(doc.overrides).toBeUndefined()
     expect((doc.generator as { seed: string; style: string }).seed).toBe('big')
     expect((doc.generator as { seed: string; style: string }).style).toBe('syllabic')
+  })
+})
+
+describe('importAllowed', () => {
+  it('is true where the naming can be edited and false while previewing or building', () => {
+    expect(importAllowed('ready')).toBe(true)
+    expect(importAllowed('seed-only')).toBe(true)
+    expect(importAllowed('preview')).toBe(false)
+    expect(importAllowed('pending')).toBe(false)
+  })
+})
+
+describe('statusFate', () => {
+  it('the render that first shows a status adopts its revision', () => {
+    expect(statusFate(null, 7)).toBe('adopt')
+  })
+
+  it('the same revision keeps the status', () => {
+    expect(statusFate(7, 7)).toBe('keep')
+  })
+
+  it('any later revision, from this panel or from elsewhere, clears it', () => {
+    expect(statusFate(7, 8)).toBe('clear')
+    expect(statusFate(7, 6)).toBe('clear')
   })
 })
 
