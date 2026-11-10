@@ -441,11 +441,13 @@ export default function NumogramPage() {
   // Pitfall 7: the key never stringifies the naming (a table of thousands of sounds), only its revision number (historySnapshotKey).
   const snapshotKey = useCallback((snapshot: HistorySnapshot): string => historySnapshotKey(snapshot), [])
 
-  const applySnapshot = useCallback((snapshot: HistorySnapshot) => {
+  // Returns whether the snapshot was applied: false for a refused one, so onUndo and onRedo can leave the history exactly as it was
+  // (a refusal renders nothing, so nothing would ever clear the apply flag they set for the history effect).
+  const applySnapshot = useCallback((snapshot: HistorySnapshot): boolean => {
     // UI-08: a snapshot from a different base can never be restored (its zone/region ids don't exist at the current
     // base) — commitBase always clears both history stacks on a switch, so this is a defensive guard, not the
-    // primary mechanism.
-    if (snapshot.base !== base) return
+    // primary mechanism. (A `?base=` load does leave one such entry: the base-10 snapshot of its post-load render.)
+    if (snapshot.base !== base) return false
     // The naming returns with the rest of the state (NAM-03). Only a differing revision restores; the single changed zone (when
     // exactly one sound or lock differs) lets the zone list scroll to it.
     const currentNaming = snapshotNaming(sessionRef.current)
@@ -487,6 +489,7 @@ export default function NumogramPage() {
         setPlanetaryAngles(PLANETARY_DEFAULT_ANGLE)
       }
     }
+    return true
   }, [base, layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting, g, commitSession])
 
   // UI-08: everything base-shaped resets in a single batched call (React batches all these setters into one render with
@@ -1229,20 +1232,27 @@ export default function NumogramPage() {
     const target = undoStack[undoStack.length - 1]
     const remaining = undoStack.slice(0, -1)
     const current = historyCurrentRef.current
+    // The apply comes first. A refused snapshot (another base's: the post-load entry of a `?base=` load) only drops its dead entry: the
+    // flag, the current-snapshot ref and the Redo stack stay exactly as they were, because a refusal renders nothing and so nothing
+    // would ever clear a flag set for it (the next real edit was swallowed).
+    const applied = applySnapshot(target)
     setUndoStack(remaining)
+    if (!applied) return
     if (current) {
       setRedoStack(next => [current, ...next].slice(0, MAX_HISTORY_ENTRIES))
     }
     historyApplyingRef.current = true
     historyCurrentRef.current = target
-    applySnapshot(target)
   }, [undoStack, applySnapshot])
 
   const onRedo = useCallback(() => {
     if (redoStack.length === 0) return
     const [target, ...remaining] = redoStack
     const current = historyCurrentRef.current
+    // As in onUndo: a refused snapshot only drops its dead entry and leaves the flag, the ref and the Undo stack alone.
+    const applied = applySnapshot(target)
     setRedoStack(remaining)
+    if (!applied) return
     if (current) {
       setUndoStack(next => {
         const appended = [...next, current]
@@ -1253,7 +1263,6 @@ export default function NumogramPage() {
     }
     historyApplyingRef.current = true
     historyCurrentRef.current = target
-    applySnapshot(target)
   }, [redoStack, applySnapshot])
 
   // ── Naming session actions and the NamingContext value (Phase 7, D-03) ──

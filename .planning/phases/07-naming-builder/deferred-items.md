@@ -29,6 +29,15 @@ and the new position without the flag clear) that both fail those cases. Residua
   key-equality `return` (when the flag is set, set `historyCurrentRef.current = currentSnapshot`, clear the flag and return), then run
   `npm run test:swap`; if a frozen stage changes, stop and ask before touching it. Add an e2e case: edit, edit, Undo, edit, Undo
   returns to the first edit.
+- **Residual: RESOLVED 2026-11-10 inside plan 07-21 (extra task B; RED `5872c01`, fix in the commit that follows it).** `applySnapshot`
+  now returns whether it applied; `onUndo` and `onRedo` apply first and, for a refused snapshot, only drop that dead entry from the
+  stack it came from (as they always did): the flag, the current-snapshot ref and the other stack are left exactly as they were (a
+  refused Undo no longer puts the current state on the Redo stack, which used to leave Redo enabled with nothing to redo). The new
+  `e2e/names-session.spec.ts` case ("a refused Undo leaves the history alone...", `?base=28`: Undo refused, rename Aaa, rename Bbb, Undo
+  shows Aaa, Undo shows the engine's name, Redo walks forward again) failed on the old code and passes now; two mutants (a refused
+  Undo sets the flag and ref again; a refused Undo keeps its dead entry) both fail it. The frozen baseline (`initial`, `after-undo`,
+  `after-redo`, base 10, never a refusal) passed unchanged under `npm run test:swap`. The Redo refusal branch is the same code but
+  cannot be reached in the browser (a base switch clears both stacks), so it is covered by reading only. Original residual text:
 - **Residual (found while fixing, from reading the code; not exercised in a browser and not fixed, the task allowed no other change in
   `NumogramClient.tsx`):** an Undo or Redo that `applySnapshot` REFUSES (its defensive `snapshot.base !== base` guard: the post-load
   entry that a `?base=28` load leaves is a base-10 snapshot, 07-18 summary) still sets `historyApplyingRef` and puts the foreign snapshot
