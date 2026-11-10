@@ -2468,9 +2468,12 @@ describe('sounds label mode: zoneSounds on the Canvas tier', () => {
         expect(e.style.font).toBe(`bold ${full}px monospace`)
       }
     }
-    // the neighbours that do have a sound still paint it
+    // the neighbours that do have a sound still paint it, and every zone paints exactly one label (no empty text on top)
     expect((labelAt(rec.events, fx, 12) as Ev).args[0]).toBe(fitFor(fx, LONG).text)
     expect((labelAt(ov.events, fx, 12) as Ev).args[0]).toBe(fitFor(fx, LONG).text)
+    expect(ofType(rec.events, 'fillText')).toHaveLength(28)
+    expect(ofType(ov.events, 'fillText')).toHaveLength(3)
+    expect(ofType(rec.events, 'fillText').some(e => e.args[0] === '')).toBe(false)
   })
 
   it('a sound is painted as one plain text argument, never as markup', () => {

@@ -25,6 +25,7 @@ import { KIND_COLOR } from '../demonBrowser'
 import { curveAway } from '../geometry'
 import type { NumogramView } from '../numogramView'
 import { ZONE_DIMMED, ZONE_HIDDEN, ZONE_NORMAL } from '../regions'
+import { fitSoundLabel } from '../soundLabels'
 import { labelsShown } from '../tierBounds'
 import { formatXenotationForDisplay } from '../xenotation'
 import type { RingTarget } from './keyboardModel'
@@ -70,6 +71,13 @@ export interface DrawState {
   readonly scene: CanvasScene
   readonly view: NumogramView
   readonly zoneLabels: readonly string[]
+  /**
+   * The sounds label mode (Phase 7, plan 07-14): one sound per zone, painted in the zone's node label slot of BOTH zone-label
+   * passes (the static node pass and the highlight overlay) through the one shared fit, in place of the digits. Absent or
+   * null is the digits path, byte for byte. A zone whose entry is empty or missing keeps its digits label. Pair-graph pills,
+   * gate labels and the xenotation labels never read it.
+   */
+  readonly zoneSounds?: readonly string[] | null
   readonly transform: CanvasTransform
   readonly cssWidth: number
   readonly cssHeight: number
@@ -876,7 +884,23 @@ function drawZones(env: DrawEnv, st: DrawState, geo: Geo): void {
 
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  if (showNumber) {
+  const sounds = st.zoneSounds ?? null
+  if (showNumber && sounds !== null) {
+    // sounds mode: the font is per label (the fit shrinks or cuts a long sound); a zone with no sound keeps its digits label
+    for (const v of visible) {
+      const sound = sounds[v.z] ?? ''
+      ctx.fillStyle = `${v.color}${ZONE_LABEL_SUFFIX}`
+      ctx.globalAlpha = v.dim ? ZONE_DIMMED_ALPHA : 1
+      if (sound === '') {
+        ctx.font = `bold ${scene.labelSize * geo.s}px monospace`
+        ctx.fillText(st.zoneLabels[v.z] ?? '', v.cx, v.cy + LABEL_BASELINE_NUDGE * geo.s)
+        continue
+      }
+      const fit = fitSoundLabel(sound, geo.rPx, scene.labelSize * geo.s)
+      ctx.font = `bold ${fit.fontPx}px monospace`
+      ctx.fillText(fit.text, v.cx, v.cy + LABEL_BASELINE_NUDGE * geo.s)
+    }
+  } else if (showNumber) {
     ctx.font = `bold ${scene.labelSize * geo.s}px monospace`
     for (const v of visible) {
       ctx.fillStyle = `${v.color}${ZONE_LABEL_SUFFIX}`
@@ -1551,7 +1575,23 @@ function drawHighlightedNodes(env: DrawEnv, st: OverlayState, geo: Geo, full: bo
 
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  if (st.labelVisibility.numbers) {
+  const sounds = st.zoneSounds ?? null
+  if (st.labelVisibility.numbers && sounds !== null) {
+    // sounds mode: the same fit as the static node pass, so a highlighted label never ghosts over it
+    for (const e of entries) {
+      const sound = sounds[e.z] ?? ''
+      ctx.fillStyle = e.color
+      ctx.globalAlpha = e.dim ? ZONE_DIMMED_ALPHA : 1
+      if (sound === '') {
+        ctx.font = `bold ${scene.labelSize * geo.s}px monospace`
+        ctx.fillText(st.zoneLabels[e.z] ?? '', e.cx, e.cy + LABEL_BASELINE_NUDGE * geo.s)
+        continue
+      }
+      const fit = fitSoundLabel(sound, geo.rPx, scene.labelSize * geo.s)
+      ctx.font = `bold ${fit.fontPx}px monospace`
+      ctx.fillText(fit.text, e.cx, e.cy + LABEL_BASELINE_NUDGE * geo.s)
+    }
+  } else if (st.labelVisibility.numbers) {
     ctx.font = `bold ${scene.labelSize * geo.s}px monospace`
     for (const e of entries) {
       ctx.fillStyle = e.color
