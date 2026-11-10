@@ -3,6 +3,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import type { DemonRef } from '../../../engine/index'
+import { useNaming } from '../names/NamingContext'
 import { useNumogramView } from '../numogram/ViewContext'
 import { DemonFacets } from './DemonFacets'
 import { DemonRowList } from './DemonRowList'
@@ -27,13 +28,17 @@ export interface DemonBrowserProps {
 export function DemonBrowser(props: DemonBrowserProps): JSX.Element {
   const { filter, onFilterChange, selectedMesh, onHoverDemon, onSelectDemon } = props
   const { g } = useNumogramView()
+  const naming = useNaming()
 
   const [sort, setSort] = useState<DemonSort>(DEFAULT_DEMON_SORT)
   const [query, setQuery] = useState('')
   const [reveal, setReveal] = useState<{ index: number | null; nonce: number }>({ index: null, nonce: 0 })
 
   const source = useMemo(() => orderedSource(rowSourceFor(g, filter, sort.key), sort.direction), [g, filter, sort])
-  const outcome = useMemo(() => resolveDemonSearch(query, g, filter, sort), [query, g, filter, sort])
+  // Name search reads the live names (plan 07-15); a naming of another base (a base switch in flight) is never asked, so the
+  // search keeps its table-only behaviour until the naming of the displayed base arrives.
+  const nameOf = naming !== null && naming.base === g.base ? naming.resolver.nameOf : undefined
+  const outcome = useMemo(() => resolveDemonSearch(query, g, filter, sort, nameOf), [query, g, filter, sort, nameOf])
 
   // A fresh search hit reveals (scrolls to + marks) its row. Enter re-reveals the current hit via bumpReveal below.
   useEffect(() => {

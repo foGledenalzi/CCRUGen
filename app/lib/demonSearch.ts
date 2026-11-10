@@ -6,7 +6,7 @@ import { demonNameTable, filterContains, filterLabel, rankOf, type DemonFilter, 
 /** A pasted/typed query is clamped to this many characters before any regex or parse ever sees it (T-05-07). */
 export const SEARCH_MAX_LENGTH = 64
 
-/** Name-based search (base 10 only today) runs only when the demon count is at most this (T-05-10, ROADMAP Phase 5 note). */
+/** Name-based search runs only when the demon count is at most this (T-05-10, T-07-06c, ROADMAP Phase 5 note). */
 export const NAME_SEARCH_MAX_COUNT = 50_000
 
 export type DemonQuery =
@@ -26,7 +26,7 @@ const ZONE_LETTER_RE = /^[0-9a-z]{1,64}$/
 /** Dot-separated decimal digit groups (base > 36), matching engine/core/numerals.ts's own formatNumeral scheme. */
 const ZONE_DOTTED_RE = /^\d{1,16}(?:\.\d{1,16}){0,15}$/
 
-/** A base-10 name candidate: letters only, 1..32 of them (every CCRU name is well under this). */
+/** A name candidate: ASCII letters only, 1..32 of them (every CCRU name is well under this). */
 const NAME_RE = /^[a-z]{1,32}$/i
 
 // The largest base numerals.ts still writes with one character per digit (0-9a-z); above it, numerals are
@@ -65,13 +65,41 @@ export function parseZoneNumeral(text: string, base: number): number | null {
   return Number.isSafeInteger(value) && value < base ? value : null
 }
 
+/** The name of the demon on zones a and b as the visitor sees it (a NameResolver's method, plan 07-15). */
+export type DemonNameOf = (a: number, b: number) => string
+
+/**
+ * The name branch over live names (plan 07-15): exact (case-insensitive) match, else the lowest mesh whose name starts with the
+ * query, through `nameOf` for every mesh. Only runs within NAME_SEARCH_MAX_COUNT demons (T-07-06c, the Phase 5 cap), so the
+ * work is at most that many nameOf calls and nothing is materialized. A RangeError from nameOf (a naming that does not cover
+ * this numogram's zones) reads as no name search at all, like a base without a table; any other error is a bug and propagates.
+ */
+function parseLiveName(text: string, g: Numogram, nameOf: DemonNameOf): DemonQuery {
+  if (g.demons.count > NAME_SEARCH_MAX_COUNT) return { kind: 'syntax' }
+  const query = text.toLowerCase()
+  let prefixMesh: number | null = null
+  try {
+    for (let mesh = 0; mesh < g.demons.count; mesh++) {
+      const [a, b] = g.demons.netSpanOf(mesh)
+      const lower = nameOf(a, b).toLowerCase()
+      if (lower === query) return { kind: 'name', mesh }
+      if (prefixMesh === null && lower.startsWith(query)) prefixMesh = mesh
+    }
+  } catch (error) {
+    if (error instanceof RangeError) return { kind: 'syntax' }
+    throw error
+  }
+  return prefixMesh !== null ? { kind: 'name', mesh: prefixMesh } : { kind: 'not-found' }
+}
+
 /**
  * Parses a demon search query against g (T-05-08, T-05-09): a decimal mesh id, an a::b net-span in the numogram's own
- * base (either order), or (base 10 only, count <= NAME_SEARCH_MAX_COUNT, T-05-10) a CCRU name, exact or first prefix
- * match in mesh order. Every regex is anchored with bounded quantifiers over the <= 64-char clamped text (T-05-09), so
- * matching is linear; the name loop only ever runs over a table that exists (45 entries today). Never throws.
+ * base (either order), or (count <= NAME_SEARCH_MAX_COUNT, T-05-10) a name, exact or first prefix match in mesh order. The
+ * names are the live ones when `nameOf` is given (plan 07-15: the naming the visitor sees, at any base), else the CCRU
+ * table of base 10 only. Every regex is anchored with bounded quantifiers over the <= 64-char clamped text (T-05-09), so
+ * matching is linear; the name loop only ever runs within the count cap. Never throws (apart from a bug in `nameOf`).
  */
-export function parseDemonQuery(raw: string, g: Numogram): DemonQuery {
+export function parseDemonQuery(raw: string, g: Numogram, nameOf?: DemonNameOf): DemonQuery {
   const text = clampQuery(raw).trim()
   if (text === '') return { kind: 'empty' }
 
@@ -101,6 +129,7 @@ export function parseDemonQuery(raw: string, g: Numogram): DemonQuery {
   }
 
   if (NAME_RE.test(text)) {
+    if (nameOf !== undefined) return parseLiveName(text, g, nameOf)
     const table = demonNameTable(g.base)
     if (table === null || g.demons.count > NAME_SEARCH_MAX_COUNT) return { kind: 'syntax' }
     const query = text.toLowerCase()
@@ -150,8 +179,14 @@ function echoOf(raw: string): string {
  * dropped), else returns its rank via rankOf (non-null by construction, since filterContains already passed). Never
  * throws: every mesh/pair/name query has already been range-checked by parseDemonQuery.
  */
-export function resolveDemonSearch(raw: string, g: Numogram, filter: DemonFilter | null, sort: DemonSort): SearchOutcome {
-  const query = parseDemonQuery(raw, g)
+export function resolveDemonSearch(
+  raw: string,
+  g: Numogram,
+  filter: DemonFilter | null,
+  sort: DemonSort,
+  nameOf?: DemonNameOf,
+): SearchOutcome {
+  const query = parseDemonQuery(raw, g, nameOf)
   if (query.kind === 'empty') return { kind: 'empty' }
   const echo = echoOf(raw)
   if (query.kind === 'syntax') return { kind: 'syntax', echo }

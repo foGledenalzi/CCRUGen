@@ -360,6 +360,15 @@ describe('parseDemonQuery: live names', () => {
     expect(parseDemonQuery('qqqqqqqqqqqq', g28, generated28)).toEqual({ kind: 'not-found' })
   })
 
+  it('an exact name beats an earlier prefix match, and the lowest mesh wins among prefix matches', () => {
+    const longer = setOverride(generatedNaming(28), 3, 'Zorbit', null)
+    const both = nameOfOf(setOverride(longer, 9, 'Zorb', null))
+    expect(parseDemonQuery('zorb', g28, both)).toEqual({ kind: 'name', mesh: 9 }) // mesh 3 starts with it, mesh 9 equals it
+    expect(parseDemonQuery('zorbi', g28, both)).toEqual({ kind: 'name', mesh: 3 })
+    const twoPrefixes = nameOfOf(setOverride(setOverride(generatedNaming(28), 3, 'Zorbit', null), 9, 'Zorbal', null))
+    expect(parseDemonQuery('zorb', g28, twoPrefixes)).toEqual({ kind: 'name', mesh: 3 })
+  })
+
   it('an override is searchable and the name it replaced is not', () => {
     const [a, b] = g28.demons.netSpanOf(5)
     const before = generated28(a, b)
@@ -430,6 +439,13 @@ describe('resolveDemonSearch: live names', () => {
       kind: 'not-found',
       echo: 'qqqqqqqqqqqq',
     })
+  })
+
+  it('the browser passes the live resolver name of the displayed base into the search (source: the query box needs a user)', () => {
+    const source = readFileSync(fileURLToPath(new URL('../../app/components/demons/DemonBrowser.tsx', import.meta.url)), 'utf8')
+    expect(source.match(/resolveDemonSearch\(query, g, filter, sort, nameOf\)/g)).toHaveLength(1)
+    expect(source.match(/naming !== null && naming\.base === g\.base \? naming\.resolver\.nameOf : undefined/g)).toHaveLength(1)
+    expect(source.match(/useNaming\(\)/g)).toHaveLength(1)
   })
 
   it('base 10 under the preset naming still resolves the canonical name to its row', () => {
