@@ -92,6 +92,8 @@ export const NAMES_COPY = Object.freeze({
   // collisions
   collisionsNone: 'None. Every demon name is unique.',
   collisionsChecking: 'Checking...',
+  // what the live carrier says when the count of repeated names drops to none (the other count comes from collisionsAnnounceSome)
+  collisionsAnnounceNone: 'No repeated names.',
   previewJump: 'Keep this naming to rename demons.',
   // zone list
   zoneHeader: 'Zone',
@@ -188,6 +190,11 @@ export function summaryLine(locked: number, overridden: number): string {
 /** `{g} repeated names across {d} demons.` */
 export function collisionsSome(groups: number, demons: number): string {
   return `${plural(groups, 'repeated name', 'repeated names')} across ${plural(demons, 'demon', 'demons')}.`
+}
+
+/** `{g} repeated names.`: the live carrier's sentence when the count of repeated names changes to a non-zero number. */
+export function collisionsAnnounceSome(groups: number): string {
+  return `${plural(groups, 'repeated name', 'repeated names')}.`
 }
 
 /** `Not checked above {n} zones.` (the scan limit is data). */

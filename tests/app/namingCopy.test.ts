@@ -80,6 +80,7 @@ const EXPECTED_FIXED = {
   savedSeedOnly: 'Not saved in this browser at this size. The page link keeps the seed and style.',
   collisionsNone: 'None. Every demon name is unique.',
   collisionsChecking: 'Checking...',
+  collisionsAnnounceNone: 'No repeated names.',
   previewJump: 'Keep this naming to rename demons.',
   zoneHeader: 'Zone',
   soundHeader: 'Sound',
@@ -165,6 +166,8 @@ function sampleOutputs(): string[] {
     copy.summaryLine(3, 1),
     copy.collisionsSome(1, 2),
     copy.collisionsSome(2, 5),
+    copy.collisionsAnnounceSome(1),
+    copy.collisionsAnnounceSome(3),
     copy.collisionsNotChecked(1024),
     copy.showingNames(20, 41),
     copy.moreJumps(3),
@@ -229,7 +232,7 @@ describe('NAMES_COPY: the fixed strings of the Copywriting Contract', () => {
   it('has exactly the keys the later plans read, no more and no fewer', () => {
     const expectedKeys = [...Object.keys(EXPECTED_FIXED), ...Object.keys(EXPECTED_RECORDS)].sort()
     expect(Object.keys(NAMES_COPY).sort()).toEqual(expectedKeys)
-    expect(expectedKeys).toHaveLength(76)
+    expect(expectedKeys).toHaveLength(77)
   })
 
   it.each(Object.entries(EXPECTED_FIXED))('%s equals the UI-SPEC string', (key, text) => {
@@ -338,6 +341,8 @@ describe('counts and plurals', () => {
   it('collision lines', () => {
     expect(copy.collisionsSome(1, 2)).toBe('1 repeated name across 2 demons.')
     expect(copy.collisionsSome(2, 5)).toBe('2 repeated names across 5 demons.')
+    expect(copy.collisionsAnnounceSome(1)).toBe('1 repeated name.')
+    expect(copy.collisionsAnnounceSome(3)).toBe('3 repeated names.')
     expect(copy.collisionsNotChecked(1024)).toBe('Not checked above 1024 zones.')
     expect(copy.showingNames(20, 41)).toBe('Showing 20 of 41 names.')
     expect(copy.moreJumps(3)).toBe('+3 more')

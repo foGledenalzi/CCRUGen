@@ -22,7 +22,7 @@ import { PENDING_GRACE_MS } from '../../lib/canvas/diagramModel'
 import { browserSchedule, collisionPlan, runSlicedJob } from '../../lib/collisionSchedule'
 import { netSpanLabel } from '../../lib/demonBrowser'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../../lib/labelScheme'
-import { NAMES_COPY, collisionsNotChecked, collisionsSome, jumpAriaLabel, moreJumps, plural, showingNames } from '../../lib/namingCopy'
+import { NAMES_COPY, collisionsAnnounceSome, collisionsNotChecked, collisionsSome, jumpAriaLabel, moreJumps, showingNames } from '../../lib/namingCopy'
 import { COLLISION_JUMPS_SHOWN, COLLISION_LINES_STEP, COLLISION_SLICE_MS, collisionScanLimit } from '../../lib/namingLimits'
 import type { NamesPanelState } from '../../lib/namingSession'
 import { NumogramViewContext } from '../numogram/ViewContext'
@@ -87,7 +87,7 @@ export function jumpOutcome(state: NamesPanelState): JumpOutcome {
  */
 export function collisionAnnouncement(previous: number | null, groups: number): string | null {
   if (previous === null || previous === groups) return null
-  return groups === 0 ? 'No repeated names.' : `${plural(groups, 'repeated name', 'repeated names')}.`
+  return groups === 0 ? NAMES_COPY.collisionsAnnounceNone : collisionsAnnounceSome(groups)
 }
 
 // ----- presentation -----
