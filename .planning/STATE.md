@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-14-PLAN.md
-last_updated: "2026-11-10T16:20:00.000Z"
-last_activity: 2026-11-10 -- Completed 07-14 (Canvas sounds labels in both passes, sound-aware announcements, live chord callout names)
+stopped_at: Completed 07-15-PLAN.md
+last_updated: "2026-11-10T16:40:00.000Z"
+last_activity: 2026-11-10 -- Completed 07-15 (render-time names in the browser cell, matrix text, demon detail and pinned background, live-name search)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 88
+  completed_plans: 89
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 15 of 25 (07-01 to 07-14 complete; 07-15, render-time names in the browser cell, matrix text, demon detail and pinned background with live-name search, is next)
+Plan: 16 of 25 (07-01 to 07-15 complete; 07-16, the demon name editor with Selection and overlay mounts and hover-proof binding, is next)
 Status: Executing Phase 7
-Last activity: 2026-11-10 -- Completed 07-14 (Canvas sounds labels in both passes, sound-aware announcements, live chord callout names)
+Last activity: 2026-11-10 -- Completed 07-15 (render-time names in the browser cell, matrix text, demon detail and pinned background, live-name search)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 88
+- Total plans completed: 89
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -247,6 +247,7 @@ Recent decisions affecting current work:
 - [Phase 7 P12] Sounds label mode shipped on the SVG tier with its controls (NAM-01 groundwork, D-03, UI-SPEC decision 10; NAM-01 stays Pending: nothing passes the sounds to a diagram until 07-21 and the Canvas passes come in 07-14): app/lib/soundLabels.ts is the one pure fit rule (`fitSoundLabel(sound, rPx, fullPx)` and `isWideGrapheme`; 0.62 em per grapheme, 1.0 em for Han, Hiragana, Katakana, Hangul, Bopomofo and the fullwidth forms, budget `1.8 x R_px`, 6 px floor, longest whole-grapheme prefix plus U+2026, one grapheme without an ellipsis when fewer than two fit; the UI-SPEC worked example is reproduced); `Projection.tsx` gained optional `zoneSounds` and `labelPxPerUnit` and only off the planetary layout, with a table and a scale, the zone label shows the fitted sound (`data-sound-label`, `data-truncated` when cut, size `fontPx / scale`, or the layout `labelSize` itself when it fits) and the node is named `Zone {digits}, sound {sound}, {Region}`; a zone without a sound keeps its numeral and usual name; `LabelSchemeControls` has the Sounds radio between Xeno and Custom on a `flex-wrap` row with the sounds note (or the numerals note via the new `numeralsLayout` prop, forwarded by `BasePicker`); `LabelsPanel` reads `Sounds` and the sounds hover text only in sounds mode. Decisions: all copy from `NAMES_COPY` (so the plan's `label="Sounds"` grep counts 0, the rendered label is pinned by a test); a one-grapheme sound is never reported cut (the plan text says true); a NaN radius keeps one grapheme (a test found the first draft keeping the whole sound). `NumogramClient.tsx` is untouched, so picking Sounds currently sets the scheme and the note and the diagram still draws digits until 07-21. 49 new tests, 9 mutants killed (the plan's two plus 7 extras), `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 110 files and 3368 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `PairGraphProjection.tsx` or base-10 preset touched.
 - [Phase 7 P13] Per-base naming slot, pure naming session rules and the null-default NamingContext shipped (NAM-03 and NAM-01 groundwork, D-09, D-10, D-11, D-13; both stay Pending: nothing imports the three new modules until NumogramClient wires them in 07-18): app/lib/namingSession.ts has `defaultNamingFor` (the preset base is `env.preset.base`, the ceiling is `env.interactiveMaxN`, neither typed), `linkFormOf` (fields only, null for every default and for a ccru naming), `namingFromLink`, `sessionForBase(base, saved, link, env, nextRev)` (preview exactly when a slot exists and its canonical link form differs from the link's, else the slot or the link; a seed-only base ignores any slot and never previews; nothing edited at open), `applyNamingAction` (13 action types, refused with the SAME session object while previewing, for an invalid value, a dense-only action at a seed-only base, an import of another base or table shape, and an edit that changes nothing; otherwise `edited` and a new rev), `keepPreview`, `revertPreview`, `snapshotNaming` (the SAVED naming while previewing, so Keep is one undoable entry and Back none), `restoreNaming`, `hasUncarriedEdits`, `namesPanelState` and `autosaveWanted`. app/lib/namingStorage.ts guards the `window.localStorage` getter, `getItem` and `setItem`, reads through `validateNamingJson` (one validator, one call) and writes the compact export text under `ccrug.naming.v1.<base>`; every failure is no slot or `'failed'`; a seed-only naming is never read or written. app/components/names/NamingContext.tsx has `createContext<NamingContextValue | null>(null)` and `useNaming()` returning null outside a provider. Decisions: a no-op edit returns the same session (no history entry, no slot write); a paste is all-or-nothing over every token; 07-18 must take the history snapshot BEFORE `keepPreview`, pass `nextRev` to it, and memoise `hasUncarriedEdits`. 96 tests in two timezones, 55 mutants run (50 killed, 5 equivalent; one weak seed-only slot test found by a survivor and fixed), typecheck, check-repo, build and check:weight clean, test:swap not run (new files only, no importer), no frozen oracle, engine file, `NumogramClient.tsx`, `Projection.tsx` or base-10 preset touched.
 - [Phase 7 P14] Canvas sounds labels, sound-aware announcements and live chord callout names shipped (NAM-01 and NAM-02 groundwork, D-03; both stay Pending: nothing passes `zoneSounds` to `CanvasDiagram` until 07-21 and the `NamingContext` provider comes in 07-18): `DrawState.zoneSounds` (optional, inherited by `OverlayState`) and a sounds branch beside the old loop in BOTH zone-label passes of `app/lib/canvas/draw.ts`, each calling the shared `fitSoundLabel(sound, geo.rPx, scene.labelSize * geo.s)` per label with the font set per label, so the static pass and the highlight overlay agree (ghost test at fit and zoomed); without a table the digits loops are unchanged (the diff against the plan base removes only the two `if` headers), pair pills, gate labels and the xenotation passes never read it, level of detail and the numbers toggle gate both passes; a zone with an empty or missing sound keeps its digits label and wording (the plan's `?? ''` would paint empty text, the same fallback 07-12 chose for the SVG tier). `TargetText.zoneSounds` makes `zoneText` return the shared `zoneSoundAria` wording (full sound, selected suffix after it, edges and pairs keep numerals); `targetTextFor` takes `zoneSounds` as a sixth argument; `chordCalloutText(chord, zoneLabels, nameOf)` gives `a::b`, a middle dot and the LIVE name (the chord's own name without a naming and on a RangeError), and `CanvasDiagram` asks only a naming whose base equals the scene's. 35 new tests, 10 mutants killed (the plan's overlay-only fullPx mutant fails exactly the ghost test; one survivor of the fallback test was killed by a tighter test), `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 112 files and 3499 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `Projection.tsx`, `NumogramClient.tsx` or base-10 preset touched.
+- [Phase 7 P15] Render-time names in every display and live-name search shipped (NAM-02 and NAM-04 groundwork, D-03, D-08, Pitfall 6; both stay Pending: no `NamingContext` provider is mounted until 07-18, so the app still renders as before): the browser NAME cell, the matrix tooltip and keyboard text, both `DemonInfo` headings, the exported `selectedInfoMeta(info, ctx, naming)` title and `PinnedBackground` read the name from `useNaming()`'s resolver at render time, never from the name baked into `HoverInfo` by `legacyDemon` (which, with `demonName` and `demonNameTable`, is unchanged). An overridden name gets a sibling post-baseline span `*` with hidden text `, overridden` outside the truncating span; canonical and generated names carry no marker, so base-10 `Lurgo` and `Ummnu` stay exact. The matrix name is cut at `NAME_TOOLTIP_GRAPHEMES` (31 graphemes plus U+2026) by grapheme, not code unit. `parseDemonQuery` and `resolveDemonSearch` take an optional `nameOf` and read the live names within `NAME_SEARCH_MAX_COUNT` (exact beats an earlier prefix match; no table path change without it), so `Lurgo` stops matching once base 10 shows generated names. Decision beyond the plan: every display asks a naming only when `naming.base` equals the displayed base (a switch in flight must not call `nameOf` for a foreign zone), and a RangeError from `nameOf` in the search reads as no name search. Known limits: name search matches ASCII-letter queries only (`NAME_RE` unchanged), a rename re-reveals a found search row, the hover tooltip text is captured at pointer-move time. 39 new tests (26 render, 13 search), 24 mutants killed, `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 113 files and 3538 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `Projection.tsx`, `NumogramClient.tsx` or base-10 preset touched.
 
 ### Pending Todos
 
@@ -280,9 +281,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-10T16:20:00.000Z
-Stopped at: Completed 07-14-PLAN.md
-Resume file: .planning/phases/07-naming-builder/07-15-PLAN.md
+Last session: 2026-11-10T16:40:00.000Z
+Stopped at: Completed 07-15-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-16-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
