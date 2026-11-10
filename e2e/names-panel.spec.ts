@@ -12,7 +12,7 @@ import {
 import { REROLL_SEED_LENGTH, ZONE_PAGE_STEP } from '../app/lib/namingLimits'
 import { INTERACTIVE_MAX_N } from '../app/lib/tierBounds'
 import { CCRU_NAMING_PRESET } from '../app/presets/base10/naming'
-import { openFor, openViewer, panel } from './viewer-helpers'
+import { openFor, openHeadless, openViewer, panel } from './viewer-helpers'
 import { demonRow, demonsDialog, openDemons, searchDemons } from './demons-helpers'
 import {
   NAMING_ENV, closeDemons, defaultResolver, demonEditor, gotoZone, listMessage, lockButton, lockedOf, lockedZones, nameCell, nameRow,
@@ -644,7 +644,9 @@ test('at the interactive ceiling the list stays windowed, Go to zone reaches the
     const field = await gotoZone(page, label(zone, base), zone)
     await expect(field).toHaveValue(expected[zone] as string)
   }
-  await expect(nameRow(page, 0).or(nameRow(page, last))).toHaveCount(1)
+  // the last row is where the list was left, so the first one is out of the window
+  await expect(nameRow(page, last)).toHaveCount(1)
+  await expect(nameRow(page, 0)).toHaveCount(0)
   expect(await windowed()).toBeLessThan(80)
 
   expect(errors).toEqual([])
@@ -694,6 +696,27 @@ test('above the ceiling the panel is seed-only and the demon browser still shows
   expect(resolverOf(reseeded).nameOf(1, 0)).not.toBe(names0.nameOf(1, 0))
   await closeDemons(page)
 
+  expect(errors).toEqual([])
+})
+
+// A diagnostic tier override never changes what the panel can do: a base within the ceiling drawn headless is still ready, with the zone
+// list and full editing, and an edit there reaches the names the browser shows.
+test('a base within the ceiling shown headless is still ready with the zone list and editing (tier=headless)', async ({ page }) => {
+  const errors = trackErrors(page)
+  const before = defaultNaming(BASE)
+  const edited = editSound(before, 3, 'gl')
+  await openHeadless(page, `base=${BASE}&tier=headless`)
+  expect(await namesState(page)).toBe('ready')
+  await openNames(page)
+  await expect(page.locator('[data-names-list]')).toHaveCount(1)
+  await expect(nameRow(page, 0)).toHaveAttribute('aria-setsize', String(BASE))
+  await expect(soundField(page, 3)).toHaveValue(soundsOf(before)[3] as string)
+  await soundField(page, 3).fill('gl')
+  await soundField(page, 3).press('Enter')
+  await expect(nameRow(page, 3)).toHaveAttribute('data-locked', 'true')
+  await openDemons(page)
+  await expect(nameCell(page, meshOf(3, 0))).toHaveText(resolverOf(edited).nameOf(3, 0))
+  await closeDemons(page)
   expect(errors).toEqual([])
 })
 

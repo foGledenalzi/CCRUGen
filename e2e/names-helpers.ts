@@ -87,11 +87,19 @@ export async function settleFrames(page: Page): Promise<void> {
 }
 
 /**
- * Waits until every running CSS transition has finished. The panel opens with a 200 ms max-height transition during which its wrapper
- * (overflow-y: auto) can show a bar of its own, so any measurement of widths or boxes waits for this first.
+ * Waits until every running finite CSS transition or animation has finished (an endless one never would). The panel opens with a 200 ms
+ * max-height transition during which its wrapper (overflow-y: auto) can show a bar of its own, so any measurement of widths or boxes
+ * waits for this first.
  */
 export async function settleAnimations(page: Page): Promise<void> {
-  await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => undefined))).then(() => undefined))
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter(a => a.effect === null || a.effect.getComputedTiming().iterations !== Infinity)
+        .map(a => a.finished.catch(() => undefined)),
+    ).then(() => undefined),
+  )
 }
 
 /** Types a zone into the Go to zone field and presses Enter: the row scrolls to the top of the list and its sound field takes focus. */
