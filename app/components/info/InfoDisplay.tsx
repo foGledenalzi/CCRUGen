@@ -14,6 +14,7 @@ import { GlitchText } from '../ui/GlitchText'
 import { StatusDot } from '../ui/StatusDot'
 import { DataRow } from '../ui/DataRow'
 import { SectionFrame } from '../ui/SectionFrame'
+import { DemonNameEditor } from '../names/DemonNameEditor'
 import { useNaming, type NamingContextValue } from '../names/NamingContext'
 import { useNumogramView, type NumogramViewContextValue } from '../numogram/ViewContext'
 
@@ -297,7 +298,17 @@ function GateInfo({ data }: { data: HoverInfo & { type: 'gate' } }) {
 
 // ── Demon Info ─────────────────────────────────────────────────
 
-export function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
+export function DemonInfo({
+  data,
+  editorContext,
+  onEditingChange,
+}: {
+  data: HoverInfo & { type: 'demon' }
+  /** Mounts the demon name editor after the detail frame (plan 07-16). Absent, nothing is mounted and the markup is unchanged. */
+  editorContext?: 'selection' | 'overlay'
+  /** Told when the editor opens and closes (the Demons overlay keeps its detail pane on the demon being edited). */
+  onEditingChange?: (editing: boolean) => void
+}) {
   const d = data.demon
   const { base, g, view, zoneLabel } = useNumogramView()
   const naming = useNaming()
@@ -337,6 +348,7 @@ export function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
           <DataRow label="MESH" value={String(ref.mesh)} color={kindClr} />
           <DataRow label="TYPE" value={SUBTYPE_LABEL[ref.subtype]} color={kindClr} />
         </SectionFrame>
+        {editorContext && <DemonNameEditor a={ref.a} b={ref.b} context={editorContext} onEditingChange={onEditingChange} />}
       </div>
     )
   }
@@ -366,6 +378,7 @@ export function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
         <DataRow label="MESH" value={String(ref.mesh)} color={kindClr} />
         <DataRow label="TYPE" value={SUBTYPE_LABEL[ref.subtype]} color={kindClr} />
       </SectionFrame>
+      {editorContext && <DemonNameEditor a={ref.a} b={ref.b} context={editorContext} onEditingChange={onEditingChange} />}
     </div>
   )
 }
@@ -420,7 +433,7 @@ function renderInfoContent(info: HoverInfo) {
   if (info.type === 'syzygy') return <SyzygyInfo data={info as HoverInfo & { type: 'syzygy' }} />
   if (info.type === 'current') return <CurrentInfo data={info as HoverInfo & { type: 'current' }} />
   if (info.type === 'gate') return <GateInfo data={info as HoverInfo & { type: 'gate' }} />
-  return <DemonInfo data={info as HoverInfo & { type: 'demon' }} />
+  return <DemonInfo data={info as HoverInfo & { type: 'demon' }} editorContext="selection" />
 }
 
 function NumogramIntro() {

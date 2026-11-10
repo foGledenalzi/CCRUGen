@@ -1,7 +1,7 @@
 // Demons overlay (D-01): Browser / Focus / Matrix tabs with a shared detail pane. Original CCRUG code (MIT, NOTICE section 1).
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { DemonRef } from '../../../engine/index'
 import type { HoverInfo } from '../../data/types'
 import { useNumogramView } from '../numogram/ViewContext'
@@ -33,6 +33,20 @@ export interface DemonsOverlayProps {
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+
+type DemonHoverInfo = HoverInfo & { type: 'demon' }
+
+/**
+ * The demon the detail pane shows (07-UI-SPEC "The demon name editor", Binding). The pane normally follows hover, then the pinned
+ * demon; while a name editor is open it keeps the demon the editor was opened on and ignores hover, so the draft is never retargeted
+ * or unmounted as the pointer crosses other rows. Only demons count: a hovered or pinned item of another kind shows nothing.
+ */
+export function detailShown(hover: HoverInfo | null, pinned: HoverInfo | null, bound: HoverInfo | null): DemonHoverInfo | null {
+  if (bound?.type === 'demon') return bound
+  if (hover?.type === 'demon') return hover
+  if (pinned?.type === 'demon') return pinned
+  return null
+}
 
 export function DemonsOverlay({
   isMobile,
@@ -67,7 +81,15 @@ export function DemonsOverlay({
   }
 
   const selectedMesh = pinnedInfo?.type === 'demon' ? g.demons.meshOf(pinnedInfo.demon.a, pinnedInfo.demon.b) : null
-  const shown = hoverInfo?.type === 'demon' ? hoverInfo : pinnedInfo?.type === 'demon' ? pinnedInfo : null
+
+  // The demon a name editor is open on (plan 07-16). It is kept with its base: a base switch drops it, and a bound demon of another
+  // base is never handed to the detail pane (asking the numogram for a zone outside its base raises a RangeError).
+  const [bound, setBound] = useState<{ readonly base: number; readonly info: DemonHoverInfo } | null>(null)
+  const boundEdit = bound !== null && bound.base === base ? bound.info : null
+  const shown = detailShown(hoverInfo, pinnedInfo, boundEdit)
+  useEffect(() => {
+    setBound(null)
+  }, [base])
 
   // Focus management (T-05-30): on mount, remember the opener and move focus into the active tab; on unmount, clear
   // any stale hover (a row hovered at close would otherwise keep highlighting zones) and restore the opener's focus.
@@ -225,7 +247,11 @@ export function DemonsOverlay({
           >
             <div className="mb-2 text-[8px] uppercase tracking-[0.3em] text-gray-400">Detail</div>
             {shown ? (
-              <DemonInfo data={shown as HoverInfo & { type: 'demon' }} />
+              <DemonInfo
+                data={shown}
+                editorContext="overlay"
+                onEditingChange={editing => setBound(editing ? { base, info: shown } : null)}
+              />
             ) : (
               <p className="text-[10px] text-gray-500">Hover or click a demon to inspect it.</p>
             )}
