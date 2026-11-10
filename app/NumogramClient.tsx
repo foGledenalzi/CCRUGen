@@ -1190,13 +1190,16 @@ export default function NumogramPage() {
       historyCurrentRef.current = previousSnapshot
     }
 
-    if (snapshotKey(previousSnapshot) === snapshotKey(currentSnapshot)) return
-
+    // The render that carries an Undo or Redo: onUndo and onRedo set the flag and the ref to their target, then applied it. The flag is
+    // cleared here whether or not the state that arrived matches the target; checked after the key-equality return it was never
+    // cleared when it did match (the usual case), so the next real change of any kind was swallowed instead of pushed.
     if (historyApplyingRef.current) {
       historyApplyingRef.current = false
       historyCurrentRef.current = currentSnapshot
       return
     }
+
+    if (snapshotKey(previousSnapshot) === snapshotKey(currentSnapshot)) return
 
     if (orbiting) {
       historyCurrentRef.current = currentSnapshot
