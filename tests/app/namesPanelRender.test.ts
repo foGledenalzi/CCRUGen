@@ -9,7 +9,34 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// The zone list (plan 19) is windowed by @tanstack/react-virtual, which renders no rows in a server render (it has no scroll element to
+// measure). The real library is kept, with one injected starting rectangle, so a render shows the first window the real windowing
+// rule gives (not a fixed fake one), and every call's options are recorded for the tests that check what the list asks of it.
+interface VirtualCall {
+  readonly count: number
+  readonly overscan?: number
+  readonly estimateSize: (index: number) => number
+  readonly scrollMargin?: number
+  readonly scrollPaddingStart?: number
+  readonly getScrollElement: () => unknown
+}
+const { virtualCalls, WINDOW } = vi.hoisted(() => ({ virtualCalls: [] as VirtualCall[], WINDOW: { width: 206, height: 400 } }))
+vi.mock('@tanstack/react-virtual', async importOriginal => {
+  const actual = await importOriginal<typeof import('@tanstack/react-virtual')>()
+  return {
+    ...actual,
+    useVirtualizer: (options: Record<string, unknown>) => {
+      virtualCalls.push(options as unknown as VirtualCall)
+      return (actual.useVirtualizer as (o: Record<string, unknown>) => unknown)({
+        ...options,
+        initialRect: WINDOW,
+      })
+    },
+  }
+})
+
 import {
   DEFAULT_SEED,
   ISSUES_MAX,
@@ -19,11 +46,13 @@ import {
   UNKNOWN_KEYS_MAX,
   createNameResolver,
   createNaming,
+  editSound,
   meshOf,
   netSpanOf,
   normalizeSeed,
   serializeNaming,
   smoothingInert,
+  toggleLock,
   validateNamingJson,
   type Naming,
   type NamingImport,
@@ -46,6 +75,9 @@ import {
   type NamesStatus,
 } from '../../app/components/names/NamesPanel'
 import { NamingContext, type NamingContextValue } from '../../app/components/names/NamingContext'
+import { ZoneList, ZoneRowView, type ZoneRowHandlers } from '../../app/components/names/ZoneList'
+import { ShortcutsModal } from '../../app/components/numogram/ShortcutsModal'
+import { NumogramViewContext, type NumogramViewContextValue } from '../../app/components/numogram/ViewContext'
 import {
   NAMES_COPY,
   exportSeedOnly,
@@ -55,19 +87,31 @@ import {
   importSeedOnly,
   importSuccess,
   invalidEntries,
+  lockAria,
   noticeBody,
   pendingLine,
   savedLine,
   seedOnlySentence,
   summaryLine,
   unknownKeysSuffix,
+  zoneAria,
   type ImportCopyContext,
 } from '../../app/lib/namingCopy'
-import { NAMES_PREVIEW_ROWS, NAMES_SCROLL_INSET_PX, REROLL_SEED_LENGTH } from '../../app/lib/namingLimits'
+import {
+  NAMES_PREVIEW_ROWS,
+  NAMES_SCROLL_INSET_PX,
+  REROLL_SEED_LENGTH,
+  SOUND_FIELD_MAX_INPUT,
+  ZONE_LIST_OVERSCAN,
+  ZONE_ROW_HEIGHT_PX,
+} from '../../app/lib/namingLimits'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
+import { ZONE_HEADER_HEIGHT_PX } from '../../app/lib/zoneListModel'
 import { CCRU_NAMING_PRESET } from '../../app/presets/base10/naming'
 
 const PANEL_SOURCE = fileURLToPath(new URL('../../app/components/names/NamesPanel.tsx', import.meta.url))
+const ZONE_LIST_SOURCE = fileURLToPath(new URL('../../app/components/names/ZoneList.tsx', import.meta.url))
+const SHORTCUTS_SOURCE = fileURLToPath(new URL('../../app/components/numogram/ShortcutsModal.tsx', import.meta.url))
 const noop = (): undefined => undefined
 const CCRU_BASE = CCRU_NAMING_PRESET.base
 const OTHER_BASE = 28
@@ -1344,5 +1388,509 @@ describe('NamesPanel source: the file path', () => {
   it('clears the file input after every attempt and has no drop path', () => {
     expect(count("input.value = ''")).toBeGreaterThanOrEqual(1)
     expect(/onDrop|FileReader|dataTransfer/.test(source)).toBe(false)
+  })
+})
+
+// ══ Plan 19: the zone list (block 12), its row, its keyboard line ═══════════════════════════════════════════════════════════════════
+
+const noopHandlers: ZoneRowHandlers = { onFocus: noop, onChange: noop, onKeyDown: noop, onBlur: noop, onPaste: noop, onLock: noop }
+
+// Case-insensitive attribute readers: React writes some attribute names in camel case (maxLength, autoCapitalize) and some in lower case.
+function attrI(open: string, name: string): string | null {
+  const m = new RegExp(`\\s${name}="([^"]*)"`, 'i').exec(open)
+  return m === null ? null : m[1]
+}
+
+function flagI(open: string, name: string): boolean {
+  return new RegExp(`\\s${name}(?=[=\\s/>])`, 'i').test(open)
+}
+
+/** The row elements of a zone list markup, with the zone number each carries. */
+function rowsOf(markup: string): { zone: number; el: El }[] {
+  return findAll(markup, 'data-names-row').map(el => ({ zone: Number(attrOf(el.open, 'data-names-row')), el }))
+}
+
+function rowOf(markup: string, zone: number): El {
+  const hit = rowsOf(markup).find(r => r.zone === zone)
+  if (hit === undefined) throw new Error(`no row for zone ${zone}`)
+  return hit.el
+}
+
+const MARGIN = 300
+
+/** The list alone, with the scroller a marker object so the options the list hands the virtualizer can be told apart. */
+function renderList(value: NamingContextValue | null, over: Partial<{ scrollMargin: number; pinnedZone: number | null }> = {}): string {
+  const list = createElement(ZoneList, { scrollEl: () => null, scrollMargin: MARGIN, pinnedZone: null, ...over })
+  return renderToStaticMarkup(value === null ? list : createElement(NamingContext.Provider, { value }, list))
+}
+
+function topOf(row: El): number {
+  const hit = /top:\s*(-?[\d.]+)/.exec(attrOf(row.open, 'style') ?? '')
+  if (hit === null) throw new Error('row has no top')
+  return Number(hit[1])
+}
+
+describe('NamesPanel: the zone list as block 12', () => {
+  const naming = namingOf(OTHER_BASE)
+  const markup = render(valueFor(naming))
+
+  it('follows the autosave line: the go to field, both helper lines, the message slot, then the list', () => {
+    const lock = markup.indexOf(NAMES_COPY.listHelperLock)
+    const paste = markup.indexOf(NAMES_COPY.listHelperPaste)
+    expect(lock).toBeGreaterThan(-1)
+    expect(paste).toBeGreaterThan(-1)
+    const order = [
+      at(markup, 'data-names-saved'),
+      at(markup, 'data-names-goto'),
+      lock,
+      paste,
+      at(markup, 'data-names-list-message'),
+      at(markup, 'data-names-list'),
+    ]
+    expect([...order].sort((x, y) => x - y)).toEqual(order)
+    expect(new Set(order).size).toBe(order.length)
+  })
+
+  it('the helper lines are the copy module sentences, in the body style', () => {
+    expect(NAMES_COPY.listHelperLock).toBe('Editing a sound locks it. Locked zones keep their sound when you reroll or change the seed.')
+    expect(NAMES_COPY.listHelperPaste).toBe('Paste a list into a row to fill the rows below it.')
+    const p = findAll(markup, 'class').filter(el => el.tag === 'p' && textOf(el.inner) === NAMES_COPY.listHelperLock)
+    expect(p).toHaveLength(1)
+    expect(classOf(p[0].open)).toContain('text-gray-400')
+  })
+
+  it('the go to field is a quiet 14px terminal field named Go to zone with the zone number placeholder', () => {
+    const goto = need(markup, 'data-names-goto')
+    expect(goto.tag).toBe('input')
+    expect(attrOf(goto.open, 'aria-label')).toBe('Go to zone')
+    expect(attrOf(goto.open, 'aria-label')).toBe(NAMES_COPY.gotoAria)
+    expect(attrOf(goto.open, 'placeholder')).toBe('zone number')
+    expect(attrOf(goto.open, 'placeholder')).toBe(NAMES_COPY.gotoPlaceholder)
+    expect(attrI(goto.open, 'maxLength')).toBe('40')
+    expect(flagI(goto.open, 'readonly')).toBe(false)
+    expect(flagI(goto.open, 'disabled')).toBe(false)
+    expect(attrI(goto.open, 'autoComplete')).toBe('off')
+    expect(classOf(goto.open)).toContain('ui-terminal-input')
+    expect(classOf(goto.open)).toContain('text-[14px]')
+    const wrapper = new RegExp(`<span class="([^"]*)"><input[^>]*data-names-goto`).exec(markup)
+    expect(wrapper).not.toBeNull()
+    expect(wrapper?.[1].split(' ')).toEqual(expect.arrayContaining(['ui-terminal-field', 'ui-terminal-field--quiet']))
+  })
+
+  it('the message slot starts empty, in refusal red, with an id the fields can point at', () => {
+    const message = need(markup, 'data-names-list-message')
+    expect(textOf(message.inner)).toBe('')
+    expect(attrOf(message.open, 'id')).toMatch(/\S/)
+    expect(classOf(message.open)).toContain('text-[#f87171]')
+  })
+
+  it('the list is a labelled list with a sticky 24px header row named Zone, Sound and Lock', () => {
+    const list = need(markup, 'data-names-list')
+    expect(attrOf(list.open, 'role')).toBe('list')
+    expect(attrOf(list.open, 'aria-label')).toBe('Zone sounds')
+    const header = need(list.inner, 'data-names-list-header')
+    expect(classOf(header.open).split(' ')).toContain('sticky')
+    expect(classOf(header.open)).toContain('top-0')
+    expect(attrOf(header.open, 'style') ?? '').toContain(`height:${ZONE_HEADER_HEIGHT_PX}px`)
+    expect(ZONE_HEADER_HEIGHT_PX).toBe(24)
+    expect(attrOf(header.open, 'aria-hidden')).toBe('true')
+    const words = (header.inner.match(/<span[^>]*>([^<]*)<\/span>/g) ?? []).map(s => textOf(s))
+    expect(words).toEqual([NAMES_COPY.zoneHeader, NAMES_COPY.soundHeader, NAMES_COPY.lockHeader])
+    expect(words).toEqual(['Zone', 'Sound', 'Lock'])
+  })
+
+  it('every rendered row is a listitem placed in a position of the whole base, 28px tall', () => {
+    const rows = rowsOf(markup)
+    expect(rows.length).toBeGreaterThan(ZONE_LIST_OVERSCAN)
+    expect(rows.length).toBeLessThan(OTHER_BASE + 1)
+    rows.forEach(({ zone, el }, i) => {
+      expect(zone).toBe(i)
+      expect(attrOf(el.open, 'role')).toBe('listitem')
+      expect(attrOf(el.open, 'aria-posinset')).toBe(String(zone + 1))
+      expect(attrOf(el.open, 'aria-setsize')).toBe(String(OTHER_BASE))
+      expect(attrOf(el.open, 'style') ?? '').toContain(`height:${ZONE_ROW_HEIGHT_PX}px`)
+    })
+  })
+
+  it('is absent while a base builds and at a seed-only base (the pending line and the seed-only sentence stand there)', () => {
+    for (const markupOf of [
+      render(valueFor(naming, { state: 'pending', pendingBase: 30 })),
+      render(valueFor(namingOf(SEED_ONLY_BASE))),
+    ]) {
+      for (const attr of ['data-names-list', 'data-names-goto', 'data-names-list-message', 'data-names-row']) {
+        expect(find(markupOf, attr), attr).toBeNull()
+      }
+      expect(markupOf).not.toContain(NAMES_COPY.listHelperLock)
+    }
+  })
+
+  it('hands the pinned zone to the list', () => {
+    const pinned = render(valueFor(naming), { pinnedZone: 5 })
+    expect(attrOf(rowOf(pinned, 5).open, 'data-pinned')).toBe('true')
+    expect(attrOf(rowOf(pinned, 4).open, 'data-pinned')).toBeNull()
+    expect(rowsOf(markup).every(r => attrOf(r.el.open, 'data-pinned') === null)).toBe(true)
+  })
+})
+
+describe('ZoneList: windowing and the virtualizer it asks', () => {
+  it('asks for one row per zone, 28px each, overscan 8, under a margin that clears the sticky header, scrolling the panel scroller', () => {
+    const scroller = { marker: 'scroller' }
+    virtualCalls.length = 0
+    renderToStaticMarkup(
+      createElement(
+        NamingContext.Provider,
+        { value: valueFor(namingOf(OTHER_BASE)) },
+        createElement(ZoneList, { scrollEl: () => scroller as unknown as HTMLElement, scrollMargin: MARGIN, pinnedZone: null }),
+      ),
+    )
+    const call = virtualCalls[virtualCalls.length - 1]
+    expect(call.count).toBe(OTHER_BASE)
+    expect(call.estimateSize(0)).toBe(ZONE_ROW_HEIGHT_PX)
+    expect(ZONE_ROW_HEIGHT_PX).toBe(28)
+    expect(call.overscan).toBe(ZONE_LIST_OVERSCAN)
+    expect(ZONE_LIST_OVERSCAN).toBe(8)
+    expect(call.scrollMargin).toBe(MARGIN + ZONE_HEADER_HEIGHT_PX)
+    expect(call.scrollPaddingStart).toBe(ZONE_HEADER_HEIGHT_PX)
+    expect(call.getScrollElement()).toBe(scroller)
+  })
+
+  it('renders the first window of the real rule: the rows that start above the viewport bottom, plus the overscan', () => {
+    const rows = rowsOf(renderList(valueFor(namingOf(OTHER_BASE))))
+    const visible = Math.ceil((WINDOW.height - MARGIN - ZONE_HEADER_HEIGHT_PX) / ZONE_ROW_HEIGHT_PX)
+    expect(rows.map(r => r.zone)).toEqual(Array.from({ length: visible + ZONE_LIST_OVERSCAN }, (_, i) => i))
+  })
+
+  it('positions rows from the top of the spacer, one row height apart', () => {
+    const rows = rowsOf(renderList(valueFor(namingOf(OTHER_BASE))))
+    expect(rows.map(r => topOf(r.el))).toEqual(rows.map((_, i) => i * ZONE_ROW_HEIGHT_PX))
+  })
+
+  it('at the interactive ceiling mounts a few rows, each one of the whole base', () => {
+    const markup = renderList(valueFor(namingOf(INTERACTIVE_MAX_N)))
+    const rows = rowsOf(markup)
+    expect(rows.length).toBeGreaterThan(ZONE_LIST_OVERSCAN)
+    expect(rows.length).toBeLessThan(80)
+    for (const { el } of rows) expect(attrOf(el.open, 'aria-setsize')).toBe(String(INTERACTIVE_MAX_N))
+    expect(attrOf(need(markup, 'data-names-row').open, 'aria-posinset')).toBe('1')
+    // the spacer carries the whole list height, so the scroller is as tall as every row together
+    expect(markup).toContain(`height:${INTERACTIVE_MAX_N * ZONE_ROW_HEIGHT_PX}px`)
+  })
+
+  it('renders nothing without a naming provider, for a seed-only naming, and while previewing is the only read-only state', () => {
+    expect(renderList(null)).toBe('')
+    expect(renderList(valueFor(namingOf(SEED_ONLY_BASE)))).toBe('')
+    expect(renderList(valueFor(namingOf(OTHER_BASE), { state: 'pending' }))).toBe('')
+    expect(renderList(valueFor(namingOf(OTHER_BASE), { state: 'preview' }))).not.toBe('')
+  })
+})
+
+describe('ZoneList: a row', () => {
+  const naming = namingOf(OTHER_BASE)
+  const sounds = naming.sounds ?? []
+  const markup = renderList(valueFor(naming))
+  const row = rowOf(markup, 3)
+
+  it('is an unlocked listitem with its position, the label, the sound field and the lock in that order', () => {
+    expect(attrOf(row.open, 'data-names-row')).toBe('3')
+    expect(attrOf(row.open, 'data-locked')).toBe('false')
+    expect(attrOf(row.open, 'aria-posinset')).toBe('4')
+    expect(attrOf(row.open, 'aria-setsize')).toBe(String(OTHER_BASE))
+    expect(classOf(row.open)).toContain('hover:bg-white/[0.03]')
+    expect(row.inner.indexOf('3</span>')).toBeGreaterThan(-1)
+    const order = [row.inner.indexOf('3</span>'), row.inner.indexOf('data-names-sound'), row.inner.indexOf('data-names-lock')]
+    expect([...order].sort((x, y) => x - y)).toEqual(order)
+  })
+
+  it('shows the zone label the rest of the panel uses: the numeral of the base', () => {
+    expect(textOf(rowOf(markup, 12).inner)).toBe('c')
+    expect(attrOf(need(rowOf(markup, 12).inner, 'data-names-sound').open, 'aria-label')).toBe(zoneAria('c'))
+  })
+
+  it('has a sound field with the stored sound and the spelling attributes of a name field', () => {
+    const field = need(row.inner, 'data-names-sound')
+    expect(field.tag).toBe('input')
+    expect(attrOf(field.open, 'data-names-sound')).toBe('3')
+    expect(attrOf(field.open, 'aria-label')).toBe('Sound for zone 3')
+    expect(attrOf(field.open, 'aria-label')).toBe(zoneAria('3'))
+    expect(attrOf(field.open, 'value')).toBe(sounds[3])
+    expect(attrOf(field.open, 'dir')).toBe('auto')
+    expect(attrI(field.open, 'autoCapitalize')).toBe('none')
+    expect(attrI(field.open, 'autoCorrect')).toBe('off')
+    expect(attrI(field.open, 'spellCheck')).toBe('false')
+    expect(attrI(field.open, 'autoComplete')).toBe('off')
+    expect(attrI(field.open, 'maxLength')).toBe(String(SOUND_FIELD_MAX_INPUT))
+    expect(SOUND_FIELD_MAX_INPUT).toBe(64)
+    expect(flagI(field.open, 'readonly')).toBe(false)
+    expect(attrOf(field.open, 'aria-invalid')).toBeNull()
+    expect(attrOf(field.open, 'aria-describedby')).toBeNull()
+    const classes = classOf(field.open)
+    expect(classes).toContain('ui-terminal-input')
+    expect(classes).toContain('text-[14px]')
+    const wrapper = new RegExp(`<span class="([^"]*)"><input[^>]*data-names-sound="3"`).exec(row.inner)
+    expect(wrapper?.[1].split(' ')).toEqual(expect.arrayContaining(['ui-terminal-field', 'ui-terminal-field--quiet']))
+    expect(wrapper?.[1]).not.toContain('ui-terminal-field--invalid')
+  })
+
+  it('has a 24px lock toggle that is not pressed, with the constant label and the help title', () => {
+    const lock = need(row.inner, 'data-names-lock')
+    expect(lock.tag).toBe('button')
+    expect(attrOf(lock.open, 'type')).toBe('button')
+    expect(attrOf(lock.open, 'data-names-lock')).toBe('3')
+    expect(attrOf(lock.open, 'aria-pressed')).toBe('false')
+    expect(attrOf(lock.open, 'aria-label')).toBe('Lock sound for zone 3')
+    expect(attrOf(lock.open, 'aria-label')).toBe(lockAria('3'))
+    expect(attrOf(lock.open, 'title')).toBe(NAMES_COPY.lockTitle)
+    expect(flagI(lock.open, 'disabled')).toBe(false)
+    const classes = classOf(lock.open).split(' ')
+    expect(classes).toEqual(expect.arrayContaining(['h-6', 'w-6', 'min-h-[24px]', 'min-w-[24px]']))
+    // idle: the gray open padlock (shape and colour both say it)
+    expect(lock.inner).toContain('#6b7280')
+    expect(lock.inner).toContain('M8.5 11V6a3.5 3.5 0 0 1 7 0v1')
+    expect(attrOf(lock.open, 'style')).toBeNull()
+  })
+
+  it('a locked zone is a pressed toggle with a closed padlock, the accent tint and the inset underline', () => {
+    const locked = renderList(valueFor(toggleLock(naming, 5)))
+    const lockedRow = rowOf(locked, 5)
+    expect(attrOf(lockedRow.open, 'data-locked')).toBe('true')
+    const lock = need(lockedRow.inner, 'data-names-lock')
+    expect(attrOf(lock.open, 'aria-pressed')).toBe('true')
+    expect(attrOf(lock.open, 'aria-label')).toBe(lockAria('5'))
+    expect(attrOf(lock.open, 'style') ?? '').toContain('rgba(16,255,80,0.08)')
+    expect(attrOf(lock.open, 'style') ?? '').toContain('inset 0 -1px 0 rgba(16,255,80,0.4)')
+    expect(lock.inner).toContain('#10ff50')
+    expect(lock.inner).toContain('M8.5 11V8a3.5 3.5 0 0 1 7 0v3')
+    // the other rows stay unlocked
+    expect(attrOf(rowOf(locked, 4).open, 'data-locked')).toBe('false')
+  })
+
+  it('a typed sound shows its zone locked, because an edit locks (the engine does it, the list only shows it)', () => {
+    const typed = editSound(naming, 6, 'qwy')
+    const markup6 = renderList(valueFor(typed))
+    expect(attrOf(rowOf(markup6, 6).open, 'data-locked')).toBe('true')
+    expect(attrOf(need(rowOf(markup6, 6).inner, 'data-names-sound').open, 'value')).toBe('qwy')
+  })
+
+  it('the pinned zone carries the Phase 5 accent row token and no hover background', () => {
+    const pinned = renderList(valueFor(naming), { pinnedZone: 3 })
+    const pinnedRow = rowOf(pinned, 3)
+    expect(attrOf(pinnedRow.open, 'data-pinned')).toBe('true')
+    expect(attrOf(pinnedRow.open, 'style') ?? '').toContain('background:rgba(16,255,80,0.08)')
+    expect(attrOf(pinnedRow.open, 'style') ?? '').toContain('inset 0 -1px 0 rgba(16,255,80,0.4)')
+    expect(attrOf(rowOf(pinned, 2).open, 'style') ?? '').not.toContain('rgba(16,255,80,0.08)')
+    expect(attrOf(rowOf(pinned, 2).open, 'data-pinned')).toBeNull()
+  })
+
+  it('has one Tab stop in the whole list: the first row until another one is active', () => {
+    const fields = findAll(markup, 'data-names-sound')
+    const locks = findAll(markup, 'data-names-lock')
+    expect(fields.length).toBeGreaterThan(1)
+    expect(fields.filter(f => attrI(f.open, 'tabIndex') === '0')).toHaveLength(1)
+    expect(locks.filter(l => attrI(l.open, 'tabIndex') === '0')).toHaveLength(1)
+    expect(attrI(fields[0].open, 'tabIndex')).toBe('0')
+    expect(attrI(locks[0].open, 'tabIndex')).toBe('0')
+    for (const el of [...fields.slice(1), ...locks.slice(1)]) expect(attrI(el.open, 'tabIndex')).toBe('-1')
+  })
+
+  it('shows the labels of the view when there is one for this base, and the numerals otherwise', () => {
+    const viewFor = (base: number): NumogramViewContextValue =>
+      ({ base, zoneLabel: (zone: number) => `S${zone}` }) as unknown as NumogramViewContextValue
+    const within = (view: NumogramViewContextValue): string =>
+      renderToStaticMarkup(
+        createElement(
+          NumogramViewContext.Provider,
+          { value: view },
+          createElement(
+            NamingContext.Provider,
+            { value: valueFor(naming) },
+            createElement(ZoneList, { scrollEl: () => null, scrollMargin: MARGIN, pinnedZone: null }),
+          ),
+        ),
+      )
+    const own = within(viewFor(OTHER_BASE))
+    expect(attrOf(need(rowOf(own, 3).inner, 'data-names-sound').open, 'aria-label')).toBe(zoneAria('S3'))
+    expect(attrOf(need(rowOf(own, 3).inner, 'data-names-lock').open, 'aria-label')).toBe(lockAria('S3'))
+    expect(textOf(rowOf(own, 3).inner)).toBe('S3')
+    // a view of another base (a switch in flight) is never asked for this base's zones
+    const other = within(viewFor(OTHER_BASE + 2))
+    expect(attrOf(need(rowOf(other, 12).inner, 'data-names-sound').open, 'aria-label')).toBe(zoneAria('c'))
+  })
+
+  it('writes a hostile stored sound as an escaped attribute value, never as markup', () => {
+    const hostile = '<img src=x onerror=alert(1)>"\''
+    const sounds2 = (naming.sounds ?? []).slice()
+    sounds2[3] = hostile
+    const out = renderList(valueFor({ ...naming, sounds: sounds2 }))
+    expect(out).not.toContain('<img')
+    expect(out).not.toContain('onerror=alert(1)>"')
+    expect(attrOf(need(rowOf(out, 3).inner, 'data-names-sound').open, 'value')).toContain('&lt;img')
+  })
+})
+
+describe('ZoneList: preview is read only', () => {
+  const markup = renderList(valueFor(namingOf(OTHER_BASE), { state: 'preview' }))
+
+  it('makes every sound field read only and every lock disabled', () => {
+    const fields = findAll(markup, 'data-names-sound')
+    const locks = findAll(markup, 'data-names-lock')
+    expect(fields.length).toBeGreaterThan(1)
+    expect(locks).toHaveLength(fields.length)
+    for (const f of fields) expect(flagI(f.open, 'readonly')).toBe(true)
+    for (const l of locks) expect(flagI(l.open, 'disabled')).toBe(true)
+  })
+
+  it('still offers Go to zone, and shows the list', () => {
+    const goto = need(markup, 'data-names-goto')
+    expect(flagI(goto.open, 'readonly')).toBe(false)
+    expect(flagI(goto.open, 'disabled')).toBe(false)
+    expect(find(markup, 'data-names-list')).not.toBeNull()
+  })
+
+  it('is the same inside the whole panel in the preview state', () => {
+    const panel = render(valueFor(namingOf(OTHER_BASE), { state: 'preview', saved: 'preview' }))
+    for (const f of findAll(panel, 'data-names-sound')) expect(flagI(f.open, 'readonly')).toBe(true)
+    for (const l of findAll(panel, 'data-names-lock')) expect(flagI(l.open, 'disabled')).toBe(true)
+  })
+
+  it('an editable list has no read only field and no disabled lock', () => {
+    const ready = renderList(valueFor(namingOf(OTHER_BASE)))
+    for (const f of findAll(ready, 'data-names-sound')) expect(flagI(f.open, 'readonly')).toBe(false)
+    for (const l of findAll(ready, 'data-names-lock')) expect(flagI(l.open, 'disabled')).toBe(false)
+  })
+})
+
+describe('ZoneRowView: the presentational row', () => {
+  const base = {
+    zone: 7,
+    base: OTHER_BASE,
+    label: '7',
+    value: 'abc',
+    locked: false,
+    pinned: false,
+    invalid: false,
+    describedBy: undefined as string | undefined,
+    readOnly: false,
+    tabStop: true,
+    top: 56,
+    handlers: noopHandlers,
+  }
+  const html = (over: Partial<typeof base>): string => renderToStaticMarkup(createElement(ZoneRowView, { ...base, ...over }))
+
+  it('an invalid draft gets the red underline class, aria-invalid and the description pointer', () => {
+    const out = html({ invalid: true, describedBy: 'list-message-1' })
+    const field = need(out, 'data-names-sound')
+    expect(attrOf(field.open, 'aria-invalid')).toBe('true')
+    expect(attrOf(field.open, 'aria-describedby')).toBe('list-message-1')
+    expect(out).toMatch(/<span class="[^"]*ui-terminal-field--invalid[^"]*"><input/)
+    expect(out).toMatch(/<span class="[^"]*ui-terminal-field--quiet[^"]*"><input/)
+  })
+
+  it('a valid row has none of those', () => {
+    const out = html({})
+    const field = need(out, 'data-names-sound')
+    expect(attrOf(field.open, 'aria-invalid')).toBeNull()
+    expect(attrOf(field.open, 'aria-describedby')).toBeNull()
+    expect(out).not.toContain('ui-terminal-field--invalid')
+  })
+
+  it('shows the value it is given (the draft while one exists) and places the row at its offset', () => {
+    const out = html({ value: 'draft', top: 84 })
+    expect(attrOf(need(out, 'data-names-sound').open, 'value')).toBe('draft')
+    expect(topOf(need(out, 'data-names-row'))).toBe(84)
+  })
+
+  it('only the tab stop row has its controls in the Tab order', () => {
+    const stop = html({ tabStop: true })
+    const off = html({ tabStop: false })
+    expect(attrI(need(stop, 'data-names-sound').open, 'tabIndex')).toBe('0')
+    expect(attrI(need(stop, 'data-names-lock').open, 'tabIndex')).toBe('0')
+    expect(attrI(need(off, 'data-names-sound').open, 'tabIndex')).toBe('-1')
+    expect(attrI(need(off, 'data-names-lock').open, 'tabIndex')).toBe('-1')
+  })
+
+  it('a read only row has a read only field and a disabled lock, and says so to a screen reader', () => {
+    const out = html({ readOnly: true })
+    expect(flagI(need(out, 'data-names-sound').open, 'readonly')).toBe(true)
+    expect(flagI(need(out, 'data-names-lock').open, 'disabled')).toBe(true)
+  })
+})
+
+describe('ZoneList and NamesPanel source', () => {
+  const list = readFileSync(ZONE_LIST_SOURCE, 'utf8')
+  const panel = readFileSync(PANEL_SOURCE, 'utf8')
+  const count = (source: string, needle: string): number => source.split(needle).length - 1
+  const lines = (source: string, needle: string): number => source.split('\n').filter(l => l.includes(needle)).length
+
+  it('windows with one virtualizer call, takes the field cap from data and uses no smooth scrolling', () => {
+    expect(lines(list, 'useVirtualizer')).toBe(1)
+    expect(lines(list, 'maxLength={SOUND_FIELD_MAX_INPUT}')).toBe(1)
+    expect(count(list, "behavior: 'smooth'")).toBe(0)
+    expect(/smooth/i.test(list)).toBe(false)
+  })
+
+  it('applies edits only through the naming context actions, one action per user step', () => {
+    expect(count(list, "type: 'sound'")).toBe(1)
+    expect(count(list, "type: 'paste'")).toBe(1)
+    expect(count(list, "type: 'lock'")).toBe(1)
+    expect(list).toContain('data-names-lock')
+    expect(list).toContain('aria-setsize')
+  })
+
+  it('treats typed and pasted text as data: no raw html path, no eval, no typed ceiling', () => {
+    expect(list).not.toContain('dangerouslySetInnerHTML')
+    expect(list).not.toContain('innerHTML')
+    expect(/\beval\s*\(|new Function\s*\(/.test(list)).toBe(false)
+    expect(/\b4000\b|\b4002\b/.test(list)).toBe(false)
+  })
+
+  it('is mounted once by the panel, with the panel scroller, the measured controls height and the pinned zone', () => {
+    expect(lines(panel, '<ZoneList')).toBe(1)
+    expect(panel).toContain('scrollMargin={controlsHeight}')
+    expect(panel).toContain('pinnedZone={pinnedZone}')
+    expect(panel).toContain('scrollRef.current')
+    expect(/\b4000\b|\b4002\b/.test(panel)).toBe(false)
+  })
+})
+
+describe('ShortcutsModal: the Names panel line', () => {
+  const view = { svgRichMaxN: 200 } as unknown as NumogramViewContextValue
+  const open = renderToStaticMarkup(
+    createElement(NumogramViewContext.Provider, { value: view }, createElement(ShortcutsModal, { open: true, onClose: noop })),
+  )
+  const closed = renderToStaticMarkup(
+    createElement(NumogramViewContext.Provider, { value: view }, createElement(ShortcutsModal, { open: false, onClose: noop })),
+  )
+  const LINE = `<div class="text-gray-400">${NAMES_COPY.shortcutLine}</div>`
+  // the markup of the modal before this plan, captured from the unmodified component (svgRichMaxN 200)
+  const BEFORE =
+    '<div class="fixed inset-0 z-[84] flex items-center justify-center px-4"><button class="absolute inset-0" style="background:rgba(0,0,0,0.62)" aria-label="Close shortcuts"></button><div class="relative w-full max-w-[540px] px-4 py-4 font-mono" style="border:1px solid rgba(255,255,255,0.12);background:rgba(8,8,15,0.97)"><div class="flex items-center justify-between pb-2" style="border-bottom:1px solid rgba(255,255,255,0.08)"><span class="text-[10px] tracking-[0.22em] uppercase" style="color:#10ff50">Shortcuts</span><button class="text-[8px] uppercase tracking-[0.14em] px-2 py-1" style="color:#6b7280;border:1px solid rgba(107,114,128,0.35)">close</button></div><div class="pt-3 grid gap-1.5 text-[10px]" style="color:#9ca3af"><div><span style="color:#10ff50">Mouse:</span> click+drag select, alt+drag pan, scroll zoom</div><div><span style="color:#10ff50">Layout:</span> A original, S labyrinth, D ladder, F planetary</div><div><span style="color:#10ff50">Planetary:</span> Z orbit, X today, C reset, V orbits</div><div><span style="color:#10ff50">Selection:</span> digits 0-9 toggle corresponding gate, Esc clears selection</div><div><span style="color:#10ff50">History:</span> Cmd/Ctrl+Z undo, Shift+Cmd/Ctrl+Z redo, Ctrl+Y redo</div><div><span style="color:#10ff50">Overlay:</span> Shift+/ toggles this shortcuts panel</div><div data-post-baseline="" class="grid gap-1.5"><div><span style="color:#10ff50">Diagram:</span> Up to 200 zones: Tab moves into the diagram, arrow keys step through zones, syzygies, currents and gates, Home/End jump, Enter or Space selects</div><div class="text-gray-400">Above 200 zones: arrow keys step between zones, Tab steps through a zone&#x27;s syzygy, current and gate, Page Up and Page Down jump 10 zones, Enter or Space selects. Touch: drag pans, pinch zooms, tap selects.</div><div><span style="color:#10ff50">Gate keys:</span> digits 0-9 work at base 10 only</div></div></div></div></div>'
+
+  it('the line is the copy module sentence', () => {
+    expect(NAMES_COPY.shortcutLine).toBe(
+      'Names panel: in the zone list, Up and Down move between rows, Page Up and Page Down jump 10 rows, Enter saves a sound, Escape reverts it. Editing a sound locks its zone.',
+    )
+  })
+
+  it('adds exactly that one line, last, inside the existing post-baseline block, and changes nothing else', () => {
+    expect(open.split(NAMES_COPY.shortcutLine)).toHaveLength(2)
+    const tail = 'base 10 only</div></div></div></div></div>'
+    expect(BEFORE.split(tail)).toHaveLength(2)
+    expect(open).toBe(BEFORE.replace(tail, () => `base 10 only</div>${LINE}</div></div></div></div>`))
+  })
+
+  it('has no accent lead-in and sits inside the data-post-baseline subtree', () => {
+    const block = need(open, 'data-post-baseline')
+    expect(block.inner).toContain(LINE)
+    expect(LINE).not.toContain('<span')
+  })
+
+  it('renders nothing while closed', () => {
+    expect(closed).toBe('')
+  })
+
+  it('takes the line from the copy module in the component source', () => {
+    const source = readFileSync(SHORTCUTS_SOURCE, 'utf8')
+    expect(source).toContain('{NAMES_COPY.shortcutLine}')
+    expect(source.split('NAMES_COPY.shortcutLine')).toHaveLength(2)
   })
 })
