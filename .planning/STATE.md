@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-11-PLAN.md
-last_updated: "2026-11-09T23:45:00.000Z"
-last_activity: 2026-11-09 -- Completed 07-11 (CCRU preset by reference, naming limits, single Names copy module)
+stopped_at: Completed 07-12-PLAN.md
+last_updated: "2026-11-10T16:00:00.000Z"
+last_activity: 2026-11-10 -- Completed 07-12 (sound-label fit rule, SVG sounds label slot, Sounds radio, Labels panel wording)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 85
+  completed_plans: 86
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 12 of 25 (07-01 to 07-11 complete; 07-12, the shared sound-label fit, the SVG sounds label slot, the Sounds radio and the Labels panel wording, is next)
+Plan: 13 of 25 (07-01 to 07-12 complete; 07-13, the per-base localStorage slot, the naming session and NamingContext, is next)
 Status: Executing Phase 7
-Last activity: 2026-11-09 -- Completed 07-11 (CCRU preset by reference, naming limits, single Names copy module)
+Last activity: 2026-11-10 -- Completed 07-12 (sound-label fit rule, SVG sounds label slot, Sounds radio, Labels panel wording)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 85
+- Total plans completed: 86
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -244,6 +244,7 @@ Recent decisions affecting current work:
 - [Phase 7 P09] URL naming link and `labels=sounds` shipped through the single codec (NAM-03 and NAM-01 groundwork, D-03, D-13; both stay Pending: nothing writes `names=` or offers the Sounds option until 07-12, 07-18 and 07-21): app/lib/namesLink.ts has `parseNamesLink`, `writeNamesLink` and `sameNamesLink`; the URL carries only `names=ccru` (honoured at base 10 only, `CCRU_LINK_BASE = 10`) or `names=seed:<seed>` with the lenient companions `nstyle`, `njoin=lh`, `nsmooth=1`, each omitted at its default and never any sounds, locks or overrides; the value is bounded at 77 characters before any processing, control characters and line or paragraph separators are refused anywhere in the raw value BEFORE the trim (the plan's trim-first algorithm would read `seed:a` plus U+2028 as seed `a`, the same contradiction 07-02 recorded), the seed goes through `normalizeSeed`, the raw text is never an object key. `ShareState.names` (null by default, omitted from every URL; `currentShareState` passes `names: null` until 07-18) is parsed OUTSIDE the natural-tier guard, so a seed link survives at base 4002 and 2^26 with `createNumogram` never called (vi.mock spy). `LabelScheme` gains `{ mode: 'sounds' }` (`labels=sounds`, key `sounds`, no alphabet, digit zone labels in every slot) and `isLabelScheme` in the worker protocol accepts it in the same commit, so a Canvas-base request with sounds is built, not a build-failed revert; its `resultKey` differs from digits (one cheap rebuild on a toggle). A hand-edited `?labels=sounds` link shows no label radio checked until the Sounds option arrives (the picker is not in this plan). 53 new tests plus extended round trips (576-run seed round trip over `&=%+:?#`, CJK, emoji), 17 mutants killed and 2 equivalent survivors (the explicit sounds branches of `formatZoneLabel` and `zoneLabelsFor` fall through to the same numeral); the plan's named length-bound mutant is not killed by its named 65-character case (`normalizeSeed` refuses it anyway), so an exact 77/78 padding test was added. MSYS_NO_PATHCONV=1 npm run test:swap exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 104 files and 3107 unit tests at the end), typecheck and check-repo clean, no frozen oracle, engine file, Projection or base-10 preset touched.
 - [Phase 7 P10] Collision detection shipped in the pure engine (NAM-03 engine half, D-12; NAM-03 stays Pending until the report UI and the jump to each colliding demon land in 07-20 to 07-23): engine/naming/collisions.ts has `provablyUnique`, `canCertify`, `createCollisionJob(naming, preset)` and `findCollisions`, with `COLLISION_GROUPS_MAX` 2000, `COLLISION_GROUP_MESHES_MAX` 16 and `COLLISION_SCAN_MAX_N` 4096. Collisions are equal final names after NFC, case-sensitive, counted exactly (`groups`, `demons`) with a list of at most 2000 groups ordered by lowest mesh and 16 meshes per group (an all-equal table at base 200 gives one group of 19,900). Generated tables are certified, not scanned: lowercase ASCII, distinct, prefix-free, and for smoothing 1 either no a, u or i or `smoothingInert` (true for every generated table tested); overrides are then checked by reading each text back as a join (lower the first capital, strip a/u/i under smoothing, split at the distinct sound lengths, look both halves up, confirm with the real `nameOf`), 0.24 ms at 666, 1.3 ms at 4000, no cap. Everything else (typed or imported tables, and any ccru naming with a preset) is one generic scan over the UI's own `nameOf`: 29-bit hash plus mesh in one double, in-place partition by first UTF-16 unit, sorted runs verified by exact names, yielding through an app-supplied `shouldYield` (names every 512 demons, never a clock in the engine, always progress, same report forever once done); 102 ms raw at 666, 211 ms at 1024 (432 smoothed), 3.3 s at 4000, refused above 4096 (RangeError; seed-only namings and a table that is not one sound per zone also throw). Generated tables have 0 collisions by the full scan in both join orders, smoothing 0 and 1, all three styles at 666 and 1024 and for harsh raw at 4000. Decisions: a stale override (mesh outside the table) never collides, as the resolver never reads it; names whose UTF-16 units are all below U+0300 skip a second normalisation (pinned by a test over every such unit and pair); the public way to force the scan in a test is a ccru naming with a preset that names no demon. 65 tests (200-run brute-force differential with NFC and case, preset-layer property, certificate versus forced scan, bounded output at 2,475 and 5,587 groups, an adversarial late group, 30 yield patterns, refusals), 26 mutants killed after three survivors (the cap message, the exact-name confirmation, the running cutoff) were answered with new tests; the whole engine project (1301 tests), typecheck, check-repo, build and page-weight clean, no app file, frozen oracle, bank or signed-off vector touched, test:swap not required (engine files only). 07-11 can set `NAMING_COLLISION_SCAN_MAX_N` 1024 and assert it is at most `COLLISION_SCAN_MAX_N`.
 - [Phase 7 P11] CCRU preset adapter, naming limits and the single Names copy module shipped (NAM-04 and NAM-03 groundwork, orchestrator decisions 3 and 6; both stay Pending: nothing imports the three new modules until 07-12 onward): app/presets/base10/naming.ts exports the frozen `CCRU_NAMING_PRESET` (id ccru, base from `BASE10.zoneCount`, the ten sounds built by a loop over `ZONE_PARTICLE` in zone order, `names: DEMON_NAMES` by reference, a lore gap throws), the lore scanner walks it automatically and a mutant pasting a canonical name fails the scanner and the new test; app/lib/namingLimits.ts holds sixteen named `[default]` constants and `collisionScanLimit()` = `Math.min(NAMING_COLLISION_SCAN_MAX_N 1024, INTERACTIVE_MAX_N)` (1024 asserted at most `COLLISION_SCAN_MAX_N` 4096 and the ceiling; proved with the tier table mocked at 512, 1024 and 8000; no `4000` typed); app/lib/namingCopy.ts has `NAMES_COPY` (76 frozen keys, each equal to its UI-SPEC row) and 41 sentence functions with every limit, `INTERACTIVE_MAX_N`, `CCRU_LINK_BASE` and `ZONE_PAGE_STEP` imported (source assertions forbid typing them), user-text echoes through `clipEcho`, no em dash or exclamation mark, two-word buttons. Decisions: `importError` is overloaded (the context-free kinds take the issue alone, as 07-17 calls it; `{ kind: 'unreadable' }` joins `NamingIssue` as `ImportFailure`; an entry issue alone reads as a one-entry `invalidEntries`); `matrixTooltip` only assembles, 07-15 cuts the name; `plural` returns the count and the word; `formatBytes` has KB and byte fallbacks. 289 tests in two timezones, 33 mutants killed (the first copy mutation run had a red baseline because of a comment, so all 20 were re-run green), typecheck and check-repo clean, test:swap not run (new files only, no importer), no frozen oracle, bank, vector or existing app file touched.
+- [Phase 7 P12] Sounds label mode shipped on the SVG tier with its controls (NAM-01 groundwork, D-03, UI-SPEC decision 10; NAM-01 stays Pending: nothing passes the sounds to a diagram until 07-21 and the Canvas passes come in 07-14): app/lib/soundLabels.ts is the one pure fit rule (`fitSoundLabel(sound, rPx, fullPx)` and `isWideGrapheme`; 0.62 em per grapheme, 1.0 em for Han, Hiragana, Katakana, Hangul, Bopomofo and the fullwidth forms, budget `1.8 x R_px`, 6 px floor, longest whole-grapheme prefix plus U+2026, one grapheme without an ellipsis when fewer than two fit; the UI-SPEC worked example is reproduced); `Projection.tsx` gained optional `zoneSounds` and `labelPxPerUnit` and only off the planetary layout, with a table and a scale, the zone label shows the fitted sound (`data-sound-label`, `data-truncated` when cut, size `fontPx / scale`, or the layout `labelSize` itself when it fits) and the node is named `Zone {digits}, sound {sound}, {Region}`; a zone without a sound keeps its numeral and usual name; `LabelSchemeControls` has the Sounds radio between Xeno and Custom on a `flex-wrap` row with the sounds note (or the numerals note via the new `numeralsLayout` prop, forwarded by `BasePicker`); `LabelsPanel` reads `Sounds` and the sounds hover text only in sounds mode. Decisions: all copy from `NAMES_COPY` (so the plan's `label="Sounds"` grep counts 0, the rendered label is pinned by a test); a one-grapheme sound is never reported cut (the plan text says true); a NaN radius keeps one grapheme (a test found the first draft keeping the whole sound). `NumogramClient.tsx` is untouched, so picking Sounds currently sets the scheme and the note and the diagram still draws digits until 07-21. 49 new tests, 9 mutants killed (the plan's two plus 7 extras), `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after each task (65 Playwright passed incl. the 60 DOM goldens, 110 files and 3368 unit tests at the end), typecheck, check-repo and `check:weight` clean, no golden, behaviour baseline, engine file, `PairGraphProjection.tsx` or base-10 preset touched.
 
 ### Pending Todos
 
@@ -277,9 +278,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-09T23:45:00.000Z
-Stopped at: Completed 07-11-PLAN.md
-Resume file: .planning/phases/07-naming-builder/07-12-PLAN.md
+Last session: 2026-11-10T16:00:00.000Z
+Stopped at: Completed 07-12-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-13-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z
