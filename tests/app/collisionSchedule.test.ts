@@ -92,7 +92,9 @@ describe('collisionPlan', () => {
 
   it('a scan above the engine cap is never planned, however high the limit is set', () => {
     const base = COLLISION_SCAN_MAX_N + 2
-    const naming = generated(base)
+    // a raised ceiling gives this base a table (the app's own ceiling would make it seed-only)
+    const naming = createNaming({ base, interactiveMaxN: base + 10 })
+    expect(naming.sounds).not.toBeNull()
     const sounds = [...(naming.sounds ?? [])]
     sounds[1] = sounds[0] as string
     const typed: Naming = { ...naming, sounds }
@@ -412,6 +414,27 @@ describe('browserSchedule', () => {
     const timer = vi.spyOn(globalThis, 'setTimeout')
     await new Promise<void>(resolve => browserSchedule(resolve))
     expect(timer.mock.calls.filter(call => call[1] === 0)).toHaveLength(0)
+  })
+
+  it('closes the channel port before it runs the function, so a finished slice leaves nothing open', async () => {
+    const events: string[] = []
+    class FakeChannel {
+      port1: { onmessage: (() => void) | null; close: () => void } = { onmessage: null, close: () => void events.push('close') }
+      port2 = {
+        postMessage: (): void => {
+          events.push('post')
+          queueMicrotask(() => this.port1.onmessage?.())
+        },
+      }
+    }
+    vi.stubGlobal('MessageChannel', FakeChannel)
+    await new Promise<void>(resolve =>
+      browserSchedule(() => {
+        events.push('run')
+        resolve()
+      }),
+    )
+    expect(events).toEqual(['post', 'close', 'run'])
   })
 
   it('falls back to a zero-delay timer where there is no MessageChannel', async () => {
