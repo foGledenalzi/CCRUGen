@@ -6,8 +6,8 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { Layout, Layer, Pos, HoverInfo, LabelVisibility } from './data/types'
 
 // Engine (base-generic layout plumbing, 04-11)
-import { createNumogram, routePairGraph } from '../engine/index'
-import type { Numogram, Packer, PairGraphLayout, RenderTier } from '../engine/index'
+import { createNameResolver, createNumogram, routePairGraph } from '../engine/index'
+import type { Naming, Numogram, Packer, PairGraphLayout, RenderTier } from '../engine/index'
 
 // Lib
 import { getAnglesForDate, computePlanetaryPositions } from './lib/planetary'
@@ -33,6 +33,13 @@ import { useNumogramWorker } from './lib/worker/useNumogramWorker'
 import { PENDING_GRACE_MS } from './lib/canvas/diagramModel'
 import { sessionAfterBaseSwitch } from './lib/baseSwitch'
 import { computeDesktopStack, DESKTOP_PANEL_LEFT_X, DESKTOP_PANEL_RIGHT_X, INFO_PANEL_WIDTH, INITIAL_INFO_X, PANEL_WIDTH } from './lib/panelStack'
+import {
+  applyNamingAction, hasUncarriedEdits, keepPreview, namesPanelState, restoreNaming, revertPreview, sessionForBase, snapshotNaming,
+  type NamingAction, type NamingEnv, type NamingSession,
+} from './lib/namingSession'
+import { browserStorage, readSlot } from './lib/namingStorage'
+import { NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
+import { NAMES_COPY } from './lib/namingCopy'
 import type { DemonFilter } from './lib/demonBrowser'
 import { legacyDemon } from './lib/demonBrowser'
 import {
@@ -44,6 +51,7 @@ import {
 import { BASE10 } from './presets/base10/numogram'
 import { base10CurrentRender, base10GateRender } from './presets/base10/routes'
 import { PLANETARY_DEFAULT_ANGLE, PLANETARY_SIZE } from './presets/base10/layouts'
+import { CCRU_NAMING_PRESET } from './presets/base10/naming'
 
 // Hooks
 import { useOrbitalAnimation } from './hooks/useOrbitalAnimation'
@@ -84,6 +92,7 @@ import { DemonsOverlay } from './components/demons/DemonsOverlay'
 import { CyberPageHeader } from './components/ui/CyberPageHeader'
 import { NumogramViewContext } from './components/numogram/ViewContext'
 import type { NumogramViewContextValue } from './components/numogram/ViewContext'
+import { NamingContext, type NamingContextValue } from './components/names/NamingContext'
 
 /* ═══════════════════════════════════════════════════════════════
    THE NUMOGRAM — The Decimal Labyrinth (CCRU)
@@ -105,6 +114,12 @@ const PANEL_GROUP_DEFAULT_HEIGHTS: Record<PanelId, number> = {
 }
 const MAX_HISTORY_ENTRIES = 80
 
+// The naming session's environment (Phase 7): the interactive ceiling comes from the tier table and the CCRU preset from the base-10
+// preset data, so no ceiling or preset base is typed here.
+const NAMING_ENV: NamingEnv = { interactiveMaxN: INTERACTIVE_MAX_N, preset: CCRU_NAMING_PRESET }
+
+// `naming` rides along so an undo can restore it; the history KEY never reads it (Pitfall 7: stringifying a naming of thousands of
+// sounds on every render would be costly), only `namingRev` does.
 type HistorySnapshot = {
   base: number
   layout: ViewLayoutId
@@ -121,6 +136,21 @@ type HistorySnapshot = {
   packer: Packer
   isolate: string[]
   mute: string[]
+  naming: Naming
+  namingRev: number
+}
+
+// The one zone whose sound or lock differs between two namings of a base (the list scrolls to it after an undo or redo), else null:
+// no zone differs, several differ, or there is no per-zone table (seed-only).
+function singleChangedZone(a: Naming, b: Naming): number | null {
+  if (a.sounds === null || b.sounds === null || a.sounds.length !== b.sounds.length) return null
+  let changed: number | null = null
+  for (let zone = 0; zone < a.sounds.length; zone++) {
+    if (a.sounds[zone] === b.sounds[zone] && a.locks.has(zone) === b.locks.has(zone)) continue
+    if (changed !== null) return null
+    changed = zone
+  }
+  return changed
 }
 
 function toggleTerminalSelection(prev: Set<number>, terminals: Iterable<number>): Set<number> {
@@ -192,6 +222,27 @@ export default function NumogramPage() {
   const [announcement, setAnnouncement] = useState('')
   // The Canvas zoom (relative to fit) the toolbar's percentage shows; CanvasDiagram reports its committed zoom through onZoomChange.
   const [canvasZoom, setCanvasZoom] = useState(1)
+  // The naming session of the displayed base (Phase 7, D-03): one per base, switched with the base in the same batched reset.
+  // `revRef` is the monotonic revision counter the session rules take (a history entry's key never reuses a value); the session
+  // starts as base 10's default and no storage is read during the server render (hydration and base switches read the slot).
+  const revRef = useRef(0)
+  const nextRev = useCallback(() => ++revRef.current, [])
+  const [namingSession, setNamingSession] = useState<NamingSession>(() => sessionForBase(10, null, null, NAMING_ENV, () => ++revRef.current))
+  // The latest session, updated synchronously by commitSession, so an action reads the session it is applied to and never a flag
+  // set inside a state updater (React may run an updater lazily or twice).
+  const sessionRef = useRef(namingSession)
+  sessionRef.current = namingSession
+  // Whether the Names panel is open; the panel mount that reads and toggles it is plan 07-21 (a link preview opens it once, below).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- namesOpen is read by the panel mount in plan 07-21
+  const [namesOpen, setNamesOpen] = useState(false)
+  const [namesSaved, setNamesSaved] = useState<'none' | 'saved' | 'failed'>('none')
+  const [namesAnnouncement, setNamesAnnouncement] = useState('')
+  const [namesRestored, setNamesRestored] = useState<{ tick: number; zone: number | null }>({ tick: 0, zone: null })
+  // Every naming state change goes through here: the ref moves first (synchronously), then the state follows.
+  const commitSession = useCallback((next: NamingSession) => {
+    sessionRef.current = next
+    setNamingSession(next)
+  }, [])
 
   const svgWrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<CanvasHandle | null>(null)
@@ -350,30 +401,37 @@ export default function NumogramPage() {
     packer, tierOverride, demonFilter, demonFocus, demonsOpen,
   ])
 
-  const snapshotState = useCallback((): HistorySnapshot => ({
-    base,
-    layout,
-    layers: Array.from(layers).sort((a, b) => a.localeCompare(b)),
-    selZones: Array.from(selZones).sort((a, b) => a - b),
-    hlRegion,
-    tcActive,
-    particlesOn,
-    showOrbits,
-    planetDate,
-    orbiting,
-    labelVisibility: {
-      numbers: labelVisibility.numbers,
-      xenotation: labelVisibility.xenotation,
-      planets: labelVisibility.planets,
-    },
-    labels: labelScheme,
-    packer,
-    isolate: Array.from(regionFilter.isolate).sort(),
-    mute: Array.from(regionFilter.mute).sort(),
-  }), [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, showOrbits, planetDate, orbiting, labelVisibility, labelScheme, packer, regionFilter])
+  const snapshotState = useCallback((): HistorySnapshot => {
+    // while previewing a shared link the history records the SAVED naming (snapshotNaming), so Keep is one undoable entry and Back none
+    const { naming, rev } = snapshotNaming(namingSession)
+    return {
+      base,
+      layout,
+      layers: Array.from(layers).sort((a, b) => a.localeCompare(b)),
+      selZones: Array.from(selZones).sort((a, b) => a - b),
+      hlRegion,
+      tcActive,
+      particlesOn,
+      showOrbits,
+      planetDate,
+      orbiting,
+      labelVisibility: {
+        numbers: labelVisibility.numbers,
+        xenotation: labelVisibility.xenotation,
+        planets: labelVisibility.planets,
+      },
+      labels: labelScheme,
+      packer,
+      isolate: Array.from(regionFilter.isolate).sort(),
+      mute: Array.from(regionFilter.mute).sort(),
+      naming,
+      namingRev: rev,
+    }
+  }, [base, layout, layers, selZones, hlRegion, tcActive, particlesOn, showOrbits, planetDate, orbiting, labelVisibility, labelScheme, packer, regionFilter, namingSession])
 
+  // Pitfall 7: the key never stringifies the naming (a table of thousands of sounds), only its revision number.
   const snapshotKey = useCallback((snapshot: HistorySnapshot): string => {
-    return JSON.stringify(snapshot)
+    return JSON.stringify(snapshot, (k, v) => (k === 'naming' ? undefined : v))
   }, [])
 
   const applySnapshot = useCallback((snapshot: HistorySnapshot) => {
@@ -381,6 +439,15 @@ export default function NumogramPage() {
     // base) — commitBase always clears both history stacks on a switch, so this is a defensive guard, not the
     // primary mechanism.
     if (snapshot.base !== base) return
+    // The naming returns with the rest of the state (NAM-03). Only a differing revision restores; the single changed zone (when
+    // exactly one sound or lock differs) lets the zone list scroll to it.
+    const currentNaming = snapshotNaming(sessionRef.current)
+    if (snapshot.namingRev !== currentNaming.rev) {
+      const zone = singleChangedZone(sessionRef.current.working, snapshot.naming)
+      commitSession(restoreNaming(sessionRef.current, snapshot.naming, snapshot.namingRev))
+      setNamesRestored(r => ({ tick: r.tick + 1, zone }))
+      setNamesAnnouncement(NAMES_COPY.restored)
+    }
     if (layout !== snapshot.layout) {
       if (layout === 'pairGraph' || snapshot.layout === 'pairGraph') jumpToTarget()
       else switchLayout()
@@ -413,13 +480,17 @@ export default function NumogramPage() {
         setPlanetaryAngles(PLANETARY_DEFAULT_ANGLE)
       }
     }
-  }, [base, layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting, g])
+  }, [base, layout, switchLayout, jumpToTarget, setPlanetaryAngles, setOrbiting, g, commitSession])
 
   // UI-08: everything base-shaped resets in a single batched call (React batches all these setters into one render with
   // the new base) so no intermediate render ever shows a selection, region highlight or history entry belonging to the
   // previous base. Shared by the synchronous commit below and the worker swap; the caller sets the base and the layout.
-  const resetForBaseSwitch = useCallback((nextDemons: DemonSessionState) => {
+  // The naming joins the same batch (D-10): the new base's saved slot, or its fresh default, replaces the old base's session.
+  const resetForBaseSwitch = useCallback((nextDemons: DemonSessionState, nextBase: number) => {
     jumpToTarget()
+    commitSession(sessionForBase(nextBase, readSlot(browserStorage(), nextBase, NAMING_ENV), null, NAMING_ENV, nextRev))
+    setNamesSaved('none')
+    setNamesAnnouncement('')
     historyCurrentRef.current = null
     setUndoStack([])
     setRedoStack([])
@@ -439,7 +510,7 @@ export default function NumogramPage() {
     setDemonFilter(nextDemons.filter)
     setDemonFocus(null)
     setDemonFocusMode(false)
-  }, [jumpToTarget, setCanvasPan, setZoom, setZoomOrigin, setOrbiting])
+  }, [jumpToTarget, setCanvasPan, setZoom, setZoomOrigin, setOrbiting, commitSession, nextRev])
 
   // A URL state waiting for its worker result is void the moment anything else commits: drop it and let the URL sync start.
   const dropPendingHydration = useCallback(() => {
@@ -482,7 +553,7 @@ export default function NumogramPage() {
     setAnnouncement('')
     if (n === base) return
     const nextDemons = demonsAfterBaseSwitch({ filter: demonFilter, focus: demonFocus }, createNumogram(n))
-    resetForBaseSwitch(nextDemons)
+    resetForBaseSwitch(nextDemons, n)
     setLayout(next.layout)
     setBase(n)
   }, [
@@ -882,7 +953,7 @@ export default function NumogramPage() {
     pendingHydrationRef.current = null
     if (hydration !== null || resp.base !== base) {
       // A new base (or a URL's whole state): the UI-08 reset first, then the URL's own values on top of it.
-      resetForBaseSwitch(demonsAfterSwitchFromCounts({ filter: demonFilter, focus: demonFocus }, resp.facetCounts))
+      resetForBaseSwitch(demonsAfterSwitchFromCounts({ filter: demonFilter, focus: demonFocus }, resp.facetCounts), resp.base)
       if (hydration !== null) applyHydratedState(hydration, resp)
     }
     setBase(resp.base)
@@ -1071,10 +1142,13 @@ export default function NumogramPage() {
       return
     }
 
+    // A naming with a huge override map keeps a short undo depth (Pitfall 18): each entry shares its unchanged parts, but the
+    // map is costly to copy when it changes.
+    const depth = currentSnapshot.naming.overrides.size > NAMING_UNDO_OVERRIDE_LIMIT ? NAMING_UNDO_HEAVY_DEPTH : MAX_HISTORY_ENTRIES
     setUndoStack(prev => {
       const next = [...prev, previousSnapshot]
-      return next.length > MAX_HISTORY_ENTRIES
-        ? next.slice(next.length - MAX_HISTORY_ENTRIES)
+      return next.length > depth
+        ? next.slice(next.length - depth)
         : next
     })
     setRedoStack([])
@@ -1112,6 +1186,51 @@ export default function NumogramPage() {
     historyCurrentRef.current = target
     applySnapshot(target)
   }, [redoStack, applySnapshot])
+
+  // ── Naming session actions and the NamingContext value (Phase 7, D-03) ──
+  // An action is computed from sessionRef (the latest committed session) and reports whether it changed anything by comparing the
+  // two session objects: the rules return the SAME object for every refusal and every no-op, so a refusal records no history
+  // entry and writes no slot. Never read a flag set inside a state updater: React may run an updater lazily or twice.
+  const applyNaming = useCallback((action: NamingAction): boolean => {
+    const next = applyNamingAction(sessionRef.current, action, NAMING_ENV, nextRev)
+    if (next === sessionRef.current) return false
+    commitSession(next)
+    return true
+  }, [nextRev, commitSession])
+  const keepNaming = useCallback(() => commitSession(keepPreview(sessionRef.current, nextRev)), [nextRev, commitSession])
+  const revertNaming = useCallback(() => commitSession(revertPreview(sessionRef.current)), [commitSession])
+  const announceNaming = useCallback((text: string) => setNamesAnnouncement(text), [])
+  // The panel's inline Undo goes through the app's own undo; the ref keeps the context value from changing with every history entry.
+  const onUndoRef = useRef(onUndo)
+  onUndoRef.current = onUndo
+  const undoNaming = useCallback(() => onUndoRef.current(), [])
+  // Memoised on the naming itself: a context change that is not a naming change (a pending flag, a status line) leaves the resolver
+  // and the uncarried check alone, so the displays that search or list names do not recompute.
+  const namingResolver = useMemo(() => createNameResolver(namingSession.working, NAMING_ENV.preset), [namingSession.working])
+  const namingUncarried = useMemo(() => hasUncarriedEdits(namingSession.working, NAMING_ENV), [namingSession.working])
+  // Declared above onShareExplanation (plan 07-21 reads it there); every render tier provides it (no hasDiagram guard).
+  const namingCtx = useMemo<NamingContextValue>(() => ({
+    base,
+    naming: namingSession.working,
+    rev: namingSession.rev,
+    resolver: namingResolver,
+    preset: NAMING_ENV.preset,
+    state: namesPanelState(base, namingSession, NAMING_ENV, pendingVisible && pendingBase !== null),
+    pendingBase,
+    saved: namingSession.preview ? 'preview' : base > INTERACTIVE_MAX_N ? 'seed-only' : namesSaved,
+    uncarried: namingUncarried,
+    interactiveMaxN: NAMING_ENV.interactiveMaxN,
+    announcement: namesAnnouncement,
+    restored: namesRestored,
+    apply: applyNaming,
+    keep: keepNaming,
+    revert: revertNaming,
+    undo: undoNaming,
+    announce: announceNaming,
+  }), [
+    base, namingSession, namingResolver, namingUncarried, pendingVisible, pendingBase, namesSaved, namesAnnouncement, namesRestored,
+    applyNaming, keepNaming, revertNaming, undoNaming, announceNaming,
+  ])
 
   useEffect(() => {
     const isTypingTarget = (target: EventTarget | null): boolean => {
@@ -1448,6 +1567,7 @@ export default function NumogramPage() {
   // ── Render ─────────────────────────────────────────────────
   return (
     <NumogramViewContext.Provider value={viewCtx}>
+    <NamingContext.Provider value={namingCtx}>
     <div className="h-screen overflow-hidden bg-[#060609] text-gray-300 flex flex-col items-center justify-center px-4 py-8 font-mono select-none relative">
       {/* === Fixed top bar === */}
       <div className="fixed top-0 left-0 right-0 z-40 flex flex-col items-center pt-3 pb-1 pointer-events-none"
@@ -1983,6 +2103,7 @@ export default function NumogramPage() {
 
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
+    </NamingContext.Provider>
     </NumogramViewContext.Provider>
   )
 }
