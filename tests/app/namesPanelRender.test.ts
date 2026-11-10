@@ -340,6 +340,17 @@ describe('NamesPanel: ready state at a base with no CCRU source', () => {
   })
 })
 
+describe('NamesPanel: the autosave line follows the state first', () => {
+  it('preview and seed-only decide the line whatever the context says', () => {
+    const naming = namingOf(OTHER_BASE)
+    const preview = need(render(valueFor(naming, { state: 'preview', saved: 'none' })), 'data-names-saved')
+    expect(attrOf(preview.open, 'data-names-saved')).toBe('preview')
+    const seedOnly = need(render(valueFor(namingOf(SEED_ONLY_BASE), { saved: 'saved' })), 'data-names-saved')
+    expect(attrOf(seedOnly.open, 'data-names-saved')).toBe('seed-only')
+    expect(textOf(seedOnly.inner)).toBe(NAMES_COPY.savedSeedOnly)
+  })
+})
+
 // ── the preview table ──────────────────────────────────────────────────────
 
 describe('NamesPanel: preview table', () => {
@@ -548,6 +559,10 @@ describe('NamesPanel: seed-only state', () => {
     for (const name of ['ccrug-names-style', 'ccrug-names-join']) {
       for (const radio of radiosOf(markup, name)) expect(flagOf(radio.open, 'disabled')).toBe(false)
     }
+  })
+
+  it('keeps the one-line base hint, since there is no Source row at this size', () => {
+    expect(textOf(markup)).toContain(NAMES_COPY.ccruHint)
   })
 
   it('the seed-only sentence is not shown in the ready state', () => {
@@ -769,6 +784,10 @@ describe('NamesPanel source', () => {
     expect(source.match(/data-names-live/g)?.length ?? 0).toBeGreaterThanOrEqual(1)
     expect(source.match(/export function NamesHeaderTag/g)).toHaveLength(1)
     expect(source.match(/crypto\.getRandomValues/g)).toHaveLength(1)
+  })
+
+  it('starts the body afresh for each displayed base', () => {
+    expect(source).toContain('key={naming.base}')
   })
 
   it('types no ceiling and no raw-html path', () => {
