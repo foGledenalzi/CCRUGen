@@ -47,6 +47,7 @@ import {
   createNameResolver,
   createNaming,
   editSound,
+  findCollisions,
   meshOf,
   netSpanOf,
   normalizeSeed,
@@ -54,9 +55,21 @@ import {
   smoothingInert,
   toggleLock,
   validateNamingJson,
+  type CollisionGroup,
+  type CollisionReport as CollisionData,
   type Naming,
   type NamingImport,
 } from '../../engine/index'
+import {
+  CollisionReport,
+  CollisionReportView,
+  collisionAnnouncement,
+  jumpOutcome,
+  jumpsOf,
+  linesShown,
+  phaseOf,
+  type CollisionReportViewProps,
+} from '../../app/components/names/CollisionReport'
 import {
   NamesHeaderTag,
   NamesPanel,
@@ -78,8 +91,12 @@ import { NamingContext, type NamingContextValue } from '../../app/components/nam
 import { ZoneList, ZoneRowView, type ZoneRowHandlers } from '../../app/components/names/ZoneList'
 import { ShortcutsModal } from '../../app/components/numogram/ShortcutsModal'
 import { NumogramViewContext, type NumogramViewContextValue } from '../../app/components/numogram/ViewContext'
+import { PENDING_GRACE_MS } from '../../app/lib/canvas/diagramModel'
+import { netSpanLabel } from '../../app/lib/demonBrowser'
 import {
   NAMES_COPY,
+  collisionsNotChecked,
+  collisionsSome,
   exportSeedOnly,
   exportSuccess,
   formatBytes,
@@ -87,17 +104,22 @@ import {
   importSeedOnly,
   importSuccess,
   invalidEntries,
+  jumpAriaLabel,
   lockAria,
+  moreJumps,
   noticeBody,
   pendingLine,
   savedLine,
   seedOnlySentence,
+  showingNames,
   summaryLine,
   unknownKeysSuffix,
   zoneAria,
   type ImportCopyContext,
 } from '../../app/lib/namingCopy'
 import {
+  COLLISION_JUMPS_SHOWN,
+  COLLISION_LINES_STEP,
   NAMES_PREVIEW_ROWS,
   NAMES_SCROLL_INSET_PX,
   REROLL_SEED_LENGTH,
@@ -1899,5 +1921,485 @@ describe('ShortcutsModal: the Names panel line', () => {
     const source = readFileSync(SHORTCUTS_SOURCE, 'utf8')
     expect(source).toContain('{NAMES_COPY.shortcutLine}')
     expect(source.split('NAMES_COPY.shortcutLine')).toHaveLength(2)
+  })
+})
+
+// ══ Plan 07-20: the collision report (block 9) ═══════════════════════════════════════════════════════════════════════════════════
+// Server render only, like the rest of this file: the container's effects do not run on the server, so the block is rendered from an
+// injected `initialReport`, and the list, the inline editor and the hint are rendered through the presentational view with the state
+// the container would hold. The decisions are pure helpers tested directly; the clicks, the timers and the focus are the e2e plans'
+// and a scratch browser run's job. Names here are neutral placeholders: no CCRU name is typed.
+
+const COLLISION_SOURCE = fileURLToPath(new URL('../../app/components/names/CollisionReport.tsx', import.meta.url))
+const zlabel = (zone: number): string => `z${zone}`
+
+function groupOf(name: string, meshes: readonly number[], size: number = meshes.length): CollisionGroup {
+  return { name, size, meshes }
+}
+
+function reportOf(list: readonly CollisionGroup[], extra: { groups?: number; demons?: number } = {}): CollisionData {
+  return {
+    groups: extra.groups ?? list.length,
+    demons: extra.demons ?? list.reduce((sum, g) => sum + g.size, 0),
+    list,
+  }
+}
+
+/** The test base's generated naming with one sound copied onto another zone: a real table with real collisions. */
+function duplicateNaming(): Naming {
+  const generated = namingOf(OTHER_BASE)
+  const sounds = [...(generated.sounds ?? [])]
+  sounds[1] = sounds[0] as string
+  return { ...generated, sounds }
+}
+
+function renderCollisions(value: NamingContextValue | null, props: { open?: boolean; initialReport?: CollisionData | null } = {}): string {
+  const block = createElement(CollisionReport, { open: true, ...props })
+  return renderToStaticMarkup(value === null ? block : createElement(NamingContext.Provider, { value }, block))
+}
+
+function viewProps(over: Partial<CollisionReportViewProps> = {}): CollisionReportViewProps {
+  return {
+    phase: 'done',
+    limit: 1024,
+    report: null,
+    expanded: false,
+    pages: 1,
+    editing: null,
+    hint: null,
+    zoneLabel: zlabel,
+    nameOf: () => 'Name',
+    onToggle: noop,
+    onMore: noop,
+    onJump: noop,
+    onEditorDone: noop,
+    ...over,
+  }
+}
+
+function renderView(over: Partial<CollisionReportViewProps>, value: NamingContextValue = valueFor(namingOf(OTHER_BASE))): string {
+  return renderToStaticMarkup(createElement(NamingContext.Provider, { value }, createElement(CollisionReportView, viewProps(over))))
+}
+
+/** `count` groups of two demons each, with distinct names and distinct mesh numbers. */
+function manyGroups(count: number): CollisionGroup[] {
+  return Array.from({ length: count }, (_, i) => groupOf(`Name${i}`, [2 * i, 2 * i + 1]))
+}
+
+describe('CollisionReport: the block in the panel', () => {
+  it('renders nothing outside a provider, in seed-only and while a base is building', () => {
+    expect(renderCollisions(null)).toBe('')
+    expect(renderCollisions(valueFor(namingOf(SEED_ONLY_BASE)))).toBe('')
+    expect(renderCollisions(valueFor(namingOf(OTHER_BASE), { state: 'pending', pendingBase: 30 }))).toBe('')
+  })
+
+  it('is mounted by the panel after the summary and before import and export, in ready and preview only', () => {
+    const ready = render(valueFor(namingOf(OTHER_BASE)))
+    const block = need(ready, 'data-names-collisions')
+    expect(block.index).toBeGreaterThan(at(ready, 'data-names-summary'))
+    expect(block.index).toBeLessThan(at(ready, 'data-names-export'))
+    expect(find(render(valueFor(namingOf(OTHER_BASE), { state: 'preview' })), 'data-names-collisions')).not.toBeNull()
+    expect(find(render(valueFor(namingOf(SEED_ONLY_BASE))), 'data-names-collisions')).toBeNull()
+    expect(find(render(valueFor(namingOf(OTHER_BASE), { state: 'pending', pendingBase: 30 })), 'data-names-collisions')).toBeNull()
+    expect(find(render(valueFor(namingOf(OTHER_BASE)), { open: false }), 'data-names-collisions')).toBeNull()
+  })
+
+  it('before any answer it shows the eyebrow only: no count, no busy flag, no line', () => {
+    const root = need(render(valueFor(namingOf(OTHER_BASE))), 'data-names-collisions')
+    expect(attrOf(root.open, 'data-post-baseline')).toBe('')
+    expect(attrOf(root.open, 'data-state')).toBe('pending')
+    expect(attrOf(root.open, 'data-count')).toBeNull()
+    expect(attrOf(root.open, 'data-demons')).toBeNull()
+    expect(attrOf(root.open, 'aria-busy')).toBeNull()
+    expect(textOf(root.inner)).toBe(NAMES_COPY.collisionsEyebrow)
+    expect(textOf(root.inner)).toBe('Collisions')
+  })
+
+  it('none: the exact sentence in gray-400, counts of zero and no button', () => {
+    const markup = renderCollisions(valueFor(namingOf(OTHER_BASE)), { initialReport: reportOf([]) })
+    const root = need(markup, 'data-names-collisions')
+    expect(attrOf(root.open, 'data-count')).toBe('0')
+    expect(attrOf(root.open, 'data-demons')).toBe('0')
+    expect(attrOf(root.open, 'data-state')).toBe('none')
+    expect(attrOf(root.open, 'aria-busy')).toBeNull()
+    expect(textOf(root.inner)).toContain('Collisions')
+    const line = need(markup, 'data-names-collisions-line')
+    expect(textOf(line.inner)).toBe('None. Every demon name is unique.')
+    expect(textOf(line.inner)).toBe(NAMES_COPY.collisionsNone)
+    expect(classOf(line.open)).toContain('text-gray-400')
+    expect(markup).not.toContain('<button')
+  })
+
+  it('some: the counts in gray-100 (not red), the toggle collapsed, no list', () => {
+    const report = reportOf([groupOf('Aaa', [10, 11, 12]), groupOf('Bbb', [20, 21])])
+    const markup = renderCollisions(valueFor(namingOf(OTHER_BASE)), { initialReport: report })
+    const root = need(markup, 'data-names-collisions')
+    expect(attrOf(root.open, 'data-count')).toBe('2')
+    expect(attrOf(root.open, 'data-demons')).toBe('5')
+    expect(attrOf(root.open, 'data-state')).toBe('some')
+    const line = need(markup, 'data-names-collisions-line')
+    expect(textOf(line.inner)).toBe('2 repeated names across 5 demons.')
+    expect(textOf(line.inner)).toBe(collisionsSome(2, 5))
+    expect(classOf(line.open)).toContain('text-gray-100')
+    expect(classOf(line.open)).not.toContain('#f87171')
+    const toggle = need(markup, 'data-collision-toggle')
+    expect(toggle.tag).toBe('button')
+    expect(textOf(toggle.inner)).toBe('Show repeated names')
+    expect(attrOf(toggle.open, 'aria-expanded')).toBe('false')
+    expect(classOf(toggle.open)).toContain('min-h-[24px]')
+    expect(find(markup, 'data-collision-name')).toBeNull()
+    expect(find(markup, 'data-collision-jump')).toBeNull()
+  })
+
+  it('one group of two demons reads in the singular', () => {
+    const markup = renderCollisions(valueFor(namingOf(OTHER_BASE)), { initialReport: reportOf([groupOf('Aaa', [10, 11])]) })
+    expect(textOf(need(markup, 'data-names-collisions-line').inner)).toBe('1 repeated name across 2 demons.')
+  })
+
+  it('the same block shows in the preview state with the same counts', () => {
+    const value = valueFor(namingOf(OTHER_BASE), { state: 'preview' })
+    const markup = renderCollisions(value, { initialReport: reportOf([groupOf('Aaa', [10, 11])]) })
+    expect(attrOf(need(markup, 'data-names-collisions').open, 'data-count')).toBe('1')
+  })
+
+  it('a real report from the engine: the counts are its own', () => {
+    const naming = duplicateNaming()
+    const report = findCollisions(naming, null)
+    expect(report.groups).toBeGreaterThan(COLLISION_LINES_STEP)
+    const markup = renderCollisions(valueFor(naming), { initialReport: report })
+    const root = need(markup, 'data-names-collisions')
+    expect(attrOf(root.open, 'data-count')).toBe(String(report.groups))
+    expect(attrOf(root.open, 'data-demons')).toBe(String(report.demons))
+    expect(textOf(need(markup, 'data-names-collisions-line').inner)).toBe(collisionsSome(report.groups, report.demons))
+  })
+})
+
+describe('CollisionReportView: the other states', () => {
+  it('checking: the word, the busy flag, no counts and no list, even when a report is passed', () => {
+    const markup = renderView({ phase: 'checking', report: reportOf([groupOf('Aaa', [10, 11])]), expanded: true })
+    const root = need(markup, 'data-names-collisions')
+    expect(attrOf(root.open, 'aria-busy')).toBe('true')
+    expect(attrOf(root.open, 'data-state')).toBe('checking')
+    expect(attrOf(root.open, 'data-count')).toBeNull()
+    expect(attrOf(root.open, 'data-demons')).toBeNull()
+    const line = need(markup, 'data-names-collisions-line')
+    expect(textOf(line.inner)).toBe('Checking...')
+    expect(textOf(line.inner)).toBe(NAMES_COPY.collisionsChecking)
+    expect(markup).not.toContain('<button')
+    expect(find(markup, 'data-collision-name')).toBeNull()
+  })
+
+  it('skip: the limit sentence, with the limit read from the prop', () => {
+    for (const limit of [1024, 300]) {
+      const markup = renderView({ phase: 'skip', limit })
+      const root = need(markup, 'data-names-collisions')
+      expect(attrOf(root.open, 'data-state')).toBe('skip')
+      expect(attrOf(root.open, 'data-count')).toBeNull()
+      expect(attrOf(root.open, 'aria-busy')).toBeNull()
+      expect(textOf(need(markup, 'data-names-collisions-line').inner)).toBe(collisionsNotChecked(limit))
+      expect(textOf(need(markup, 'data-names-collisions-line').inner)).toBe(`Not checked above ${limit} zones.`)
+      expect(markup).not.toContain('<button')
+    }
+  })
+
+  it('the done state is never busy, and the root can take focus programmatically', () => {
+    const root = need(renderView({ report: reportOf([groupOf('Aaa', [10, 11])]) }), 'data-names-collisions')
+    expect(attrOf(root.open, 'aria-busy')).toBeNull()
+    expect(attrOf(root.open, 'tabindex')).toBe('-1')
+  })
+})
+
+describe('CollisionReportView: the list of repeated names', () => {
+  const m = (a: number, b: number): number => meshOf(a, b)
+  const sizes = reportOf([
+    groupOf('Aaa', [m(5, 2), m(6, 1), m(7, 0)]),
+    groupOf('Bbb', [m(8, 3), m(9, 4), m(10, 5), m(11, 6)]),
+    groupOf('Ccc', [m(12, 7), m(13, 8), m(14, 9), m(15, 10), m(16, 11)]),
+    groupOf('Ddd', Array.from({ length: 16 }, (_, i) => m(20 + i, 1)), 19900),
+  ])
+
+  it('collapsed shows no list; expanded flips the button to Hide and the flag to true', () => {
+    expect(find(renderView({ report: sizes }), 'data-collision-name')).toBeNull()
+    const open = renderView({ report: sizes, expanded: true })
+    const toggle = need(open, 'data-collision-toggle')
+    expect(textOf(toggle.inner)).toBe('Hide repeated names')
+    expect(textOf(toggle.inner)).toBe(NAMES_COPY.hideCollisions)
+    expect(attrOf(toggle.open, 'aria-expanded')).toBe('true')
+  })
+
+  it('one line per group, in order, each with its name in gray-100 and one jump button per demon up to the cap', () => {
+    const markup = renderView({ report: sizes, expanded: true })
+    const lines = findAll(markup, 'data-collision-name')
+    expect(lines.map(l => attrOf(l.open, 'data-collision-name'))).toEqual(['Aaa', 'Bbb', 'Ccc', 'Ddd'])
+    const shown = lines.map(l => findAll(l.inner, 'data-collision-jump').map(j => attrOf(j.open, 'data-collision-jump')))
+    expect(shown[0]).toEqual(sizes.list[0]?.meshes.map(String))
+    expect(shown[1]).toEqual(sizes.list[1]?.meshes.map(String))
+    expect(shown[2]).toEqual(sizes.list[2]?.meshes.slice(0, COLLISION_JUMPS_SHOWN).map(String))
+    expect(shown[3]).toEqual(sizes.list[3]?.meshes.slice(0, COLLISION_JUMPS_SHOWN).map(String))
+    expect(COLLISION_JUMPS_SHOWN).toBe(4)
+    const name = need(lines[0]?.inner ?? '', 'data-collision-name-text')
+    expect(textOf(name.inner)).toBe('Aaa')
+    expect(classOf(name.open)).toContain('text-gray-100')
+  })
+
+  it('a jump shows the net-span in the active label scheme and names the demon in its accessible name', () => {
+    const nameOf = (a: number, b: number): string => `Live${a}x${b}`
+    const markup = renderView({ report: sizes, expanded: true, nameOf })
+    const line = need(markup, 'data-collision-name="Aaa"')
+    const jumps = findAll(line.inner, 'data-collision-jump')
+    expect(jumps).toHaveLength(3)
+    jumps.forEach((jump, i) => {
+      const [a, b] = netSpanOf(sizes.list[0]?.meshes[i] ?? -1)
+      expect(jump.tag).toBe('button')
+      expect(textOf(jump.inner)).toBe(netSpanLabel(a, b, zlabel))
+      expect(textOf(jump.inner)).toBe(`z${a}::z${b}`)
+      expect(attrOf(jump.open, 'aria-label')).toBe(jumpAriaLabel(zlabel(a), zlabel(b), nameOf(a, b)))
+      expect(attrOf(jump.open, 'aria-label')).toBe(`Rename demon z${a}::z${b}, currently Live${a}x${b}`)
+      expect(classOf(jump.open)).toContain('min-h-[24px]')
+    })
+  })
+
+  it('says how many more demons carry the name, from the exact size, only when there are more than the jumps shown', () => {
+    const markup = renderView({ report: sizes, expanded: true })
+    const lines = findAll(markup, 'data-collision-name')
+    const extra = lines.map(l => find(l.inner, 'data-collision-extra'))
+    expect(extra[0]).toBeNull() // 3 demons, 3 jumps
+    expect(extra[1]).toBeNull() // 4 demons, 4 jumps: no "more" at the boundary
+    expect(textOf(extra[2]?.inner ?? '')).toBe(moreJumps(1))
+    expect(textOf(extra[2]?.inner ?? '')).toBe('+1 more')
+    expect(textOf(extra[3]?.inner ?? '')).toBe(moreJumps(19900 - COLLISION_JUMPS_SHOWN))
+    expect(textOf(extra[3]?.inner ?? '')).toBe('+19896 more')
+  })
+
+  it('shows at most one page of lines, says how many of how many, and offers more', () => {
+    const report = reportOf(manyGroups(45))
+    const first = renderView({ report, expanded: true, pages: 1 })
+    expect(findAll(first, 'data-collision-name')).toHaveLength(COLLISION_LINES_STEP)
+    expect(COLLISION_LINES_STEP).toBe(20)
+    const showing = need(first, 'data-collision-showing')
+    expect(textOf(showing.inner)).toBe(showingNames(20, 45))
+    expect(textOf(showing.inner)).toBe('Showing 20 of 45 names.')
+    const more = need(first, 'data-collision-more')
+    expect(more.tag).toBe('button')
+    expect(textOf(more.inner)).toBe('Show more names')
+    expect(textOf(more.inner)).toBe(NAMES_COPY.showMoreNames)
+    expect(classOf(more.open)).toContain('min-h-[24px]')
+    const second = renderView({ report, expanded: true, pages: 2 })
+    expect(findAll(second, 'data-collision-name')).toHaveLength(40)
+    expect(textOf(need(second, 'data-collision-showing').inner)).toBe('Showing 40 of 45 names.')
+    const last = findAll(first, 'data-collision-name').at(-1)
+    expect(attrOf(last?.open ?? '', 'data-collision-name')).toBe('Name19')
+  })
+
+  it('once every group shows there is no count line and no more button', () => {
+    const report = reportOf(manyGroups(45))
+    const markup = renderView({ report, expanded: true, pages: 3 })
+    expect(findAll(markup, 'data-collision-name')).toHaveLength(45)
+    expect(find(markup, 'data-collision-showing')).toBeNull()
+    expect(find(markup, 'data-collision-more')).toBeNull()
+    const few = renderView({ report: reportOf(manyGroups(5)), expanded: true, pages: 1 })
+    expect(findAll(few, 'data-collision-name')).toHaveLength(5)
+    expect(find(few, 'data-collision-showing')).toBeNull()
+    expect(find(few, 'data-collision-more')).toBeNull()
+  })
+
+  it('a list shorter than the exact count (the engine bounds it) shows it all, says so, and offers nothing more', () => {
+    const report = reportOf(manyGroups(30), { groups: 50, demons: 100 })
+    const markup = renderView({ report, expanded: true, pages: 2 })
+    expect(findAll(markup, 'data-collision-name')).toHaveLength(30)
+    expect(textOf(need(markup, 'data-collision-showing').inner)).toBe(showingNames(30, 50))
+    expect(find(markup, 'data-collision-more')).toBeNull()
+    expect(attrOf(need(markup, 'data-names-collisions').open, 'data-count')).toBe('50')
+    expect(textOf(need(markup, 'data-names-collisions-line').inner)).toBe(collisionsSome(50, 100))
+  })
+
+  it('the lines of a real report carry the names the resolver gives those demons', () => {
+    const naming = duplicateNaming()
+    const value = valueFor(naming)
+    const report = findCollisions(naming, null)
+    const markup = renderView({ report, expanded: true, pages: 10, nameOf: (a, b) => value.resolver.nameOf(a, b) }, value)
+    const lines = findAll(markup, 'data-collision-name')
+    expect(lines).toHaveLength(report.list.length)
+    lines.forEach((line, i) => {
+      const group = report.list[i] as CollisionGroup
+      expect(attrOf(line.open, 'data-collision-name')).toBe(group.name)
+      for (const jump of findAll(line.inner, 'data-collision-jump')) {
+        const [a, b] = netSpanOf(Number(attrOf(jump.open, 'data-collision-jump')))
+        expect(attrOf(jump.open, 'aria-label')).toBe(`Rename demon z${a}::z${b}, currently ${group.name}`)
+      }
+    })
+  })
+
+  it('a name that looks like markup stays text: escaped in the line, the attribute and the accessible name', () => {
+    const hostile = '<img src=x onerror=alert(1)>"&'
+    const report = reportOf([groupOf(hostile, [m(5, 2), m(6, 1)])])
+    const markup = renderView({ report, expanded: true, nameOf: () => hostile })
+    expect(markup).not.toContain('<img')
+    expect(markup).not.toContain('onerror=alert(1)>')
+    const line = need(markup, 'data-collision-name')
+    expect(decode(attrOf(line.open, 'data-collision-name') ?? '')).toBe(hostile)
+    expect(textOf(need(line.inner, 'data-collision-name-text').inner)).toBe(hostile)
+    const jump = need(line.inner, 'data-collision-jump')
+    expect(decode(attrOf(jump.open, 'aria-label') ?? '')).toContain(hostile)
+  })
+
+  it('every button of the block is a 24px target', () => {
+    const markup = renderView({ report: reportOf(manyGroups(25)), expanded: true })
+    const buttons = markup.match(/<button\b[^>]*>/g) ?? []
+    expect(buttons.length).toBeGreaterThan(25)
+    for (const button of buttons) expect(classOf(button)).toContain('min-h-[24px]')
+  })
+})
+
+describe('CollisionReportView: the inline editor and the preview hint', () => {
+  const first = meshOf(7, 6)
+  const second = meshOf(8, 2)
+  const third = meshOf(9, 4)
+  const report = reportOf([groupOf('Aaa', [first, second]), groupOf('Bbb', [third, meshOf(10, 4)])])
+
+  it('a jump in edit renders one editor in the collision context, in edit mode, directly under its own line', () => {
+    const markup = renderView({ report, expanded: true, editing: second })
+    const editors = findAll(markup, 'data-demon-name-editor')
+    expect(editors).toHaveLength(1)
+    expect(attrOf(editors[0]?.open ?? '', 'data-demon-name-context')).toBe('collision')
+    expect(markup).toContain('data-demon-name-input')
+    const [one, two] = findAll(markup, 'data-collision-name')
+    expect(one?.inner).not.toContain('data-demon-name-editor')
+    expect(two?.inner).not.toContain('data-demon-name-editor')
+    const owner = findAll(markup, 'data-collision-name').find(line => line.inner.includes('data-demon-name-editor'))
+    expect(attrOf(owner?.open ?? '', 'data-collision-name')).toBe('Aaa')
+    // under the jump buttons of that line, not above them
+    const inner = owner?.inner ?? ''
+    expect(inner.indexOf('data-demon-name-editor')).toBeGreaterThan(inner.lastIndexOf('data-collision-jump'))
+    expect(find(markup, 'data-names-collisions-status')).toBeNull()
+  })
+
+  it('the editor is headed by the demon it edits: its net-span in the active scheme and its kind tag', () => {
+    const markup = renderView({ report, expanded: true, editing: second })
+    const title = need(markup, 'data-collision-editor-title')
+    const [a, b] = netSpanOf(second)
+    expect(textOf(title.inner)).toContain(`z${a}::z${b}`)
+    expect(textOf(title.inner)).toContain(NAMES_COPY.tagGenerated)
+    expect(title.index).toBeLessThan(at(markup, 'data-demon-name-editor'))
+  })
+
+  it('a demon whose name is typed is tagged as overridden in the heading', () => {
+    const naming: Naming = { ...namingOf(OTHER_BASE), overrides: new Map([[second, 'Zed']]) }
+    const markup = renderView({ report, expanded: true, editing: second }, valueFor(naming))
+    expect(textOf(need(markup, 'data-collision-editor-title').inner)).toContain(NAMES_COPY.tagOverridden)
+  })
+
+  it('no editor opens for a demon that no shown line holds (collapsed, on a page not shown, or unknown)', () => {
+    expect(find(renderView({ report, expanded: false, editing: second }), 'data-demon-name-editor')).toBeNull()
+    expect(find(renderView({ report, expanded: true, editing: 999 }), 'data-demon-name-editor')).toBeNull()
+    const long = reportOf([...manyGroups(21)])
+    const lateMesh = (long.list[20]?.meshes[0]) as number
+    expect(find(renderView({ report: long, expanded: true, pages: 1, editing: lateMesh }), 'data-demon-name-editor')).toBeNull()
+    expect(find(renderView({ report: long, expanded: true, pages: 2, editing: lateMesh }), 'data-demon-name-editor')).not.toBeNull()
+  })
+
+  it('the hint shows the preview sentence under the line that was jumped from, and opens no editor', () => {
+    const markup = renderView({ report, expanded: true, hint: third })
+    const status = need(markup, 'data-names-collisions-status')
+    expect(textOf(status.inner)).toBe('Keep this naming to rename demons.')
+    expect(textOf(status.inner)).toBe(NAMES_COPY.previewJump)
+    expect(findAll(markup, 'data-names-collisions-status')).toHaveLength(1)
+    const owner = findAll(markup, 'data-collision-name').find(line => line.inner.includes('data-names-collisions-status'))
+    expect(attrOf(owner?.open ?? '', 'data-collision-name')).toBe('Bbb')
+    expect(find(markup, 'data-demon-name-editor')).toBeNull()
+  })
+
+  it('in the preview state the jump buttons stay enabled (they only show the hint)', () => {
+    const value = valueFor(namingOf(OTHER_BASE), { state: 'preview' })
+    const markup = renderView({ report, expanded: true }, value)
+    const jumps = findAll(markup, 'data-collision-jump')
+    expect(jumps.length).toBeGreaterThan(0)
+    for (const jump of jumps) expect(flagOf(jump.open, 'disabled')).toBe(false)
+  })
+})
+
+describe('the pure decisions of the collision block', () => {
+  it('jumpsOf: the lowest demons up to the cap, and how many more from the exact size', () => {
+    expect(jumpsOf(groupOf('A', [3, 4]))).toEqual({ meshes: [3, 4], more: 0 })
+    expect(jumpsOf(groupOf('A', [1, 2, 3, 4]))).toEqual({ meshes: [1, 2, 3, 4], more: 0 })
+    expect(jumpsOf(groupOf('A', [1, 2, 3, 4, 5]))).toEqual({ meshes: [1, 2, 3, 4], more: 1 })
+    expect(jumpsOf(groupOf('A', Array.from({ length: 16 }, (_, i) => i), 19900))).toEqual({ meshes: [0, 1, 2, 3], more: 19896 })
+  })
+
+  it('linesShown: a page of the data step at a time, never more than the list', () => {
+    expect(linesShown(1, 45)).toBe(COLLISION_LINES_STEP)
+    expect(linesShown(2, 45)).toBe(2 * COLLISION_LINES_STEP)
+    expect(linesShown(3, 45)).toBe(45)
+    expect(linesShown(9, 45)).toBe(45)
+    expect(linesShown(1, 5)).toBe(5)
+    expect(linesShown(1, 0)).toBe(0)
+  })
+
+  it('jumpOutcome: edit where editing is, the hint while previewing, nothing elsewhere', () => {
+    expect(jumpOutcome('ready')).toBe('edit')
+    expect(jumpOutcome('preview')).toBe('hint')
+    expect(jumpOutcome('pending')).toBe('none')
+    expect(jumpOutcome('seed-only')).toBe('none')
+  })
+
+  it('collisionAnnouncement: nothing for the first report or an unchanged count, else the new count', () => {
+    expect(collisionAnnouncement(null, 3)).toBeNull()
+    expect(collisionAnnouncement(null, 0)).toBeNull()
+    expect(collisionAnnouncement(4, 4)).toBeNull()
+    expect(collisionAnnouncement(0, 0)).toBeNull()
+    expect(collisionAnnouncement(3, 0)).toBe('No repeated names.')
+    expect(collisionAnnouncement(0, 2)).toBe('2 repeated names.')
+    expect(collisionAnnouncement(2, 1)).toBe('1 repeated name.')
+  })
+
+  it('phaseOf: checking wins, then no answer yet, then skipped, then done', () => {
+    const naming = namingOf(OTHER_BASE)
+    expect(phaseOf(null, false)).toBe('pending')
+    expect(phaseOf(null, true)).toBe('checking')
+    expect(phaseOf({ naming, report: null }, false)).toBe('skip')
+    expect(phaseOf({ naming, report: null }, true)).toBe('checking')
+    expect(phaseOf({ naming, report: reportOf([]) }, false)).toBe('done')
+    expect(phaseOf({ naming, report: reportOf([]) }, true)).toBe('checking')
+  })
+})
+
+describe('CollisionReport source', () => {
+  const source = readFileSync(COLLISION_SOURCE, 'utf8')
+  const lines = (text: string): number => source.split('\n').filter(line => line.includes(text)).length
+
+  it('asks the engine for a job once, mounts the editor once in the collision context, and never pins or starts a worker', () => {
+    expect(lines('createCollisionJob(')).toBe(1)
+    expect(lines('context="collision"')).toBe(1)
+    expect(source).not.toContain('onPinInfo')
+    expect(source).not.toContain('new Worker')
+  })
+
+  it('schedules with the app scheduler, a performance clock and the grace period, and cancels by generation', () => {
+    expect(source).toContain('browserSchedule')
+    expect(source).toContain('performance.now()')
+    expect(source).toContain('PENDING_GRACE_MS')
+    expect(PENDING_GRACE_MS).toBe(150)
+    expect(source).toContain('genRef')
+    expect(source).toContain('COLLISION_SLICE_MS')
+    expect(source).toContain('collisionScanLimit()')
+  })
+
+  it('has no raw-html path and types no limit', () => {
+    expect(source).not.toContain('dangerouslySetInnerHTML')
+    expect(source).not.toContain('innerHTML')
+    expect(/\beval\s*\(|new Function\s*\(/.test(source)).toBe(false)
+    expect(/\b1024\b|\b4000\b|\b4096\b/.test(source)).toBe(false)
+  })
+
+  it('is mounted once by the panel, with the panel open flag', () => {
+    const panel = readFileSync(PANEL_SOURCE, 'utf8')
+    expect(panel.split('\n').filter(line => line.includes('<CollisionReport')).length).toBe(1)
+    expect(panel).toContain('<CollisionReport open={open} />')
+  })
+
+  it('marks the root as post-baseline chrome and carries the documented hooks', () => {
+    expect(source).toContain('data-post-baseline=""')
+    expect(source).toContain('data-names-collisions=""')
+    expect(source).toContain('data-collision-jump')
   })
 })
