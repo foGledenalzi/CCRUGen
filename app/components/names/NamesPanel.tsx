@@ -55,6 +55,7 @@ import { CyberButton } from '../ui/CyberButton'
 import { CyberCheckbox } from '../ui/CyberCheckbox'
 import { CyberRadio } from '../ui/CyberRadio'
 import { NumogramViewContext } from '../numogram/ViewContext'
+import { CollisionReport } from './CollisionReport'
 import { useNaming, type NamingContextValue } from './NamingContext'
 import { ZoneList, useObservedHeight } from './ZoneList'
 
@@ -290,7 +291,7 @@ export function NamesPanel({ open, bodyMax, pinnedMesh, pinnedZone }: NamesPanel
         {naming.announcement}
       </div>
       {/* Keyed by the displayed base: a base switch starts the body afresh (scroll at the top, no status, no draft). */}
-      {open && <NamesBody key={naming.base} nc={naming} bodyMax={bodyMax} pinnedMesh={pinnedMesh} pinnedZone={pinnedZone} />}
+      {open && <NamesBody key={naming.base} nc={naming} open={open} bodyMax={bodyMax} pinnedMesh={pinnedMesh} pinnedZone={pinnedZone} />}
     </div>
   )
 }
@@ -404,12 +405,14 @@ export function NamesStatusSlot({ status, onUndo, onUseSeed }: NamesStatusSlotPr
 
 interface NamesBodyProps {
   readonly nc: NamingContextValue
+  /** Always true while the body is mounted; handed on so the collision check runs only while the panel is open. */
+  readonly open: boolean
   readonly bodyMax: number
   readonly pinnedMesh: number | null
   readonly pinnedZone: number | null
 }
 
-function NamesBody({ nc, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps): JSX.Element {
+function NamesBody({ nc, open, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps): JSX.Element {
   const n: Naming = nc.naming
   const { base, state, preset } = nc
   const view = useContext(NumogramViewContext)
@@ -882,7 +885,8 @@ function NamesBody({ nc, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps): JSX
           </div>
         )}
 
-        {/* block 9: CollisionReport (plan 07-20) */}
+        {/* block 9: the collision report (plan 07-20), where there is a naming to check: ready and preview */}
+        {showSummary && <CollisionReport open={open} />}
 
         {/* block 10: import and export, one status slot with the inline Undo */}
         <div className="space-y-1">

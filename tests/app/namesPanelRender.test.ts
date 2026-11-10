@@ -2263,10 +2263,9 @@ describe('CollisionReportView: the inline editor and the preview hint', () => {
     expect(editors).toHaveLength(1)
     expect(attrOf(editors[0]?.open ?? '', 'data-demon-name-context')).toBe('collision')
     expect(markup).toContain('data-demon-name-input')
-    const [one, two] = findAll(markup, 'data-collision-name')
-    expect(one?.inner).not.toContain('data-demon-name-editor')
-    expect(two?.inner).not.toContain('data-demon-name-editor')
-    const owner = findAll(markup, 'data-collision-name').find(line => line.inner.includes('data-demon-name-editor'))
+    const owners = findAll(markup, 'data-collision-name').filter(line => line.inner.includes('data-demon-name-editor'))
+    expect(owners).toHaveLength(1)
+    const owner = owners[0]
     expect(attrOf(owner?.open ?? '', 'data-collision-name')).toBe('Aaa')
     // under the jump buttons of that line, not above them
     const inner = owner?.inner ?? ''
