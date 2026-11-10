@@ -3,6 +3,7 @@
 // the aria-label, the live-region repeat toggle and the frame is asserted here with real engine scenes and views, so the
 // component itself only wires DOM events to these functions. Expectations are derived from the engine, the view and the
 // transform in this file, never copied from the module under test.
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   buildPairScene,
@@ -24,6 +25,7 @@ import {
   calloutColor,
   calloutPosition,
   canvasAriaLabel,
+  chordCalloutText,
   committedFor,
   frameOf,
   gestureMapping,
@@ -409,6 +411,119 @@ describe('targetTextFor', () => {
     expect(focusKeyOf({ kind: 'pair', pair: 2 }, text)).toBe('pair:2')
     const gate = fx.view.gates.find(gt => gt.from === 3) as { name: string }
     expect(focusKeyOf({ kind: 'gate', zone: 3 }, text)).toBe(`gate:${gate.name}`)
+  })
+
+  describe('with the sixth argument zoneSounds (Phase 7, plan 07-14)', () => {
+    // neutral sounds: no CCRU zone sound is copied into a test
+    const sounds: readonly string[] = Object.freeze(Array.from({ length: 28 }, (_, z) => `w${z}y`))
+    const withSounds = targetTextFor(fx.view, fx.labels, fx.index, fx.scene, new Set([4]), sounds)
+    const regionOf = (z: number): string => regionLabel(fx.view.zoneRegion[z] as never)
+
+    it('passes the table through to the keyboard model: a zone is named with its sound', () => {
+      expect(withSounds.zoneSounds).toBe(sounds)
+      expect(announcementFor({ kind: 'zone', zone: 5 }, withSounds)).toBe(`Zone ${fx.labels[5]}, sound w5y, ${regionOf(5)}`)
+      expect(announcementFor({ kind: 'zone', zone: 4 }, withSounds)).toBe(`Zone ${fx.labels[4]}, sound w4y, ${regionOf(4)}, selected`)
+    })
+
+    it('without the sixth argument (or with null) the text is today\'s, and no table is carried', () => {
+      for (const t of [text, targetTextFor(fx.view, fx.labels, fx.index, fx.scene, new Set([4]), null)]) {
+        expect(t.zoneSounds ?? null).toBeNull()
+        expect(announcementFor({ kind: 'zone', zone: 5 }, t)).toBe(`Zone ${fx.labels[5]}, ${regionOf(5)}`)
+      }
+    })
+
+    it('everything else of the text is the same as without sounds: the joins, the pair names and the selection', () => {
+      for (let z = 0; z < 28; z++) {
+        expect(withSounds.syzygyOf(z)).toBe(text.syzygyOf(z))
+        expect(withSounds.currentOf(z)).toBe(text.currentOf(z))
+        expect(withSounds.gateOf(z)).toBe(text.gateOf(z))
+      }
+      for (let q = 0; q < 14; q++) expect(withSounds.pairOf(q)).toEqual(text.pairOf(q))
+      expect(withSounds.isSelected(4)).toBe(true)
+      expect(withSounds.isSelected(5)).toBe(false)
+      expect(withSounds.zoneLabels).toBe(fx.labels)
+    })
+  })
+})
+
+describe('chordCalloutText (the demon chord callout, Phase 7 plan 07-14)', () => {
+  const fx = zoneFx(28)
+  const MID_DOT = String.fromCodePoint(0xb7)
+  // a neutral stand-in for the live name: depends on both zones and on their order, so every swap shows
+  const nameOf = (a: number, b: number): string => `n${a}-${b}`
+  const demon = { a: 12, b: 3, name: 'baked-legacy', kind: 'chrono' }
+
+  it('without a naming it is the chord\'s own name, unchanged', () => {
+    expect(chordCalloutText(demon, fx.labels, null)).toBe('baked-legacy')
+    expect(chordCalloutText({ a: 12, b: 3, name: 'c::3', kind: 'chrono' }, fx.labels, null)).toBe('c::3')
+  })
+
+  it('with a naming it is the net-span first, a middle dot, then the live name of the pair', () => {
+    expect(chordCalloutText({ a: 12, b: 3, name: 'c::3', kind: 'chrono' }, fx.labels, nameOf)).toBe(`c::3 ${MID_DOT} ${nameOf(12, 3)}`)
+    expect(chordCalloutText({ a: 12, b: 3, name: 'c::3', kind: 'chrono' }, fx.labels, nameOf)).toBe('c::3 · n12-3')
+  })
+
+  it('never shows the baked legacy name once a naming is given (render time, not data time)', () => {
+    const text = chordCalloutText(demon, fx.labels, nameOf)
+    expect(text).not.toContain('baked-legacy')
+    expect(text).toBe(`${fx.labels[12]}::${fx.labels[3]} ${MID_DOT} n12-3`)
+  })
+
+  it('asks the naming for the chord\'s two zones in the chord\'s own order', () => {
+    const calls: [number, number][] = []
+    chordCalloutText({ a: 3, b: 12, name: 'x', kind: 'amphi' }, fx.labels, (a, b) => {
+      calls.push([a, b])
+      return 'live'
+    })
+    expect(calls).toEqual([[3, 12]])
+    expect(chordCalloutText({ a: 3, b: 12, name: 'x', kind: 'amphi' }, fx.labels, nameOf)).toBe(`3::c ${MID_DOT} n3-12`)
+  })
+
+  it('writes the net-span in the label alphabet it is given, so nothing disappears at a non-decimal base', () => {
+    const labels = fx.labels.map((_, z) => `<${z}>`)
+    expect(chordCalloutText({ a: 20, b: 7, name: 'ignored', kind: 'xeno' }, labels, nameOf)).toBe(`<20>::<7> ${MID_DOT} n20-7`)
+  })
+
+  it('a naming that does not know the zones (a stale base) falls back to the chord\'s own name; another error is not hidden', () => {
+    const range = (): string => {
+      throw new RangeError('zone out of range')
+    }
+    expect(chordCalloutText(demon, fx.labels, range)).toBe('baked-legacy')
+    const broken = (): string => {
+      throw new TypeError('bug')
+    }
+    expect(() => chordCalloutText(demon, fx.labels, broken)).toThrow(TypeError)
+  })
+})
+
+describe('CanvasDiagram wiring of the sounds mode and the live chord name', () => {
+  const source = readFileSync(new URL('../../app/components/canvas/CanvasDiagram.tsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+
+  it('takes an optional zoneSounds prop and gives it to both draw states and both targetTextFor calls', () => {
+    expect(source).toMatch(/zoneSounds\?: readonly string\[\] \| null/)
+    // the static state and the overlay state each carry it
+    const overlayState = /const st: OverlayState = \{[^}]*\bzoneSounds\b[^}]*\}/.exec(source)
+    const staticState = /const st: DrawState = \{[^}]*\bzoneSounds\b[^}]*\}/.exec(source)
+    expect(overlayState).not.toBeNull()
+    expect(staticState).not.toBeNull()
+    // both keyboard texts: the selected one and the plain one
+    expect(source).toMatch(/targetTextFor\(view, zoneLabels, index, scene, selZones, zoneSounds\)/)
+    expect(source).toMatch(/targetTextFor\(view, zoneLabels, index, scene, EMPTY_ZONES, zoneSounds\)/)
+  })
+
+  it('lists zoneSounds in the dependency lists of the memoised texts and of the static raster', () => {
+    expect(source).toMatch(/\[view, zoneLabels, zoneSounds, index, scene, selZones\]/)
+    expect(source).toMatch(/\[view, zoneLabels, zoneSounds, index, scene\]/)
+    const raster = /useIsoLayoutEffect\(\(\) => \{\n {4}const cs = [\s\S]*?\n {2}\}, \[([\s\S]*?)\]\)/.exec(source)
+    expect(raster).not.toBeNull()
+    expect(raster?.[1]).toMatch(/\bzoneSounds\b/)
+  })
+
+  it('reads the naming with the null-safe hook and builds the chord callout through chordCalloutText', () => {
+    expect(source).toMatch(/const naming = useNaming\(\)/)
+    expect(source.match(/chordCalloutText\(/g)).toHaveLength(1)
+    expect(source).toMatch(/text: chordCalloutText\(pointerHover\.chord, zoneLabels, /)
+    expect(source).not.toMatch(/text: pointerHover\.chord\.name/)
   })
 })
 

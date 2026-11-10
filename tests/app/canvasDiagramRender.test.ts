@@ -309,6 +309,43 @@ describe('CanvasDiagram: the callout chip', () => {
   })
 })
 
+describe('CanvasDiagram: the callout chip in sounds mode (Phase 7, plan 07-14)', () => {
+  const fx = zoneFx(28)
+  // neutral sounds: no CCRU zone sound is copied into a test
+  const sounds: readonly string[] = Array.from({ length: 28 }, (_, z) => `w${z}y`)
+  const chipOf = (markup: string): string => markup.match(/<div[^>]*data-canvas-callout=""[^>]*>[^<]*<\/div>/)?.[0] ?? ''
+
+  it('names a pinned zone "Zone {digits}, sound {sound}, {Region}", without the selected suffix', () => {
+    const chip = chipOf(render(fx, { pinnedInfo: { type: 'zone', zone: 5 }, selZones: new Set([5]), zoneSounds: sounds }))
+    expect(chip).toContain(`>Zone ${fx.labels[5]}, sound w5y, ${regionLabel(fx.view.zoneRegion[5] as never)}</div>`)
+    expect(chip).not.toContain('selected')
+  })
+
+  it('a hovered zone is named the same way, and the full sound is named however long it is', () => {
+    const long = 'abcdefghijklmnop'
+    const table = sounds.map((s, z) => (z === 12 ? long : s))
+    const chip = chipOf(render(fx, { hoverInfo: { type: 'zone', zone: 12 }, zoneSounds: table }))
+    expect(chip).toContain(`>Zone ${fx.labels[12]}, sound ${long}, ${regionLabel(fx.view.zoneRegion[12] as never)}</div>`)
+  })
+
+  it('without zoneSounds (absent or null) the chip is the digits text it was', () => {
+    for (const zoneSounds of [undefined, null]) {
+      const chip = chipOf(render(fx, { pinnedInfo: { type: 'zone', zone: 5 }, zoneSounds }))
+      expect(chip).toContain(`>Zone ${fx.labels[5]}, ${regionLabel(fx.view.zoneRegion[5] as never)}</div>`)
+      expect(chip).not.toContain('sound')
+    }
+  })
+
+  it('an edge chip keeps its numerals, and a sound is escaped as text, never markup', () => {
+    const syz = fx.view.syzygies[0] as { a: number; b: number }
+    const edge = chipOf(render(fx, { hoverInfo: { type: 'syzygy', data: fx.view.syzygies[0]! }, zoneSounds: sounds }))
+    expect(edge).toContain(`>Syzygy ${fx.labels[syz.a]}::${fx.labels[syz.b]}</div>`)
+    const markup = render(fx, { pinnedInfo: { type: 'zone', zone: 5 }, zoneSounds: sounds.map((s, z) => (z === 5 ? '<b>x' : s)) })
+    expect(markup).toContain('sound &lt;b&gt;x')
+    expect(markup).not.toContain('<b>x')
+  })
+})
+
 describe('CanvasDiagram: source rules', () => {
   const source = readFileSync(new URL('../../app/components/canvas/CanvasDiagram.tsx', import.meta.url), 'utf8')
 

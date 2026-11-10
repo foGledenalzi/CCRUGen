@@ -7,6 +7,7 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { createNumogram } from '../../engine/index'
 import { DEFAULT_LABEL_SCHEME, zoneLabelsFor } from '../../app/lib/labelScheme'
+import { zoneSoundAria } from '../../app/lib/namingCopy'
 import { buildNumogramView } from '../../app/lib/numogramView'
 import { regionLabel, type RegionId } from '../../app/lib/regions'
 import {
@@ -548,5 +549,76 @@ describe('activationAnnouncement', () => {
     const none: TargetText = { ...text, gateOf: () => null }
     expect(activationAnnouncement(gate(12), none, true)).toBe(announcementFor(zone(12), none))
     expect(activationAnnouncement(gate(12), none, true)).not.toContain('pinned')
+  })
+})
+
+describe('sounds mode: zoneSounds in the target text (Phase 7, plan 07-14)', () => {
+  // neutral sounds: no CCRU zone sound is copied into a test
+  const sounds: readonly string[] = Object.freeze(Array.from({ length: g.zoneCount }, (_, z) => `q${z}x`))
+  const region = (z: number): string => regionLabel(view.zoneRegion[z] as RegionId)
+  const withSounds = (opts: { selected?: ReadonlySet<number> } = {}, table: readonly string[] | null = sounds): TargetText => ({
+    ...makeText(opts),
+    zoneSounds: table,
+  })
+
+  it('names a zone "Zone {digits}, sound {sound}, {Region}" and appends the selected suffix after it', () => {
+    expect(announcementFor(zone(12), withSounds())).toBe(`Zone c, sound q12x, ${region(12)}`)
+    expect(announcementFor(zone(12), withSounds({ selected: new Set([12]) }))).toBe(`Zone c, sound q12x, ${region(12)}, selected`)
+  })
+
+  it('is the shared zoneSoundAria wording for every zone, selected or not', () => {
+    for (let z = 0; z < g.zoneCount; z++) {
+      expect(announcementFor(zone(z), withSounds())).toBe(zoneSoundAria(labels[z] as string, sounds[z] as string, region(z), false))
+      expect(announcementFor(zone(z), withSounds({ selected: new Set([z]) }))).toBe(zoneSoundAria(labels[z] as string, sounds[z] as string, region(z), true))
+    }
+  })
+
+  it('activation says selected or not selected after the sound text, never doubling the suffix', () => {
+    const base = `Zone c, sound q12x, ${region(12)}`
+    expect(activationAnnouncement(zone(12), withSounds(), true)).toBe(`${base}, selected`)
+    expect(activationAnnouncement(zone(12), withSounds(), false)).toBe(`${base}, not selected`)
+    const was = withSounds({ selected: new Set([12]) })
+    expect(activationAnnouncement(zone(12), was, false)).toBe(`${base}, not selected`)
+    expect(activationAnnouncement(zone(12), was, true)).toBe(`${base}, selected`)
+  })
+
+  it('the full sound is announced however long it is (the label may be cut, the name never is)', () => {
+    const long = 'abcdefghijklmnop'
+    const table = sounds.map((s, z) => (z === 12 ? long : s))
+    expect(announcementFor(zone(12), withSounds({}, table))).toBe(`Zone c, sound ${long}, ${region(12)}`)
+  })
+
+  it('an edge that does not exist is announced as its owner zone, with the sound', () => {
+    const none: TargetText = { ...withSounds(), syzygyOf: () => null, currentOf: () => null, gateOf: () => null }
+    expect(announcementFor(gate(12), none)).toBe(`Zone c, sound q12x, ${region(12)}`)
+    expect(announcementFor(gate(12), none)).toBe(announcementFor(zone(12), none))
+  })
+
+  it('syzygy, current, gate and pair strings and every focus key keep numerals, as without sounds', () => {
+    const plain = makeText()
+    const snd = withSounds()
+    for (const target of [syzygy(13), currentOf(5), gate(5), pair(3), pair(6)]) {
+      expect(announcementFor(target, snd)).toBe(announcementFor(target, plain))
+      expect(activationAnnouncement(target, snd, true)).toBe(activationAnnouncement(target, plain, true))
+    }
+    for (const target of [zone(15), syzygy(13), currentOf(5), gate(5), pair(3)]) {
+      expect(focusKeyOf(target, snd)).toBe(focusKeyOf(target, plain))
+    }
+    expect(announcementFor(syzygy(13), snd)).toBe('Syzygy d::e')
+  })
+
+  it('absent or null zoneSounds gives exactly today\'s strings', () => {
+    const plain = makeText()
+    for (const text of [plain, withSounds({}, null), { ...plain, zoneSounds: undefined }]) {
+      expect(announcementFor(zone(12), text)).toBe(`Zone c, ${region(12)}`)
+      expect(activationAnnouncement(zone(12), text, true)).toBe(`Zone c, ${region(12)}, selected`)
+    }
+  })
+
+  it('a zone whose sound is empty or missing keeps the digits wording, since its label is the numeral', () => {
+    const table = sounds.slice(0, 20).map((s, z) => (z === 3 ? '' : s))
+    expect(announcementFor(zone(3), withSounds({}, table))).toBe(`Zone 3, ${region(3)}`)
+    expect(announcementFor(zone(24), withSounds({}, table))).toBe(`Zone ${labels[24]}, ${region(24)}`)
+    expect(announcementFor(zone(5), withSounds({}, table))).toBe(`Zone 5, sound q5x, ${region(5)}`)
   })
 })
