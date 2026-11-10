@@ -334,7 +334,8 @@ describe('DemonNameEditorView: an invalid draft', () => {
     expect(p.startsWith('<p ')).toBe(true)
     expect(p).toContain('id="msg-1"')
     expect(p).toContain('text-[#f87171]')
-    expect(textOf(markup)).toContain('c::3: Names can\'t contain digits.')
+    // the static markup writes an apostrophe as a character reference
+    expect(textOf(markup).replace(/&#x27;/g, "'")).toContain("c::3: Names can't contain digits.")
     expect(markup.indexOf('data-demon-name-input')).toBeLessThan(markup.indexOf('data-demon-name-message'))
     expect(markup.indexOf('data-demon-name-message')).toBeLessThan(markup.indexOf('data-demon-name-save'))
   })
