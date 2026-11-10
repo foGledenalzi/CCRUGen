@@ -281,15 +281,24 @@ describe('sessionForBase', () => {
   })
 
   it('ignores a saved slot at a seed-only base and never previews there', () => {
-    const stray = setSeed(defaultNamingFor(DENSE, env), 'abc')
-    const none = sessionForBase(SEED_ONLY, stray, null, env, counter())
-    expect(none.saved).toBeNull()
-    expect(none.preview).toBe(false)
-    expect(none.working).toEqual(defaultNamingFor(SEED_ONLY, env))
-    const linked = sessionForBase(SEED_ONLY, stray, SEED_LINK_ABC, env, counter())
-    expect(linked.saved).toBeNull()
-    expect(linked.preview).toBe(false)
-    expect(linked.working).toEqual(namingFromLink(SEED_LINK_ABC, SEED_ONLY, env))
+    // a stray slot of the very same base (an older build, another tab) and one of another base: both are ignored above the ceiling
+    for (const stray of [setSeed(defaultNamingFor(SEED_ONLY, env), 'mine'), setSeed(defaultNamingFor(DENSE, env), 'abc')]) {
+      const none = sessionForBase(SEED_ONLY, stray, null, env, counter())
+      expect(none.saved).toBeNull()
+      expect(none.preview).toBe(false)
+      expect(none.working).toEqual(defaultNamingFor(SEED_ONLY, env))
+      const linked = sessionForBase(SEED_ONLY, stray, SEED_LINK_ABC, env, counter())
+      expect(linked.saved).toBeNull()
+      expect(linked.preview).toBe(false)
+      expect(linked.working).toEqual(namingFromLink(SEED_LINK_ABC, SEED_ONLY, env))
+    }
+  })
+
+  it('still uses the slot at the ceiling itself, and only above it ignores one', () => {
+    const atCeiling = editSound(defaultNamingFor(smallEnv.interactiveMaxN, smallEnv), 3, 'zed')
+    const s = sessionForBase(smallEnv.interactiveMaxN, atCeiling, null, smallEnv, counter())
+    expect(s.working).toBe(atCeiling)
+    expect(s.saved).toBe(atCeiling)
   })
 
   it('ignores a saved naming that belongs to another base', () => {
@@ -476,6 +485,11 @@ describe('applyNamingAction', () => {
       { type: 'use-seed', record: { ...SEED_RECORD, style: 'bogus' as StyleId } },
     ]
     for (const action of bad) expect(applyNamingAction(s, action, env, counter()), JSON.stringify(action)).toBe(s)
+  })
+
+  it('does not hide a malformed action object: only the engine RangeError of an invalid value is refused quietly', () => {
+    const s = fresh(DENSE)
+    expect(() => applyNamingAction(s, { type: 'paste', zone: 0, sounds: null as unknown as string[] }, env, counter())).toThrow(TypeError)
   })
 
   it('refuses a paste with one bad token even when it lies past the last zone, so nothing is half applied', () => {
