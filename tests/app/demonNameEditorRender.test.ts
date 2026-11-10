@@ -700,6 +700,12 @@ describe('DemonNameEditor: source wiring', () => {
     expect(src).toContain('backTo(')
   })
 
+  it('a refused draft keeps the edit open, announces the refusal and puts the caret back in the field', () => {
+    expect(src).toMatch(
+      /setEdit\(\{ \.\.\.active, message: outcome\.message \}\)\s+naming\.announce\(outcome\.message\)\s+\/\/[^\n]*\n\s+inputRef\.current\?\.focus\(\)\s+return/,
+    )
+  })
+
   it('a key event is ignored unless an edit is showing', () => {
     expect(src).toMatch(/function onKeyDown\([^)]*\): void \{\s*if \(active === null\) return/)
   })

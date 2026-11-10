@@ -348,6 +348,8 @@ function EditorBody({ a, b, context, autoEdit = false, onEditingChange, onDone, 
     if (outcome.kind === 'refused') {
       setEdit({ ...active, message: outcome.message })
       naming.announce(outcome.message)
+      // the visitor fixes the draft next, so the caret goes back to the field (Save may have taken focus)
+      inputRef.current?.focus()
       return
     }
     if (outcome.kind === 'rename' && naming.apply(outcome.action)) naming.announce(outcome.status)
