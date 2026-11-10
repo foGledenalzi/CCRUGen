@@ -14,7 +14,16 @@ import { GlitchText } from '../ui/GlitchText'
 import { StatusDot } from '../ui/StatusDot'
 import { DataRow } from '../ui/DataRow'
 import { SectionFrame } from '../ui/SectionFrame'
+import { useNaming, type NamingContextValue } from '../names/NamingContext'
 import { useNumogramView, type NumogramViewContextValue } from '../numogram/ViewContext'
+
+/**
+ * The name of a demon, read at render time from the naming of the displayed base (Pitfall 6): the name baked into the info by
+ * legacyDemon is only the fallback for a render with no naming, or with the naming of another base (a base switch in flight).
+ */
+function demonNameFor(naming: NamingContextValue | null, base: number, d: { readonly a: number; readonly b: number; readonly name: string }): string {
+  return naming !== null && naming.base === base ? naming.resolver.nameOf(d.a, d.b) : d.name
+}
 
 // ── Zone Info ──────────────────────────────────────────────────
 
@@ -291,6 +300,8 @@ function GateInfo({ data }: { data: HoverInfo & { type: 'gate' } }) {
 export function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
   const d = data.demon
   const { base, g, view, zoneLabel } = useNumogramView()
+  const naming = useNaming()
+  const name = demonNameFor(naming, base, d)
   // Authoritative mesh/subtype (T-05-32): never from the caller-supplied legacy shape, O(1) regardless of base.
   const ref = g.demons.ref(d.a, d.b)
   const kindClr = d.kind === 'chrono' ? '#00ccff'
@@ -311,7 +322,7 @@ export function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
     return (
       <div className="space-y-1.5">
         <div className="flex items-center gap-2">
-          <GlitchText text={d.name} color={kindClr} />
+          <GlitchText text={name} color={kindClr} />
           <StatusDot color={kindClr} />
           <span className="text-[8px] text-gray-600 ml-auto">{zoneLabel(d.a)}::{zoneLabel(d.b)}</span>
         </div>
@@ -341,7 +352,7 @@ export function DemonInfo({ data }: { data: HoverInfo & { type: 'demon' } }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <GlitchText text={d.name} color={kindClr} />
+        <GlitchText text={name} color={kindClr} />
         <StatusDot color={kindClr} />
         <span className="text-[8px] text-gray-600 ml-auto">{zoneLabel(d.a)}::{zoneLabel(d.b)}</span>
       </div>
@@ -379,8 +390,12 @@ function selectedInfoKey(info: HoverInfo): string {
   }
 }
 
-function selectedInfoMeta(info: HoverInfo, ctx: NumogramViewContextValue): { title: string; color: string } {
-  const { view, zoneLabel } = ctx
+export function selectedInfoMeta(
+  info: HoverInfo,
+  ctx: NumogramViewContextValue,
+  naming: NamingContextValue | null,
+): { title: string; color: string } {
+  const { base, view, zoneLabel } = ctx
   switch (info.type) {
     case 'zone':
       return { title: `Zone ${zoneLabel(info.zone)}`, color: view ? (view.zoneColors[info.zone] as string) : '#e8e8e8' }
@@ -392,7 +407,7 @@ function selectedInfoMeta(info: HoverInfo, ctx: NumogramViewContextValue): { tit
       return { title: info.gate.name, color: '#cc44ff' }
     case 'demon':
       return {
-        title: info.demon.name,
+        title: demonNameFor(naming, base, info.demon),
         color: info.demon.kind === 'chrono' ? '#00ccff'
           : info.demon.kind === 'xeno' ? '#cc3333'
           : info.demon.kind === 'amphi' ? '#cc8833' : '#e8e8e8',
@@ -478,6 +493,7 @@ export function InfoDisplay({
   onHoverSelectedInfo,
 }: InfoDisplayProps) {
   const ctx = useNumogramView()
+  const naming = useNaming()
   const info = hoverInfo || pinnedInfo
   const selectedByKey = new Map(selectedInfos.map(si => [selectedInfoKey(si), si]))
   const selectedKeys = useMemo(() => selectedInfos.map(selectedInfoKey), [selectedInfos])
@@ -500,7 +516,7 @@ export function InfoDisplay({
     const groupItems = shown.reduce<PanelGroupItem[]>((acc, key) => {
         const si = selectedByKey.get(key)
         if (!si) return acc
-        const meta = selectedInfoMeta(si, ctx)
+        const meta = selectedInfoMeta(si, ctx, naming)
         acc.push({
           id: key,
           title: meta.title,

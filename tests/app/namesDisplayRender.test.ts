@@ -51,6 +51,7 @@ import { CCRU_NAMING_PRESET } from '../../app/presets/base10/naming'
 
 const INFO_SOURCE = fileURLToPath(new URL('../../app/components/info/InfoDisplay.tsx', import.meta.url))
 const ROW_LIST_SOURCE = fileURLToPath(new URL('../../app/components/demons/DemonRowList.tsx', import.meta.url))
+const MATRIX_SOURCE = fileURLToPath(new URL('../../app/components/demons/DemonMatrix.tsx', import.meta.url))
 const noop = () => {}
 const ELLIPSIS = String.fromCodePoint(0x2026)
 const MIDDLE_DOT = String.fromCodePoint(0xb7)
@@ -296,6 +297,12 @@ describe('DemonMatrix text', () => {
     const ref10 = g10.demons.ref(1, 0)
     const canon = liveText(g10, valueOf(ccru10()), ref10.mesh)
     expect(canon).toContain(`${MIDDLE_DOT} ${CCRU_NAMING_PRESET.names[ref10.mesh]} ${MIDDLE_DOT}`)
+  })
+
+  it('hands the resolver name to both call sites, the hover tooltip and the live text (source: the tooltip needs a pointer)', () => {
+    const source = readFileSync(MATRIX_SOURCE, 'utf8')
+    expect(source.match(/\bdemonText\(/g)).toHaveLength(3) // the definition and the two call sites
+    expect(source.match(/\bdemonText\(\w+, zoneLabel, nameOf\(\w+\)\)/g)).toHaveLength(2)
   })
 
   it('omits the name segment when the naming belongs to another base', () => {

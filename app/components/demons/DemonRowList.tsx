@@ -3,9 +3,11 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { DemonRef } from '../../../engine/index'
+import type { DemonRef, NameResolver } from '../../../engine/index'
+import { useNaming } from '../names/NamingContext'
 import { useNumogramView } from '../numogram/ViewContext'
 import { CyberButton } from '../ui/CyberButton'
+import { NAMES_COPY } from '../../lib/namingCopy'
 import type { DemonRowSource, DemonSort, DemonSortKey } from '../../lib/demonBrowser'
 import {
   BROWSER_WINDOW_ROWS,
@@ -50,6 +52,37 @@ function sortAriaFor(sort: DemonSort | undefined, key: DemonSortKey): 'ascending
   return sort.direction === 'asc' ? 'ascending' : 'descending'
 }
 
+/**
+ * The NAME cell content for a demon, read from the naming at render time (never remembered per row, Pitfall 6). The name sits in
+ * a truncating span with the full text in `title`; an overridden name gets a sibling marker outside that span, so a long name
+ * never hides the `*` (UI-SPEC Name Display Contract). Canonical and generated names carry no marker.
+ */
+function nameCell(resolver: NameResolver, d: DemonRef): React.ReactNode {
+  const name = resolver.nameOf(d.a, d.b)
+  const overridden = resolver.stateOf(d.a, d.b) === 'overridden'
+  return (
+    <>
+      <span
+        className="truncate"
+        title={name}
+        style={{
+          display: 'inline-block',
+          maxWidth: overridden ? 'calc(100% - 1.5ch)' : '100%',
+          verticalAlign: 'bottom',
+          unicodeBidi: 'plaintext',
+        }}
+      >
+        {name}
+      </span>
+      {overridden && (
+        <span data-post-baseline="" data-name-overridden="" title={NAMES_COPY.overriddenTitle}>
+          *<span className="sr-only">{NAMES_COPY.overriddenHidden}</span>
+        </span>
+      )}
+    </>
+  )
+}
+
 export function DemonRowList({
   listId,
   source,
@@ -63,6 +96,10 @@ export function DemonRowList({
   onSelectDemon,
 }: DemonRowListProps) {
   const { base, zoneLabel } = useNumogramView()
+  const naming = useNaming()
+  // A naming of another base (a base switch in flight) is never asked: its resolver raises for a zone outside its base, so the
+  // cell keeps the legacy text until the naming of the displayed base arrives.
+  const resolver = naming !== null && naming.base === base ? naming.resolver : null
 
   // Window paging (T-05-17): only one <= BROWSER_WINDOW_ROWS-row window is ever mounted in the virtualizer.
   const [page, setPage] = useState(0)
@@ -240,7 +277,7 @@ export function DemonRowList({
                   {SUBTYPE_LABEL[d.subtype]}
                 </div>
                 <div role="gridcell" data-col="name">
-                  {demonName(base, d.mesh) ?? ''}
+                  {resolver !== null ? nameCell(resolver, d) : (demonName(base, d.mesh) ?? '')}
                 </div>
               </div>
             )

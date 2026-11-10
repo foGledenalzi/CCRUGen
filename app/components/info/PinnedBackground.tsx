@@ -2,6 +2,7 @@
 
 import React from 'react'
 import type { HoverInfo } from '../../data/types'
+import { useNaming } from '../names/NamingContext'
 import { useNumogramView } from '../numogram/ViewContext'
 
 interface PinnedBackgroundProps {
@@ -10,7 +11,8 @@ interface PinnedBackgroundProps {
 }
 
 export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProps) {
-  const { view, zoneLabel } = useNumogramView()
+  const { base, view, zoneLabel } = useNumogramView()
+  const naming = useNaming()
   if (!pinnedInfo || !view) return null
 
   return (
@@ -79,9 +81,11 @@ export function PinnedBackground({ pinnedInfo, hoverInfo }: PinnedBackgroundProp
         })()}
         {pinnedInfo.type === 'demon' && (() => {
           const d = pinnedInfo.demon
+          // Read at render time from the naming of the displayed base; the name baked into the info is only the fallback (Pitfall 6).
+          const name = naming !== null && naming.base === base ? naming.resolver.nameOf(d.a, d.b) : d.name
           return (
             <>
-              <div className="text-2xl tracking-[0.2em] uppercase italic text-gray-400">{d.name}</div>
+              <div className="text-2xl tracking-[0.2em] uppercase italic text-gray-400">{name}</div>
               <div className="text-sm text-gray-600">{zoneLabel(d.a)}::{zoneLabel(d.b)}</div>
             </>
           )

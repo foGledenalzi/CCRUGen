@@ -2,11 +2,14 @@
 
 // Triangular demon matrix (DEM-04, D-06): progressive canvas raster, exact picking. Original CCRUG code (MIT, NOTICE section 1).
 import { useEffect, useRef, useState } from 'react'
-import type { DemonRef } from '../../../engine/index'
+import { splitGraphemes, type DemonRef } from '../../../engine/index'
+import { useNaming } from '../names/NamingContext'
 import { useNumogramView } from '../numogram/ViewContext'
 import { Pill } from '../ui/Pill'
 import { legacyKind } from '../../presets/base10/demons'
 import { KIND_COLOR, KIND_LABEL, LEGACY_KINDS, SUBTYPE_LABEL, netSpanLabel } from '../../lib/demonBrowser'
+import { matrixTooltip } from '../../lib/namingCopy'
+import { NAME_TOOLTIP_GRAPHEMES } from '../../lib/namingLimits'
 import {
   buildPalette,
   cellAtPixel,
@@ -40,7 +43,7 @@ const PALETTE = buildPalette([KIND_COLOR.chrono, KIND_COLOR.amphi, KIND_COLOR.xe
 const KIND_INDEX = { chrono: 0, amphi: 1, xeno: 2, syzygy: 3 } as const
 
 const MIDDLE_DOT = String.fromCodePoint(0xb7)
-const SEP = ` ${MIDDLE_DOT} `
+const ELLIPSIS = String.fromCodePoint(0x2026)
 const HINT = `drag to pan ${MIDDLE_DOT} scroll to zoom ${MIDDLE_DOT} click to pin`
 const WHEEL_COMMIT_DELAY_MS = 150
 const DRAG_THRESHOLD_PX = 3
@@ -71,9 +74,22 @@ interface Tooltip {
   readonly color: string
 }
 
-/** `A::B · MESH · SubtypeLabel`, the one text format shared by the hover tooltip and the keyboard live region. */
-function demonText(d: DemonRef, zoneLabel: (z: number) => string): string {
-  return `${netSpanLabel(d.a, d.b, zoneLabel)}${SEP}${d.mesh}${SEP}${SUBTYPE_LABEL[d.subtype]}`
+/**
+ * A name cut to at most NAME_TOOLTIP_GRAPHEMES user-perceived characters: a longer one keeps the first limit minus one and an
+ * ellipsis, so the `whitespace-nowrap` chip stays bounded. Graphemes, never code units, so a letter keeps its marks (T-07-03d).
+ */
+function cutName(name: string): string {
+  const graphemes = splitGraphemes(name)
+  if (graphemes.length <= NAME_TOOLTIP_GRAPHEMES) return name
+  return graphemes.slice(0, NAME_TOOLTIP_GRAPHEMES - 1).join('') + ELLIPSIS
+}
+
+/**
+ * `A::B · Name · MESH · SubtypeLabel`, the one text format shared by the hover tooltip and the keyboard live region. `name` is
+ * null while there is no naming for the displayed base, which gives today's `A::B · MESH · SubtypeLabel`.
+ */
+export function demonText(d: DemonRef, zoneLabel: (z: number) => string, name: string | null): string {
+  return matrixTooltip(netSpanLabel(d.a, d.b, zoneLabel), name === null ? null : cutName(name), d.mesh, SUBTYPE_LABEL[d.subtype])
 }
 
 /** Math.min(100, Math.max(-100, v)): the same wheel-delta clamp useCanvasZoom uses before the exponential factor. */
@@ -84,6 +100,10 @@ function clampWheelStep(v: number): number {
 export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): JSX.Element {
   const { g, zoneLabel } = useNumogramView()
   const base = g.base
+  const naming = useNaming()
+  // The name of a demon at the displayed base, or null: a naming of another base (a base switch in flight) is never asked.
+  const nameOf = (d: DemonRef): string | null =>
+    naming !== null && naming.base === base ? naming.resolver.nameOf(d.a, d.b) : null
 
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -305,7 +325,7 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
       return
     }
     const d = g.demons.ref(cell[0], cell[1])
-    setTooltip({ x: x + 12, y: y + 12, text: demonText(d, zoneLabel), color: KIND_COLOR[legacyKind(d.subtype)] })
+    setTooltip({ x: x + 12, y: y + 12, text: demonText(d, zoneLabel, nameOf(d)), color: KIND_COLOR[legacyKind(d.subtype)] })
   }
 
   function handlePointerLeave(): void {
@@ -394,7 +414,8 @@ export function DemonMatrix({ selectedMesh, onSelectDemon }: DemonMatrixProps): 
     }
   }
 
-  const cursorText = demonText(g.demons.ref(activeCursor[0], activeCursor[1]), zoneLabel)
+  const cursorDemon = g.demons.ref(activeCursor[0], activeCursor[1])
+  const cursorText = demonText(cursorDemon, zoneLabel, nameOf(cursorDemon))
 
   const syz = syzygyLine(live, base)
   const numo = numodemonLine(live, base)
