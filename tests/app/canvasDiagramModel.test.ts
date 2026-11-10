@@ -524,6 +524,8 @@ describe('CanvasDiagram wiring of the sounds mode and the live chord name', () =
     expect(source.match(/chordCalloutText\(/g)).toHaveLength(1)
     expect(source).toMatch(/text: chordCalloutText\(pointerHover\.chord, zoneLabels, /)
     expect(source).not.toMatch(/text: pointerHover\.chord\.name/)
+    // the naming of another base (a switch in flight) is never asked for a name, and a missing naming gives no resolver
+    expect(source).toMatch(/const nameOf = naming !== null && naming\.base === scene\.base \? naming\.resolver\.nameOf : null/)
   })
 })
 

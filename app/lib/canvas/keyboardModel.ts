@@ -10,6 +10,7 @@
 // region. The strings are the SVG tier's own aria-label templates and focus-key grammar, so both tiers read alike.
 // Callers should not pass a key event that carries Ctrl, Meta or Alt (those are browser shortcuts, for example
 // Ctrl+Plus page zoom); Shift only matters for Tab.
+import * as namingCopy from '../namingCopy'
 import { regionLabel, type RegionId } from '../regions'
 
 /** Page Up / Page Down jump this many positions in the order (UI-SPEC default: the Canvas range reaches thousands of zones). */
@@ -161,6 +162,12 @@ export function nextTarget(current: RingTarget | null, key: string, shiftKey: bo
 /** What the model needs to name a target; the component builds it from the numogram view and the selection. */
 export interface TargetText {
   readonly zoneLabels: readonly string[]
+  /**
+   * The sounds label mode (Phase 7, plan 07-14): one sound per zone. When present, a zone with a sound is named
+   * `Zone {digits}, sound {sound}, {Region}` (the SVG node's own wording); a zone with an empty or missing entry, absent or
+   * null, keeps the digits wording. Edge and pair texts always keep numerals.
+   */
+  readonly zoneSounds?: readonly string[] | null
   readonly zoneRegion: readonly RegionId[]
   /** The view.syzygies entry of the zone's pair (both members of a pair answer with the same entry), or null. */
   syzygyOf(zone: number): { readonly a: number; readonly b: number } | null
@@ -176,9 +183,14 @@ const SELECTED = ', selected'
 const NOT_SELECTED = ', not selected'
 const PINNED = ', pinned'
 
-/** `Zone c, Torque`, with `, selected` appended only when asked for (the SVG node's own aria-label). */
+/**
+ * `Zone c, Torque`, with `, selected` appended only when asked for (the SVG node's own aria-label). In sounds mode a zone
+ * with a sound reads `Zone c, sound {sound}, Torque` through the shared wording (the full sound, never the cut label).
+ */
 function zoneText(zone: number, text: TargetText, withSelected: boolean): string {
   const region = regionLabel(text.zoneRegion[zone] as RegionId)
+  const sound = text.zoneSounds?.[zone] ?? ''
+  if (sound !== '') return namingCopy.zoneSoundAria(String(text.zoneLabels[zone]), sound, region, withSelected)
   return `Zone ${text.zoneLabels[zone]}, ${region}${withSelected ? SELECTED : ''}`
 }
 

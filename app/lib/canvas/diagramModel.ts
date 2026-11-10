@@ -156,10 +156,12 @@ export function targetTextFor(
   index: SceneIndex,
   scene: CanvasScene,
   selZones: ReadonlySet<number>,
+  zoneSounds: readonly string[] | null = null,
 ): TargetText {
   const pairOf = (zone: number): number => index.pairOfZone[zone] ?? -1
   return {
     zoneLabels,
+    zoneSounds,
     zoneRegion: view.zoneRegion,
     syzygyOf: (zone: number) => index.syzygyByPair[pairOf(zone)] ?? null,
     currentOf: (zone: number) => index.currentByPair[pairOf(zone)] ?? null,
@@ -167,6 +169,32 @@ export function targetTextFor(
     pairOf: (q: number) => ({ lo: index.pairLo[q] as number, hi: index.pairHi[q] as number }),
     isSelected: (zone: number) => selZones.has(zone),
   }
+}
+
+const CHORD_CALLOUT_SEP = ` ${String.fromCodePoint(0xb7)} ` // the matrix text style: a middle dot between net-span and name
+
+/**
+ * The text of a demon chord's hover callout (Phase 7, plan 07-14, NAM-02). Without a naming it is the chord's own name,
+ * as before. With one it is the net-span in the diagram's own labels, then the LIVE name of the pair from the naming, so
+ * a rename shows at once and the baked legacy name is never shown at render time; the net-span comes first so that
+ * nothing disappears at a base whose names differ from the preset. A naming that does not cover the chord's zones (a
+ * stale base during a switch) raises a RangeError, which falls back to the chord's own name; any other error is a bug and
+ * propagates.
+ */
+export function chordCalloutText(
+  chord: { readonly a: number; readonly b: number; readonly name: string; readonly kind?: string },
+  zoneLabels: readonly string[],
+  nameOf: ((a: number, b: number) => string) | null,
+): string {
+  if (nameOf === null) return chord.name
+  let live: string
+  try {
+    live = nameOf(chord.a, chord.b)
+  } catch (error) {
+    if (error instanceof RangeError) return chord.name
+    throw error
+  }
+  return `${zoneLabels[chord.a]}::${zoneLabels[chord.b]}${CHORD_CALLOUT_SEP}${live}`
 }
 
 /**

@@ -37,6 +37,7 @@ import {
   calloutPosition,
   boxForScene,
   canvasAriaLabel,
+  chordCalloutText,
   committedFor,
   frameOf,
   gestureMapping,
@@ -96,11 +97,17 @@ import {
 } from '../../lib/canvas/viewTransform'
 import { KIND_COLOR } from '../../lib/demonBrowser'
 import type { NumogramView } from '../../lib/numogramView'
+import { useNaming } from '../names/NamingContext'
 
 export interface CanvasDiagramProps {
   scene: CanvasScene
   view: NumogramView
   zoneLabels: readonly string[]
+  /**
+   * The sounds label mode (Phase 7, plan 07-14): one sound per zone, painted in the node label slot of both draw passes and
+   * named by the announcements and the callout. Absent or null is the digits path. The viewer passes it in plan 07-21.
+   */
+  zoneSounds?: readonly string[] | null
   layers: ReadonlySet<Layer>
   labelVisibility: LabelVisibility
   gateMode: 'on' | 'thin' | 'off'
@@ -187,6 +194,7 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     scene,
     view,
     zoneLabels,
+    zoneSounds = null,
     layers,
     labelVisibility,
     gateMode,
@@ -203,6 +211,8 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     viewportWidth,
     viewportHeight,
   } = props
+  // The naming whose live names the chord callout shows; null outside a provider (headless and provider-less renders keep today's text).
+  const naming = useNaming()
 
   // ── DOM refs ────────────────────────────────────────────────────────────────────────────────────────────────────
   const rootRef = useRef<HTMLDivElement>(null)
@@ -266,8 +276,14 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     [scene, view, index, layers, zoneStates, tcActive, gateMode],
   )
   const orderSet = useMemo(() => new Set(kbContext.order), [kbContext])
-  const textSel = useMemo(() => targetTextFor(view, zoneLabels, index, scene, selZones), [view, zoneLabels, index, scene, selZones])
-  const textPlain = useMemo(() => targetTextFor(view, zoneLabels, index, scene, EMPTY_ZONES), [view, zoneLabels, index, scene])
+  const textSel = useMemo(
+    () => targetTextFor(view, zoneLabels, index, scene, selZones, zoneSounds),
+    [view, zoneLabels, zoneSounds, index, scene, selZones],
+  )
+  const textPlain = useMemo(
+    () => targetTextFor(view, zoneLabels, index, scene, EMPTY_ZONES, zoneSounds),
+    [view, zoneLabels, zoneSounds, index, scene],
+  )
   const filter = pickFilterFor({ scene, view, index, layers, zoneStates, tcActive, gateMode, hlZones })
 
   // The ring is valid only while its zone (or pair) is in the keyboard order: a mute or a new scene drops it.
@@ -626,6 +642,7 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
       scene,
       view,
       zoneLabels,
+      zoneSounds,
       transform: committed,
       cssWidth,
       cssHeight,
@@ -709,6 +726,7 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
       scene,
       view,
       zoneLabels,
+      zoneSounds,
       transform: committed,
       cssWidth,
       cssHeight,
@@ -730,6 +748,7 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     scene,
     view,
     zoneLabels,
+    zoneSounds,
     layers,
     labelVisibility,
     gateMode,
@@ -817,8 +836,10 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
   })
   let callout: Callout | null = null
   if (pointerHover !== null && pointerHover.chord !== null) {
+    // the live name of the pair from the naming, at render time (a rename shows at once); the naming of another base is never asked
+    const nameOf = naming !== null && naming.base === scene.base ? naming.resolver.nameOf : null
     callout = {
-      text: pointerHover.chord.name,
+      text: chordCalloutText(pointerHover.chord, zoneLabels, nameOf),
       color: KIND_COLOR[pointerHover.chord.kind as keyof typeof KIND_COLOR] ?? KIND_COLOR.syzygy,
       ax: pointerHover.x,
       ay: pointerHover.y,
