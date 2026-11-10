@@ -352,3 +352,102 @@ test('a naming over the override limit keeps a short undo depth', async ({ page 
 
   expect(errors).toEqual([])
 })
+
+// The history flag fix (between 07-20 and 07-21): an Undo or Redo used to leave its "applying" flag set, so the next real change of any
+// kind was swallowed instead of pushed. It was not recorded, Redo was not cleared, and a second Undo skipped a step. Two edits, an
+// Undo, a third edit: Redo must be gone and Undo must return to the state the FIRST edit left, never to the one before it. The same
+// sequence runs on the naming (a rename) and on a layer (the history is not specific to the naming).
+test('an edit after Undo clears Redo and Undo returns to the previous edit', async ({ page }) => {
+  const errors = trackErrors(page)
+  await page.goto('/numogram/?base=28')
+  await settle(page)
+  const [a, b] = netSpanOf(69)
+  const engineName = createNameResolver(defaultNamingFor(28, NAMING_ENV), CCRU_NAMING_PRESET).nameOf(a, b)
+  await pinFromOverlay(page, 'c::3', 69)
+  const selection = panel(page, 'Selection')
+  await expect(selection).toContainText(engineName)
+
+  await renamePinned(page, 'Aaa')
+  await expect(selection).toContainText('Aaa')
+  await renamePinned(page, 'Bbb')
+  await expect(selection).toContainText('Bbb')
+
+  await undoButton(page).click()
+  await expect(selection).toContainText('Aaa')
+  await expect(selection).not.toContainText('Bbb')
+  await expect(redoButton(page)).toBeEnabled()
+
+  // the third edit is recorded: it replaces the undone second one, so Redo has nothing left
+  await renamePinned(page, 'Ccc')
+  await expect(selection).toContainText('Ccc')
+  await expect(redoButton(page)).toBeDisabled()
+
+  // Undo returns to the first edit (not to the engine's name, which would mean the third edit was never pushed)
+  await undoButton(page).click()
+  await expect(selection).toContainText('Aaa')
+  await expect(selection).not.toContainText('Ccc')
+  await expect(selection).not.toContainText(engineName)
+  await expect(redoButton(page)).toBeEnabled()
+
+  // one more Undo reaches the engine's name, and Redo walks forward again through both edits
+  await undoButton(page).click()
+  await expect(selection).toContainText(engineName)
+  await expect(selection).not.toContainText('Aaa')
+  await redoButton(page).click()
+  await expect(selection).toContainText('Aaa')
+  await redoButton(page).click()
+  await expect(selection).toContainText('Ccc')
+  await expect(redoButton(page)).toBeDisabled()
+
+  expect(errors).toEqual([])
+})
+
+test('an edit after Undo clears Redo and Undo returns to the previous edit (layer toggles)', async ({ page }) => {
+  const errors = trackErrors(page)
+  await page.goto('/numogram/')
+  await settle(page)
+  const layers = panel(page, 'Layers')
+  const gates = page.locator('[data-gate]')
+  const currents = page.locator('[data-current]')
+  const syzygies = page.locator('[data-syzygy]')
+  const [gatesAll, currentsAll, syzygiesAll] = [await gates.count(), await currents.count(), await syzygies.count()]
+  expect(gatesAll).toBeGreaterThan(0)
+  expect(currentsAll).toBeGreaterThan(0)
+  expect(syzygiesAll).toBeGreaterThan(0)
+  await expect(undoButton(page)).toBeDisabled()
+
+  await layers.getByText('Gates', { exact: true }).click()
+  await expect(gates).toHaveCount(0)
+  await layers.getByText('Currents', { exact: true }).click()
+  await expect(currents).toHaveCount(0)
+
+  await undoButton(page).click()
+  await expect(currents).toHaveCount(currentsAll)
+  await expect(gates).toHaveCount(0)
+  await expect(redoButton(page)).toBeEnabled()
+
+  // the third edit (Syzygies off) is recorded and clears Redo
+  await layers.getByText('Syzygies', { exact: true }).click()
+  await expect(syzygies).toHaveCount(0)
+  await expect(redoButton(page)).toBeDisabled()
+
+  // Undo undoes that edit only: Gates stay off (the first edit stands), Currents are on (the undone second edit is gone for good)
+  await undoButton(page).click()
+  await expect(syzygies).toHaveCount(syzygiesAll)
+  await expect(gates).toHaveCount(0)
+  await expect(currents).toHaveCount(currentsAll)
+  await expect(redoButton(page)).toBeEnabled()
+
+  // one more Undo brings the Gates back and reaches the start; Redo then walks forward through the two recorded edits
+  await undoButton(page).click()
+  await expect(gates).toHaveCount(gatesAll)
+  await expect(undoButton(page)).toBeDisabled()
+  await redoButton(page).click()
+  await expect(gates).toHaveCount(0)
+  await redoButton(page).click()
+  await expect(syzygies).toHaveCount(0)
+  await expect(currents).toHaveCount(currentsAll)
+  await expect(redoButton(page)).toBeDisabled()
+
+  expect(errors).toEqual([])
+})
