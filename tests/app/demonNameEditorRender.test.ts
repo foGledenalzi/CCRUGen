@@ -19,7 +19,13 @@ import {
   toNfc,
   type Naming,
   type NamingPreset,
+  type Numogram,
 } from '../../engine/index'
+import type { HoverInfo } from '../../app/data/types'
+import { DemonsOverlay, detailShown, type DemonsOverlayProps } from '../../app/components/demons/DemonsOverlay'
+import { DemonInfo, InfoDisplay } from '../../app/components/info/InfoDisplay'
+import { legacyDemon } from '../../app/lib/demonBrowser'
+import { BASE10 } from '../../app/presets/base10/numogram'
 import {
   DemonNameEditor,
   DemonNameEditorView,
@@ -51,8 +57,8 @@ const CUSTOM = 'zzyxq'
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
-function viewCtx(base: number, view: NumogramView | null = null): NumogramViewContextValue {
-  const g = createNumogram(base)
+function viewCtx(base: number, view: NumogramView | null = null, numogram?: Numogram): NumogramViewContextValue {
+  const g = numogram ?? createNumogram(base)
   return {
     base,
     g,
@@ -724,5 +730,189 @@ describe('DemonNameEditor: source wiring', () => {
 
   it('reads the view context optionally (the collision mount may render without one)', () => {
     expect(src).toContain('useContext(NumogramViewContext)')
+  })
+})
+
+// ── the mounts: DemonInfo (Selection detail) and the Demons overlay detail ──
+
+const INFO_SOURCE = fileURLToPath(new URL('../../app/components/info/InfoDisplay.tsx', import.meta.url))
+const OVERLAY_SOURCE = fileURLToPath(new URL('../../app/components/demons/DemonsOverlay.tsx', import.meta.url))
+
+const g28 = createNumogram(28)
+const g10 = BASE10
+
+const demonInfo = (g: Numogram, a: number, b: number): HoverInfo & { type: 'demon' } => ({
+  type: 'demon',
+  demon: legacyDemon(g.demons.ref(a, b), g.base),
+})
+
+function renderIn(g: Numogram, withView: boolean, naming: NamingContextValue | null, el: ReturnType<typeof createElement>): string {
+  const ctx = viewCtx(g.base, withView ? buildNumogramView(g) : null, g)
+  const inner = naming === null ? el : createElement(NamingContext.Provider, { value: naming }, el)
+  return renderToStaticMarkup(createElement(NumogramViewContext.Provider, { value: ctx }, inner))
+}
+
+const occurrences = (haystack: string, needle: string): number => haystack.split(needle).length - 1
+
+describe('DemonInfo: the editor mount', () => {
+  const info28 = demonInfo(g28, 12, 3)
+
+  it('non-lore variant (base 28): one selection editor after the detail frame, the last child of the wrapper', () => {
+    const markup = renderIn(g28, true, namingValue(g28Naming, null), createElement(DemonInfo, { data: info28, editorContext: 'selection' }))
+    expect(occurrences(markup, 'data-demon-name-editor')).toBe(1)
+    expect(markup).toContain('data-demon-name-context="selection"')
+    expect(markup.indexOf('Cyclic chrono')).toBeGreaterThan(0)
+    expect(markup.indexOf('data-demon-name-editor')).toBeGreaterThan(markup.indexOf('Cyclic chrono'))
+    // the editor root is the last element inside the space-y-1.5 wrapper
+    expect(markup.endsWith('</div></div>')).toBe(true)
+    expect(buttonText(markup, 'data-demon-rename')).toBe('Rename demon')
+  })
+
+  it('lore variant (base 10): the editor follows the frame, tagged as a CCRU name', () => {
+    const naming = namingValue(ccru10(), CCRU_NAMING_PRESET)
+    const info = demonInfo(g10, 9, 8)
+    const markup = renderIn(g10, true, naming, createElement(DemonInfo, { data: info, editorContext: 'selection' }))
+    expect(occurrences(markup, 'data-demon-name-editor')).toBe(1)
+    expect(tagWith(markup, 'data-demon-name-editor')).toContain('data-demon-name-state="preset"')
+    expect(markup).toContain(`>${NAMES_COPY.tagCcru}<`)
+    expect(markup.indexOf('data-demon-name-editor')).toBeGreaterThan(markup.indexOf('TYPE'))
+    expect(markup.endsWith('</div></div>')).toBe(true)
+  })
+
+  it('the overlay context is passed through to the root', () => {
+    const markup = renderIn(g28, true, namingValue(g28Naming, null), createElement(DemonInfo, { data: info28, editorContext: 'overlay' }))
+    expect(markup).toContain('data-demon-name-context="overlay"')
+    expect(markup).not.toContain('data-demon-name-context="selection"')
+  })
+
+  it('without editorContext no editor is mounted, in either variant, even inside a provider', () => {
+    const lore = renderIn(g10, true, namingValue(ccru10(), CCRU_NAMING_PRESET), createElement(DemonInfo, { data: demonInfo(g10, 9, 8) }))
+    const plain = renderIn(g28, true, namingValue(g28Naming, null), createElement(DemonInfo, { data: info28 }))
+    expect(lore).not.toContain('data-demon-name')
+    expect(plain).not.toContain('data-demon-name')
+  })
+
+  it('with no provider the markup is byte-identical with and without editorContext', () => {
+    for (const [g, info] of [[g10, demonInfo(g10, 9, 8)], [g28, info28]] as const) {
+      const without = renderIn(g, true, null, createElement(DemonInfo, { data: info }))
+      const withContext = renderIn(g, true, null, createElement(DemonInfo, { data: info, editorContext: 'selection' }))
+      expect(withContext).toBe(without)
+      expect(without).not.toContain('data-demon-name')
+    }
+  })
+
+  it('with the naming of another base it renders the legacy detail and no editor', () => {
+    const markup = renderIn(g28, true, namingValue(generated(30), null), createElement(DemonInfo, { data: info28, editorContext: 'selection' }))
+    expect(markup).not.toContain('data-demon-name')
+  })
+
+  it('forwards onEditingChange to the editor (source)', () => {
+    const src = readFileSync(INFO_SOURCE, 'utf8')
+    expect(occurrences(src, '<DemonNameEditor')).toBe(2)
+    expect(occurrences(src, 'onEditingChange={onEditingChange}')).toBe(2)
+    expect(occurrences(src, 'context={editorContext}')).toBe(2)
+  })
+})
+
+describe('InfoDisplay: the Selection panel passes the selection context', () => {
+  it('a pinned demon shows its editor with context selection', () => {
+    const markup = renderIn(
+      g28,
+      true,
+      namingValue(g28Naming, null),
+      createElement(InfoDisplay, { hoverInfo: null, pinnedInfo: demonInfo(g28, 12, 3) }),
+    )
+    expect(occurrences(markup, 'data-demon-name-editor')).toBe(1)
+    expect(markup).toContain('data-demon-name-context="selection"')
+  })
+
+  it('a pinned zone has no editor, and with no provider nothing changes', () => {
+    const zone = renderIn(g28, true, namingValue(g28Naming, null), createElement(InfoDisplay, { hoverInfo: null, pinnedInfo: { type: 'zone', zone: 5 } }))
+    expect(zone).not.toContain('data-demon-name')
+    const bare = renderIn(g28, true, null, createElement(InfoDisplay, { hoverInfo: null, pinnedInfo: demonInfo(g28, 12, 3) }))
+    expect(bare).not.toContain('data-demon-name')
+  })
+})
+
+describe('DemonsOverlay: the detail pane mount', () => {
+  const noopProps: DemonsOverlayProps = {
+    isMobile: false,
+    tab: 'browser',
+    onTabChange: noop,
+    filter: null,
+    onFilterChange: noop,
+    focus: null,
+    onFocusChange: noop,
+    showDiagram: false,
+    hoverInfo: null,
+    pinnedInfo: null,
+    onHoverInfo: noop,
+    onPinInfo: noop,
+    onClose: noop,
+  }
+  const overlay = (over: Partial<DemonsOverlayProps>) => createElement(DemonsOverlay, { ...noopProps, ...over })
+
+  it('a pinned demon: the editor sits inside the detail aside with context overlay', () => {
+    const markup = renderIn(g28, false, namingValue(g28Naming, null), overlay({ pinnedInfo: demonInfo(g28, 12, 3) }))
+    expect(occurrences(markup, 'data-demon-name-editor')).toBe(1)
+    expect(markup).toContain('data-demon-name-context="overlay"')
+    expect(markup.indexOf('data-demon-name-editor')).toBeGreaterThan(markup.indexOf('data-demon-detail'))
+  })
+
+  it('no demon shown: the hint and no editor', () => {
+    const markup = renderIn(g28, false, namingValue(g28Naming, null), overlay({}))
+    expect(markup).toContain('Hover or click a demon to inspect it.')
+    expect(markup).not.toContain('data-demon-name')
+  })
+
+  it('with no provider the overlay shows no editor', () => {
+    const markup = renderIn(g28, false, null, overlay({ pinnedInfo: demonInfo(g28, 12, 3) }))
+    expect(markup).not.toContain('data-demon-name')
+  })
+
+  it('wires the detail pane through detailShown and the bound edit (source)', () => {
+    const src = readFileSync(OVERLAY_SOURCE, 'utf8')
+    expect(src).toContain('const shown = detailShown(hoverInfo, pinnedInfo, boundEdit)')
+    expect(occurrences(src, 'editorContext="overlay"')).toBe(1)
+    expect(src).toContain('onEditingChange={editing =>')
+    expect(src).toContain('export function detailShown')
+  })
+
+  it('clears the bound demon when the base changes or the overlay closes (source)', () => {
+    const src = readFileSync(OVERLAY_SOURCE, 'utf8')
+    expect(src).toMatch(/bound\.base === base/)
+    expect(src).toMatch(/useEffect\(\(\) => \{\s*setBound\(null\)\s*\}, \[base\]\)/)
+  })
+})
+
+describe('detailShown: the pane follows hover, except while an editor is open (binding)', () => {
+  const A = demonInfo(g28, 12, 3)
+  const B = demonInfo(g28, 9, 4)
+  const C = demonInfo(g28, 7, 2)
+  const zone: HoverInfo = { type: 'zone', zone: 5 }
+
+  it('the demon an editor is open on wins over hover and over the pinned demon', () => {
+    expect(detailShown(B, C, A)).toBe(A)
+    expect(detailShown(null, C, A)).toBe(A)
+    expect(detailShown(B, null, A)).toBe(A)
+  })
+
+  it('with no editor open a hovered demon wins over the pinned one', () => {
+    expect(detailShown(B, C, null)).toBe(B)
+  })
+
+  it('with nothing hovered the pinned demon is shown', () => {
+    expect(detailShown(null, C, null)).toBe(C)
+  })
+
+  it('a hovered or pinned item that is not a demon is ignored', () => {
+    expect(detailShown(zone, C, null)).toBe(C)
+    expect(detailShown(zone, zone, null)).toBeNull()
+    expect(detailShown(null, zone, null)).toBeNull()
+    expect(detailShown(B, C, zone)).toBe(B)
+  })
+
+  it('nothing at all gives nothing', () => {
+    expect(detailShown(null, null, null)).toBeNull()
   })
 })
