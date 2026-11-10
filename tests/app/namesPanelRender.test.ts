@@ -2140,6 +2140,14 @@ describe('CollisionReportView: the list of repeated names', () => {
     const name = need(lines[0]?.inner ?? '', 'data-collision-name-text')
     expect(textOf(name.inner)).toBe('Aaa')
     expect(classOf(name.open)).toContain('text-gray-100')
+    // a long or mixed-direction name wraps inside the 206px scroller and reads in its own direction
+    expect(classOf(name.open)).toContain('[overflow-wrap:anywhere]')
+    expect(attrOf(name.open, 'style') ?? '').toContain('unicode-bidi:plaintext')
+    // the lines are a real list, also where a reset removes the list marks
+    const list = need(markup, 'data-names-collisions-list')
+    expect(list.tag).toBe('ul')
+    expect(attrOf(list.open, 'role')).toBe('list')
+    expect(findAll(list.inner, 'data-collision-name').every(li => li.tag === 'li')).toBe(true)
   })
 
   it('a jump shows the net-span in the active label scheme and names the demon in its accessible name', () => {
@@ -2306,6 +2314,10 @@ describe('CollisionReportView: the inline editor and the preview hint', () => {
     const owner = findAll(markup, 'data-collision-name').find(line => line.inner.includes('data-names-collisions-status'))
     expect(attrOf(owner?.open ?? '', 'data-collision-name')).toBe('Bbb')
     expect(find(markup, 'data-demon-name-editor')).toBeNull()
+    // a jump from any button of a line, not only its first, puts the hint under that line
+    const later = renderView({ report, expanded: true, hint: meshOf(10, 4) })
+    const laterOwner = findAll(later, 'data-collision-name').filter(line => line.inner.includes('data-names-collisions-status'))
+    expect(laterOwner.map(line => attrOf(line.open, 'data-collision-name'))).toEqual(['Bbb'])
   })
 
   it('in the preview state the jump buttons stay enabled (they only show the hint)', () => {
