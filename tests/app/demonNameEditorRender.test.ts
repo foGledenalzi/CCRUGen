@@ -687,7 +687,9 @@ describe('DemonNameEditor: source wiring', () => {
   it('announces a result and a refusal through the live carrier, only after the action was accepted', () => {
     expect(count('naming.announce(outcome.status)')).toBe(2)
     expect(count('naming.announce(outcome.message)')).toBe(1)
-    expect(src).toMatch(/naming\.apply\(outcome\.action\)\) naming\.announce\(outcome\.status\)/)
+    // Save and Reset each announce only when the action was accepted (a refused one, say in preview, says nothing)
+    expect(count("if (outcome.kind === 'rename' && naming.apply(outcome.action)) naming.announce(outcome.status)")).toBe(1)
+    expect(count('if (naming.apply(outcome.action)) naming.announce(outcome.status)')).toBe(1)
     expect(src).toContain('renamed(')
     expect(src).toContain('backTo(')
   })
