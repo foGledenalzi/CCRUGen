@@ -598,6 +598,8 @@ interface FlowOptions {
   readonly scheme?: LabelScheme
   /** True when a zone is selected, so the Selection panel lists selected items (and cannot show a pinned demon). */
   readonly selected?: boolean
+  /** True to end with a control for the Names-top measurement: a PIN does move the box, so the measurement can tell. */
+  readonly control?: boolean
 }
 
 // One scenario for the three places a jump must work (nothing selected, a zone selected, a Canvas base): the repeated names are made by
@@ -662,6 +664,11 @@ async function collisionFlow(page: Page, o: FlowOptions): Promise<void> {
   const jump = jumpButton(page, target)
   await expect(jump).toHaveAttribute('aria-label', jumpAriaLabel(zoneLabel(a), zoneLabel(b), resolver.nameOf(a, b)))
   await expect(jump).toHaveText(netSpanLabel(a, b, zoneLabel))
+  // the sentence of the UI-SPEC copy contract, typed out once (the lines above read the copy module that the page itself uses): the
+  // visible net-span is inside the accessible name
+  if (scheme.mode === 'digits') {
+    await expect(jump).toHaveAttribute('aria-label', `Rename demon ${label(a, o.base)}::${label(b, o.base)}, currently ${resolver.nameOf(a, b)}`)
+  }
   await jump.click()
   const editor = demonEditor(page, 'collision')
   await expect(editor).toHaveCount(1)
@@ -706,13 +713,23 @@ async function collisionFlow(page: Page, o: FlowOptions): Promise<void> {
     expect(log.indexOf(collisionsAnnounceSome(after.groups))).toBeGreaterThan(log.indexOf(renamedSentence))
     console.log(`live carrier, in order: ${JSON.stringify(log)}`)
   }
+
+  // a control for the measurement itself: pinning a demon DOES change the Selection panel's height and so the Names box top, which is
+  // exactly what a jump must not do; if this did not move the box, the assertions above could never have failed
+  if (o.control === true) {
+    await pinFromOverlay(page, '', 0)
+    await expect(demonEditor(page, 'selection')).toBeVisible()
+    await settleAnimations(page)
+    await settleFrames(page)
+    expect(Math.abs((await namesTop(page)) - top), 'control: a pin moves the Names box').toBeGreaterThanOrEqual(1)
+  }
 }
 
 test('collisions at base 28: the report equals the engine, a jump opens the inline editor without moving the Names box, a unique name resolves one group', async ({
   page,
 }) => {
   const errors = trackErrors(page)
-  await collisionFlow(page, { base: BASE, zones: [1, 2] })
+  await collisionFlow(page, { base: BASE, zones: [1, 2], control: true })
   expect(errors).toEqual([])
 })
 

@@ -387,6 +387,24 @@ test('a seed link carries its style, join order and smoothing; unknown companion
   await expect(namesBox(page).locator('input[data-names-join="hi-lo"]')).toBeChecked()
   await expect(namesBox(page).locator('input[data-names-smoothing]')).not.toBeChecked()
   await expectTable(page, linked(), 'the linked naming with the defaults')
+
+  // the address is also WRITTEN from the panel: each companion appears when it leaves its default and goes when it returns
+  const companions = (): string[] => {
+    const now = new URL(page.url()).searchParams
+    return [now.get('names') ?? '', now.get('nstyle') ?? '', now.get('njoin') ?? '', now.get('nsmooth') ?? '']
+  }
+  const seedLink = `seed:${LINK_SEED}`
+  await namesLabel(page, NAMES_COPY.styleLabels.soft).click()
+  await expect.poll(companions).toEqual([seedLink, 'soft', '', ''])
+  await namesLabel(page, NAMES_COPY.joinLabels['lo-hi']).click()
+  await expect.poll(companions).toEqual([seedLink, 'soft', 'lh', ''])
+  await namesLabel(page, NAMES_COPY.smoothingLabel).click()
+  await expect.poll(companions).toEqual([seedLink, 'soft', 'lh', '1'])
+  await namesLabel(page, NAMES_COPY.joinLabels['hi-lo']).click()
+  await expect.poll(companions).toEqual([seedLink, 'soft', '', '1'])
+  await namesLabel(page, NAMES_COPY.smoothingLabel).click()
+  await namesLabel(page, NAMES_COPY.styleLabels.harsh).click()
+  await expect.poll(companions).toEqual([seedLink, '', '', ''])
   expect(errors).toEqual([])
 })
 
@@ -394,6 +412,9 @@ const HOSTILE_LINKS: ReadonlyArray<readonly [string, string]> = [
   ['a seed one character over the limit', `names=seed:${'a'.repeat(SEED_MAX_LENGTH + 1)}`],
   ['a seed with a control character', 'names=seed:ab%07c'],
   ['a seed with a line separator', 'names=seed:ab%E2%80%A8c'],
+  // at the edge a separator or a newline is what String.trim would quietly drop, so only the check made before trimming refuses these
+  ['a seed with a trailing line separator', 'names=seed:ab%E2%80%A8'],
+  ['a seed with a trailing newline', 'names=seed:ab%0A'],
   ['an empty seed', 'names=seed:'],
 ]
 
