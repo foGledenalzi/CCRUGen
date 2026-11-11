@@ -57,4 +57,23 @@ and the new position without the flag clear) that both fail those cases. Residua
   time, then returns to full width when the transition ends. At rest the wrapper never scrolls, so the UI-SPEC rule "one scroller" holds.
 - **Why deferred:** cosmetic, 200 ms, present for every panel since Phase 4, and fixing it means changing a shared component. Any
   e2e measurement of widths or boxes right after opening a panel must wait for the transition (`settleAnimations` in
-  `e2e/names-helpers.ts`); 07-24's geometry specs should use it too.
+  `e2e/names-helpers.ts`); 07-24's geometry specs should use it too. (07-24's geometry specs do: every measurement waits for
+  `settleAnimations` and then for three equal samples.)
+
+## 2026-11-11 — three observations from the 07-24 geometry specs (no overlap or clipping bug; nothing changed in app code)
+
+- **At the body minimum the visible body is 68 px, not 80 px.** UI-SPEC "Scrolling" makes the one scroller 12 px shorter than the room
+  handed to `CyberPanel` (`NAMES_SCROLL_INSET_PX`), and "Body height" clamps that room to 80 at the least. Both are implemented as
+  written, so when the clamp binds (Selection at its 52vh cap in a window under about 708 px tall, Names then 80 px of room) the scroller
+  is 68 px: the sticky header plus about 1.6 rows, not two full rows. The wrapper still never scrolls, the box stays inside the window
+  and the toolbar and shortcuts button stay on top and clickable (all proven in `e2e/panel-stack.spec.ts`, which pins the 12 px inset
+  and the 68 px floor so a change is deliberate). If the user wants the contract's "header plus two rows" literally, the one-line change
+  is `maxHeight: Math.max(bodyMax - NAMES_SCROLL_INSET_PX, NAMES_BODY_MIN)` in `app/components/names/NamesPanel.tsx` (the wrapper then
+  holds 80 of 80 and still does not scroll); it also touches the panel render tests that pin the inset, so it was not done inside a
+  test-only plan.
+- **The UI-SPEC's worst-case numbers are conservative.** It models Selection at its cap as `64 + 0.52 vh` tall; measured it is
+  `48 + 0.52 vh` (464 px at 800), so the open body room at the cap is `0.48 vh - 260` (not `- 276`) and the 80 px minimum binds below
+  about 708 px, not 742. The contract (`bottom <= vh - 96` from 742 px) holds with a margin; the spec tests the formula, not the prose.
+- **The shared header toggle is 10 x 10.** `CyberPanel`'s collapse button (every panel, since Phase 4) is the 10 px icon with no padding, so
+  it is under 24 x 24. UI-SPEC's 24 px rule is for the controls this phase adds, and the spec scopes its tap-target check to the Names
+  panel's content root accordingly; widening the shared toggle would change every panel's header.
