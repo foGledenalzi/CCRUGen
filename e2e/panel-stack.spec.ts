@@ -333,10 +333,10 @@ async function settledTen(page: Page): Promise<Boxes> {
   return latest
 }
 
-function crossing(p: Box, q: Box): { w: number; h: number } | null {
+function crossing(p: Box, q: Box): { w: number; h: number; box: Box } | null {
   const w = Math.min(p.x + p.width, q.x + q.width) - Math.max(p.x, q.x)
   const h = Math.min(p.y + p.height, q.y + q.height) - Math.max(p.y, q.y)
-  return w > 0.5 && h > 0.5 ? { w, h } : null
+  return w > 0.5 && h > 0.5 ? { w, h, box: { x: Math.max(p.x, q.x), y: Math.max(p.y, q.y), width: w, height: h } } : null
 }
 
 function overlapsAmong(b: Boxes, titles: readonly string[]): string[] {
@@ -350,13 +350,16 @@ function overlapsAmong(b: Boxes, titles: readonly string[]): string[] {
   return bad
 }
 
-/** True when the element at the centre of `locator` is the element itself or one of its descendants (nothing covers it). */
-async function reachable(locator: Locator): Promise<boolean> {
-  return locator.evaluate((el: Element) => {
-    const r = el.getBoundingClientRect()
-    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+/**
+ * True when the topmost element at the centre of `area` (default: the element's own box) is the element itself or one of its
+ * descendants, i.e. nothing covers it there. Passing the part of its box another panel overlaps tests that very part.
+ */
+async function reachable(locator: Locator, area: Box | null = null): Promise<boolean> {
+  return locator.evaluate((el: Element, within: Box | null) => {
+    const r = within ?? el.getBoundingClientRect()
+    const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
     return hit !== null && el.contains(hit)
-  })
+  }, area)
 }
 
 /** What the open Names box must clear: the zoom toolbar and the shortcuts button (boxes), and both must stay clickable. */
@@ -364,14 +367,18 @@ async function clearanceViolations(page: Page, names: Box, strict: boolean): Pro
   const bad: string[] = []
   const toolbar = await rectOf(toolbarOf(page), 'the zoom toolbar')
   const shortcuts = await rectOf(shortcutsOf(page), 'the shortcuts button')
+  const t = crossing(names, toolbar)
+  const s = crossing(names, shortcuts)
   if (strict) {
-    const t = crossing(names, toolbar)
     if (t) bad.push(`Names box overlaps the zoom toolbar by ${t.w.toFixed(1)} x ${t.h.toFixed(1)} px`)
-    const s = crossing(names, shortcuts)
     if (s) bad.push(`Names box overlaps the shortcuts button by ${s.w.toFixed(1)} x ${s.h.toFixed(1)} px`)
   }
+  // clickable: nothing covers the middle of either control, and where the Names box does reach one (a short window with Selection
+  // at its cap) the control is still on top there (z 74 against a panel's at most 69)
   if (!(await reachable(toolbarOf(page)))) bad.push('the zoom toolbar is covered at its centre')
   if (!(await reachable(shortcutsOf(page)))) bad.push('the shortcuts button is covered at its centre')
+  if (t && !(await reachable(toolbarOf(page), t.box))) bad.push('the zoom toolbar is covered where the Names box overlaps it')
+  if (s && !(await reachable(shortcutsOf(page), s.box))) bad.push('the shortcuts button is covered where the Names box overlaps it')
   return bad
 }
 
