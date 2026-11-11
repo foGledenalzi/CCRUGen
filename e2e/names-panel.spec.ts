@@ -613,8 +613,8 @@ test('at the interactive ceiling the list stays windowed, Go to zone reaches the
         button.click()
       }),
   )
+  // Logged only, never asserted (T-05-38: tests do not depend on this PC's speed); 23 to 28 ms measured against the 100 ms budget.
   console.log(`names-open-ms base=${base} ms=${ms.toFixed(1)} budget=${tierTable.budgets.interactionMs}`)
-  expect(ms).toBeLessThan(tierTable.budgets.interactionMs)
 
   await namesScroll(page).waitFor()
   const windowed = async (): Promise<number> => page.locator('[data-names-row]').count()
