@@ -9,19 +9,19 @@
   "routes": {
     "/": {
       "htmlBytes": 4688,
-      "htmlGzip": 1769,
+      "htmlGzip": 1770,
       "jsBytes": 416918,
-      "jsGzip": 128175,
-      "cssBytes": 20497,
-      "cssGzip": 5064
+      "jsGzip": 128174,
+      "cssBytes": 21421,
+      "cssGzip": 5242
     },
     "/numogram/": {
-      "htmlBytes": 90137,
-      "htmlGzip": 12985,
-      "jsBytes": 808836,
-      "jsGzip": 245874,
-      "cssBytes": 20497,
-      "cssGzip": 5064
+      "htmlBytes": 91501,
+      "htmlGzip": 13076,
+      "jsBytes": 890987,
+      "jsGzip": 273143,
+      "cssBytes": 21421,
+      "cssGzip": 5242
     }
   },
   "domNodes": {
@@ -344,6 +344,40 @@
             "htmlGzip": 12985,
             "jsGzip": 245874,
             "cssGzip": 5064
+          }
+        },
+        "domNodesTotal": 6405
+      }
+    },
+    {
+      "date": "2026-11-11",
+      "reason": "Phase 7 naming builder (2026-11): /numogram/ JS grows from 808,836 to 890,987 bytes raw (+10.2%) and from 245,874 to 273,143 gzip (+11.1%); its HTML goes from 90,137 to 91,501 bytes and the shared CSS from 20,497 to 21,421; / JS is unchanged at 416,918 raw. Added to the viewer and imported eagerly: engine/naming (seeded generator with the Feistel permutation, euphony banks, validator, derivation, collision scan, serializer), the naming session, storage and link modules (app/lib/namingSession, namingStorage, namesLink, namingCopy, soundLabels), the Names panel with its virtualized zone list, collision report and demon name editor (app/components/names), and the live desktop panel stack (app/lib/panelStack, panelDrag). The Names body mounts only while the panel is open, so the prerendered HTML carries none of it. Lazy-loading the Names, Canvas and worker code is the pending alternative (todo 007) and is not done here; the raise is for the user to review at the 07-25 checkpoint.",
+      "before": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1769,
+            "jsGzip": 128175,
+            "cssGzip": 5064
+          },
+          "/numogram/": {
+            "htmlGzip": 12985,
+            "jsGzip": 245874,
+            "cssGzip": 5064
+          }
+        },
+        "domNodesTotal": 6405
+      },
+      "after": {
+        "routes": {
+          "/": {
+            "htmlGzip": 1770,
+            "jsGzip": 128174,
+            "cssGzip": 5242
+          },
+          "/numogram/": {
+            "htmlGzip": 13076,
+            "jsGzip": 273143,
+            "cssGzip": 5242
           }
         },
         "domNodesTotal": 6405
