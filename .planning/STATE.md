@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-21-PLAN.md
-last_updated: "2026-11-10T22:50:00.000Z"
-last_activity: 2026-11-10 -- Completed 07-21 (the Names panel mounted at every tier in both stacks, sounds labels on both diagram tiers, honest Share title, smoke spec; the refused-Undo history residual fixed)
+stopped_at: Completed 07-22-PLAN.md
+last_updated: "2026-11-11T00:15:00.000Z"
+last_activity: 2026-11-11 -- Completed 07-22 (the e2e proof of editing, locks, Reroll, seeds, join and smoothing, rename, Undo order, the zone list at the ceiling and the sounds label mode on both tiers: 32 new tests, 29 app mutants killed)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 99
-  completed_plans: 95
+  completed_plans: 96
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-09-25)
 ## Current Position
 
 Phase: 7 (Naming Builder) — EXECUTING
-Plan: 21 of 25 (07-01 to 07-21 complete; 07-22 (the e2e naming specs, wave 10) is next)
+Plan: 22 of 25 (07-01 to 07-22 complete; 07-23 (the import/export and preview e2e specs) is next)
 Status: Executing Phase 7
-Last activity: 2026-11-10 -- Completed 07-21 (the Names panel mounted at every tier in both stacks, sounds labels on both diagram tiers, honest Share title, smoke spec; the refused-Undo history residual fixed)
+Last activity: 2026-11-11 -- Completed 07-22 (the e2e proof of editing, locks, Reroll, seeds, join and smoothing, rename, Undo order, the zone list at the ceiling and the sounds label mode on both tiers: 32 new tests, 29 app mutants killed)
 
 Progress: [███████░░░] 75%
 
@@ -36,7 +36,7 @@ Progress: [███████░░░] 75%
 
 **Velocity:**
 
-- Total plans completed: 95
+- Total plans completed: 96
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -255,6 +255,7 @@ Recent decisions affecting current work:
 - [Phase 7 P20] The collision report shipped as block 9 of the Names panel (NAM-03 and NAM-02 groundwork, D-12; both stay Pending: nothing mounts NamesPanel until 07-21): app/lib/collisionSchedule.ts decides the route (`collisionPlan`: certify at any base, scan up to `min(1024, engine cap)`, else skip, also for a seed-only or malformed table) and drives the engine job on the main thread in 8 ms slices (`runSlicedJob` with an injected clock and scheduler, `browserSchedule` = MessageChannel with a timer fallback; no worker); app/components/names/CollisionReport.tsx holds the block: one job per naming while the panel is open, cancelled by a newer naming, base or collapse (generation counter plus the job's cancel), 'Checking...' only after the 150 ms grace, the list of at most 20 repeated names per page with up to 4 jump buttons each (`+k more` from the exact size), and a jump that opens the demon name editor inline under that line (collision context, never pins, scrolled into the scroller) or, in preview, only says `Keep this naming to rename demons.` under that line. Decisions: the re-check is keyed on the naming object, not the revision (Keep must not rescan); focus after the editor closes falls back from the demon's own jump button to the line that kept the name, the toggle, then the block (a rename usually removes the demon from its group); the two count announcements are a local pure helper because namingCopy.ts is outside this plan (07-21 should move them there; it runs test:swap anyway). 28 scheduling tests and 37 new block tests, 13 + 29 + 6 app mutants killed (A12, U15 first survived and led to new assertions; P2 equivalent by design) and 25 wiring mutants judged against a 90-check scratch Chromium run of the real panel (not committed: W05, W09, W13, W21 first survived and led to new scenarios; W01 to W04 equivalent by design); a 1,024-zone scan of 1,022 groups answers exactly in 258 ms with a 26 ms largest main-thread gap, and the same work with a never-yielding clock blocks for 252 ms. typecheck, check-repo and the oracle project in UTC and America/New_York clean; `check:weight` unchanged at 260,596 (this plan adds no weight: nothing mounted imports it); test:swap not run (only `NamesPanel.tsx`, which nothing mounts, is an existing app file edited); no frozen oracle, golden, baseline, engine file, `NumogramClient.tsx`, `Projection.tsx` or base-10 preset touched.
 - [Phase 7 history fix, between 07-20 and 07-21] The pre-existing undo-history bug is fixed (RED `40e2cce`, GREEN `18c8f57`; not a numbered plan): in the history push effect of `app/NumogramClient.tsx` the `historyApplyingRef` branch now sits above the key-equality return, so the apply render of an Undo or Redo clears the flag and the next real edit is pushed (Redo cleared, the next Undo returns to the previous edit) instead of being swallowed. The 07-18 naming adoption (`historyNamingAdoptRef`, `withHydratedNaming`) is unchanged and still runs first. `npm run test:swap` exit 0 with the 60 DOM goldens and the 5 behaviour stages unchanged (the frozen `after-undo` and `after-redo` stages did not encode the bug), typecheck and check-repo clean, 2 new e2e cases in `e2e/names-session.spec.ts` (rename, layer toggle) that fail on the old code and pass now, 2 mutants killed (the old ordering, and the new position without the flag clear). Residual left open and logged in `deferred-items.md`: an Undo that `applySnapshot` refuses (a base-10 post-load entry at `?base=28`) still leaves the flag set (fixed in 07-21, see the next bullet).
 - [Phase 7 P21] The Names panel is mounted and the sounds labels and the honest Share title are wired (NAM-01 and NAM-03 now observable in the app; they stay Pending until the 07-22 and 07-23 e2e and the phase gate, D-01, D-03, D-13): `names` is first in `PANEL_GROUP_ORDER` and `names: 34` is in `PANEL_GROUP_DEFAULT_HEIGHTS`, so the mobile stack lists it at y 64 and the desktop stack and `onPanelHeight` take its measured height; `<Panel id="names" postBaseline>` sits after Selection with no `hasDiagram` guard (240 px on desktop, `mobilePanelWidth` at 820 px and below, `panelZ.names`, collapsed by default, `maxBodyHeight` and `bodyMax` both `namesBodyMax(y, viewport.h)`, `NamesHeaderTag` in the header); `zoneSounds` (labels=sounds within the ceiling) reaches `Projection` (with `labelPxPerUnit`) and `CanvasDiagram`, `numeralsLayout` reaches `BasePicker`, `PairGraphProjection` gets nothing; the Share title is `NAMES_COPY.shareTitleUncarried` while edits a link cannot carry exist and pressing Share announces the same sentence (aria-label and sharing unchanged). Extra task A moved the two collision announcement sentences into `app/lib/namingCopy.ts` (`collisionsAnnounceNone`, `collisionsAnnounceSome`; 77 keys). Extra task B (RED `5872c01`, GREEN `4bf1fce`) fixed the residual of the history bug: `applySnapshot` returns whether it applied and `onUndo` and `onRedo` set the flag and `historyCurrentRef` only then; a refused snapshot only drops its dead entry (no Redo entry any more). `e2e/names-helpers.ts` (the box is the fixed ancestor of `[data-names-live]`, never `panel(page, 'Names')`) and `e2e/names-smoke.spec.ts` (7 tests: base 10, 28, a Canvas base, the first seed-only base, `tier=headless` at base 28, sounds labels, and a saved edit showing the header tag, the Share title and the announcement). `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 after Task 1 and again after the history fix (65 Playwright passed, 5 skipped by design, 3,916 unit tests also in America/New_York), no frozen oracle, golden, baseline, bank or vector touched; every panel-related spec passed (panel-stack, region-legend, layers-zoom, canvas-tier, canvas-interaction at 375 x 667 and 768 x 1024, demons, hover-pin, accessibility, base-picker, base-switch-reset, names-session, worker, url-codec); a 24-state geometry probe (375, 768, 820, 821, 1024 and 1280 px, base 10 and 28, collapsed and open) found no panel overlap and an open Names box ending at or above `vh - 96`; 8 mutants killed. `check:weight` still fails: `/numogram/` jsBytes 890,987 (limit 849,278) and jsGzip 273,143 (limit 258,168; baseline 245,874), so 07-24's `update --reason` should use the final numbers.
+- [Phase 7 P22] The Names panel's editing and display behaviour is proved end to end in Chromium (NAM-01 and NAM-02 observable and e2e-proven; both stay Pending until the 07-25 gate, D-03, D-07, D-09, ROADMAP criteria 1 and 2): e2e/names-panel.spec.ts (20 tests) and e2e/names-labels.spec.ts (12), every expectation computed with the engine, the copy module, the CCRU preset module, fitSoundLabel or layoutTarget, never read from the page; the Reroll button's random source is replaced by a fixed sequence (stubRerollRandom) so the seed and the changed zones are certain, seed determinism is proved in two fresh contexts, the header Undo walks a sound edit, a lock, an override, a Reroll and an import back and forward in order against whole engine namings, the zone list stays under 80 rows at the interactive ceiling (names-open-ms 23 to 28 ms against the 100 ms budget), field width measured with hidden and with real scrollbars (content 214 and field 150, real bar 10 px: 204 and 140, a 16-letter sound fits), and sounds labels are checked fitted on the SVG tier and through the announcement and recorded fillText on the Canvas tier (worker guard accepts the picker toggle). No app, engine or frozen file changed; 29 app mutants killed (six first failed to build on an unused identifier and were replaced). Findings: a Canvas tier override cannot lift the ceiling (no diagram exists above it); CyberPanel's wrapper shows its own bar for the 200 ms opening transition (logged in deferred-items.md, e2e measurements use settleAnimations); `npm run check:weight` still fails (07-24 owns the baseline)
 
 ### Pending Todos
 
@@ -290,9 +291,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-10T22:50:00.000Z
-Stopped at: Completed 07-21-PLAN.md
-Resume file: .planning/phases/07-naming-builder/07-22-PLAN.md
+Last session: 2026-11-11T00:15:00.000Z
+Stopped at: Completed 07-22-PLAN.md
+Resume file: .planning/phases/07-naming-builder/07-23-PLAN.md
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z

@@ -230,7 +230,7 @@ Plans:
 - [x] 07-19-PLAN.md - Virtualized editable zone list (locks, validation, paste, keyboard, go-to, pin link) and the shortcuts line (wave 7)
 - [x] 07-20-PLAN.md - Collision report with cancellable sliced scans, jumps and the inline collision editor (wave 8)
 - [x] 07-21-PLAN.md - Names panel mounted in both stacks at every tier, sounds pass-through, honest Share title; e2e helpers and smoke spec (wave 9)
-- [ ] 07-22-PLAN.md - E2E: editing, locks, generation, derivation, renaming, scale, undo; sounds label mode on both tiers (wave 10)
+- [x] 07-22-PLAN.md - E2E: editing, locks, generation, derivation, renaming, scale, undo; sounds label mode on both tiers (wave 10)
 - [ ] 07-23-PLAN.md - E2E: import/export, autosave per base, storage failure, collisions and jumps, CCRU preset, shared-link previews (wave 10)
 - [ ] 07-24-PLAN.md - E2E: Names geometry at every viewport, mobile and planetary clearance, layout re-runs; page weight via --reason (wave 10)
 - [ ] 07-25-PLAN.md - Phase gate: full verify, validation sign-off, todo 008 closed, manual screen-reader/stack/narrow-window checkpoint (wave 11)
@@ -280,5 +280,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
 | 6. Canvas Tier and Worker | 15/15 | Complete    | 2026-10-19 |
-| 7. Naming Builder | 21/25 | In Progress | - |
+| 7. Naming Builder | 22/25 | In Progress | - |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |

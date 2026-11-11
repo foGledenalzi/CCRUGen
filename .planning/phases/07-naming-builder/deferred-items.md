@@ -46,3 +46,15 @@ and the new position without the flag clear) that both fail those cases. Residua
   it needs a click on Undo while only that foreign entry is on the stack. Suggested fix: make `applySnapshot` report whether it applied
   (a boolean) and let `onUndo`/`onRedo` set the flag and the ref only when it did (or check the base before touching the stacks); add
   an e2e case at `?base=28`: Undo (refused), rename, Undo restores the engine's name.
+
+## 2026-11-10 — a transient bar of the panel wrapper while a panel opens (observed in 07-22, not fixed)
+
+- **Where:** `app/components/ui/CyberPanel.tsx` (pre-existing component, not Phase 7 code): the body wrapper has `overflowY: auto`
+  and a 200 ms `max-height` transition from 0 to the body height.
+- **What:** with real scrollbars (a browser that does not hide them; Playwright's headless Chromium passes `--hide-scrollbars`, so
+  the e2e default never sees it) the wrapper shows a bar of its own for the first 200 ms of opening, because its height is still
+  smaller than its content. The Names panel's content is narrowed by one bar width (10 px measured on Windows Chromium) for that
+  time, then returns to full width when the transition ends. At rest the wrapper never scrolls, so the UI-SPEC rule "one scroller" holds.
+- **Why deferred:** cosmetic, 200 ms, present for every panel since Phase 4, and fixing it means changing a shared component. Any
+  e2e measurement of widths or boxes right after opening a panel must wait for the transition (`settleAnimations` in
+  `e2e/names-helpers.ts`); 07-24's geometry specs should use it too.
