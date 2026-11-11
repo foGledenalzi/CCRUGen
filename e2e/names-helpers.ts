@@ -1,5 +1,9 @@
-import { expect, type Locator, type Page } from '@playwright/test'
-import { createNameResolver, type NameResolver, type Naming } from '../engine/index'
+import { expect, type Download, type Locator, type Page } from '@playwright/test'
+import { createNameResolver, netSpanOf, type NameResolver, type Naming } from '../engine/index'
+import { netSpanLabel } from '../app/lib/demonBrowser'
+import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../app/lib/labelScheme'
+import type { ImportCopyContext } from '../app/lib/namingCopy'
+import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_STORAGE_PREFIX } from '../app/lib/namingLimits'
 import { defaultNamingFor, type NamingEnv } from '../app/lib/namingSession'
 import { INTERACTIVE_MAX_N } from '../app/lib/tierBounds'
 import { CCRU_NAMING_PRESET } from '../app/presets/base10/naming'
@@ -214,4 +218,144 @@ export async function stubRerollRandom(page: Page): Promise<void> {
     }
     crypto.getRandomValues = stub as typeof crypto.getRandomValues
   })
+}
+
+// ----- Phase 7 plan 07-23: files, the browser slot, the status line, the live carrier and the Demons browser's NAME column -----
+
+/** Time for the debounced autosave to land, with room to spare. Used to prove that something was NOT written; a write is awaited by polling. */
+export const AUTOSAVE_WAIT_MS = NAMING_AUTOSAVE_DEBOUNCE_MS + 200
+
+/** The Export and Import buttons, the hidden file input, the status line and the autosave line of the panel (the panel must be open). */
+export const exportButton = (page: Page): Locator => namesBox(page).locator('button[data-names-export]')
+export const importButton = (page: Page): Locator => namesBox(page).locator('button[data-names-import]')
+export const importInput = (page: Page): Locator => page.locator('input[data-names-import-input]')
+export const statusLine = (page: Page): Locator => namesBox(page).locator('[data-names-status]')
+export const savedLine = (page: Page): Locator => namesBox(page).locator('[data-names-saved]')
+/** The panel's inline `Undo this change` button (never the header Undo). */
+export const inlineUndo = (page: Page): Locator => namesBox(page).locator('button[data-names-undo]')
+
+/** The collision block, its count line, its toggle and its jump buttons (the panel must be open). */
+export const collisionsBlock = (page: Page): Locator => namesBox(page).locator('[data-names-collisions]')
+export const collisionsLine = (page: Page): Locator => namesBox(page).locator('[data-names-collisions-line]')
+export const collisionToggle = (page: Page): Locator => namesBox(page).locator('button[data-collision-toggle]')
+export const jumpButton = (page: Page, mesh: number): Locator => namesBox(page).locator(`button[data-collision-jump="${mesh}"]`)
+
+/** The text a download carries (UTF-8). */
+export async function downloadText(download: Download): Promise<string> {
+  const stream = await download.createReadStream()
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk as Uint8Array))
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+/** Hands a file to the panel's hidden file input, exactly as the browser's file chooser would. */
+export async function chooseFile(page: Page, name: string, content: string | Buffer): Promise<void> {
+  const buffer = typeof content === 'string' ? Buffer.from(content, 'utf8') : content
+  await importInput(page).setInputFiles({ name, mimeType: 'application/json', buffer })
+}
+
+/** What the sentences of an import refusal need from the page: the base and the digits labels (the default scheme). */
+export function importCopyContext(base: number): ImportCopyContext {
+  const zoneLabel = (zone: number): string => formatZoneLabel(zone, base, DEFAULT_LABEL_SCHEME)
+  return {
+    base,
+    zoneLabel,
+    netSpan: mesh => {
+      const [a, b] = netSpanOf(mesh)
+      return netSpanLabel(a, b, zoneLabel)
+    },
+  }
+}
+
+/** The text of the browser slot of a base (null when none was written). */
+export async function readSlot(page: Page, base: number): Promise<string | null> {
+  return page.evaluate((key: string) => window.localStorage.getItem(key), `${NAMING_STORAGE_PREFIX}${base}`)
+}
+
+/**
+ * Puts `text` into the slot of `base` before the page loads, only while the slot is empty: a later navigation of the same context
+ * (after a Keep, say) then keeps what the page wrote instead of being reset. Call before the first navigation.
+ */
+export async function seedSlot(page: Page, base: number, text: string): Promise<void> {
+  await page.addInitScript(
+    ({ key, value }: { key: string; value: string }) => {
+      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, value)
+    },
+    { key: `${NAMING_STORAGE_PREFIX}${base}`, value: text },
+  )
+}
+
+/** Types a sound into the zone's field and commits it with Enter; the row's lock turns on (an edit locks its zone). */
+export async function typeSound(page: Page, zone: number, text: string): Promise<void> {
+  const field = soundField(page, zone)
+  await field.fill(text)
+  await field.press('Enter')
+  await expect(nameRow(page, zone)).toHaveAttribute('data-locked', 'true')
+  await expect(field).toHaveValue(text)
+}
+
+/** Renames the pinned demon from the Selection panel's editor. */
+export async function renamePinned(page: Page, name: string): Promise<void> {
+  const editor = demonEditor(page, 'selection')
+  await editor.locator('button[data-demon-rename]').click()
+  await editor.locator('input[data-demon-name-input]').fill(name)
+  await editor.locator('button[data-demon-name-save]').click()
+}
+
+/** Starts recording every non-empty text the live carrier takes, in order (consecutive duplicates once). Call after each navigation. */
+export async function recordLive(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const el = document.querySelector('[data-names-live]')
+    if (el === null) throw new Error('the live carrier is not mounted')
+    const w = window as unknown as { __namesLive?: string[] }
+    const log: string[] = []
+    w.__namesLive = log
+    new MutationObserver(() => {
+      const text = el.textContent ?? ''
+      if (text !== '' && log[log.length - 1] !== text) log.push(text)
+    }).observe(el, { childList: true, characterData: true, subtree: true })
+  })
+}
+
+/** The texts recorded since recordLive, in order. */
+export async function liveLog(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __namesLive?: string[] }).__namesLive ?? [])
+}
+
+/**
+ * Reads the NAME cell of every demon of the (virtualized) Demons browser by walking its one scroller from the top to the bottom,
+ * and throws when a mesh was never mounted, so a window that skips a row can never pass as equal. The overlay must be open on its
+ * browser tab. The text is the whole cell: the name, and for an overridden name the marker and its hidden words.
+ */
+export async function readBrowserNames(page: Page, total: number): Promise<string[]> {
+  const raw = await page.evaluate(async (count: number) => {
+    const list = document.querySelector('[data-demon-list="browser"]') as HTMLElement | null
+    if (list === null) throw new Error('the Demons browser is not open')
+    const names: Array<string | null> = new Array<string | null>(count).fill(null)
+    const frames = (): Promise<void> => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    const collect = (): void => {
+      for (const row of Array.from(list.querySelectorAll('[data-demon-row]'))) {
+        const mesh = Number(row.getAttribute('data-demon-row'))
+        const cell = row.querySelector('[role="gridcell"][data-col="name"]')
+        if (cell === null || !Number.isInteger(mesh) || mesh < 0 || mesh >= count) continue
+        names[mesh] = cell.textContent ?? ''
+      }
+    }
+    list.scrollTop = 0
+    await frames()
+    collect()
+    const step = Math.max(60, list.clientHeight - 60)
+    while (list.scrollTop + list.clientHeight < list.scrollHeight - 1) {
+      list.scrollTop += step
+      await frames()
+      collect()
+    }
+    list.scrollTop = list.scrollHeight
+    await frames()
+    collect()
+    return names
+  }, total)
+  const missing = raw.findIndex(s => s === null)
+  if (missing >= 0) throw new Error(`demon ${missing} was never mounted while walking the browser`)
+  return raw as string[]
 }
