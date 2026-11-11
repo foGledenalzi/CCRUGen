@@ -359,3 +359,29 @@ export async function readBrowserNames(page: Page, total: number): Promise<strin
   if (missing >= 0) throw new Error(`demon ${missing} was never mounted while walking the browser`)
   return raw as string[]
 }
+
+/**
+ * Records every key written to the browser storage by the page (any writer, identical bytes included), so "nothing is written" is a
+ * fact about the writes and not only about the slot's value. Call AFTER seedSlot and before the first navigation (the init scripts run in
+ * the order they were added, so a seeded slot is not counted); the list starts empty in every document.
+ */
+export async function spyStorageWrites(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __storageWrites?: string[] }
+    const writes: string[] = []
+    w.__storageWrites = writes
+    const real = Storage.prototype.setItem
+    Storage.prototype.setItem = function setItem(this: Storage, key: string, value: string): void {
+      writes.push(key)
+      real.call(this, key, value)
+    }
+  })
+}
+
+/** The keys written since the page loaded (see spyStorageWrites), in order. */
+export async function storageWrites(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __storageWrites?: string[] }).__storageWrites ?? [])
+}
+
+/** The storage key of the slot of a base. */
+export const slotKeyOf = (base: number): string => `${NAMING_STORAGE_PREFIX}${base}`

@@ -20,7 +20,8 @@ import {
   AUTOSAVE_WAIT_MS, NAMING_ENV, chooseFile, closeDemons, collisionToggle, collisionsBlock, collisionsLine, demonEditor, downloadText,
   exportButton, gotoField, importButton, importCopyContext, importInput, inlineUndo, jumpButton, liveLog, lockedOf, lockedZones,
   namesBody, namesBox, namesState, nameRow, openNames, pinFromOverlay, readBrowserNames, readSlot, readTable, recordLive, redoButton,
-  renamePinned, seedSlot, savedLine, seedField, settleAnimations, settleFrames, soundField, statusLine, switchBase, typeSound, undoButton, NAMES_LIVE,
+  renamePinned, seedSlot, savedLine, seedField, settleAnimations, settleFrames, slotKeyOf, soundField, spyStorageWrites, statusLine,
+  storageWrites, switchBase, typeSound, undoButton, NAMES_LIVE,
 } from './names-helpers'
 
 // Plan 07-23's proof of Import and Export, autosave, the collision report and the CCRU preset in Chromium (ROADMAP Phase 7 criteria 3
@@ -316,6 +317,7 @@ for (const hostile of hostileFiles()) {
   test(`a hostile file is refused and nothing is applied: ${hostile.title}`, async ({ page }) => {
     const errors = trackErrors(page)
     const start = defaultNaming(BASE)
+    await spyStorageWrites(page)
     await openViewer(page, `base=${BASE}`)
     await openNames(page)
     const buffer = typeof hostile.content === 'string' ? Buffer.from(hostile.content, 'utf8') : hostile.content
@@ -334,6 +336,7 @@ for (const hostile of hostileFiles()) {
     // no slot is written: an import that applies nothing is not an edit
     await page.waitForTimeout(AUTOSAVE_WAIT_MS)
     expect(await readSlot(page, BASE)).toBeNull()
+    expect(await storageWrites(page), 'nothing was written to the storage').toEqual([])
     await expect(savedLine(page)).toHaveAttribute('data-names-saved', 'none')
     expect(errors).toEqual([])
   })
@@ -419,6 +422,7 @@ test('autosave: one slot per base after the first edit only; a base switch never
   const errors = trackErrors(page)
   const start = defaultNaming(BASE)
   const edited = editSound(start, 5, 'gl')
+  await spyStorageWrites(page)
   await openViewer(page, `base=${BASE}`)
   await openNames(page)
 
@@ -427,11 +431,14 @@ test('autosave: one slot per base after the first edit only; a base switch never
   await expect(savedLine(page)).toHaveText(NAMES_COPY.savedNone)
   await page.waitForTimeout(AUTOSAVE_WAIT_MS)
   expect(await readSlot(page, BASE)).toBeNull()
+  expect(await storageWrites(page), 'an untouched base writes nothing').toEqual([])
 
   await typeSound(page, 5, 'gl')
   await expect(savedLine(page)).toHaveAttribute('data-names-saved', 'saved')
   await expect(savedLine(page)).toHaveText(savedText(BASE))
   expect(await readSlot(page, BASE)).toBe(serializeNaming(edited))
+  // the debounce gives one write for the edit, not one per keystroke or per render
+  expect(await storageWrites(page)).toEqual([slotKeyOf(BASE)])
 
   // another base opens on its own default: the edit of base 28 is not carried, and a visit writes nothing
   await switchBase(page, 30)
@@ -441,6 +448,7 @@ test('autosave: one slot per base after the first edit only; a base switch never
   await page.waitForTimeout(AUTOSAVE_WAIT_MS)
   expect(await readSlot(page, 30)).toBeNull()
   expect(await readSlot(page, BASE)).toBe(serializeNaming(edited))
+  expect(await storageWrites(page), 'visiting another base writes nothing').toEqual([slotKeyOf(BASE)])
 
   // back at 28 the saved naming returns: the edit and its lock
   await switchBase(page, BASE)
@@ -449,6 +457,8 @@ test('autosave: one slot per base after the first edit only; a base switch never
   await expect(soundField(page, 5)).toHaveValue('gl')
   await expect(nameRow(page, 5)).toHaveAttribute('data-locked', 'true')
   await expectTable(page, edited, 'base 28 after the switch back')
+  await page.waitForTimeout(AUTOSAVE_WAIT_MS)
+  expect(await storageWrites(page), 'restoring a slot writes nothing').toEqual([slotKeyOf(BASE)])
   expect(errors).toEqual([])
 })
 

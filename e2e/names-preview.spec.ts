@@ -15,7 +15,7 @@ import {
   AUTOSAVE_WAIT_MS, NAMING_ENV, closeDemons, collisionToggle, collisionsBlock, collisionsLine, defaultResolver, demonEditor, downloadText,
   exportButton, gotoZone, importButton, inlineUndo, lockButton, lockedOf, lockedZones, nameCell, nameRow, namesBody, namesBox, namesHeaderTag,
   namesScroll, namesState, namesToggle, openNames, readSlot, readTable, rerollButton, savedLine, seedField, seedSlot, soundField, statusLine,
-  stubRerollRandom, typeSound, undoButton, NAMES_LIVE,
+  slotKeyOf, spyStorageWrites, stubRerollRandom, storageWrites, typeSound, undoButton, NAMES_LIVE,
 } from './names-helpers'
 
 // Plan 07-23's proof of the shared-link states in Chromium (ROADMAP Phase 7 criterion 3, NAM-03, D-13): a link with no saved slot is the
@@ -69,6 +69,7 @@ async function expectTable(page: Page, naming: Naming, why: string): Promise<voi
 /** Opens base 28 on the link with the visitor's slot saved, and waits for the panel to be in the preview state. */
 async function openPreview(page: Page, query = `base=${BASE}&names=seed:${LINK_SEED}`): Promise<void> {
   await seedSlot(page, BASE, savedText28())
+  await spyStorageWrites(page) // after the seed: only what the page itself writes is counted
   await openViewer(page, query)
   await expect(namesBody(page)).toHaveAttribute('data-names-state', 'preview')
 }
@@ -77,6 +78,7 @@ async function openPreview(page: Page, query = `base=${BASE}&names=seed:${LINK_S
 
 test('a seed link with no saved slot is the working naming, not a preview, and writes nothing until an edit', async ({ page }) => {
   const errors = trackErrors(page)
+  await spyStorageWrites(page)
   await openViewer(page, `base=${BASE}&names=seed:${LINK_SEED}`)
   expect(await namesState(page)).toBe('ready')
   // collapsed (a preview is the only thing that opens the panel by itself) and no tag: nothing a link cannot carry
@@ -91,6 +93,7 @@ test('a seed link with no saved slot is the working naming, not a preview, and w
   await expectTable(page, linked(), 'the linked naming')
   await page.waitForTimeout(AUTOSAVE_WAIT_MS)
   expect(await readSlot(page, BASE)).toBeNull()
+  expect(await storageWrites(page), 'a link with no slot writes nothing until an edit').toEqual([])
 
   // the first edit is what saves it, and the address keeps naming the seed (walking the table left the list at its end)
   await namesScroll(page).evaluate(el => {
@@ -190,9 +193,10 @@ test('a link over a different saved slot opens as an unsaved preview: notice, ta
   expect(await downloadText(download)).toBe(serializeNaming(linked(), { pretty: true }))
   await expect(statusLine(page)).toHaveText(exportSuccess(BASE))
 
-  // nothing was written: the slot is byte for byte what the visitor saved, however long we wait (T-07-17f)
+  // nothing was written: the slot is byte for byte what the visitor saved, however long we wait (T-07-17f), and the page wrote nothing
   await page.waitForTimeout(AUTOSAVE_WAIT_MS)
   expect(await readSlot(page, BASE)).toBe(savedText28())
+  expect(await storageWrites(page), 'a preview writes nothing').toEqual([])
   expect(await namesState(page)).toBe('preview')
 
   // collapsed, the header still says it
@@ -220,6 +224,7 @@ test('Keep this naming replaces the slot, says so, moves focus to the seed and i
   await expectTable(page, linked(), 'after Keep')
   // the slot is replaced after the quiet time, with the link's naming; the address still carries the seed only
   await expect.poll(() => readSlot(page, BASE), { timeout: 10_000 }).toBe(serializeNaming(linked()))
+  expect(await storageWrites(page)).toEqual([slotKeyOf(BASE)])
   await expect(savedLine(page)).toHaveAttribute('data-names-saved', 'saved')
   await expect(savedLine(page)).toHaveText(savedText(BASE))
   expect(new URL(page.url()).searchParams.get('names')).toBe(`seed:${LINK_SEED}`)
@@ -274,6 +279,7 @@ test('Back to my saved naming restores the slot, drops the notice, moves focus t
   // the slot was never written, so it is still exactly what was saved
   await page.waitForTimeout(AUTOSAVE_WAIT_MS)
   expect(await readSlot(page, BASE)).toBe(savedText28())
+  expect(await storageWrites(page), 'Back writes nothing').toEqual([])
   await expect(savedLine(page)).toHaveAttribute('data-names-saved', 'none')
   // the editing controls are back
   await expect(rerollButton(page)).toBeEnabled()
@@ -305,6 +311,7 @@ test('base 10: a names=ccru link over a saved seed slot previews the CCRU preset
   const errors = trackErrors(page)
   const slot = editSound(setSeed(setSource(defaultNaming(10), 'generated', CCRU_NAMING_PRESET), SAVED_SEED), 4, 'gl')
   await seedSlot(page, 10, serializeNaming(slot))
+  await spyStorageWrites(page)
   await openViewer(page, 'names=ccru')
   await expect(namesBody(page)).toHaveAttribute('data-names-state', 'preview')
   await expect(namesBox(page).locator('input[data-names-source="ccru"]')).toBeChecked()
@@ -316,6 +323,7 @@ test('base 10: a names=ccru link over a saved seed slot previews the CCRU preset
   await closeDemons(page)
   await page.waitForTimeout(AUTOSAVE_WAIT_MS)
   expect(await readSlot(page, 10)).toBe(serializeNaming(slot))
+  expect(await storageWrites(page), 'the preset preview writes nothing').toEqual([])
 
   await notice(page).locator('button[data-names-keep]').click()
   await expect(namesBody(page)).toHaveAttribute('data-names-state', 'ready')
@@ -419,6 +427,7 @@ test('a seed link above the ceiling stays in the address, is seed-only and names
   expect(linkedNaming.sounds).toBeNull()
   expect(nameAt(softNaming), 'fixture: the style changes the first demon name').not.toBe(nameAt(linkedNaming))
 
+  await spyStorageWrites(page)
   await openFor(page, SEED_ONLY_BASE, `names=seed:${LINK_SEED}`)
   expect(await namesState(page)).toBe('seed-only')
   expect(new URL(page.url()).searchParams.get('names')).toBe(`seed:${LINK_SEED}`)
@@ -442,6 +451,7 @@ test('a seed link above the ceiling stays in the address, is seed-only and names
   await closeDemons(page)
   await page.waitForTimeout(AUTOSAVE_WAIT_MS)
   expect(await readSlot(page, SEED_ONLY_BASE)).toBeNull()
+  expect(await storageWrites(page), 'a seed-only base never writes').toEqual([])
   await expect(savedLine(page)).toHaveAttribute('data-names-saved', 'seed-only')
   expect(errors).toEqual([])
 })
