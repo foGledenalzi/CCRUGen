@@ -1,9 +1,10 @@
 ---
 title: "Desktop panel stack does not re-measure after a base change, so the Regions panel overlaps the Currents header (and other panels drift)"
-status: pending
+status: completed
 priority: P2
 source: "Phase 6 execution, plan 06-13 e2e run, 2026-10-15 (logged first in .planning/phases/06-canvas-tier-and-worker/deferred-items.md)"
 created: 2026-10-15
+completed: 2026-11-11
 theme: ui-layout
 ---
 
@@ -44,6 +45,15 @@ Place each panel below the measured height of the one above it in its column (th
 
 ## Acceptance Criteria
 
-- [ ] At 1280x800 and 1440x900, base 202 (and a base with 6+ regions), a mouse click on the Warp, Plex and each Torque row's Isolate and Mute buttons toggles that region
-- [ ] No panel overlaps another panel's header at the default layout for any base the picker offers up to the interactive ceiling
-- [ ] `npm run test:swap` and `npm run verify` stay green without regenerating any frozen oracle
+- [x] At 1280x800 and 1440x900, base 202 (and a base with 6+ regions), a mouse click on the Warp, Plex and each Torque row's Isolate and Mute buttons toggles that region (07-07, `e2e/region-legend.spec.ts`: the two `todo 008: a real mouse click on Warp and Plex Isolate/Mute toggles the region at base 202` tests at 1280x800 and 1440x900; passed in the 07-25 gate)
+- [x] No panel overlaps another panel's header at the default layout for any base the picker offers up to the interactive ceiling (proven at the sampled bases 10, 28, 64 and the Canvas bases 202, 1000 and 4000, and after a base change through the picker; by construction for any base, because the stack is derived from the measured panel heights, not from per-base constants)
+- [x] `npm run test:swap` and `npm run verify` stay green without regenerating any frozen oracle (`MSYS_NO_PATHCONV=1 npm run verify` exit 0 on 2026-11-11 in the 07-25 gate; the 60 DOM goldens, the behaviour baseline and the fixtures are byte-identical to the pre-Phase-7 commit `0f25f1b`)
+
+## Resolution (Phase 7, plans 07-03, 07-07, 07-24)
+
+Fixed by deriving the desktop stack from measured heights instead of the one-shot, first-render layout effect:
+
+- **The fix.** `app/lib/panelStack.ts` (`computeDesktopStack`, 07-03) is a pure function of the measured panel heights; `NumogramClient.tsx` feeds it the live heights, so every height change (a base change that adds Regions rows, a collapse, Names opening or Selection growing) re-stacks the column. `app/hooks/usePanelDrag.ts` (07-07) was rebuilt on the pure drag and z reducers so a dragged panel keeps its own position and an untouched one keeps following the stack. Base 10's placement stayed byte-for-byte what the old effect gave (checked at four viewports against the old formula and 20,000 random height sets).
+- **The proof.** `e2e/panel-stack.spec.ts` (62 tests, 9 from 07-07 and 53 from 07-24): the todo 008 trigger itself (base 10, then 28 through the picker; and again with Names open), and a no-overlap matrix at bases 10, 28, 64 and the Canvas base 202 (plus Canvas bases 1000 and 4000 at two viewports) across seven desktop viewports and four panel states, plus the mobile stack, planetary clearance, drag and z-cap cases. In `e2e/region-legend.spec.ts` two `todo 008` tests: base 10 then 28 through the picker leaves Regions and Currents apart, and at base 202 at 1280x800 and 1440x900 a real mouse click on the Isolate and Mute buttons of every Torque row, Warp and Plex toggles that region (the earlier work-around of pressing them by keyboard in `e2e/canvas-interaction.spec.ts` is no longer needed but was left in place).
+- **Criterion 2, worded as proven.** No overlap at the sampled bases (including a Canvas base) and after a base change; by construction for any base, because the stack is derived from measured heights. No sweep over every base the picker offers was run.
+- **Frozen oracles.** The change touched no golden, behaviour baseline or fixture: `npm run test:swap` passed after the wiring plan (07-07) and `npm run verify` exits 0 with them byte-identical (07-25).
