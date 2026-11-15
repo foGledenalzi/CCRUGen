@@ -46,7 +46,10 @@ const SMOOTH_ON = '1'
 
 // Control characters and the line and paragraph separators are refused anywhere in the value, before trimming: String.trim()
 // strips U+2028, U+2029 and the common controls at the edges, so a check after it would quietly accept 'seed:a<U+2028>' as 'a'.
-const HOSTILE = /[\p{Cc}\p{Zl}\p{Zp}]/u
+// A lone surrogate is refused for the same reason as in normalizeSeed (WR-02): a link would write it as U+FFFD and the recipient
+// would get a different seed. (URLSearchParams converts one to U+FFFD when it is built, so this is a mirror of the seed rule for
+// a reader handed anything else.) The bidi controls are refused by normalizeSeed itself, for every route that reads a seed.
+const HOSTILE = /[\p{Cc}\p{Zl}\p{Zp}\p{Cs}]/u
 
 /**
  * Reads the naming link from `params` for a viewer at `base`, or null when there is none or it is not well formed. Never throws.

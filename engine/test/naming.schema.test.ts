@@ -596,6 +596,19 @@ describe('validateNamingJson: generator, source, join', () => {
     }
   })
 
+  it('a seed with a lone surrogate or a bidi control is a bad field (WR-02, WR-03), and gives no seed offer', () => {
+    const lone = 'a' + String.fromCharCode(0xd800) // valid JSON once escaped: "a\ud800"
+    for (const seed of [lone, 'ab' + String.fromCharCode(0x202e) + 'cd', String.fromCharCode(0x2066) + 'x']) {
+      const d = docOf()
+      sub(d, 'generator').seed = seed
+      expect(refusal(run(d)).issues).toEqual([{ kind: 'bad-field', path: 'generator.seed' }])
+      const other = docOf()
+      other.base = 30
+      sub(other, 'generator').seed = seed
+      expect(refusal(run(other)).offerSeed).toBeNull()
+    }
+  })
+
   it('every known style and both join orders are accepted; the seed is normalised', () => {
     for (const style of STYLE_IDS) {
       for (const order of JOIN_ORDERS) {

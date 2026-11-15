@@ -26,7 +26,11 @@ export type TextCheck = { readonly ok: true; readonly text: string } | { readonl
 const WHITESPACE = /\s/u
 const DECIMAL_DIGIT = /\p{Nd}/u
 const LETTERS_AND_MARKS = /^\p{L}[\p{L}\p{M}]*$/u
-const SEED_FORBIDDEN = /[\p{Cc}\p{Zl}\p{Zp}]/u
+// A seed may hold spaces, punctuation and any script, but never: a control, a line or paragraph separator, a lone surrogate (a
+// share link writes it as U+FFFD, so the recipient would get a different seed, WR-02), or a bidi control (it reorders the text
+// around the seed wherever it is echoed, WR-03: the Arabic letter mark, LRM and RLM, the embeddings and overrides U+202A to
+// U+202E, and the isolates U+2066 to U+2069). ZWNJ and ZWJ stay legal: Persian and Indic seeds need them.
+const SEED_FORBIDDEN = /[\p{Cc}\p{Zl}\p{Zp}\p{Cs}؜‎‏‪-‮⁦-⁩]/u
 // The fallback when Intl.Segmenter is missing: a base character with its combining marks, or a run of leading marks (so
 // nothing is dropped). A Devanagari conjunct counts as more than one character here, which errs on the safe side.
 const MARK_CLUSTER = /\P{M}\p{M}*|\p{M}+/gu
@@ -96,8 +100,8 @@ export function validateName(raw: string): TextCheck {
 }
 
 /**
- * A seed: NFC and trimmed, 1..SEED_MAX_LENGTH UTF-16 units (no segmenter on the URL path), with no control, line-separator or
- * paragraph-separator character inside. Spaces and punctuation are fine. Returns null for anything else.
+ * A seed: NFC and trimmed, 1..SEED_MAX_LENGTH UTF-16 units (no segmenter on the URL path), with no control, line-separator,
+ * paragraph-separator, lone-surrogate or bidi-control character inside. Spaces and punctuation are fine. Returns null for anything else.
  */
 export function normalizeSeed(raw: string): string | null {
   const t = toNfc(raw).trim()

@@ -176,6 +176,33 @@ describe('normalizeSeed', () => {
     expect(normalizeSeed(input)).toBe(expected)
   })
 
+  // Review WR-02: a lone surrogate is serialised by URLSearchParams as U+FFFD, so a link would reproduce a different seed and
+  // therefore different names. Review WR-03: bidi controls reorder the text around a seed when it is echoed.
+  it.each([
+    ['a lone high surrogate', 'a' + String.fromCharCode(0xd800), null],
+    ['a lone low surrogate', String.fromCharCode(0xdc00) + 'a', null],
+    ['a reversed surrogate pair', String.fromCharCode(0xde00, 0xd83d), null],
+    ['a lone surrogate after a valid pair', cp(0x1f600) + String.fromCharCode(0xd83d), null],
+    ['a valid surrogate pair is still fine', 'a' + cp(0x1f600), 'a' + cp(0x1f600)],
+    ['a right-to-left override', 'a' + RLO + 'b', null],
+    ['a left-to-right override', 'a' + cp(0x202d) + 'b', null],
+    ['an embedding', 'a' + cp(0x202a) + 'b', null],
+    ['a right-to-left embedding', 'a' + cp(0x202b) + 'b', null],
+    ['a pop directional formatting', 'a' + cp(0x202c) + 'b', null],
+    ['an isolate', 'a' + ISOLATE + 'b', null],
+    ['a right-to-left isolate', 'a' + cp(0x2067) + 'b', null],
+    ['a first strong isolate', 'a' + cp(0x2068) + 'b', null],
+    ['a pop directional isolate', 'a' + cp(0x2069) + 'b', null],
+    ['a left-to-right mark', 'a' + LRM + 'b', null],
+    ['a right-to-left mark', 'a' + cp(0x200f) + 'b', null],
+    ['an arabic letter mark', 'a' + cp(0x61c) + 'b', null],
+    ['a bidi control at the very end (trim does not strip it)', 'ab' + RLO, null],
+    ['a zero width non-joiner stays legal (Persian)', 'a' + ZWNJ + 'b', 'a' + ZWNJ + 'b'],
+    ['a zero width joiner stays legal (Indic, emoji)', 'a' + ZWJ + 'b', 'a' + ZWJ + 'b'],
+  ])('%s', (_label, input, expected) => {
+    expect(normalizeSeed(input)).toBe(expected)
+  })
+
   it('counts UTF-16 units after normalisation (a surrogate pair is two)', () => {
     expect(normalizeSeed(cp(0x1f600).repeat(32))).toBe(cp(0x1f600).repeat(32))
     expect(normalizeSeed(cp(0x1f600).repeat(33))).toBeNull()

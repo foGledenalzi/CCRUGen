@@ -176,6 +176,27 @@ describe('parseNamesLink', () => {
     }
   })
 
+  it('refuses a lone surrogate and a bidi control in a seed link (WR-02, WR-03)', () => {
+    // URLSearchParams converts a lone surrogate to U+FFFD on the way in (it is a USVString), so the reader can only be handed
+    // one by a stand-in with the same get(): that proves the parser's own guard. The sender side (a seed typed, pasted or
+    // imported) is closed by normalizeSeed, whose tests are in engine/test/naming.text.test.ts.
+    const standIn = (raw: string): URLSearchParams => ({ get: (k: string) => (k === 'names' ? raw : null) }) as unknown as URLSearchParams
+    for (const raw of ['seed:a\ud800', 'seed:\udc00', 'seed:a\ud83d' + 'b']) {
+      expect(parseNamesLink(standIn(raw), 28), JSON.stringify(raw)).toBeNull()
+    }
+    const bidi = [
+      'seed:ab‮cd', // right-to-left override
+      'seed:⁦x', // left-to-right isolate
+      'seed:a‏b', // right-to-left mark
+    ]
+    for (const raw of bidi) {
+      expect(parseNamesLink(search({ names: raw }), 28), JSON.stringify(raw)).toBeNull()
+    }
+    // a valid surrogate pair and a ZWNJ are fine
+    expect(parseNamesLink(search({ names: 'seed:a' + String.fromCodePoint(0x1f600) }), 28)).toEqual(seedLink('a' + String.fromCodePoint(0x1f600)))
+    expect(parseNamesLink(search({ names: 'seed:a‌b' }), 28)).toEqual(seedLink('a‌b'))
+  })
+
   it('the same hostile text through a real query string (percent-encoded) is refused', () => {
     for (const q of ['?names=seed:a%00b', '?names=seed:a%E2%80%A8', '?names=seed:a%E2%80%A9', '?names=seed:a%0A', '?names=ccru%0A']) {
       expect(parseNamesLink(new URLSearchParams(q), 10), q).toBeNull()
