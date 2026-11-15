@@ -30,7 +30,7 @@ const LETTERS_AND_MARKS = /^\p{L}[\p{L}\p{M}]*$/u
 // share link writes it as U+FFFD, so the recipient would get a different seed, WR-02), or a bidi control (it reorders the text
 // around the seed wherever it is echoed, WR-03: the Arabic letter mark, LRM and RLM, the embeddings and overrides U+202A to
 // U+202E, and the isolates U+2066 to U+2069). ZWNJ and ZWJ stay legal: Persian and Indic seeds need them.
-const SEED_FORBIDDEN = /[\p{Cc}\p{Zl}\p{Zp}\p{Cs}؜‎‏‪-‮⁦-⁩]/u
+const SEED_FORBIDDEN = /[\p{Cc}\p{Zl}\p{Zp}\p{Cs}\u{61C}\u{200E}\u{200F}\u{202A}-\u{202E}\u{2066}-\u{2069}]/u
 // The fallback when Intl.Segmenter is missing: a base character with its combining marks, or a run of leading marks (so
 // nothing is dropped). A Devanagari conjunct counts as more than one character here, which errs on the safe side.
 const MARK_CLUSTER = /\P{M}\p{M}*|\p{M}+/gu
@@ -113,7 +113,7 @@ export function normalizeSeed(raw: string): string | null {
 // Characters that must never reach a status sentence as they are (review WR-03): controls, format characters (the bidi overrides,
 // embeddings and isolates among them), line and paragraph separators, and lone surrogates. ZWNJ and ZWJ are format characters
 // too, but they neither reorder nor hide text and Persian and Indic text needs them, so they pass.
-const UNSAFE_ECHO = /(?![‌‍])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}]/gu
+const UNSAFE_ECHO = /(?![\u{200C}\u{200D}])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}]/gu
 
 /**
  * s with each control, format, line-separator, paragraph-separator and lone-surrogate character replaced by U+FFFD (ZWNJ and ZWJ
@@ -121,7 +121,7 @@ const UNSAFE_ECHO = /(?![‌‍])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}]/gu
  * short string. React escapes markup; this stops a right-to-left override from reordering the words around it.
  */
 export function safeEcho(s: string): string {
-  return s.replace(UNSAFE_ECHO, '�')
+  return s.replace(UNSAFE_ECHO, '\u{FFFD}')
 }
 
 /** s with its first character in upper case (D-08). Locale-independent; follows the built-in mapping, so a sharp s becomes SS. */

@@ -185,16 +185,16 @@ describe('parseNamesLink', () => {
       expect(parseNamesLink(standIn(raw), 28), JSON.stringify(raw)).toBeNull()
     }
     const bidi = [
-      'seed:ab‮cd', // right-to-left override
-      'seed:⁦x', // left-to-right isolate
-      'seed:a‏b', // right-to-left mark
+      'seed:ab\u{202E}cd', // right-to-left override
+      'seed:\u{2066}x', // left-to-right isolate
+      'seed:a\u{200F}b', // right-to-left mark
     ]
     for (const raw of bidi) {
       expect(parseNamesLink(search({ names: raw }), 28), JSON.stringify(raw)).toBeNull()
     }
     // a valid surrogate pair and a ZWNJ are fine
     expect(parseNamesLink(search({ names: 'seed:a' + String.fromCodePoint(0x1f600) }), 28)).toEqual(seedLink('a' + String.fromCodePoint(0x1f600)))
-    expect(parseNamesLink(search({ names: 'seed:a‌b' }), 28)).toEqual(seedLink('a‌b'))
+    expect(parseNamesLink(search({ names: 'seed:a\u{200C}b' }), 28)).toEqual(seedLink('a\u{200C}b'))
   })
 
   it('the same hostile text through a real query string (percent-encoded) is refused', () => {

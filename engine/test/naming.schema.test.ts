@@ -817,10 +817,10 @@ describe('validateNamingJson: overrides', () => {
   // surrogate comes back as U+FFFD (a newline, which used to be echoed as it was, is one of them).
   it('echoes a hostile key with every unsafe character replaced by U+FFFD (WR-03)', () => {
     const cases: ReadonlyArray<readonly [string, string]> = [
-      ['5\n', '5�'],
-      [String.fromCharCode(0x202e) + '12', '�12'],
-      ['1' + String.fromCharCode(0x2066, 0x2069) + '2', '1��2'],
-      ['9' + String.fromCharCode(0xd800), '9�'],
+      ['5\n', '5\u{FFFD}'],
+      [String.fromCharCode(0x202e) + '12', '\u{FFFD}12'],
+      ['1' + String.fromCharCode(0x2066, 0x2069) + '2', '1\u{FFFD}\u{FFFD}2'],
+      ['9' + String.fromCharCode(0xd800), '9\u{FFFD}'],
       ['x' + String.fromCodePoint(0x1f600), 'x' + String.fromCodePoint(0x1f600)], // a valid pair is kept
     ]
     for (const [key, shown] of cases) {
@@ -1067,16 +1067,16 @@ describe('validateNamingJson: unknown keys', () => {
     d['evil' + String.fromCharCode(0x202e) + 'gnp'] = 1
     d['a\nb'] = 1
     const res = acceptance(run(d))
-    expect(res.unknownKeys).toEqual(['evil�gnp', 'a�b'])
+    expect(res.unknownKeys).toEqual(['evil\u{FFFD}gnp', 'a\u{FFFD}b'])
   })
 
   it('an unknown schema or generator version is echoed with unsafe characters replaced by U+FFFD (WR-03)', () => {
     const d = docOf()
     d.schema = 'ccrug.naming/2' + String.fromCharCode(0x202e) + 'x'
-    expect(refusal(run(d)).issues).toEqual([{ kind: 'unknown-version', version: '2�x' }])
+    expect(refusal(run(d)).issues).toEqual([{ kind: 'unknown-version', version: '2\u{FFFD}x' }])
     const g = docOf()
     sub(g, 'generator').gen = 'names-gen@2' + String.fromCharCode(0x2067)
-    expect(refusal(run(g)).issues).toEqual([{ kind: 'unknown-version', version: 'names-gen@2�' }])
+    expect(refusal(run(g)).issues).toEqual([{ kind: 'unknown-version', version: 'names-gen@2\u{FFFD}' }])
   })
 
   it('none of the known keys is reported', () => {
