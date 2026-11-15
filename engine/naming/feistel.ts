@@ -39,8 +39,10 @@ export function feistelRoundKeys(seed: string, style: string, depth: number): re
 }
 
 /**
- * The permutation of [0, size) defined by keys. RangeError unless size is a whole number from 1 to 2^52. The returned
- * function does not re-validate x (hot path): callers pass whole numbers in [0, size).
+ * The permutation of [0, size) defined by keys. RangeError unless size is a whole number from 1 to 2^52. The returned function
+ * throws a RangeError for anything that is not a whole number of [0, size) (IN-01): a start outside the domain can sit on a cycle of
+ * the padded network that never meets a value below size, so the cycle-walk would not end. The check is one comparison next to the
+ * eight rounds.
  */
 export function feistelPermutation(size: number, keys: readonly number[]): (x: number) => number {
   if (!Number.isInteger(size) || size < 1 || size > 2 ** 52) {
@@ -63,6 +65,9 @@ export function feistelPermutation(size: number, keys: readonly number[]): (x: n
     return l * half + r
   }
   return x => {
+    if (!(Number.isInteger(x) && x >= 0 && x < size)) {
+      throw new RangeError(`Invalid permutation input ${typeof x === 'number' ? String(x) : `<${typeof x}>`}: expected a whole number in [0, ${size})`)
+    }
     do {
       x = feistel(x)
     } while (x >= size)

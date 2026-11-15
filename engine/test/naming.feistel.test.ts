@@ -159,6 +159,33 @@ describe('feistelPermutation vectors', () => {
   })
 })
 
+// Review IN-01: the permutation is only defined on [0, size). A start outside it used to enter the cycle-walk, which for some starts
+// never meets a value below size (a hang), so the returned function refuses anything that is not a whole number of the domain.
+describe('feistelPermutation refuses an input outside its domain', () => {
+  it.each([1, 2, 3, 5, 7, 16, 17, 66, 67, 5360])('size %d: a value that is not a whole number of [0, size) is a RangeError, never a hang', size => {
+    const p = feistelPermutation(size, feistelRoundKeys('hollow-vector', 'harsh', 1))
+    let padded = 1
+    while (padded < size) padded *= 4 // the padded domain of the network is a power of four (even bit count)
+    const outside = [-1, size, size + 1, padded - 1, padded, 0.5, size - 0.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].filter(
+      x => !(Number.isInteger(x) && x >= 0 && x < size), // at size 1 the padded domain has no value outside [0, 1) but -1 and 1
+    )
+    expect(outside.length).toBeGreaterThan(5)
+    for (const x of outside) expect(() => p(x), String(x)).toThrow(RangeError)
+  })
+
+  it('still answers every whole number of the domain, at both ends', () => {
+    const p = feistelPermutation(67, feistelRoundKeys('hollow-vector', 'harsh', 1))
+    for (const x of [0, 1, 33, 66]) expect(p(x)).toBeGreaterThanOrEqual(0)
+    expect(p(66)).toBeLessThan(67)
+  })
+
+  it('reads a non-number as outside the domain', () => {
+    const p = feistelPermutation(67, feistelRoundKeys('hollow-vector', 'harsh', 1)) as (x: unknown) => number
+    expect(() => p('3')).toThrow(RangeError)
+    expect(() => p(undefined)).toThrow(RangeError)
+  })
+})
+
 describe('feistelPermutation is a bijection', () => {
   it.each([1, 2, 3, 4, 5, 66, 67, 72, 3960, 5360, 65536, 1048576])('exhaustively on [0, %d)', size => {
     const p = feistelPermutation(size, feistelRoundKeys('hollow-vector', 'harsh', 1))
