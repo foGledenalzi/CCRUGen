@@ -21,6 +21,7 @@ export {
   validateSound,
   validateName,
   normalizeSeed,
+  safeEcho,
   upperFirst,
 } from './text'
 export type { TextProblem, TextCheck } from './text'

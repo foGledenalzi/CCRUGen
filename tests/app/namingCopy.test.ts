@@ -508,6 +508,25 @@ describe('import and export results', () => {
     expect(text).not.toContain('x'.repeat(41))
   })
 
+  // Review WR-03: every echo of a file's or a visitor's text replaces a control, format, separator or lone-surrogate character by
+  // U+FFFD after clipping, so a bidi override cannot reorder the sentence around it. ZWNJ and ZWJ (Persian and Indic text) stay.
+  it('echoes hostile text with U+FFFD instead of the unsafe character, in every echo of the copy module (WR-03)', () => {
+    const RLO = String.fromCodePoint(0x202e)
+    const FFFD = String.fromCodePoint(0xfffd)
+    expect(copy.unknownKeysSuffix(['a' + RLO + 'b'], 1)).toBe(` Ignored unknown keys: a${FFFD}b.`)
+    expect(copy.invalidEntries([{ kind: 'bad-override-key', key: RLO + '12' }], 1, ctx)).toContain(`Override key "${FFFD}12" is not a demon`)
+    expect(copy.invalidEntries([{ kind: 'bad-field', path: 'a' + RLO + 'b' }], 1, ctx)).toContain(`Field a${FFFD}b is not valid.`)
+    expect(copy.importError({ kind: 'unknown-version', version: '2' + RLO })).toContain(`names format 2${FFFD},`)
+    expect(copy.noZone('z' + RLO + 'z', 28)).toBe(`No zone "z${FFFD}z" at base 28.`)
+    expect(copy.generated(28, 'seed' + RLO + 'x')).toBe(`Generated names for base 28 from seed seed${FFFD}x.`)
+    // a cut through a surrogate pair leaves half of it, which is replaced too; the output never holds a bidi control
+    const cut = copy.noZone('z'.repeat(39) + String.fromCodePoint(0x1f600), 28)
+    expect(cut).toBe(`No zone "${'z'.repeat(39)}${FFFD}..." at base 28.`)
+    // joiners of Persian and Indic text are kept
+    const ZWNJ = String.fromCodePoint(0x200c)
+    expect(copy.generated(28, 'a' + ZWNJ + 'b')).toBe(`Generated names for base 28 from seed a${ZWNJ}b.`)
+  })
+
   it('export success, and the seed-only export reads the ceiling from the tier table', () => {
     expect(copy.exportSuccess(28)).toBe('Exported names for base 28.')
     expect(copy.exportSeedOnly(4002)).toBe(`Exported the seed and style for base 4002. Zone sounds are not included above ${INTERACTIVE_MAX_N} zones.`)

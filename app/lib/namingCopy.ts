@@ -3,7 +3,8 @@
 // and the shortcut line. Numbers, bases, caps and ceilings are always parameters or imported constants, never typed prose, so a
 // component never writes a sentence and a limit has one home. Voice (Phases 4 to 6): short, factual, present tense, no apology, no
 // exclamation, no em dash, plurals as `1 locked zone` and `{n} locked zones`. Text the visitor typed or a file supplied is echoed
-// through clipEcho, so a status line stays bounded; everything here renders as a React text node.
+// through echo() below (clipEcho, then safeEcho), so a status line stays bounded and a bidi or control character in it cannot reorder
+// or hide the words around it; everything here renders as a React text node.
 import { clipEcho } from '../../engine/core/base'
 import {
   ISSUES_MAX,
@@ -11,6 +12,7 @@ import {
   SEED_MAX_LENGTH,
   SOUND_MAX_LENGTH,
   UNKNOWN_KEYS_MAX,
+  safeEcho,
   type JoinOrder,
   type NamingIssue,
   type StyleId,
@@ -22,6 +24,9 @@ import { INTERACTIVE_MAX_N } from './tierBounds'
 
 // U+00B7 MIDDLE DOT, built as data (never a typed character): the separator of the matrix tooltip.
 const MIDDLE_DOT = String.fromCodePoint(0xb7)
+
+/** Untrusted text as it may appear inside a sentence: at most MAX_ECHO characters (clipEcho), with each unsafe character replaced by U+FFFD (WR-03). */
+const echo = (text: string): string => safeEcho(clipEcho(text))
 
 const freezeRecord = <K extends string>(record: Record<K, string>): Readonly<Record<K, string>> => Object.freeze(record)
 
@@ -254,7 +259,7 @@ export function unknownKeysSuffix(shown: readonly string[], total: number): stri
   const listed = shown.slice(0, UNKNOWN_KEYS_MAX)
   if (listed.length === 0 || total <= 0) return ''
   const more = total - listed.length
-  const keys = listed.map(key => clipEcho(key)).join(', ')
+  const keys = listed.map(key => echo(key)).join(', ')
   return ` Ignored unknown keys: ${keys}${more > 0 ? ` and ${more} more` : ''}.`
 }
 
@@ -303,9 +308,9 @@ function entryLine(issue: NamingIssue, ctx: ImportCopyContext): string {
     case 'bad-override-name':
       return demonIssue(ctx.netSpan(issue.mesh), issue.reason)
     case 'bad-override-key':
-      return `Override key "${clipEcho(issue.key)}" is not a demon of base ${ctx.base}.`
+      return `Override key "${echo(issue.key)}" is not a demon of base ${ctx.base}.`
     case 'bad-field':
-      return `Field ${clipEcho(issue.path)} is not valid.`
+      return `Field ${echo(issue.path)} is not valid.`
     case 'seed-only-base':
       return `Base ${ctx.base} is above ${INTERACTIVE_MAX_N} zones, so only a seed and style can be imported.`
     case 'not-json':
@@ -351,7 +356,7 @@ export function importError(issue: ImportFailure, ctx?: ImportCopyContext): stri
     case 'wrong-base':
       return `This file is for base ${issue.fileBase}, and you are on base ${needContext(issue.kind, ctx).base}. Nothing was imported. Switch to base ${issue.fileBase} to import it.`
     case 'unknown-version':
-      return `This file uses names format ${clipEcho(issue.version)}, which this version can't read. Nothing was imported. Export the names again from this version.`
+      return `This file uses names format ${echo(issue.version)}, which this version can't read. Nothing was imported. Export the names again from this version.`
     case 'not-names-file':
       return "This file isn't a names file for this app. Nothing was imported. Choose a file exported from the Names panel."
     case 'seed-only-base':
@@ -390,14 +395,14 @@ export function pasteRefused(label: string, r: TextProblem): string {
 
 /** The go-to field found no zone; the typed text is echoed clipped. */
 export function noZone(text: string, base: number): string {
-  return `No zone "${clipEcho(text)}" at base ${base}.`
+  return `No zone "${echo(text)}" at base ${base}.`
 }
 
 // ----- result statuses -----
 
 /** `Generated names for base {n} from seed {seed}.` */
 export function generated(base: number, seed: string): string {
-  return `Generated names for base ${base} from seed ${clipEcho(seed)}.`
+  return `Generated names for base ${base} from seed ${echo(seed)}.`
 }
 
 /** The status after Reroll. */

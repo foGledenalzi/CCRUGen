@@ -8,6 +8,7 @@ import {
   SOUND_MAX_LENGTH,
   graphemeCount,
   normalizeSeed,
+  safeEcho,
   splitGraphemes,
   toNfc,
   upperFirst,
@@ -372,5 +373,53 @@ describe('over-long strings (WR-01)', () => {
     expect(fresh.validateSound(marked(17))).toEqual({ ok: false, reason: 'long' })
     expect(fresh.validateName('a'.repeat(32)).ok).toBe(true)
     expect(fresh.validateName('a'.repeat(33))).toEqual({ ok: false, reason: 'long' })
+  })
+})
+
+// Review WR-03: text a file or a visitor supplied is echoed in status sentences. A bidi control, another format character, a
+// control, a line separator or a lone surrogate in it could reorder or hide part of the sentence, so each becomes U+FFFD.
+describe('safeEcho (WR-03)', () => {
+  const FFFD = cp(0xfffd)
+  const LONE = String.fromCharCode(0xd800)
+
+  it.each([
+    ['a right-to-left override', 'a' + RLO + 'b', 'a' + FFFD + 'b'],
+    ['an isolate', ISOLATE + 'x', FFFD + 'x'],
+    ['a left-to-right mark', 'a' + LRM, 'a' + FFFD],
+    ['an arabic letter mark', 'a' + cp(0x61c) + 'b', 'a' + FFFD + 'b'],
+    ['a zero width space', 'a' + cp(0x200b) + 'b', 'a' + FFFD + 'b'],
+    ['a soft hyphen', 'a' + SOFT_HYPHEN + 'b', 'a' + FFFD + 'b'],
+    ['a byte order mark', 'a' + BOM + 'b', 'a' + FFFD + 'b'],
+    ['a word joiner', 'a' + cp(0x2060) + 'b', 'a' + FFFD + 'b'],
+    ['an astral tag character', 'a' + cp(0xe0041) + 'b', 'a' + FFFD + 'b'],
+    ['a NUL', 'a' + NUL + 'b', 'a' + FFFD + 'b'],
+    ['a newline and a tab', 'a\nb\tc', 'a' + FFFD + 'b' + FFFD + 'c'],
+    ['a C1 control', 'a' + cp(0x85) + 'b', 'a' + FFFD + 'b'],
+    ['a line separator', 'a' + LS + 'b', 'a' + FFFD + 'b'],
+    ['a paragraph separator', 'a' + PS + 'b', 'a' + FFFD + 'b'],
+    ['a lone high surrogate', 'a' + LONE + 'b', 'a' + FFFD + 'b'],
+    ['a lone low surrogate at the end', 'a' + String.fromCharCode(0xdc00), 'a' + FFFD],
+    ['every one of them, each replaced separately', RLO + LRM + NUL + LONE, FFFD.repeat(4)],
+  ])('replaces %s with U+FFFD', (_label, input, expected) => {
+    expect(safeEcho(input)).toBe(expected)
+  })
+
+  it.each([
+    ['plain text', 'Override key 044'],
+    ['letters, digits, punctuation and spaces', 'a-b_c.d e:f/g 12'],
+    ['a valid surrogate pair', 'a' + cp(0x1f600) + 'b'],
+    ['a combining mark', 'e' + ACUTE],
+    ['a zero width non-joiner (Persian) and joiner (Indic)', 'a' + ZWNJ + 'b' + ZWJ + 'c'],
+    ['CJK', cp(0x4e2d, 0x6587)],
+    ['the empty string', ''],
+  ])('leaves %s alone', (_label, input) => {
+    expect(safeEcho(input)).toBe(input)
+  })
+
+  it('is idempotent and never leaves a character it replaces', () => {
+    const dirty = 'a' + RLO + 'b' + LONE + cp(0x1f600) + LS + 'c'
+    const once = safeEcho(dirty)
+    expect(safeEcho(once)).toBe(once)
+    expect(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}]/u.test(once.replace(ZWNJ, '').replace(ZWJ, ''))).toBe(false)
   })
 })

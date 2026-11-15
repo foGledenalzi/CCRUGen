@@ -17,7 +17,8 @@
 // assigned. Every field of the file is read through `own`, which ignores anything that is not an own property.
 //
 // Every sound and every name passes the text rules (validateSound, validateName), so no control or format character enters a table
-// (T-07-03c). The words shown to the user belong to the UI: this module returns typed issues.
+// (T-07-03c). The words shown to the user belong to the UI: this module returns typed issues. The few texts an issue repeats from the
+// file (a key, a version) are clipped and made safe to echo (clip below, WR-03).
 
 import { validateBase } from '../core/base'
 import { isStyleId } from './banks'
@@ -27,7 +28,7 @@ import { GENERATOR_ID, createGenerator, generateSounds } from './generate'
 import { PRNG_ALGO } from './prng'
 import { ISSUES_MAX, META_MAX_LENGTH, NAMING_IMPORT_MAX_BYTES, NAMING_MAX_OVERRIDES, SCHEMA_ID, SCHEMA_PREFIX, UNKNOWN_KEYS_MAX } from './schema'
 import type { SeedRecord } from './schema'
-import { normalizeSeed, validateName, validateSound } from './text'
+import { normalizeSeed, safeEcho, validateName, validateSound } from './text'
 import type { TextCheck, TextProblem } from './text'
 import { isJoinOrder } from './types'
 import type { JoinOrder, Naming, NamingMeta, NamingPreset, NamingSource, Smoothing } from './types'
@@ -92,12 +93,15 @@ const ECHO_MAX = 40
 const HIGH_SURROGATE_FIRST = 0xd800
 const HIGH_SURROGATE_LAST = 0xdbff
 
-/** s cut to ECHO_MAX UTF-16 units without leaving half of a surrogate pair at the end. */
+/**
+ * s cut to ECHO_MAX UTF-16 units without leaving half of a surrogate pair at the end, and made safe to repeat in a sentence: a
+ * control, a bidi or other format character, a line or paragraph separator and a lone surrogate become U+FFFD (WR-03).
+ */
 function clip(s: string): string {
-  if (s.length <= ECHO_MAX) return s
+  if (s.length <= ECHO_MAX) return safeEcho(s)
   const cut = s.slice(0, ECHO_MAX)
   const last = cut.charCodeAt(ECHO_MAX - 1)
-  return last >= HIGH_SURROGATE_FIRST && last <= HIGH_SURROGATE_LAST ? cut.slice(0, -1) : cut
+  return safeEcho(last >= HIGH_SURROGATE_FIRST && last <= HIGH_SURROGATE_LAST ? cut.slice(0, -1) : cut)
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

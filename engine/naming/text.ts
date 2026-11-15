@@ -110,6 +110,20 @@ export function normalizeSeed(raw: string): string | null {
   return t
 }
 
+// Characters that must never reach a status sentence as they are (review WR-03): controls, format characters (the bidi overrides,
+// embeddings and isolates among them), line and paragraph separators, and lone surrogates. ZWNJ and ZWJ are format characters
+// too, but they neither reorder nor hide text and Persian and Indic text needs them, so they pass.
+const UNSAFE_ECHO = /(?![‌‍])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}]/gu
+
+/**
+ * s with each control, format, line-separator, paragraph-separator and lone-surrogate character replaced by U+FFFD (ZWNJ and ZWJ
+ * are kept). For text a file or a visitor supplied that is echoed inside a sentence: call it after clipping, so it only ever sees a
+ * short string. React escapes markup; this stops a right-to-left override from reordering the words around it.
+ */
+export function safeEcho(s: string): string {
+  return s.replace(UNSAFE_ECHO, '�')
+}
+
 /** s with its first character in upper case (D-08). Locale-independent; follows the built-in mapping, so a sharp s becomes SS. */
 export function upperFirst(s: string): string {
   if (s.length === 0) return ''
