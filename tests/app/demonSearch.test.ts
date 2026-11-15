@@ -252,6 +252,14 @@ describe('resolveDemonSearch: not-found / syntax / empty', () => {
     expect(outcome.echo.endsWith('...')).toBe(true)
   })
 
+  it('echoes a bidi or control character as U+FFFD, never as it was typed (WR-03)', () => {
+    const RLO = String.fromCodePoint(0x202e)
+    const FFFD = String.fromCodePoint(0xfffd)
+    expect(resolveDemonSearch('1e' + RLO + '3', g666, null, DEFAULT_DEMON_SORT)).toEqual({ kind: 'syntax', echo: '1e' + FFFD + '3' })
+    const hostile = resolveDemonSearch(RLO.repeat(50), g666, null, DEFAULT_DEMON_SORT)
+    expect(hostile).toEqual({ kind: 'syntax', echo: FFFD.repeat(40) + '...' })
+  })
+
   it('never throws for hostile input, at any filter', () => {
     for (const text of HOSTILE_INPUTS) {
       expect(() => resolveDemonSearch(text, g666, null, DEFAULT_DEMON_SORT)).not.toThrow()

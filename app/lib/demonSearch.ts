@@ -1,5 +1,5 @@
 // Demon browser search (DEM-02): defensive mesh / a::b / name parsing and resolution. Original CCRUG code (MIT, NOTICE section 1).
-import { parseNumeral, toNfc, type DemonRef, type Numogram } from '../../engine/index'
+import { parseNumeral, safeEcho, toNfc, type DemonRef, type Numogram } from '../../engine/index'
 import { clipEcho } from '../../engine/core/base'
 import { demonNameTable, filterContains, filterLabel, rankOf, type DemonFilter, type DemonSort } from './demonBrowser'
 
@@ -177,9 +177,12 @@ const LQ = String.fromCodePoint(0x201c) // “
 const RQ = String.fromCodePoint(0x201d) // ”
 const DASH = String.fromCodePoint(0x2014) // —
 
-/** clipEcho(clampQuery(raw).trim()): a pasted megabyte never becomes a megabyte of message text (T-05-11). */
+/**
+ * safeEcho(clipEcho(clampQuery(raw).trim())): a pasted megabyte never becomes a megabyte of message text (T-05-11), and a bidi or
+ * control character in it cannot reorder the status sentence around it (WR-03).
+ */
 function echoOf(raw: string): string {
-  return clipEcho(clampQuery(raw).trim())
+  return safeEcho(clipEcho(clampQuery(raw).trim()))
 }
 
 /**
