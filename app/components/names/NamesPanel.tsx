@@ -626,7 +626,8 @@ function NamesBody({ nc, open, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps
     say(generated(base, record.seed), 'success', true)
   }
 
-  // The inline Undo is the app's own undo; the revision it restores clears the status.
+  // The inline Undo is the app's own undo, limited to a naming change (WR-05): when the newest history entry is something else it does
+  // nothing, so the status that offered it (now stale, the names changed before something else did) goes either way.
   function onUndo(): void {
     nc.undo()
     setStatus(null)

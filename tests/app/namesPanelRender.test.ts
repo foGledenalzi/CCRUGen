@@ -168,7 +168,7 @@ function valueFor(naming: Naming, over: Partial<NamingContextValue> = {}): Namin
     apply: () => false,
     keep: noop,
     revert: noop,
-    undo: noop,
+    undo: () => false,
     announce: noop,
     ...over,
   }

@@ -37,3 +37,14 @@ export function singleChangedZone(a: Naming, b: Naming): number | null {
   }
   return changed
 }
+
+/**
+ * Whether Undo of the newest history entry would bring a different naming back. An entry holds the whole state as it was BEFORE the
+ * change it records, so its naming revision differs from the current one exactly when that change touched the naming (every revision
+ * is minted once, by the client's counter, and a restore reuses the revision of the naming it restores). The panel's inline
+ * `Undo this change` names a naming change, so it asks this first and refuses when the newest entry is something else, a layer toggle
+ * or a selection say (review WR-05); the header Undo walks every entry regardless.
+ */
+export function undoRestoresNaming(newest: { readonly namingRev: number } | undefined, currentRev: number): boolean {
+  return newest !== undefined && newest.namingRev !== currentRev
+}

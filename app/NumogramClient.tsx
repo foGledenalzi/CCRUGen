@@ -43,7 +43,7 @@ import {
 import { browserStorage, readSlot, writeSlot } from './lib/namingStorage'
 import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
 import { NAMES_COPY } from './lib/namingCopy'
-import { historySnapshotKey, singleChangedZone, withHydratedNaming } from './lib/historyHydration'
+import { historySnapshotKey, singleChangedZone, undoRestoresNaming, withHydratedNaming } from './lib/historyHydration'
 import { NAMES_PARAM } from './lib/namesLink'
 import type { DemonFilter } from './lib/demonBrowser'
 import { legacyDemon } from './lib/demonBrowser'
@@ -1278,10 +1278,20 @@ export default function NumogramPage() {
   const keepNaming = useCallback(() => commitSession(keepPreview(sessionRef.current, nextRev)), [nextRev, commitSession])
   const revertNaming = useCallback(() => commitSession(revertPreview(sessionRef.current)), [commitSession])
   const announceNaming = useCallback((text: string) => setNamesAnnouncement(text), [])
-  // The panel's inline Undo goes through the app's own undo; the ref keeps the context value from changing with every history entry.
+  // The panel's inline `Undo this change` goes through the app's own undo, but only while the newest history entry IS a naming change
+  // (review WR-05): every other change (a layer, a selection, a layout...) is an entry too, and undoing one of those from a button
+  // that names a naming change would leave the names as they were. It reports whether it undid anything, so the panel can drop its
+  // stale status either way. The refs keep the context value from changing with every history entry.
   const onUndoRef = useRef(onUndo)
   onUndoRef.current = onUndo
-  const undoNaming = useCallback(() => onUndoRef.current(), [])
+  const undoStackRef = useRef(undoStack)
+  undoStackRef.current = undoStack
+  const undoNaming = useCallback((): boolean => {
+    const stack = undoStackRef.current
+    if (!undoRestoresNaming(stack[stack.length - 1], snapshotNaming(sessionRef.current).rev)) return false
+    onUndoRef.current()
+    return true
+  }, [])
   // Memoised on the naming itself: a context change that is not a naming change (a pending flag, a status line) leaves the resolver
   // and the uncarried check alone, so the displays that search or list names do not recompute.
   const namingResolver = useMemo(() => createNameResolver(namingSession.working, NAMING_ENV.preset), [namingSession.working])

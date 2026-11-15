@@ -307,7 +307,7 @@ function contextValue(): NamingContextValue {
     apply: () => false,
     keep: () => undefined,
     revert: () => undefined,
-    undo: () => undefined,
+    undo: () => false,
     announce: () => undefined,
   }
 }

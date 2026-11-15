@@ -15,9 +15,9 @@ import { CCRU_NAMING_PRESET } from '../app/presets/base10/naming'
 import { openFor, openHeadless, openViewer, panel } from './viewer-helpers'
 import { demonRow, demonsDialog, openDemons, searchDemons } from './demons-helpers'
 import {
-  NAMING_ENV, closeDemons, defaultResolver, demonEditor, gotoZone, listMessage, lockButton, lockedOf, lockedZones, nameCell, nameRow,
+  NAMING_ENV, closeDemons, defaultResolver, demonEditor, gotoZone, inlineUndo, listMessage, lockButton, lockedOf, lockedZones, nameCell, nameRow,
   namesBody, namesBox, namesScroll, namesState, namesToggle, openNames, pinFromOverlay, readTable, redoButton, rerollButton, seedField,
-  settleAnimations, settleFrames, soundField, stubRerollRandom, switchBase, undoButton,
+  settleAnimations, settleFrames, soundField, statusLine, stubRerollRandom, switchBase, undoButton,
 } from './names-helpers'
 
 // Plan 07-22's behavioural proof of the Names panel in Chromium (ROADMAP Phase 7 criteria 1 and 2, NAM-01, NAM-02): editing a sound
@@ -540,6 +540,68 @@ test('Ctrl+Z inside a sound field undoes the typed text only; outside a field it
   await expect(soundField(page, 3)).toHaveValue(sounds[3] as string)
   await expect(nameRow(page, 3)).toHaveAttribute('data-locked', 'false')
   await expect(redoButton(page)).toBeEnabled()
+  expect(errors).toEqual([])
+})
+
+// Review WR-05: the inline `Undo this change` names a naming change, so it must undo a naming change and nothing else. Every state change
+// of the viewer (a layer, a selection, a layout...) is a history entry too, so the newest entry after "Reroll, then toggle a layer" is the
+// layer toggle: the inline button used to undo THAT while the names stayed rerolled. It now refuses, drops its stale status, and leaves
+// the header Undo (which walks every entry in order) as the way back.
+test('the inline Undo this change undoes the naming change only: after a layer toggle it refuses and the toggle stays', async ({ page }) => {
+  const errors = trackErrors(page)
+  await stubRerollRandom(page)
+  const s0 = defaultNaming(BASE)
+  await openViewer(page)
+  await switchBase(page, BASE)
+  await openNames(page)
+
+  const gates = page.locator('[data-gate]')
+  const gatesAll = await gates.count()
+  expect(gatesAll).toBeGreaterThan(0)
+
+  /** The zone list's sounds and the seed field against an engine naming. */
+  const expectNames = async (naming: Naming, why: string): Promise<void> => {
+    await expect(async () => {
+      expect((await readTable(page, BASE)).sounds, `${why}: sounds`).toEqual(naming.sounds)
+    }).toPass({ timeout: 10_000 })
+    await expect(seedField(page), `${why}: seed`).toHaveValue(naming.seed)
+  }
+
+  // a Reroll offers the inline Undo
+  await rerollButton(page).click()
+  await expect(seedField(page)).not.toHaveValue(DEFAULT_SEED)
+  const s1 = setSeed(s0, await seedField(page).inputValue())
+  await expectNames(s1, 'after the Reroll')
+  await expect(inlineUndo(page)).toHaveCount(1)
+
+  // a layer toggle is the newest history entry; the status and its button are still there
+  await panel(page, 'Layers').getByText('Gates', { exact: true }).click()
+  await expect(gates).toHaveCount(0)
+  await expect(inlineUndo(page)).toHaveCount(1)
+
+  // the inline Undo refuses: the toggle is not undone, the rerolled names stay, and the stale status and button go
+  await inlineUndo(page).click()
+  await expect(inlineUndo(page)).toHaveCount(0)
+  await expect(statusLine(page)).toHaveCount(0)
+  await expect(gates).toHaveCount(0)
+  await expectNames(s1, 'after the refused inline Undo')
+  await expect(undoButton(page)).toBeEnabled()
+  await expect(redoButton(page)).toBeDisabled()
+
+  // the header Undo still walks back in order: the toggle first, then the Reroll
+  await undoButton(page).click()
+  await expect(gates).toHaveCount(gatesAll)
+  await expectNames(s1, 'after the first header Undo')
+  await undoButton(page).click()
+  await expectNames(s0, 'after the second header Undo')
+
+  // and the inline Undo works whenever the naming change IS the newest entry: Reroll, then straight to Undo this change
+  await rerollButton(page).click()
+  await expect(seedField(page)).not.toHaveValue(s0.seed)
+  await expect(inlineUndo(page)).toHaveCount(1)
+  await inlineUndo(page).click()
+  await expectNames(s0, 'after the inline Undo of the second Reroll')
+  await expect(inlineUndo(page)).toHaveCount(0)
   expect(errors).toEqual([])
 })
 

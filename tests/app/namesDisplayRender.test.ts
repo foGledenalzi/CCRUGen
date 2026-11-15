@@ -98,7 +98,7 @@ function namingValue(naming: Naming, preset: NamingPreset | null = null): Naming
     apply: () => false,
     keep: noop,
     revert: noop,
-    undo: noop,
+    undo: () => false,
     announce: noop,
   }
 }

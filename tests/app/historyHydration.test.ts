@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { createNaming, editSound, setSeed, toggleLock, type Naming } from '../../engine/index'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
-import { historySnapshotKey, singleChangedZone, withHydratedNaming } from '../../app/lib/historyHydration'
+import { historySnapshotKey, singleChangedZone, undoRestoresNaming, withHydratedNaming } from '../../app/lib/historyHydration'
 
 const naming28 = (): Naming => createNaming({ base: 28, interactiveMaxN: INTERACTIVE_MAX_N })
 
@@ -151,5 +151,35 @@ describe('singleChangedZone', () => {
     const a = naming28()
     const b = editSound(a, 11, 'zed')
     expect(singleChangedZone(b, a)).toBe(11)
+  })
+})
+
+// Review WR-05: the inline "Undo this change" button of the Names panel may only undo a naming change. The decision is the newest history entry's
+// naming revision against the current one: an entry stores the state BEFORE its change, so the revisions differ exactly when the
+// change it records touched the naming.
+describe('undoRestoresNaming', () => {
+  it('is false for an empty history (nothing to undo)', () => {
+    expect(undoRestoresNaming(undefined, 4)).toBe(false)
+  })
+
+  it('is true when the newest entry holds an older naming (the change it records was a naming change)', () => {
+    expect(undoRestoresNaming(snap({ namingRev: 3 }), 4)).toBe(true)
+  })
+
+  it('is false when the newest entry holds the current naming (the change it records was a layer, a selection...)', () => {
+    expect(undoRestoresNaming(snap({ namingRev: 4 }), 4)).toBe(false)
+  })
+
+  it('walks a history the way the viewer builds it: Reroll (rev 1 to 2), a layer toggle, then the naming undo is refused', () => {
+    // entries are pushed as the state BEFORE each change: the Reroll pushed {rev 1}, the toggle pushed {rev 2}; the current naming is rev 2
+    const stack = [snap({ namingRev: 1 }), snap({ namingRev: 2, layers: ['gates'] })]
+    expect(undoRestoresNaming(stack[stack.length - 1], 2)).toBe(false)
+    // after the header Undo of the toggle only the Reroll entry is left: now the naming undo applies
+    expect(undoRestoresNaming(stack[stack.length - 2], 2)).toBe(true)
+  })
+
+  it('a restore reuses the revision of the naming it restores, so a redo of a naming change is again a naming change', () => {
+    // undo of the Reroll restored rev 1 (current is 1); the Redo entry holds rev 2, so its inverse (another Undo) is a naming change again
+    expect(undoRestoresNaming(snap({ namingRev: 2 }), 1)).toBe(true)
   })
 })

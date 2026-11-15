@@ -32,7 +32,11 @@ export interface NamingContextValue {
   apply(action: NamingAction): boolean
   keep(): void
   revert(): void
-  undo(): void
+  /**
+   * The inline `Undo this change`: undoes the newest history entry only when it is a naming change and returns true; returns false
+   * (touching nothing) when the newest entry is anything else, or there is none (review WR-05).
+   */
+  undo(): boolean
   announce(text: string): void
 }
 
