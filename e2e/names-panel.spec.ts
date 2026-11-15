@@ -1084,3 +1084,50 @@ test('an invalid draft left in a row that is then scrolled out of the window com
   await expect(undoButton(page)).toBeDisabled()
   expect(errors).toEqual([])
 })
+
+// ── 14 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Review WR-10: while the planetary orbit animates the history effect follows the orbit's own changes (the date, four times a second)
+// without an entry, but it used to follow a change of the naming the same way, so a Reroll made then could not be undone and the Undo
+// (the panel's inline one included) went to an older, unrelated entry. The naming edit is recorded now; the orbit's ticks still are not.
+// The layout change to planetary is the entry just before the Reroll, so a Reroll that was swallowed shows as an Undo that brings the
+// layout back and leaves the names rerolled. (A load with a date leaves its own older post-load entry, which the test never reaches.)
+test('a Reroll made while the planetary orbit runs is its own undo entry, ahead of the layout change (base 10)', async ({ page }) => {
+  const errors = trackErrors(page)
+  await stubRerollRandom(page)
+  const s0 = defaultNaming(10)
+  await openViewer(page, 'date=2000-01-01')
+  await openNames(page)
+  await expect(seedField(page)).toHaveValue(s0.seed)
+
+  // F: the planetary layout (one history entry), then the orbit button (Z), which ticks its date a few times
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await page.keyboard.press('f')
+  await expect(undoButton(page)).toBeEnabled()
+  const dateOf = (): Promise<string | null> => page.evaluate(() => new URLSearchParams(window.location.search).get('date'))
+  const layoutOf = (): Promise<string | null> => page.evaluate(() => new URLSearchParams(window.location.search).get('layout'))
+  await expect.poll(layoutOf).toBe('planetary')
+  const startDate = await dateOf()
+  // the planetary date field takes focus on its own, so Z would be typed into it: the orbit button is clicked instead
+  await page.locator('button').filter({ hasText: 'Z' }).first().click()
+  await expect.poll(async () => (await dateOf()) !== startDate, { timeout: 15_000 }).toBe(true) // the orbit is running: its date moved
+
+  // a Reroll under the orbit is the newest entry: the inline Undo gives the names back and the layout stays planetary
+  await rerollButton(page).click()
+  await expect(seedField(page)).not.toHaveValue(s0.seed)
+  await expect(inlineUndo(page)).toHaveCount(1)
+  await inlineUndo(page).click()
+  await expect(seedField(page)).toHaveValue(s0.seed)
+  expect(await layoutOf()).toBe('planetary')
+
+  // the same through the header Undo: Reroll again, one Undo restores the names, the next one the layout
+  await rerollButton(page).click()
+  await expect(seedField(page)).not.toHaveValue(s0.seed)
+  await undoButton(page).click()
+  await expect(seedField(page)).toHaveValue(s0.seed)
+  expect(await layoutOf()).toBe('planetary')
+  await undoButton(page).click()
+  await expect.poll(layoutOf).not.toBe('planetary')
+  await expect(seedField(page)).toHaveValue(s0.seed)
+  expect(errors).toEqual([])
+})

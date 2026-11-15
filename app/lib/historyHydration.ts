@@ -48,3 +48,18 @@ export function singleChangedZone(a: Naming, b: Naming): number | null {
 export function undoRestoresNaming(newest: { readonly namingRev: number } | undefined, currentRev: number): boolean {
   return newest !== undefined && newest.namingRev !== currentRev
 }
+
+/** What the viewer's history effect does with the snapshot of a render: nothing, follow it without an entry, or record an entry. */
+export type HistoryStep = 'same' | 'follow' | 'record'
+
+/**
+ * The decision at the end of the history effect (review WR-10). The same history key is no change at all. While the planetary orbit
+ * animates, its own changes (the date, every few frames) are followed without an entry, or Undo would be flooded with them. But a
+ * change of the NAMING made while it animates (a Reroll, a sound, a lock, an import, a rename) is a real edit and is recorded like any
+ * other: the orbit gate used to swallow it, so the edit could not be undone and the panel's inline Undo then undid something else.
+ */
+export function historyStepFor(sameKey: boolean, orbiting: boolean, previousNamingRev: number, currentNamingRev: number): HistoryStep {
+  if (sameKey) return 'same'
+  if (orbiting && previousNamingRev === currentNamingRev) return 'follow'
+  return 'record'
+}

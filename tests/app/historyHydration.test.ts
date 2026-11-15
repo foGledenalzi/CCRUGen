@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { createNaming, editSound, setSeed, toggleLock, type Naming } from '../../engine/index'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
-import { historySnapshotKey, singleChangedZone, undoRestoresNaming, withHydratedNaming } from '../../app/lib/historyHydration'
+import { historySnapshotKey, historyStepFor, singleChangedZone, undoRestoresNaming, withHydratedNaming } from '../../app/lib/historyHydration'
 
 const naming28 = (): Naming => createNaming({ base: 28, interactiveMaxN: INTERACTIVE_MAX_N })
 
@@ -181,5 +181,28 @@ describe('undoRestoresNaming', () => {
   it('a restore reuses the revision of the naming it restores, so a redo of a naming change is again a naming change', () => {
     // undo of the Reroll restored rev 1 (current is 1); the Redo entry holds rev 2, so its inverse (another Undo) is a naming change again
     expect(undoRestoresNaming(snap({ namingRev: 2 }), 1)).toBe(true)
+  })
+})
+
+// Review WR-10: the orbit gate of the history effect followed EVERY change made while the planetary orbit animates, a naming edit
+// included. Only the orbit's own changes (the date) are followed without an entry; a change of the naming is recorded.
+describe('historyStepFor', () => {
+  it('an unchanged key is no step at all, orbiting or not', () => {
+    expect(historyStepFor(true, false, 4, 4)).toBe('same')
+    expect(historyStepFor(true, true, 4, 4)).toBe('same')
+  })
+
+  it('a change while the orbit is off is recorded', () => {
+    expect(historyStepFor(false, false, 4, 4)).toBe('record')
+    expect(historyStepFor(false, false, 4, 5)).toBe('record')
+  })
+
+  it('the orbit own change (same naming revision) is followed without an entry', () => {
+    expect(historyStepFor(false, true, 4, 4)).toBe('follow')
+  })
+
+  it('a naming change made while the orbit animates is recorded (the old gate swallowed it)', () => {
+    expect(historyStepFor(false, true, 4, 5)).toBe('record')
+    expect(historyStepFor(false, true, 5, 4)).toBe('record') // a restore to an older revision is a change of the naming too
   })
 })

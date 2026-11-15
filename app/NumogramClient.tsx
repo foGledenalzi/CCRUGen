@@ -43,7 +43,7 @@ import {
 import { browserStorage, readSlot, writeSlot } from './lib/namingStorage'
 import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
 import { NAMES_COPY } from './lib/namingCopy'
-import { historySnapshotKey, singleChangedZone, undoRestoresNaming, withHydratedNaming } from './lib/historyHydration'
+import { historySnapshotKey, historyStepFor, singleChangedZone, undoRestoresNaming, withHydratedNaming } from './lib/historyHydration'
 import { NAMES_PARAM } from './lib/namesLink'
 import type { DemonFilter } from './lib/demonBrowser'
 import { legacyDemon } from './lib/demonBrowser'
@@ -1207,9 +1207,14 @@ export default function NumogramPage() {
       return
     }
 
-    if (snapshotKey(previousSnapshot) === snapshotKey(currentSnapshot)) return
-
-    if (orbiting) {
+    // The orbit's own changes (its date) are followed without an entry, but a change of the naming made while it animates is a real edit
+    // and is recorded (WR-10): the old gate swallowed it, so it could not be undone. The pushed entry then also carries the orbit's
+    // moving date; restoring it rewinds that by a tick, which is harmless.
+    const step = historyStepFor(
+      snapshotKey(previousSnapshot) === snapshotKey(currentSnapshot), orbiting, previousSnapshot.namingRev, currentSnapshot.namingRev,
+    )
+    if (step === 'same') return
+    if (step === 'follow') {
       historyCurrentRef.current = currentSnapshot
       return
     }
