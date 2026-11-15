@@ -456,3 +456,94 @@ describe('resolveDemonSearch: live names', () => {
     expect(outcome.demon.mesh).toBe(0)
   })
 })
+
+// ── names in any script (review WR-04, D-07) ────────────────────────────────────────────────────────────────────────────────
+// A derived or renamed demon may carry letters of any script (and their combining marks), so the name branch must find it. The
+// comparison is NFC and case-folded on both sides. Every non-ASCII string is built from code points, never typed.
+describe('parseDemonQuery: names in any script (WR-04)', () => {
+  const cp = (...codes: number[]): string => String.fromCodePoint(...codes)
+  const renamed = (name: string, mesh = 5): NameOf => nameOfOf(setOverride(generatedNaming(28), mesh, name, null))
+
+  const ntilde = cp(0xd1) // N with tilde
+  const NONO = ntilde + 'o' + cp(0xf1) + 'o' // N-tilde o n-tilde o
+  const nono = cp(0xf1) + 'o' + cp(0xf1) + 'o'
+  const decomposedNono = 'n' + cp(0x303) + 'o' + 'n' + cp(0x303) + 'o'
+  const DDD = cp(0x414, 0x434, 0x434) // Cyrillic, capital first
+  const ddd = cp(0x434, 0x434, 0x434)
+
+  it('finds a renamed Latin-with-accents demon by its lower-case, upper-case and decomposed spelling', () => {
+    const nameOf = renamed(NONO)
+    expect(parseDemonQuery(nono, g28, nameOf)).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(NONO.toUpperCase(), g28, nameOf)).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(NONO, g28, nameOf)).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(decomposedNono, g28, nameOf)).toEqual({ kind: 'name', mesh: 5 }) // NFD typed, NFC stored
+    expect(parseDemonQuery(nono.slice(0, 2), g28, nameOf)).toEqual({ kind: 'name', mesh: 5 }) // a prefix
+  })
+
+  it('finds a renamed Cyrillic demon, exact and by prefix', () => {
+    const nameOf = renamed(DDD)
+    expect(parseDemonQuery(ddd, g28, nameOf)).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(ddd.slice(0, 2), g28, nameOf)).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(DDD.toUpperCase(), g28, nameOf)).toEqual({ kind: 'name', mesh: 5 })
+  })
+
+  it('finds a CJK name and a Devanagari name (a letter plus a vowel sign) by prefix', () => {
+    const han = cp(0x4e2d, 0x6587, 0x540d)
+    expect(parseDemonQuery(han, g28, renamed(han))).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(cp(0x4e2d), g28, renamed(han))).toEqual({ kind: 'name', mesh: 5 })
+    const deva = cp(0x928, 0x92e, 0x938, 0x94d, 0x924, 0x947) // na ma sa virama ta e-sign
+    expect(parseDemonQuery(deva, g28, renamed(deva))).toEqual({ kind: 'name', mesh: 5 })
+    expect(parseDemonQuery(deva.slice(0, 3), g28, renamed(deva))).toEqual({ kind: 'name', mesh: 5 })
+  })
+
+  it('a capital Greek sigma ending a typed prefix matches the sigma inside the name (final-sigma folding)', () => {
+    const odysseus = cp(0x39f, 0x3b4, 0x3c5, 0x3c3, 0x3c3, 0x3b5, 0x3c5, 0x3c2) // Odusseus, ending in a final sigma
+    const nameOf = renamed(odysseus)
+    expect(parseDemonQuery(cp(0x39f, 0x394, 0x3a5, 0x3a3), g28, nameOf)).toEqual({ kind: 'name', mesh: 5 }) // capitals, last is SIGMA
+    expect(parseDemonQuery(cp(0x3bf, 0x3b4, 0x3c5, 0x3c2), g28, nameOf)).toEqual({ kind: 'name', mesh: 5 }) // typed with a final sigma
+    expect(parseDemonQuery(odysseus, g28, nameOf)).toEqual({ kind: 'name', mesh: 5 })
+  })
+
+  it('an unknown name in another script is not-found where a naming is given, and syntax where none is', () => {
+    expect(parseDemonQuery(DDD, g28, generatedNaming28NameOf())).toEqual({ kind: 'not-found' })
+    expect(parseDemonQuery(DDD, g28)).toEqual({ kind: 'syntax' }) // no name table at base 28 without a naming: as for an ASCII word
+    expect(parseDemonQuery(DDD, g10)).toEqual({ kind: 'not-found' }) // base 10 has the CCRU table
+  })
+
+  it('shapes that are not a name stay syntax: digits and punctuation mixed in, a full-width digit, a bidi control, an emoji', () => {
+    const nameOf = renamed(NONO)
+    for (const text of [nono + '1', nono + '!', cp(0xff19), cp(0x202e) + nono, cp(0x1f600), nono + ' ' + nono, 'a_b']) {
+      expect(parseDemonQuery(text, g28, nameOf), JSON.stringify(text)).toEqual({ kind: 'syntax' })
+    }
+  })
+
+  it('resolves to a row through resolveDemonSearch, and an unknown non-ASCII name keeps the not-found copy', () => {
+    const nameOf = renamed(NONO)
+    const found = resolveDemonSearch(nono, g28, null, DEFAULT_DEMON_SORT, nameOf)
+    expect(found.kind).toBe('found')
+    if (found.kind !== 'found') throw new Error('expected found')
+    expect(found.demon.mesh).toBe(5)
+    const missing = resolveDemonSearch(DDD, g28, null, DEFAULT_DEMON_SORT, nameOf)
+    expect(missing).toEqual({ kind: 'not-found', echo: DDD })
+    expect(searchMessage(missing, null, g28.demons.count)?.heading).toBe(`No demon found for “${DDD}”.`)
+    // a query that is neither a name, a number nor valid syntax keeps its message
+    const syntax = resolveDemonSearch('1e3', g28, null, DEFAULT_DEMON_SORT, nameOf)
+    expect(searchMessage(syntax, null, g28.demons.count)?.heading).toBe("Couldn't parse “1e3” — try a mesh number (e.g. 108) or an a::b pair (e.g. 12::3).")
+  })
+
+  it('the 64-character clamp and the 50,000-demon cap still hold', () => {
+    const nameOf = renamed(NONO)
+    expect(parseDemonQuery(NONO.repeat(40), g28, nameOf)).toEqual({ kind: 'syntax' }) // clamped to 64, longer than 32 letters
+    let calls = 0
+    const counting: NameOf = () => {
+      calls++
+      return NONO
+    }
+    expect(parseDemonQuery(NONO, g666, counting)).toEqual({ kind: 'syntax' })
+    expect(calls).toBe(0)
+  })
+})
+
+function generatedNaming28NameOf(): NameOf {
+  return nameOfOf(generatedNaming(28))
+}

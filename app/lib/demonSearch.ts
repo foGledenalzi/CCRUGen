@@ -1,5 +1,5 @@
 // Demon browser search (DEM-02): defensive mesh / a::b / name parsing and resolution. Original CCRUG code (MIT, NOTICE section 1).
-import { parseNumeral, type DemonRef, type Numogram } from '../../engine/index'
+import { parseNumeral, toNfc, type DemonRef, type Numogram } from '../../engine/index'
 import { clipEcho } from '../../engine/core/base'
 import { demonNameTable, filterContains, filterLabel, rankOf, type DemonFilter, type DemonSort } from './demonBrowser'
 
@@ -26,8 +26,17 @@ const ZONE_LETTER_RE = /^[0-9a-z]{1,64}$/
 /** Dot-separated decimal digit groups (base > 36), matching engine/core/numerals.ts's own formatNumeral scheme. */
 const ZONE_DOTTED_RE = /^\d{1,16}(?:\.\d{1,16}){0,15}$/
 
-/** A name candidate: ASCII letters only, 1..32 of them (every CCRU name is well under this). */
-const NAME_RE = /^[a-z]{1,32}$/i
+/** A name candidate: 1..32 letters of any script with their combining marks (a name may be in any script, D-07, WR-04). */
+const NAME_RE = /^[\p{L}\p{M}]{1,32}$/u
+
+/**
+ * A name as it is compared in a search: NFC and lower case, with the final sigma folded to the medial one (a lower-cased capital
+ * sigma at the end of a typed prefix becomes the final form, which would not match the same letter inside the name). Both the
+ * query and every name go through it, so the match is case-insensitive and blind to how an accent is encoded.
+ */
+function foldName(name: string): string {
+  return toNfc(name).toLowerCase().replace(/\u{3C2}/gu, '\u{3C3}')
+}
 
 // The largest base numerals.ts still writes with one character per digit (0-9a-z); above it, numerals are
 // dot-separated decimal digit groups. Kept in sync with (but not imported from) engine/core/numerals.ts's own
@@ -76,12 +85,12 @@ export type DemonNameOf = (a: number, b: number) => string
  */
 function parseLiveName(text: string, g: Numogram, nameOf: DemonNameOf): DemonQuery {
   if (g.demons.count > NAME_SEARCH_MAX_COUNT) return { kind: 'syntax' }
-  const query = text.toLowerCase()
+  const query = foldName(text)
   let prefixMesh: number | null = null
   try {
     for (let mesh = 0; mesh < g.demons.count; mesh++) {
       const [a, b] = g.demons.netSpanOf(mesh)
-      const lower = nameOf(a, b).toLowerCase()
+      const lower = foldName(nameOf(a, b))
       if (lower === query) return { kind: 'name', mesh }
       if (prefixMesh === null && lower.startsWith(query)) prefixMesh = mesh
     }
@@ -132,12 +141,12 @@ export function parseDemonQuery(raw: string, g: Numogram, nameOf?: DemonNameOf):
     if (nameOf !== undefined) return parseLiveName(text, g, nameOf)
     const table = demonNameTable(g.base)
     if (table === null || g.demons.count > NAME_SEARCH_MAX_COUNT) return { kind: 'syntax' }
-    const query = text.toLowerCase()
+    const query = foldName(text)
     let prefixMesh: number | null = null
     for (let mesh = 0; mesh < g.demons.count; mesh++) {
       const name = table[mesh]
       if (name === undefined) continue
-      const lower = name.toLowerCase()
+      const lower = foldName(name)
       if (lower === query) return { kind: 'name', mesh }
       if (prefixMesh === null && lower.startsWith(query)) prefixMesh = mesh
     }
