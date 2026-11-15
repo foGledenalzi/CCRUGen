@@ -703,6 +703,19 @@ describe('validateNamingJson: zones and locks', () => {
     ])
   })
 
+  it('refuses a multi-million-letter sound and name as long (the work is bounded by the limit, see naming.text.test.ts WR-01)', () => {
+    const d = docOf()
+    ;(d.zones as unknown[])[4] = 'a'.repeat(8_000_000)
+    d.overrides = { '7': 'b'.repeat(100_000) }
+    const started = Date.now() // logged only: timings are never asserted (T-05-38)
+    const res = refusal(run(d))
+    console.info(`validateNamingJson on an 8 MB sound: ${Date.now() - started} ms`)
+    expect(res.issues).toEqual([
+      { kind: 'bad-sound', zone: 4, reason: 'long' },
+      { kind: 'bad-override-name', mesh: 7, reason: 'long' },
+    ])
+  })
+
   it('keeps 5 issues and counts all 9 bad sounds', () => {
     const d = docOf()
     const zones = d.zones as unknown[]

@@ -12,7 +12,8 @@
 //
 // Length counts graphemes, but a string whose UTF-16 length is within the limit has at most that many graphemes, so the
 // grapheme segmenter (about 9 microseconds a string) runs only for the rare string that is longer than the limit in code
-// units. Every regex below is an anchored character class over a string the caller already bounds.
+// units, and even then it stops at the first grapheme past the limit (WR-01: a hostile file can make that string huge). Every
+// regex below is an anchored character class, linear in the string a caller has already capped (the import size cap).
 
 export const SOUND_MAX_LENGTH = 16
 export const NAME_MAX_LENGTH = 32
@@ -57,13 +58,30 @@ export function graphemeCount(s: string): number {
   return splitGraphemes(s).length
 }
 
+/**
+ * Whether s (already NFC) has more than max user-perceived characters. Unlike graphemeCount it stops at the first character past
+ * the limit, so a hostile 8-million-letter string costs max+1 steps instead of one object per character (review WR-01).
+ */
+function exceedsGraphemes(s: string, max: number): boolean {
+  let n = 0
+  const seg = graphemeSegmenter()
+  if (seg !== null) {
+    const parts = seg.segment(s)[Symbol.iterator]()
+    while (parts.next().done !== true) if (++n > max) return true
+    return false
+  }
+  const clusters = new RegExp(MARK_CLUSTER.source, 'gu') // a fresh global regex: its lastIndex is its own
+  while (clusters.exec(s) !== null) if (++n > max) return true
+  return false
+}
+
 function checkLetters(raw: string, max: number): TextCheck {
   const t = toNfc(raw).trim()
   if (t.length === 0) return { ok: false, reason: 'empty' }
   if (WHITESPACE.test(t)) return { ok: false, reason: 'space' }
   if (DECIMAL_DIGIT.test(t)) return { ok: false, reason: 'digit' }
   if (!LETTERS_AND_MARKS.test(t)) return { ok: false, reason: 'other' }
-  if (t.length > max && graphemeCount(t) > max) return { ok: false, reason: 'long' }
+  if (t.length > max && exceedsGraphemes(t, max)) return { ok: false, reason: 'long' }
   return { ok: true, text: t }
 }
 

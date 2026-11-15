@@ -280,3 +280,70 @@ describe('splitGraphemes / graphemeCount', () => {
     expect(calls).toBe(2)
   })
 })
+
+// Review WR-01: an over-long all-letter string used to be materialised grapheme by grapheme (about 5 s and 100 MB at 8 million
+// characters) just to compare its count with 16. The limit check now stops at the first grapheme past the limit. What is measured
+// is the work the segmenter is asked to do (graphemes pulled from it), never the clock.
+describe('over-long strings (WR-01)', () => {
+  const BIG = 8_000_000
+
+  async function withCountingSegmenter(): Promise<{ fresh: typeof import('../naming/text'); pulled: () => number }> {
+    let pulled = 0
+    class Counting extends Intl.Segmenter {
+      override segment(input: string): Intl.Segments {
+        const inner = super.segment(input)
+        const counted = {
+          containing: inner.containing.bind(inner),
+          [Symbol.iterator]() {
+            const it = inner[Symbol.iterator]()
+            return {
+              next() {
+                const r = it.next()
+                if (r.done !== true) pulled++
+                return r
+              },
+              [Symbol.iterator]() {
+                return this
+              },
+            }
+          },
+        }
+        return counted as unknown as Intl.Segments
+      }
+    }
+    vi.stubGlobal('Intl', Object.assign(Object.create(Intl), { Segmenter: Counting }))
+    vi.resetModules()
+    return { fresh: await import('../naming/text'), pulled: () => pulled }
+  }
+
+  it('refuses an 8-million-letter sound after pulling at most limit+1 graphemes from the segmenter', async () => {
+    const { fresh, pulled } = await withCountingSegmenter()
+    const huge = 'a'.repeat(BIG)
+    expect(fresh.validateSound(huge)).toEqual({ ok: false, reason: 'long' })
+    expect(pulled()).toBeLessThanOrEqual(SOUND_MAX_LENGTH + 1)
+  })
+
+  it('does the same for an 8-million-letter demon name', async () => {
+    const { fresh, pulled } = await withCountingSegmenter()
+    expect(fresh.validateName('b'.repeat(BIG))).toEqual({ ok: false, reason: 'long' })
+    expect(pulled()).toBeLessThanOrEqual(NAME_MAX_LENGTH + 1)
+  })
+
+  it('without Intl.Segmenter the fallback also stops at the limit and gives the same verdicts', () => {
+    vi.stubGlobal('Intl', Object.assign(Object.create(Intl), { Segmenter: undefined }))
+    expect(validateSound('a'.repeat(BIG))).toEqual({ ok: false, reason: 'long' })
+    expect(validateSound('a'.repeat(17))).toEqual({ ok: false, reason: 'long' })
+    expect(validateSound('a'.repeat(16))).toEqual(ok('a'.repeat(16)))
+    expect(validateSound(('q' + ACUTE).repeat(16)).ok).toBe(true)
+    expect(validateSound(('q' + ACUTE).repeat(17))).toEqual({ ok: false, reason: 'long' })
+  })
+
+  it('still counts an exact fit correctly (the early exit must not shorten the limit)', async () => {
+    const { fresh } = await withCountingSegmenter()
+    const marked = (n: number) => ('q' + ACUTE).repeat(n)
+    expect(fresh.validateSound(marked(16)).ok).toBe(true)
+    expect(fresh.validateSound(marked(17))).toEqual({ ok: false, reason: 'long' })
+    expect(fresh.validateName('a'.repeat(32)).ok).toBe(true)
+    expect(fresh.validateName('a'.repeat(33))).toEqual({ ok: false, reason: 'long' })
+  })
+})
