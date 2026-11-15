@@ -14,6 +14,7 @@ import {
   NOTABLE_BASES,
   SLIDER_MAX,
   SLIDER_MIN,
+  dropdownLeft,
   evaluateCandidate,
   sliderPosition,
   stepBase,
@@ -119,7 +120,8 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
 
   function openDropdown(): void {
     const rect = rootRef.current?.getBoundingClientRect()
-    if (rect) setPos({ left: rect.left, top: rect.bottom + 4 })
+    // clamped to the viewport (WR-09): the control can start so far right on a phone that a 340 px box would leave the screen
+    if (rect) setPos({ left: dropdownLeft(rect.left, window.innerWidth), top: rect.bottom + 4 })
     setOpen(true)
   }
 
@@ -176,7 +178,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
           <div
             ref={dropdownRef}
             data-post-baseline=""
-            className="fixed z-[120] w-[340px] space-y-2 p-2 font-mono"
+            className="fixed z-[120] w-[min(340px,calc(100vw-16px))] space-y-2 p-2 font-mono"
             style={{
               left: pos.left,
               top: pos.top,

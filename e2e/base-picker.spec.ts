@@ -173,3 +173,49 @@ test('layout: the header never overlaps the fixed layout switcher at 1280x900', 
   }
   expect(errors).toEqual([])
 })
+
+// Review WR-09: the dropdown is a fixed 340 px box opened at the left edge of the collapsed control. Since the header gave its brand
+// block a minimum width the control starts near x = 110 on a phone, so the box ran about 76 px past the right edge of a 375 px screen
+// and its right end (the slider's, the label-scheme radios', the chips') could not be reached (a fixed box cannot be scrolled). It is
+// now clamped to the viewport, and at 320 px it is narrower than 340 px instead of wider than the screen.
+for (const size of [{ width: 375, height: 667 }, { width: 320, height: 568 }, { width: 390, height: 844 }]) {
+  test(`dropdown: at ${size.width}x${size.height} the open dropdown and its slider stay inside the viewport (WR-09)`, async ({ page }) => {
+    const errors = trackErrors(page)
+    await page.setViewportSize(size)
+    await openViewer(page)
+    await openDropdown(page)
+
+    const dropdown = page.getByLabel('Decrease base by 2').locator('xpath=ancestor::div[contains(@class,"fixed")][1]')
+    await expect(dropdown).toBeVisible()
+    const box = await dropdown.boundingBox()
+    expect(box).not.toBeNull()
+    if (box === null) return
+    expect(box.x).toBeGreaterThanOrEqual(0)
+    expect(box.x + box.width).toBeLessThanOrEqual(size.width)
+    // the controls at its right end are reachable too: the slider and the stepper that increases the base
+    for (const control of [page.getByLabel('Base slider'), page.getByLabel('Increase base by 2')]) {
+      const b = await control.boundingBox()
+      expect(b).not.toBeNull()
+      if (b === null) continue
+      expect(b.x).toBeGreaterThanOrEqual(0)
+      expect(b.x + b.width).toBeLessThanOrEqual(size.width)
+    }
+    expect(errors).toEqual([])
+  })
+}
+
+test('dropdown: on a desktop width it still opens at the control, not pushed to the screen edge (WR-09)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await openViewer(page)
+  await openDropdown(page)
+  const dropdown = page.getByLabel('Decrease base by 2').locator('xpath=ancestor::div[contains(@class,"fixed")][1]')
+  await expect(dropdown).toBeVisible()
+  const box = await dropdown.boundingBox()
+  const control = await baseInput(page).boundingBox()
+  expect(box).not.toBeNull()
+  expect(control).not.toBeNull()
+  if (box === null || control === null) return
+  // the box starts where the collapsed control starts (the control's own left edge is a few px right of its container's), and is 340 wide
+  expect(Math.abs(box.x - control.x)).toBeLessThan(24)
+  expect(Math.round(box.width)).toBe(340)
+})

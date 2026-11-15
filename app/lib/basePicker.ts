@@ -18,6 +18,23 @@ export const SLIDER_MAX = 1024
 /** How long a typed/dragged candidate previews before it is validated and committed (D-04). */
 export const BASE_DEBOUNCE_MS = 200
 
+/** The open dropdown's width (px) and the gap it keeps from the screen edges. The component's width class is min(340px, 100vw - 2 gaps). */
+export const DROPDOWN_WIDTH_PX = 340
+export const DROPDOWN_EDGE_PX = 8
+
+/**
+ * Where the fixed dropdown starts (px from the left of the screen): at the left edge of the collapsed control, pulled back so the box
+ * ends one gap inside the right edge of the viewport and never starting left of one gap (review WR-09: on a phone the control starts
+ * near x = 110, so a 340 px box ran off the screen and its right end could not be reached). A non-finite input reads as the gap.
+ */
+export function dropdownLeft(controlLeft: number, viewportWidth: number): number {
+  if (!Number.isFinite(viewportWidth)) return DROPDOWN_EDGE_PX
+  const width = Math.min(DROPDOWN_WIDTH_PX, viewportWidth - 2 * DROPDOWN_EDGE_PX)
+  const furthest = viewportWidth - width - DROPDOWN_EDGE_PX
+  const wanted = Number.isNaN(controlLeft) ? DROPDOWN_EDGE_PX : controlLeft
+  return Math.max(DROPDOWN_EDGE_PX, Math.min(wanted, furthest))
+}
+
 /** Every reason a typed candidate can be refused: the engine's own reasons, plus text that never reached the engine. */
 export type RefusalReason = BaseProblem | 'malformed'
 

@@ -8,10 +8,13 @@ import { summarize } from '../../app/lib/numogramView'
 import {
   BASE_DEBOUNCE_MS,
   BASE_STEP,
+  DROPDOWN_EDGE_PX,
+  DROPDOWN_WIDTH_PX,
   NOTABLE_BASES,
   SLIDER_MAX,
   SLIDER_MIN,
   evaluateCandidate,
+  dropdownLeft,
   evaluateCustomAlphabet,
   refusalFromUrl,
   refusalMessage,
@@ -228,5 +231,57 @@ describe('evaluateCustomAlphabet', () => {
     const { check } = evaluateCustomAlphabet('', 10)
     expect(check.ok).toBe(false)
     if (!check.ok) expect(check.reason).toBe('empty')
+  })
+})
+
+// Review WR-09: the dropdown is a fixed box opened at the left edge of the collapsed control; on a phone that left edge is far enough
+// right (the brand block has a minimum width) that the box ran past the right edge of the screen. dropdownLeft keeps it inside, with
+// the same gap on both sides, and the component's width class is min(340px, 100vw - 2 gaps), so a 320 px screen is covered too.
+describe('dropdownLeft', () => {
+  const widthAt = (viewport: number): number => Math.min(DROPDOWN_WIDTH_PX, viewport - 2 * DROPDOWN_EDGE_PX)
+
+  it('has the documented size and gap', () => {
+    expect(DROPDOWN_WIDTH_PX).toBe(340)
+    expect(DROPDOWN_EDGE_PX).toBe(8)
+  })
+
+  it('keeps the left edge of the control when the whole box fits to its right', () => {
+    expect(dropdownLeft(130, 1280)).toBe(130)
+    expect(dropdownLeft(130, 130 + DROPDOWN_WIDTH_PX + DROPDOWN_EDGE_PX)).toBe(130) // exactly at the limit
+  })
+
+  it('pulls the box back so its right edge stays one gap inside the viewport', () => {
+    // the measured phone case: a control at about 111 px on a 375 px screen would put the right edge at 451
+    expect(dropdownLeft(111, 375)).toBe(375 - DROPDOWN_WIDTH_PX - DROPDOWN_EDGE_PX)
+    expect(dropdownLeft(111, 375) + widthAt(375)).toBeLessThanOrEqual(375)
+    expect(dropdownLeft(500, 800)).toBe(800 - DROPDOWN_WIDTH_PX - DROPDOWN_EDGE_PX)
+  })
+
+  it('at 320 px the box is narrower than 340 and starts one gap from the left edge', () => {
+    expect(widthAt(320)).toBe(304)
+    expect(dropdownLeft(111, 320)).toBe(DROPDOWN_EDGE_PX)
+    expect(dropdownLeft(111, 320) + widthAt(320)).toBeLessThanOrEqual(320)
+  })
+
+  it('never starts left of one gap from the screen edge, whatever the control or the screen is', () => {
+    expect(dropdownLeft(-50, 1280)).toBe(DROPDOWN_EDGE_PX)
+    expect(dropdownLeft(0, 1280)).toBe(DROPDOWN_EDGE_PX)
+    expect(dropdownLeft(111, 100)).toBe(DROPDOWN_EDGE_PX) // a screen narrower than the box and its gaps
+  })
+
+  it('inside the viewport for every control position and width from 240 to 1600 px', () => {
+    for (let viewport = 240; viewport <= 1600; viewport += 23) {
+      for (let control = -20; control <= viewport; control += 17) {
+        const left = dropdownLeft(control, viewport)
+        expect(left).toBeGreaterThanOrEqual(DROPDOWN_EDGE_PX)
+        expect(left + widthAt(viewport)).toBeLessThanOrEqual(viewport - DROPDOWN_EDGE_PX) // one gap inside on the right too
+      }
+    }
+  })
+
+  it('reads a non-finite position or width as the gap, never as NaN', () => {
+    expect(dropdownLeft(Number.NaN, 375)).toBe(DROPDOWN_EDGE_PX)
+    expect(dropdownLeft(Number.POSITIVE_INFINITY, 375)).toBe(375 - DROPDOWN_WIDTH_PX - DROPDOWN_EDGE_PX)
+    expect(dropdownLeft(111, Number.NaN)).toBe(DROPDOWN_EDGE_PX)
   })
 })
