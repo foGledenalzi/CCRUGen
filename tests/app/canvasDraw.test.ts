@@ -2528,3 +2528,259 @@ describe('sounds label mode: zoneSounds on the Canvas tier', () => {
     expect(edgeText(g0.events).length).toBeGreaterThan(0)
   })
 })
+
+// ── The paint surface: layers painted on more than the window (origin and surface fields) ────────────────────────────
+
+// The window stays the logical frame of every transform; the optional originX, originY, surfaceWidth and surfaceHeight say
+// where the window's top-left sits inside a larger paint surface and how big that surface is (CSS px). Geometry stays in
+// window coordinates; only the clear, the dpr transform and the culling bounds follow the surface, so a node or an edge that
+// lies outside the window but inside the surface IS painted, and one beyond the surface is not.
+describe('paint surface: origin and surface fields', () => {
+  const MARGIN = { left: 300.5, top: 120.25, right: 260, bottom: 90 }
+  const HUGE = 1_000_000
+  const EVERYTHING = { originX: HUGE, originY: HUGE, surfaceWidth: 3 * HUGE, surfaceHeight: 3 * HUGE }
+
+  /** The state override of a surface that extends the window by the margins (fractional left and top on purpose). */
+  const wideSurface = (fx: Fx, m = MARGIN): Partial<DrawState> => ({
+    originX: m.left,
+    originY: m.top,
+    surfaceWidth: m.left + fx.w + m.right,
+    surfaceHeight: m.top + fx.h + m.bottom,
+  })
+
+  /** Each layer's draw call, so a rule is asserted for all five painters the same way. */
+  const painters: readonly (readonly [string, (env: DrawEnv, fx: Fx, over: Partial<DrawState>) => void])[] = [
+    ['syzygy layer', (env, fx, over) => drawSyzygyLayer(env, stateFor(fx, over), fx.index)],
+    ['current layer', (env, fx, over) => drawCurrentLayer(env, stateFor(fx, over), fx.index)],
+    ['gate layer', (env, fx, over) => drawGateLayer(env, stateFor(fx, over), fx.index)],
+    ['node layer', (env, fx, over) => drawNodeLayer(env, stateFor(fx, over), fx.index)],
+    ['overlay', (env, fx, over) => void drawOverlay(env, overlayFor(fx, { hlZones: new Set([5]), ...over }), fx.index)],
+  ]
+
+  /** What a recording did, as plain data: type, scalar arguments, style and path operations (no proxies, so toEqual is safe). */
+  const signature = (rec: Recorder): string[] =>
+    rec.events.map(e =>
+      JSON.stringify({
+        type: e.type,
+        args: e.args.map(a => (typeof a === 'number' || typeof a === 'string' || Array.isArray(a) ? a : 'object')),
+        style: e.style,
+        ops: e.path?.ops ?? null,
+      }),
+    )
+
+  for (const [name, paint] of painters) {
+    it(`${name}: the dpr transform puts the window origin at origin x dpr and the clear covers the whole surface`, () => {
+      const fx = zoneFx(28)
+      const rec = makeRecorder()
+      paint(rec.env, fx, { dpr: 2, ...wideSurface(fx) })
+      const setT = rec.events.findIndex(e => e.type === 'setTransform')
+      const clear = rec.events.findIndex(e => e.type === 'clearRect')
+      expect(setT).toBeGreaterThanOrEqual(0)
+      expect(setT).toBeLessThan(clear)
+      expect(rec.events[setT]?.args).toEqual([2, 0, 0, 2, 2 * MARGIN.left, 2 * MARGIN.top])
+      expect(rec.events[clear]?.args).toEqual([-MARGIN.left, -MARGIN.top, MARGIN.left + fx.w + MARGIN.right, MARGIN.top + fx.h + MARGIN.bottom])
+      expect(ofType(rec.events, 'clearRect')).toHaveLength(1)
+      expect(rec.events.some(e => e.type === 'fillRect')).toBe(false)
+    })
+
+    it(`${name}: absent fields and the window's own origin and size are the same drawing, call for call (and +0, never -0)`, () => {
+      const fx = zoneFx(28)
+      const plain = makeRecorder()
+      paint(plain.env, fx, { dpr: 2 })
+      const same = makeRecorder()
+      paint(same.env, fx, { dpr: 2, originX: 0, originY: 0, surfaceWidth: fx.w, surfaceHeight: fx.h })
+      expect(signature(same)).toEqual(signature(plain))
+      const clear = plain.events.find(e => e.type === 'clearRect')
+      expect(clear?.args).toEqual([0, 0, fx.w, fx.h])
+      expect(Object.is(clear?.args[0], 0) && Object.is(clear?.args[1], 0)).toBe(true)
+    })
+
+    it(`${name}: a surface that is not finite or not positive falls back to the window`, () => {
+      const fx = zoneFx(28)
+      const plain = makeRecorder()
+      paint(plain.env, fx, { dpr: 1 })
+      for (const bad of [Number.NaN, Infinity, -Infinity]) {
+        const rec = makeRecorder()
+        paint(rec.env, fx, { dpr: 1, originX: bad, originY: bad, surfaceWidth: bad, surfaceHeight: bad })
+        expect(signature(rec)).toEqual(signature(plain))
+      }
+      const zero = makeRecorder()
+      paint(zero.env, fx, { dpr: 1, originX: 0, originY: 0, surfaceWidth: 0, surfaceHeight: -5 })
+      expect(signature(zero)).toEqual(signature(plain))
+    })
+  }
+
+  const discCentres = (rec: Recorder): { x: number; y: number }[] =>
+    fillsOf(rec.events)
+      .filter(e => e.style.fillStyle.endsWith('18'))
+      .flatMap(e => opsOf(e, 'arc').map(o => nums(o.args)))
+      .map(a => ({ x: a[0] as number, y: a[1] as number }))
+
+  it('node layer: a zone outside the window but inside the surface is painted, one beyond the surface is culled', () => {
+    const fx = zoneFx(202)
+    const near = fitZones(fx.scene.x, fx.scene.y, [0], fx.frame, fx.w, fx.h)
+    expect(near.zoom).toBeGreaterThan(2)
+    const rDraw = Math.max(onScreenRadius(near, fx.frame, fx.w, fx.h), NODE_MIN_RADIUS_PX)
+    const room = 4 * rDraw + 12 // the documented cull room around a disc (its radius x 4 plus 12 CSS px)
+    const windowOnly = makeRecorder()
+    drawNodeLayer(windowOnly.env, stateFor(fx, { transform: near }), fx.index)
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { transform: near, ...wideSurface(fx) }), fx.index)
+
+    const inWindow = (p: { x: number; y: number }): boolean => p.x >= 0 && p.x <= fx.w && p.y >= 0 && p.y <= fx.h
+    const left = -MARGIN.left
+    const right = fx.w + MARGIN.right
+    const top = -MARGIN.top
+    const bottom = fx.h + MARGIN.bottom
+    const painted = discCentres(rec)
+    const screen = Array.from({ length: 202 }, (_, z) => screenOf(fx, fx.scene.x[z] as number, fx.scene.y[z] as number, near))
+    const sameCentre = (a: { x: number; y: number }, b: { x: number; y: number }): boolean => Math.hypot(a.x - b.x, a.y - b.y) < 1e-6
+    const beyond = (p: { x: number; y: number }): boolean => p.x < left - room || p.x > right + room || p.y < top - room || p.y > bottom + room
+    let inMargin = 0
+    for (const p of screen) {
+      const insideSurface = p.x >= left && p.x <= right && p.y >= top && p.y <= bottom
+      const isPainted = painted.some(c => sameCentre(c, p))
+      if (insideSurface) expect(isPainted, `a zone at (${p.x}, ${p.y}) inside the surface is painted`).toBe(true)
+      if (beyond(p)) expect(isPainted, `a zone at (${p.x}, ${p.y}) beyond the surface is culled`).toBe(false)
+      if (insideSurface && !inWindow(p)) inMargin++
+    }
+    expect(inMargin, 'the fixture has zones in the margin').toBeGreaterThan(0)
+    expect(screen.some(beyond), 'the fixture has zones beyond the surface').toBe(true)
+    expect(painted.length).toBeGreaterThan(discCentres(windowOnly).length)
+    expect(painted.some(c => !inWindow(c))).toBe(true)
+    expect(painted.length).toBeLessThan(202)
+  })
+
+  it('node layer: a surface that contains the whole zoomed frame paints every zone', () => {
+    const fx = zoneFx(202)
+    const near = fitZones(fx.scene.x, fx.scene.y, [0], fx.frame, fx.w, fx.h)
+    const rec = makeRecorder()
+    drawNodeLayer(rec.env, stateFor(fx, { transform: near, ...EVERYTHING }), fx.index)
+    expect(discCentres(rec)).toHaveLength(202)
+  })
+
+  it('syzygy layer: edges in the margin are painted, and a surface that contains the frame paints all of them', () => {
+    const fx = zoneFx(202)
+    const near = fitZones(fx.scene.x, fx.scene.y, [0], fx.frame, fx.w, fx.h)
+    const count = (over: Partial<DrawState>): number => {
+      const rec = makeRecorder()
+      drawSyzygyLayer(rec.env, stateFor(fx, { transform: near, ...over }), fx.index)
+      return opsOf(strokesOf(rec.events)[0] as Ev, 'moveTo').length
+    }
+    const windowOnly = count({})
+    const wide = count(wideSurface(fx))
+    const all = count(EVERYTHING)
+    expect(windowOnly).toBeGreaterThan(0)
+    expect(wide).toBeGreaterThan(windowOnly)
+    expect(all).toBe(fx.g.pairCount)
+    expect(wide).toBeLessThan(all)
+  })
+
+  it('current layer: stems in the margin are painted, and a surface that contains the frame paints all of them', () => {
+    const fx = zoneFx(202)
+    const near = fitZones(fx.scene.x, fx.scene.y, [0], fx.frame, fx.w, fx.h)
+    const count = (over: Partial<DrawState>): number => {
+      const rec = makeRecorder()
+      drawCurrentLayer(rec.env, stateFor(fx, { transform: near, ...over }), fx.index)
+      return opsOf(stemStroke(rec.events), 'quadraticCurveTo').length
+    }
+    const windowOnly = count({})
+    const wide = count(wideSurface(fx))
+    const all = count(EVERYTHING)
+    expect(wide).toBeGreaterThan(windowOnly)
+    expect(all).toBe(fx.g.pairCount)
+    expect(wide).toBeLessThan(all)
+  })
+
+  it('gate layer: gates in the margin are painted, and a surface that contains the frame paints all of them', () => {
+    const fx = zoneFx(202)
+    const near = fitZones(fx.scene.x, fx.scene.y, [0], fx.frame, fx.w, fx.h)
+    const count = (over: Partial<DrawState>): number => {
+      const rec = makeRecorder()
+      drawGateLayer(rec.env, stateFor(fx, { transform: near, ...over }), fx.index)
+      return strokesOf(rec.events).reduce((n, e) => n + opsOf(e, 'quadraticCurveTo').length, 0)
+    }
+    const windowOnly = count({})
+    const wide = count(wideSurface(fx))
+    const all = count(EVERYTHING)
+    expect(wide).toBeGreaterThan(windowOnly)
+    expect(all).toBe(fx.scene.gateTo.length)
+    expect(wide).toBeLessThan(all)
+  })
+
+  it('pair graph: pills in the margin are painted, and a surface that contains the frame paints all of them', () => {
+    const fx = pairFx(64)
+    const px = fx.scene.px as Float64Array
+    const py = fx.scene.py as Float64Array
+    const near = fitZones(px, py, [0], fx.frame, fx.w, fx.h)
+    expect(near.zoom).toBeGreaterThan(2)
+    const pills = (over: Partial<DrawState>): number => {
+      const rec = makeRecorder()
+      drawNodeLayer(rec.env, stateFor(fx, { transform: near, ...over }), fx.index)
+      return fillsOf(rec.events)
+        .filter(e => Math.abs(e.style.globalAlpha - 0.12) < 1e-12)
+        .reduce((n, e) => n + opsOf(e, 'closePath').length, 0)
+    }
+    const windowOnly = pills({})
+    const wide = pills(wideSurface(fx))
+    const all = pills(EVERYTHING)
+    expect(windowOnly).toBeGreaterThan(0)
+    expect(wide).toBeGreaterThan(windowOnly)
+    expect(all).toBe(px.length)
+    expect(wide).toBeLessThan(all)
+  })
+
+  it('overlay: a highlighted zone left of the window is drawn when the surface reaches it, and not when only the window is painted', () => {
+    const fx = zoneFx(202)
+    const t = centerOn(fx, fx.scene.x[0] as number, fx.scene.y[0] as number, 40)
+    const rDraw = Math.max(onScreenRadius(t, fx.frame, fx.w, fx.h), NODE_MIN_RADIUS_PX)
+    // a zone whose centre is left of the window, past the cull room, but inside the margin
+    let target = -1
+    for (let z = 0; z < 202; z++) {
+      const p = screenOf(fx, fx.scene.x[z] as number, fx.scene.y[z] as number, t)
+      if (p.x < -(4 * rDraw + 12) - 5 && p.x > -MARGIN.left + 10 && p.y > 0 && p.y < fx.h) {
+        target = z
+        break
+      }
+    }
+    expect(target, 'a zone left of the window inside the margin').toBeGreaterThanOrEqual(0)
+    const p = screenOf(fx, fx.scene.x[target] as number, fx.scene.y[target] as number, t)
+    const hasDisc = (rec: Recorder): boolean =>
+      rec.paths.some(path => path.ops.some(o => o.op === 'arc' && Math.hypot((o.args[0] as number) - p.x, (o.args[1] as number) - p.y) < 1e-6))
+    const windowOnly = makeRecorder()
+    drawOverlay(windowOnly.env, overlayFor(fx, { transform: t, hlZones: new Set([target]) }), fx.index)
+    const wide = makeRecorder()
+    drawOverlay(wide.env, overlayFor(fx, { transform: t, hlZones: new Set([target]), ...wideSurface(fx) }), fx.index)
+    expect(hasDisc(windowOnly), 'only the window: the zone beyond it is culled').toBe(false)
+    expect(hasDisc(wide), 'the surface reaches it: it is drawn').toBe(true)
+  })
+
+  it('level of detail is the same on a larger surface: labels still follow the on-screen node radius only', () => {
+    const fx = zoneFx(202)
+    const t = centerOn(fx, fx.scene.x[0] as number, fx.scene.y[0] as number, 40)
+    const labelled = (over: Partial<DrawState>, transform: CanvasTransform): boolean => {
+      const rec = makeRecorder()
+      drawNodeLayer(rec.env, stateFor(fx, { transform, ...bare(fx), ...over }), fx.index)
+      return ofType(rec.events, 'fillText').length > 0
+    }
+    expect(labelsShown(onScreenRadius(t, fx.frame, fx.w, fx.h))).toBe(true)
+    expect(labelled({}, t)).toBe(true)
+    expect(labelled(wideSurface(fx), t)).toBe(true)
+    expect(labelsShown(onScreenRadius(IDENTITY_TRANSFORM, fx.frame, fx.w, fx.h))).toBe(false)
+    expect(labelled({}, IDENTITY_TRANSFORM)).toBe(false)
+    expect(labelled(wideSurface(fx), IDENTITY_TRANSFORM)).toBe(false)
+  })
+
+  it('every number a surface drawing carries is finite', () => {
+    const fx = zoneFx(202)
+    const t = centerOn(fx, fx.scene.x[0] as number, fx.scene.y[0] as number, 20)
+    const rec = makeRecorder()
+    const over = { transform: t, ...wideSurface(fx), dpr: 2 }
+    drawSyzygyLayer(rec.env, stateFor(fx, over), fx.index)
+    drawCurrentLayer(rec.env, stateFor(fx, over), fx.index)
+    drawGateLayer(rec.env, stateFor(fx, over), fx.index)
+    drawNodeLayer(rec.env, stateFor(fx, over), fx.index)
+    drawOverlay(rec.env, overlayFor(fx, { ...over, hlZones: new Set([0, 1, 2]) }), fx.index)
+    expectAllFinite(rec)
+  })
+})
