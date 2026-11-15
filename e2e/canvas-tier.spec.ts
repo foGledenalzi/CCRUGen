@@ -1228,6 +1228,52 @@ test.describe('the surface follows the window', () => {
     await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
     expect(errors).toEqual([])
   })
+
+  // A window can move without any input of the raster changing (a panel opens and the row re-flows, a font loads): the next
+  // React commit re-measures it. The shift here is a style on the row the window sits in, so nothing re-rendered by itself; a
+  // hover then renders the diagram (a callout appears) without touching any raster input, and that commit puts the surface right.
+  test('a layout shift with no prop change is picked up by the next commit', async ({ page }) => {
+    const errors = trackErrors(page)
+    const scene = zoneScene(CANVAS_BASE)
+    await openCanvas(page, `base=${CANVAS_BASE}`)
+    await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
+    const before = await canvasBox(page)
+
+    await page.evaluate(() => {
+      const row = document.querySelector('[data-render-tier="canvas"]')?.parentElement
+      if (row instanceof HTMLElement) row.style.paddingLeft = '120px'
+    })
+    expect((await canvasBox(page)).x, 'the window moved right').toBeGreaterThan(before.x + 1)
+
+    const z = zoneThatPicksItself(scene, 40)
+    const p = await canvasPoint(page, scene, z)
+    await page.mouse.move(p.x, p.y)
+    await expect(page.locator(CALLOUT)).toHaveText(zoneText(z, CANVAS_BASE))
+    await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
+    expect(errors).toEqual([])
+  })
+
+  // The first paint is already at the surface size: the window's position is measured before the layers are painted, so the
+  // raster that would have been thrown away at the window's own size is not done (it costs 29 to 249 ms at base 4000).
+  test('the first raster is at the surface size, not at the window size', async ({ page }) => {
+    const errors = trackErrors(page)
+    await page.addInitScript(() => {
+      const log: number[][] = []
+      ;(window as unknown as { __clears: number[][] }).__clears = log
+      const original = CanvasRenderingContext2D.prototype.clearRect
+      CanvasRenderingContext2D.prototype.clearRect = function (this: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+        log.push([this.canvas.width, this.canvas.height])
+        return original.call(this, x, y, w, h)
+      }
+    })
+    const scene = zoneScene(CANVAS_BASE)
+    await openCanvas(page, `base=${CANVAS_BASE}`)
+    const { cssWidth, cssHeight } = canvasFootprint(frameOf(scene), 1600, 900)
+    const clears = await page.evaluate(() => (window as unknown as { __clears: number[][] }).__clears)
+    expect(clears.length, 'the layers were painted').toBeGreaterThan(0)
+    expect(clears.filter(([w, h]) => w === cssWidth && h === cssHeight), 'clears of a canvas the size of the window alone').toEqual([])
+    expect(errors).toEqual([])
+  })
 })
 
 // The backing store of the surface is bounded (five layers share the memory): a big viewport at a high device pixel ratio gets a lower
