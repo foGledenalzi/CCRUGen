@@ -1396,7 +1396,9 @@ export default function NumogramPage() {
   }, [isMobile, viewport.w])
   const panelHeaderLeft = isMobile ? 8 : DESKTOP_PANEL_LEFT_X
   const panelHeaderWidth = isMobile
-    ? mobilePanelWidth
+    // The header spans the window (8 px gutters) rather than the 240 px panel column: brand + base picker + four buttons cannot fit in
+    // 240 px, so the Undo, Redo, Share and Filter buttons used to be pushed off the right edge of a phone.
+    ? Math.max(mobilePanelWidth, viewport.w - 16)
     // +96 (04-12): room for the header base picker (UI-01) beside Undo/Redo/Share without covering the layout
     // switcher's fixed ButtonSet at 1280px (384 -> 480px desktop).
     : (DESKTOP_PANEL_RIGHT_X + PANEL_WIDTH - DESKTOP_PANEL_LEFT_X + 96)
@@ -1918,22 +1920,26 @@ export default function NumogramPage() {
           titleHref="/numogram"
           description={base === 10 ? 'Decimal Labyrinth' : `Base ${base}`}
           actions={(
-            <div className="flex flex-wrap items-center gap-1">
-              <BasePicker
-                base={base}
-                summary={summary}
-                externalRefusal={baseRefusal}
-                onCommitBase={commitBase}
-                labelScheme={labelScheme}
-                onLabelSchemeChange={setLabelScheme}
-                numeralsLayout={layout === 'pairGraph' || layout === 'planetary'}
-                packer={packer}
-                onPackerChange={onPackerChange}
-                packerVisible={layout === 'ring' || layout === 'pairGraph'}
-                requestedBase={pendingBase ?? base}
-                computing={pendingVisible}
-                announcement={announcement}
-              />
+            // One row that never wraps or overflows: the picker takes the room the four buttons leave and truncates its summary
+            // (the full line is its tooltip and stays the Base input's accessible description).
+            <div className="flex min-w-0 flex-nowrap items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <BasePicker
+                  base={base}
+                  summary={summary}
+                  externalRefusal={baseRefusal}
+                  onCommitBase={commitBase}
+                  labelScheme={labelScheme}
+                  onLabelSchemeChange={setLabelScheme}
+                  numeralsLayout={layout === 'pairGraph' || layout === 'planetary'}
+                  packer={packer}
+                  onPackerChange={onPackerChange}
+                  packerVisible={layout === 'ring' || layout === 'pairGraph'}
+                  requestedBase={pendingBase ?? base}
+                  computing={pendingVisible}
+                  announcement={announcement}
+                />
+              </div>
               <button
                 className="px-1.5 py-1"
                 style={{

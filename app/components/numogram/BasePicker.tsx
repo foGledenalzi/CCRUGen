@@ -275,7 +275,7 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
           inputMode="numeric"
           autoComplete="off"
           spellCheck={false}
-          className="w-[5ch] min-h-[24px] bg-transparent text-base font-semibold leading-none text-gray-100 outline-none"
+          className="w-[5ch] min-h-[24px] bg-transparent text-[13px] font-semibold leading-none text-gray-100 outline-none"
           style={{ caretColor: '#10ff50' }}
           value={candidate}
           onChange={handleInputChange}
@@ -294,7 +294,8 @@ export function BasePicker(props: BasePickerProps): JSX.Element {
             {`Computing base ${effectiveBase}...`}
           </span>
         ) : (
-          <span id={summaryId} className="truncate text-[10px] text-gray-400">
+          // The title is the whole line: the span truncates when the header is narrow, and the accessible description is unaffected.
+          <span id={summaryId} title={summaryLine(summary)} className="truncate text-[10px] text-gray-400">
             {summaryLine(summary)}
           </span>
         )}

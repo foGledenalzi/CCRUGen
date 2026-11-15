@@ -44,7 +44,8 @@ function baseline(id: string, summarySpan: string): string {
     '<div><div data-post-baseline="" class="relative flex min-w-0 items-center gap-2 px-2 py-1" ' +
     'style="border:1px solid rgba(255,255,255,0.08);background:rgba(8,8,15,0.94)">' +
     `<input aria-label="Base" aria-describedby="${id}" inputMode="numeric" autoComplete="off" spellcheck="false" ` +
-    'class="w-[5ch] min-h-[24px] bg-transparent text-base font-semibold leading-none text-gray-100 outline-none" ' +
+    // text-[13px] (was text-base, 16 px): the numeral was the loudest thing in the header and clashed with the 10 px summary beside it.
+    'class="w-[5ch] min-h-[24px] bg-transparent text-[13px] font-semibold leading-none text-gray-100 outline-none" ' +
     `style="caret-color:#10ff50" value="10"/>${summarySpan}</div></div>`
   )
 }
@@ -104,7 +105,8 @@ describe('BasePicker: persistent status carrier', () => {
   it('is today\'s markup plus exactly one added element when nothing is pending', () => {
     const markup = render()
     const id = describedById(markup)
-    const summarySpan = `<span id="${id}" class="truncate text-[10px] text-gray-400">${summaryLine(summary)}</span>`
+    // The ready summary now carries its own full line as a title (it truncates when the header is narrow).
+    const summarySpan = `<span id="${id}" title="${summaryLine(summary)}" class="truncate text-[10px] text-gray-400">${summaryLine(summary)}</span>`
     expect(markup).toContain(carrier(''))
     expect(markup.replace(carrier(''), '')).toBe(baseline(id, summarySpan))
   })
