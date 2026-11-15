@@ -7,7 +7,7 @@ import tierTable from '../engine/scene/tier-table.json'
 import { defaultNamingFor } from '../app/lib/namingSession'
 import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../app/lib/labelScheme'
 import {
-  NAMES_COPY, importSuccess, nameFieldAria, renamingUnavailable, rerolled, seedOnlySentence, zoneIssue,
+  NAMES_COPY, generated, importSuccess, nameFieldAria, renamingUnavailable, rerolled, seedOnlySentence, zoneIssue,
 } from '../app/lib/namingCopy'
 import { REROLL_SEED_LENGTH, ZONE_PAGE_STEP } from '../app/lib/namingLimits'
 import { INTERACTIVE_MAX_N } from '../app/lib/tierBounds'
@@ -602,6 +602,41 @@ test('the inline Undo this change undoes the naming change only: after a layer t
   await inlineUndo(page).click()
   await expectNames(s0, 'after the inline Undo of the second Reroll')
   await expect(inlineUndo(page)).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+// Review WR-07: Enter and Escape in the seed field must not commit or discard a seed an input method is still composing (a visitor typing
+// Chinese, Japanese or Korean confirms a candidate with Enter). The composing keydown is dispatched as the browser would send it: with
+// isComposing set (Chromium, Firefox) and with keyCode 229 (Safari). The real keys still commit and revert.
+test('the seed field ignores Enter and Escape while an input method is composing, and takes dir=auto', async ({ page }) => {
+  const errors = trackErrors(page)
+  await openViewer(page)
+  await switchBase(page, BASE)
+  await openNames(page)
+  const seed = seedField(page)
+  const start = await seed.inputValue()
+
+  const keydown = (init: KeyboardEventInit): Promise<void> =>
+    seed.evaluate((el, i) => { el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...i })) }, init)
+
+  await seed.fill('composing')
+  await keydown({ key: 'Enter', isComposing: true })
+  await keydown({ key: 'Enter', keyCode: 229 })
+  await expect(statusLine(page)).toHaveCount(0)
+  await expect(seed).toHaveValue('composing')
+  expect(await readTable(page, BASE).then(t => t.sounds)).toEqual(soundsOf(defaultNaming(BASE))) // nothing was applied
+  await keydown({ key: 'Escape', isComposing: true })
+  await keydown({ key: 'Escape', keyCode: 229 })
+  await expect(seed).toHaveValue('composing') // the half-composed draft was not thrown away
+
+  // the plain keys keep their meaning: Enter commits the seed, and Escape on a new draft goes back to the committed seed
+  await seed.press('Enter')
+  await expect(statusLine(page)).toHaveText(generated(BASE, 'composing'))
+  await seed.fill('other')
+  await seed.press('Escape')
+  await expect(seed).toHaveValue('composing')
+  expect(start).not.toBe('composing')
+  await expect(seed).toHaveAttribute('dir', 'auto')
   expect(errors).toEqual([])
 })
 

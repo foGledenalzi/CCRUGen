@@ -93,6 +93,21 @@ export function seedCommitOf(draft: string, current: string): SeedCommit {
   return seed === current ? { kind: 'unchanged' } : { kind: 'commit', seed }
 }
 
+/** What a key in the seed field means: commit (Enter), revert (Escape), or nothing. */
+export type SeedKeyIntent = 'commit' | 'revert' | null
+
+/**
+ * The meaning of a key pressed in the seed field. A key an input method is composing with means nothing (WR-07): a visitor typing
+ * Chinese, Japanese or Korean confirms a candidate with Enter and cancels one with Escape, and neither may commit or discard the
+ * half-composed seed. isComposing covers Chromium and Firefox, keyCode 229 covers Safari, which ends the composition before the keydown.
+ */
+export function seedKeyIntent(key: string, native: { readonly isComposing?: boolean; readonly keyCode?: number }): SeedKeyIntent {
+  if (native.isComposing === true || native.keyCode === 229) return null
+  if (key === 'Enter') return 'commit'
+  if (key === 'Escape') return 'revert'
+  return null
+}
+
 /**
  * The demons the preview table shows: the pinned one first when it is a demon of this base, then the lowest mesh numbers, up to `rows`
  * in all. Walks at most `rows` numbers, so it is cheap at every base.
@@ -512,10 +527,11 @@ function NamesBody({ nc, open, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps
   }
 
   function onSeedKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter') {
+    const intent = seedKeyIntent(e.key, e.nativeEvent)
+    if (intent === 'commit') {
       e.preventDefault()
       commitSeed()
-    } else if (e.key === 'Escape') {
+    } else if (intent === 'revert') {
       setDirty(false)
       setSeedProblem(false)
       setDraft(ncRef.current.naming.seed)
@@ -713,6 +729,7 @@ function NamesBody({ nc, open, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps
               readOnly={locked}
               value={draft}
               maxLength={SEED_MAX_LENGTH}
+              dir="auto"
               autoComplete="off"
               autoCapitalize="none"
               autoCorrect="off"

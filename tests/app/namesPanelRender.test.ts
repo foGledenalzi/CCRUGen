@@ -83,6 +83,7 @@ import {
   readImportFile,
   rerollSeed,
   seedCommitOf,
+  seedKeyIntent,
   statusFate,
   type DownloadEnv,
   type NamesStatus,
@@ -346,6 +347,7 @@ describe('NamesPanel: ready state at a base with no CCRU source', () => {
     expect(flagOf(seed.open, 'readonly')).toBe(false)
     expect(attrOf(seed.open, 'aria-disabled')).toBeNull()
     expect(attrOf(seed.open, 'aria-invalid')).toBeNull()
+    expect(attrOf(seed.open, 'dir')).toBe('auto') // WR-07: a seed may be in a right-to-left script, like the sound and name fields
     const classes = classOf(seed.open)
     expect(classes).toContain('ui-terminal-input')
     expect(classes).toContain('text-[14px]')
@@ -840,6 +842,30 @@ describe('seedCommitOf', () => {
     expect(seedCommitOf('x'.repeat(SEED_MAX_LENGTH + 1), 'old')).toEqual({ kind: 'invalid' })
     expect(seedCommitOf('a\u0000b', 'old')).toEqual({ kind: 'invalid' })
     expect(seedCommitOf('x'.repeat(SEED_MAX_LENGTH), 'old').kind).toBe('commit')
+  })
+})
+
+// Review WR-07: Enter and Escape in the seed field mean commit and revert, but not while an input method is composing (a Chinese,
+// Japanese or Korean visitor confirms a candidate with Enter and cancels one with Escape).
+describe('seedKeyIntent', () => {
+  it('Enter commits and Escape reverts', () => {
+    expect(seedKeyIntent('Enter', { isComposing: false, keyCode: 13 })).toBe('commit')
+    expect(seedKeyIntent('Escape', { isComposing: false, keyCode: 27 })).toBe('revert')
+  })
+
+  it('means nothing while an input method is composing, by isComposing or by the legacy keyCode 229', () => {
+    expect(seedKeyIntent('Enter', { isComposing: true, keyCode: 13 })).toBeNull()
+    expect(seedKeyIntent('Escape', { isComposing: true, keyCode: 27 })).toBeNull()
+    expect(seedKeyIntent('Enter', { isComposing: false, keyCode: 229 })).toBeNull() // Safari ends composition before keydown
+    expect(seedKeyIntent('Escape', { isComposing: false, keyCode: 229 })).toBeNull()
+  })
+
+  it('means nothing for any other key', () => {
+    for (const key of ['a', 'Tab', 'ArrowLeft', ' ', 'Backspace']) expect(seedKeyIntent(key, { isComposing: false, keyCode: 65 })).toBeNull()
+  })
+
+  it('reads an event with neither field as a plain key', () => {
+    expect(seedKeyIntent('Enter', {})).toBe('commit')
   })
 })
 
