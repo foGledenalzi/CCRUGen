@@ -40,7 +40,7 @@ import {
   restoreNaming, revertPreview, sessionForBase, snapshotNaming,
   type Announcement, type NamingAction, type NamingEnv, type NamingSession,
 } from './lib/namingSession'
-import { browserStorage, readSlot, writeSlot } from './lib/namingStorage'
+import { browserStorage, flushSlot, readSlot, writeSlot } from './lib/namingStorage'
 import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
 import { NAMES_COPY } from './lib/namingCopy'
 import { historySnapshotKey, historyStepFor, singleChangedZone, undoRestoresNaming, withHydratedNaming } from './lib/historyHydration'
@@ -242,11 +242,11 @@ export default function NumogramPage() {
   // The naming whose debounced slot write is still waiting. A base switch and the page being hidden write it at once, so an edit made
   // less than the debounce before either is not lost (the slot is read back right after a switch, so the write must come first).
   const pendingSaveRef = useRef<Naming | null>(null)
-  const flushPendingSave = useCallback(() => {
+  // Returns what the write said ('none' when nothing was pending): a base switch must not drop a failure (IN-04).
+  const flushPendingSave = useCallback((): 'none' | 'saved' | 'failed' => {
     const pending = pendingSaveRef.current
-    if (pending === null) return
     pendingSaveRef.current = null
-    writeSlot(browserStorage(), pending)
+    return flushSlot(pending, browserStorage())
   }, [])
 
   const svgWrapRef = useRef<HTMLDivElement>(null)
@@ -498,10 +498,11 @@ export default function NumogramPage() {
   // The naming joins the same batch (D-10): the new base's saved slot, or its fresh default, replaces the old base's session.
   const resetForBaseSwitch = useCallback((nextDemons: DemonSessionState, nextBase: number) => {
     jumpToTarget()
-    flushPendingSave()
+    const flushed = flushPendingSave()
     commitSession(sessionForBase(nextBase, readSlot(browserStorage(), nextBase, NAMING_ENV), null, NAMING_ENV, nextRev))
-    setNamesSaved('none')
-    setNamesAnnouncement(a => announced(a, ''))
+    // an edit of the base being left that could not be stored is reported on the new base's panel and to the live carrier, not dropped
+    setNamesSaved(flushed === 'failed' ? 'failed' : 'none')
+    setNamesAnnouncement(a => announced(a, flushed === 'failed' ? NAMES_COPY.savedFailed : ''))
     historyCurrentRef.current = null
     setUndoStack([])
     setRedoStack([])

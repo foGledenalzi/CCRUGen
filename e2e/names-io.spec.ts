@@ -502,6 +502,29 @@ test('autosave: a fresh navigation restores the saved naming at base 28 and on a
   expect(errors).toEqual([])
 })
 
+// Review IN-04: an edit made less than the debounce before a base switch is written at the switch, and when that write fails (a full
+// store) the visitor used to hear nothing: the switch reset the saved line to none. The failure now reaches the new base's panel (the
+// saved line) and the live carrier.
+test('a failed write at a base switch is reported, not dropped (full store)', async ({ page }) => {
+  const errors = trackErrors(page)
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = function setItem(): void {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    }
+  })
+  await openViewer(page, )
+  await openNames(page)
+  await expect(savedLine(page)).toHaveAttribute('data-names-saved', 'none')
+  await typeSound(page, 3, 'gl')
+  // no waiting: the switch comes inside the debounce time, so the write that fails is the one the switch flushes
+  await switchBase(page, 30)
+  await openNames(page)
+  await expect(savedLine(page)).toHaveAttribute('data-names-saved', 'failed')
+  await expect(savedLine(page)).toHaveText(NAMES_COPY.savedFailed)
+  await expect(page.locator(NAMES_LIVE)).toHaveText(NAMES_COPY.savedFailed)
+  expect(errors).toEqual([])
+})
+
 for (const mode of ['quota', 'denied'] as const) {
   test(`a full or blocked store shows the Couldn't save line and breaks nothing (${mode})`, async ({ page }) => {
     const errors = trackErrors(page)

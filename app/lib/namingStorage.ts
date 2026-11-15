@@ -60,3 +60,12 @@ export function writeSlot(storage: StorageLike | null, naming: Naming): 'saved' 
     return 'failed'
   }
 }
+
+/**
+ * Writes the naming whose debounced write is still pending, at once (a base switch and the page being hidden do this so an edit made
+ * just before them is not lost). 'none' when nothing was pending, else what writeSlot said: the caller must not drop a 'failed' (a full
+ * or blocked store), because it is the one place a lost edit could go unnoticed (review IN-04). Never fails.
+ */
+export function flushSlot(pending: Naming | null, storage: StorageLike | null): 'none' | 'saved' | 'failed' {
+  return pending === null ? 'none' : writeSlot(storage, pending)
+}

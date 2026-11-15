@@ -24,7 +24,7 @@ import {
 import { CCRU_NAMING_PRESET } from '../../app/presets/base10/naming'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
 import { NAMING_STORAGE_PREFIX } from '../../app/lib/namingLimits'
-import { browserStorage, readSlot, slotKey, writeSlot, type StorageLike } from '../../app/lib/namingStorage'
+import { browserStorage, flushSlot, readSlot, slotKey, writeSlot, type StorageLike } from '../../app/lib/namingStorage'
 import { defaultNamingFor, type NamingEnv } from '../../app/lib/namingSession'
 import { NamingContext, useNaming, type NamingContextValue } from '../../app/components/names/NamingContext'
 
@@ -241,6 +241,36 @@ describe('writeSlot and readSlot', () => {
     expect(writeSlot(storage, seedOnly)).toBe('failed')
     expect(storage.setCalls).toBe(0)
     expect(storage.data.size).toBe(0)
+  })
+})
+
+// Review IN-04: a pending debounced write is flushed at a base switch, and its result must reach the caller: the 'failed' of a full or
+// blocked store used to be dropped, so an edit that could not be saved was lost without a word.
+describe('flushSlot', () => {
+  it('is none, and writes nothing, when no write is pending', () => {
+    const storage = memoryStorage()
+    expect(flushSlot(null, storage)).toBe('none')
+    expect(storage.setCalls).toBe(0)
+  })
+
+  it('writes the pending naming to its own slot and says saved', () => {
+    const storage = memoryStorage()
+    const n = workedNaming()
+    expect(flushSlot(n, storage)).toBe('saved')
+    expect(storage.data.get(slotKey(DENSE))).toBeDefined()
+    expect(readSlot(storage, DENSE, env)).toEqual(n)
+  })
+
+  it('says failed for a full store, a missing store and a seed-only naming, and never throws', () => {
+    const full: StorageLike = {
+      getItem: () => null,
+      setItem: () => {
+        throw quotaError()
+      },
+    }
+    expect(flushSlot(workedNaming(), full)).toBe('failed')
+    expect(flushSlot(workedNaming(), null)).toBe('failed')
+    expect(flushSlot(defaultNamingFor(INTERACTIVE_MAX_N + 2, env), memoryStorage())).toBe('failed')
   })
 })
 
