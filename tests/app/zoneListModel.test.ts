@@ -26,6 +26,7 @@ import {
   splitPaste,
   tabStopZone,
   typeInto,
+  withFocusedRow,
   withNote,
 } from '../../app/lib/zoneListModel'
 
@@ -300,6 +301,43 @@ describe('tabStopZone', () => {
 
   it('keeps the active row when nothing is rendered', () => {
     expect(tabStopZone(2, [])).toBe(2)
+  })
+})
+
+// Review WR-06: the row that has focus is rendered whatever the scroll does. The window picks rows; this adds the focused one when the
+// window left it out, so a focused field is never unmounted (focus would fall to the page, with its shortcuts live).
+describe('withFocusedRow', () => {
+  it('keeps the window as it is when the focused row is inside it or there is no focused row', () => {
+    expect(withFocusedRow([4, 5, 6, 7], 5, 28)).toEqual([4, 5, 6, 7])
+    expect(withFocusedRow([4, 5, 6, 7], null, 28)).toEqual([4, 5, 6, 7])
+  })
+
+  it('adds a focused row below the window, after it in order', () => {
+    expect(withFocusedRow([20, 21, 22], 0, 28)).toEqual([0, 20, 21, 22])
+  })
+
+  it('adds a focused row above the window and one between, always in ascending order and without a duplicate', () => {
+    expect(withFocusedRow([0, 1, 2], 27, 28)).toEqual([0, 1, 2, 27])
+    expect(withFocusedRow([0, 1, 20, 21], 10, 28)).toEqual([0, 1, 10, 20, 21])
+    expect(new Set(withFocusedRow([0, 1, 20, 21], 10, 28)).size).toBe(5)
+  })
+
+  it('never adds a row that is not a row of the list (a stale focus after the list shrank)', () => {
+    expect(withFocusedRow([0, 1, 2], 28, 28)).toEqual([0, 1, 2])
+    expect(withFocusedRow([0, 1, 2], -1, 28)).toEqual([0, 1, 2])
+    expect(withFocusedRow([0, 1, 2], 1.5, 28)).toEqual([0, 1, 2])
+  })
+
+  it('returns a new array and leaves its input alone', () => {
+    const window = [3, 4]
+    const out = withFocusedRow(window, 9, 28)
+    expect(window).toEqual([3, 4])
+    expect(out).not.toBe(window)
+    expect(withFocusedRow(window, 3, 28)).not.toBe(window)
+  })
+
+  it('an empty window (nothing measured yet) still renders the focused row', () => {
+    expect(withFocusedRow([], 6, 28)).toEqual([6])
   })
 })
 

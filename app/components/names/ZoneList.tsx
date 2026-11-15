@@ -31,6 +31,7 @@ import {
   splitPaste,
   tabStopZone,
   typeInto,
+  withFocusedRow,
   withNote,
   type ListState,
 } from '../../lib/zoneListModel'
@@ -232,13 +233,19 @@ function ZoneListBody({ nc, sounds, scrollEl, scrollMargin, pinnedZone }: BodyPr
     setState(next)
   }
 
+  // The row with a focused control (null while focus is outside the list). It is rendered whatever the scroll does (WR-06): a focused
+  // field that scrolling unmounted would drop the focus to the page, where the global shortcuts are live, and leave its draft behind.
+  const [focusedZone, setFocusedZone] = useState<number | null>(null)
+
   // The margin the windowing rule needs: where the first row sits in the scroller's content. The list measures it from the layout
   // (exact, whatever gaps and wrapped lines the controls above have); the controls height only stands in until the first measure.
+  // The rows are the window's own plus the focused one (rows position themselves, so a gap in the range renders correctly).
   const virtualizer = virtual.useVirtualizer({
     count: base,
     getScrollElement: scrollEl,
     estimateSize: () => ZONE_ROW_HEIGHT_PX,
     overscan: ZONE_LIST_OVERSCAN,
+    rangeExtractor: range => withFocusedRow(virtual.defaultRangeExtractor(range), focusedZone, range.count),
     scrollMargin: (measured ?? scrollMargin) + ZONE_HEADER_HEIGHT_PX,
     scrollPaddingStart: ZONE_HEADER_HEIGHT_PX,
   })
@@ -399,7 +406,10 @@ function ZoneListBody({ nc, sounds, scrollEl, scrollMargin, pinnedZone }: BodyPr
   }
 
   const handlers: ZoneRowHandlers = {
-    onFocus: zone => setActive(zone),
+    onFocus: zone => {
+      setActive(zone)
+      setFocusedZone(zone)
+    },
     onChange: (zone, text) => update(typeInto(stateRef.current, zone, text, sounds[zone] as string)),
     onKeyDown,
     onBlur: zone => {
@@ -409,6 +419,14 @@ function ZoneListBody({ nc, sounds, scrollEl, scrollMargin, pinnedZone }: BodyPr
     onLock: zone => {
       if (editable) nc.apply({ type: 'lock', zone })
     },
+  }
+
+  // Focus leaving every control of the list ends the focused row (after the row's own blur has committed its draft: that handler runs
+  // first, then this one bubbles); focus moving to another control of the list is that control's own onFocus.
+  function onListBlur(e: React.FocusEvent<HTMLElement>): void {
+    const next = e.relatedTarget
+    if (next instanceof Node && listRef.current?.contains(next)) return
+    setFocusedZone(null)
   }
 
   // ----- Go to zone -----
@@ -475,7 +493,7 @@ function ZoneListBody({ nc, sounds, scrollEl, scrollMargin, pinnedZone }: BodyPr
           {message}
         </p>
       </div>
-      <div ref={listRef} role="list" aria-label={LIST_ARIA_LABEL} data-names-list="">
+      <div ref={listRef} role="list" aria-label={LIST_ARIA_LABEL} data-names-list="" onBlur={onListBlur}>
         <div
           aria-hidden="true"
           data-names-list-header=""

@@ -84,6 +84,16 @@ export function tabStopZone(active: number, rendered: readonly number[]): number
   return rendered.length > 0 ? (rendered[0] as number) : active
 }
 
+/**
+ * The rows to render: the ones the scroll range picked, plus the row that has focus when the range left it out, in ascending order
+ * (review WR-06). A focused field that scrolling unmounted would drop the focus to the page, where the global shortcuts are live, and
+ * orphan its draft. A row that is not a row of the list (a stale focus) is never added.
+ */
+export function withFocusedRow(rows: readonly number[], focused: number | null, count: number): number[] {
+  if (focused === null || !Number.isInteger(focused) || focused < 0 || focused >= count || rows.includes(focused)) return [...rows]
+  return [...rows, focused].sort((a, b) => a - b)
+}
+
 // ----- Go to zone -----
 
 const PLAIN_DECIMAL = /^[0-9]{1,10}$/

@@ -945,9 +945,11 @@ for (const base of [10, BASE]) {
 
 // ── 13 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-// A focused row that the list scrolls out of its window is unmounted, so the focus falls to the page; its uncommitted draft belongs to the
-// list state and comes back with the row (the known limitation of plan 07-19, pinned here so a change to it is a decision, not an accident).
-test('a focused row scrolled out of the window loses focus but keeps its draft', async ({ page }) => {
+// Review WR-06 (this replaces the plan 07-19 test that pinned the opposite, "a focused row scrolled out of the window loses focus but
+// keeps its draft"): the row whose field has focus stays mounted, wherever the wheel takes the list, so the focus does not fall to the
+// page (where the global shortcuts are live), the typed draft is not orphaned, and it commits when the focus leaves, as it always did.
+// Once nothing in the row has focus the row is windowed again like any other.
+test('a focused row wheel-scrolled far out of the window stays mounted and focused, and its draft commits on blur', async ({ page }) => {
   const errors = trackErrors(page)
   await openViewer(page)
   await switchBase(page, BASE)
@@ -956,20 +958,55 @@ test('a focused row scrolled out of the window loses focus but keeps its draft',
   await field.fill('abc')
   await expect(field).toBeFocused()
 
-  await namesScroll(page).evaluate(el => { el.scrollTop = el.scrollHeight })
-  await expect(nameRow(page, 0)).toHaveCount(0)
-  expect(await page.evaluate(() => (document.activeElement as HTMLElement | null)?.closest('[data-names-list]') ?? null)).toBeNull()
+  // a real wheel over the panel, far more than the window (the visible rows plus 8) can follow
+  await field.hover() // the pointer is over a field of the list itself (another panel may cover the middle of the scroller)
+  const remaining = (): Promise<number> => namesScroll(page).evaluate(el => Math.round(el.scrollHeight - el.clientHeight - el.scrollTop))
+  for (let i = 0; i < 40 && (await remaining()) >= 2; i++) {
+    await page.mouse.wheel(0, 1000)
+    await settleFrames(page)
+  }
+  expect(await remaining()).toBeLessThan(2)
+  await settleFrames(page)
+  await expect(nameRow(page, BASE - 1)).toHaveCount(1) // the window followed the wheel to the last rows
+  await expect(nameRow(page, 1)).toHaveCount(0) // and its neighbour of row 0 is gone, so the window really did move away
 
-  // the draft was neither committed (no lock) nor lost: it is back in the row when the row is rendered again
+  // the focused row is still in the DOM with its draft, and the focus is still on its field (not on the page)
+  await expect(nameRow(page, 0)).toHaveCount(1)
+  await expect(field).toBeFocused()
+  await expect(field).toHaveValue('abc')
+  expect(await page.evaluate(() => (document.activeElement as HTMLElement | null)?.getAttribute('data-names-sound') ?? null)).toBe('0')
+  await expect(undoButton(page)).toBeDisabled() // typed, not committed yet
+
+  // moving the focus to a visible field commits the draft (the blur), and the row is then windowed away like the others
+  await soundField(page, BASE - 1).click()
+  await expect(soundField(page, BASE - 1)).toBeFocused()
+  await expect(nameRow(page, 0)).toHaveCount(0)
+  await expect(undoButton(page)).toBeEnabled()
   await namesScroll(page).evaluate(el => { el.scrollTop = 0 })
   await expect(nameRow(page, 0)).toHaveCount(1)
-  await expect(nameRow(page, 0)).toHaveAttribute('data-locked', 'false')
-  await expect(soundField(page, 0)).toHaveValue('abc')
-  await expect(soundField(page, 0)).not.toBeFocused()
-  await expect(undoButton(page)).toBeDisabled()
-  // and it commits like any draft
-  await soundField(page, 0).press('Enter')
   await expect(nameRow(page, 0)).toHaveAttribute('data-locked', 'true')
-  await expect(undoButton(page)).toBeEnabled()
+  await expect(soundField(page, 0)).toHaveValue('abc')
+  expect(errors).toEqual([])
+})
+
+// An invalid draft that the blur could not commit is not lost either: it stays in the list state when its row is windowed away and
+// comes back, still marked invalid, with the row (the contract of plan 07-19 that WR-06 leaves as it was).
+test('an invalid draft left in a row that is then scrolled out of the window comes back with the row', async ({ page }) => {
+  const errors = trackErrors(page)
+  await openViewer(page)
+  await switchBase(page, BASE)
+  await openNames(page)
+  await soundField(page, 0).fill('a1')
+  await namesScroll(page).evaluate(el => { el.scrollTop = el.scrollHeight })
+  await soundField(page, BASE - 1).click()
+  await expect(soundField(page, BASE - 1)).toBeFocused()
+  await expect(nameRow(page, 0)).toHaveCount(0)
+
+  await namesScroll(page).evaluate(el => { el.scrollTop = 0 })
+  await expect(nameRow(page, 0)).toHaveCount(1)
+  await expect(soundField(page, 0)).toHaveValue('a1')
+  await expect(soundField(page, 0)).toHaveAttribute('aria-invalid', 'true')
+  await expect(nameRow(page, 0)).toHaveAttribute('data-locked', 'false')
+  await expect(undoButton(page)).toBeDisabled()
   expect(errors).toEqual([])
 })
