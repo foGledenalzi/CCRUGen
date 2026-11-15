@@ -308,7 +308,10 @@ export function targetAnchor(
 
 /**
  * The top-left of the callout chip: CALLOUT_OFFSET_PX right of and below the anchor, flipped to the opposite side when
- * the chip would leave the window, and never negative. A non-finite anchor counts as the window origin.
+ * the chip would leave the area, and never past its top-left. The area is the window (0, 0, cssW, cssH) unless minX and
+ * minY move its top-left: the Canvas tier passes its paint surface, in window coordinates, so a pointer outside the window
+ * still gets a chip beside it (cssW and cssH are then the surface's right and bottom edges). A non-finite anchor counts as
+ * the window origin.
  */
 export function calloutPosition(
   anchorX: number,
@@ -317,6 +320,8 @@ export function calloutPosition(
   chipH: number,
   cssW: number,
   cssH: number,
+  minX = 0,
+  minY = 0,
 ): { x: number; y: number } {
   const ax = Number.isFinite(anchorX) ? anchorX : 0
   const ay = Number.isFinite(anchorY) ? anchorY : 0
@@ -324,7 +329,7 @@ export function calloutPosition(
   let y = ay + CALLOUT_OFFSET_PX
   if (x + chipW > cssW) x = ax - CALLOUT_OFFSET_PX - chipW
   if (y + chipH > cssH) y = ay - CALLOUT_OFFSET_PX - chipH
-  return { x: Math.max(0, x), y: Math.max(0, y) }
+  return { x: Math.max(minX, x), y: Math.max(minY, y) }
 }
 
 /** The identity colour of a target: the zone's own colour, the layer colours for edges, a pair's lower zone for a pill. */

@@ -656,6 +656,29 @@ describe('calloutPosition', () => {
     expect(p.y).toBe(0)
   })
 
+  // the paint surface: a pointer outside the window still gets a chip beside it (window coordinates, surface bounds)
+  it('with a larger area it stays beside a pointer left of and above the window instead of clamping to the window edge', () => {
+    // a surface that reaches 510 px left of and 150 px above the window, 1090 px right and 750 px below its origin
+    const p = calloutPosition(-200, -60, 80, 16, 1090, 750, -510, -150)
+    expect(p).toEqual({ x: -200 + 12, y: -60 + 12 })
+    // the same anchor against the window alone is dragged to the window's top-left corner
+    expect(calloutPosition(-200, -60, 80, 16, 580, 580)).toEqual({ x: 0, y: 0 })
+  })
+
+  it('with a larger area it flips at the area edges, not the window edges, and is never past the area top-left', () => {
+    // 700 px is outside a 580 px window but well inside a surface that ends at 1090: no flip
+    expect(calloutPosition(700, 100, 80, 16, 1090, 750, -510, -150)).toEqual({ x: 712, y: 112 })
+    // at the surface edge it flips
+    expect(calloutPosition(1080, 740, 80, 16, 1090, 750, -510, -150)).toEqual({ x: 1080 - 12 - 80, y: 740 - 12 - 16 })
+    // a chip wider than the area is held at the area's top-left
+    expect(calloutPosition(-505, -145, 2000, 900, 1090, 750, -510, -150)).toEqual({ x: -510, y: -150 })
+  })
+
+  it('the default area is the window: the new parameters change nothing for the existing callers', () => {
+    expect(calloutPosition(100, 100, 80, 16, 580, 580, 0, 0)).toEqual(calloutPosition(100, 100, 80, 16, 580, 580))
+    expect(calloutPosition(-30, -30, 80, 16, 580, 580, 0, 0)).toEqual({ x: 0, y: 0 })
+  })
+
   it('a non-finite anchor gives a finite position', () => {
     const p = calloutPosition(NaN, Infinity, 80, 16, 580, 580)
     expect(Number.isFinite(p.x)).toBe(true)

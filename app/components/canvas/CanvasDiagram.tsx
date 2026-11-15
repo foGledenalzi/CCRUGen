@@ -15,6 +15,14 @@
 // is one pick per animation frame and is suspended while a gesture is active. There is no animation loop: redraws happen
 // on input and data change only.
 //
+// Window and surface. The window (the SVG tier's 580 px column, canvasFootprint) is the LOGICAL view frame: fit, zoom, clamp,
+// pan, pick and the data-zoom / data-tx / data-ty report are all in its coordinates, and the root element keeps its
+// rectangle. Only the pixels grow: the layer stack is sized to the paint surface (the viewport united with the window,
+// surfaceOf), positioned so it covers the viewport, with its transform origin at the window's top-left, so a zoomed diagram
+// fills the viewport the way the SVG tier's CSS transform does instead of being cut off at the window's edge. The overlay is
+// the whole surface, so hover, click, drag, pinch and wheel work wherever zoomed content is visible; its events bubble to the
+// root (a DOM child, wherever it lies), which is where the wheel listener and the coordinates come from.
+//
 // What this file decides is kept to wiring; every rule (pick filter, targets, text, placement) is a tested pure function
 // in app/lib/canvas/diagramModel.ts and the sibling modules. Callout and live-region text are React text nodes.
 
@@ -83,16 +91,18 @@ import { buildZoneGrid, flattenChords, pickAt, zonesInWorldRect, type PickHit } 
 import {
   IDENTITY_TRANSFORM,
   ZOOM_STEP,
-  backingStore,
   canvasFootprint,
   clampTransform,
   ensureVisible,
   fitZones,
   panBy,
   scaleOf,
+  surfaceOf,
+  surfaceStore,
   toScreen,
   toWorld,
   zoomAt,
+  type CanvasSurface,
   type CanvasTransform,
 } from '../../lib/canvas/viewTransform'
 import { KIND_COLOR } from '../../lib/demonBrowser'
@@ -154,6 +164,7 @@ const CHIP_CHAR_PX = 6.2 // a 10px monospace glyph advance: the chip width estim
 const CHIP_PAD_PX = 14 // 2 x 6px padding plus the 1px borders
 const CHIP_HEIGHT_PX = 18 // 10px text, 2 x 2px padding, borders
 const OVERLAY_MS_DECIMALS = 10 // data-overlay-ms is rounded to a tenth of a millisecond
+const PAGE_POSITION_PRECISION = 100 // the window's measured page position is kept to a hundredth of a CSS px, so layout noise cannot loop
 const LAYER_BASE_STYLE = { position: 'absolute', left: 0, top: 0, pointerEvents: 'none' } as const
 
 const envOf = (ctx: CanvasRenderingContext2D): DrawEnv => ({
@@ -187,6 +198,7 @@ interface Controller {
   fitAll(): void
   fitTo(zones: readonly number[]): void
   zonesIn(left: number, top: number, right: number, bottom: number): number[]
+  syncPagePos(): boolean
 }
 
 export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>(function CanvasDiagram(props, ref) {
@@ -245,6 +257,9 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
 
   // ── State ───────────────────────────────────────────────────────────────────────────────────────────────────────────
   const [rawDpr, setRawDpr] = useState(1)
+  // Where the window's top-left is on the page (client coordinates), measured after layout; null until then, which is the
+  // server render and the first client render: the surface is then the window itself, exactly the markup it always was.
+  const [pagePos, setPagePos] = useState<{ left: number; top: number } | null>(null)
   const sceneKey = `${scene.kind}:${scene.layoutId}:${scene.base}`
   // The committed transform belongs to one scene key: a new base or layout is the identity at once (no stale frame), and the
   // layout effect below also replaces the stored box, so a zoom committed for an earlier key never comes back (WR-02).
@@ -264,7 +279,16 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     () => canvasFootprint(frame, viewportWidth, viewportHeight),
     [frame, viewportWidth, viewportHeight],
   )
-  const store = useMemo(() => backingStore(cssWidth, cssHeight, rawDpr), [cssWidth, cssHeight, rawDpr])
+  // The paint surface: the viewport united with the window (the window itself until it has been measured). The store is
+  // bounded by the surface area limit (five layers), so the device pixel ratio drops on a huge viewport.
+  const surface: CanvasSurface = useMemo(
+    () =>
+      pagePos === null
+        ? { originX: 0, originY: 0, width: cssWidth, height: cssHeight }
+        : surfaceOf(pagePos.left, pagePos.top, cssWidth, cssHeight, viewportWidth, viewportHeight),
+    [pagePos, cssWidth, cssHeight, viewportWidth, viewportHeight],
+  )
+  const store = useMemo(() => surfaceStore(surface, rawDpr), [surface, rawDpr])
   const index = useMemo(() => buildSceneIndex(scene, view), [scene, view])
   const grid = useMemo(() => buildZoneGrid(scene.x, scene.y, scene.nodeRadius), [scene])
   const flatChords = useMemo(
@@ -646,6 +670,10 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
       transform: committed,
       cssWidth,
       cssHeight,
+      originX: surface.originX,
+      originY: surface.originY,
+      surfaceWidth: surface.width,
+      surfaceHeight: surface.height,
       dpr: store.dpr,
       layers,
       labelVisibility,
@@ -681,6 +709,22 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     return zonesInWorldRect(scene, a.x, a.y, b.x, b.y, filter)
   }
 
+  /**
+   * Measures where the window is on the page and keeps pagePos current. It sets state only when the (hundredth-rounded)
+   * position changed, so it cannot loop. True when it scheduled an update: the surface is about to change, so a raster done
+   * now would be thrown away.
+   */
+  function syncPagePos(): boolean {
+    const el = rootRef.current
+    if (el === null) return false
+    const rect = el.getBoundingClientRect()
+    const left = Math.round(rect.left * PAGE_POSITION_PRECISION) / PAGE_POSITION_PRECISION
+    const top = Math.round(rect.top * PAGE_POSITION_PRECISION) / PAGE_POSITION_PRECISION
+    if (pagePos !== null && pagePos.left === left && pagePos.top === top) return false
+    setPagePos({ left, top })
+    return true
+  }
+
   ctl.current = {
     onWheel,
     runHover,
@@ -691,6 +735,7 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     fitAll: () => commit(IDENTITY_TRANSFORM),
     fitTo,
     zonesIn,
+    syncPagePos,
   }
 
   useImperativeHandle(
@@ -722,6 +767,8 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     const cg = gateRef.current?.getContext('2d') ?? null
     const cn = nodeRef.current?.getContext('2d') ?? null
     if (cs === null || cc === null || cg === null || cn === null) return
+    // a window that has moved (the first measure, a resize, a layout change) changes the surface: let the re-render paint it
+    if (ctl.current?.syncPagePos() === true) return
     const st: DrawState = {
       scene,
       view,
@@ -730,6 +777,10 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
       transform: committed,
       cssWidth,
       cssHeight,
+      originX: surface.originX,
+      originY: surface.originY,
+      surfaceWidth: surface.width,
+      surfaceHeight: surface.height,
       dpr: store.dpr,
       layers,
       labelVisibility,
@@ -757,12 +808,22 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     committed,
     cssWidth,
     cssHeight,
+    surface.originX,
+    surface.originY,
+    surface.width,
+    surface.height,
     store.dpr,
     store.pixelWidth,
     store.pixelHeight,
     index,
     sceneKey,
   ])
+
+  // The window can move without any input of the raster changing (a panel opens and the row re-flows, a font loads): measure
+  // after every commit, cheaply, and let the guard in syncPagePos set state only when the position really changed.
+  useIsoLayoutEffect(() => {
+    ctl.current?.syncPagePos()
+  })
 
   // Overlay redraw on interaction changes, coalesced to one per animation frame.
   useEffect(() => {
@@ -864,7 +925,21 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
     callout !== null && chipDims !== null && chipDims.text === callout.text
       ? chipDims
       : { w: (calloutText?.length ?? 0) * CHIP_CHAR_PX + CHIP_PAD_PX, h: CHIP_HEIGHT_PX }
-  const chipAt = callout === null ? null : calloutPosition(callout.ax, callout.ay, chipSize.w, chipSize.h, cssWidth, cssHeight)
+  // The chip flips and clamps at the edges of the paint surface (in window coordinates), so a pointer outside the window
+  // still has its chip beside it; the target of the keyboard ring and of a pin is still required to be inside the window.
+  const chipAt =
+    callout === null
+      ? null
+      : calloutPosition(
+          callout.ax,
+          callout.ay,
+          chipSize.w,
+          chipSize.h,
+          surface.width - surface.originX,
+          surface.height - surface.originY,
+          -surface.originX,
+          -surface.originY,
+        )
 
   // The chip is measured once per text, before paint, so its flip at the window edge uses its real size.
   useIsoLayoutEffect(() => {
@@ -876,7 +951,11 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
   }, [calloutText])
 
   const focusKey = ringEff === null ? '' : focusKeyOf(ringEff, textSel)
-  const sized = { width: cssWidth, height: cssHeight }
+  // Every layer is the paint surface. The stack is moved so the surface covers the viewport (the window's top-left sits at
+  // originX, originY inside it) and the CSS gesture transform pivots on that point, so gestureMapping (in window
+  // coordinates) still maps exactly: with a zero origin it is the window-sized stack it was.
+  const sized = { width: surface.width, height: surface.height }
+  const stackOrigin = surface.originX === 0 && surface.originY === 0 ? '0 0' : `${surface.originX}px ${surface.originY}px`
 
   return (
     <div
@@ -896,13 +975,17 @@ export const CanvasDiagram = forwardRef<CanvasDiagramHandle, CanvasDiagramProps>
         // The window is exactly cssWidth wide (the footprint rule: 100vw - 16 on a phone). The page shell pads its flex row by
         // 16 px each side, so without this the row shrinks the window to 343 px at 375 px and clips the diagram's right edge.
         flexShrink: 0,
-        overflow: 'hidden',
+        // No overflow clip: the layer stack below is larger than the window (the paint surface), and the page shell
+        // (h-screen overflow-hidden) already clips at the viewport edge.
         opacity: pending ? 0.5 : 1,
         pointerEvents: pending ? 'none' : undefined,
         transition: 'opacity 0.15s',
       }}
     >
-      <div ref={stackRef} style={{ position: 'absolute', left: 0, top: 0, ...sized, transformOrigin: '0 0' }}>
+      <div
+        ref={stackRef}
+        style={{ position: 'absolute', left: -surface.originX, top: -surface.originY, ...sized, transformOrigin: stackOrigin }}
+      >
         <canvas
           ref={syzygyRef}
           data-canvas-layer="syzygy"

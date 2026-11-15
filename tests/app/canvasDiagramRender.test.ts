@@ -185,6 +185,33 @@ describe('CanvasDiagram: server render, zone layout (base 202 ring)', () => {
     expect(o).not.toContain('aria-busy')
   })
 
+  it('the root does not clip: the layer stack is the paint surface and the page shell clips at the viewport edge', () => {
+    expect(rootTag(markup)).not.toContain('overflow')
+  })
+
+  it('one stack div holds all five canvases; before the window is measured the surface is the window, pivoting at its top-left', () => {
+    const stack = `<div style="position:absolute;left:0;top:0;width:${cssWidth}px;height:${cssHeight}px;transform-origin:0 0">`
+    expect(markup).toContain(stack)
+    const inside = markup.slice(markup.indexOf(stack) + stack.length)
+    const firstCanvas = inside.indexOf('<canvas')
+    expect(firstCanvas).toBe(0) // the canvases start right inside the stack
+    // the stack closes only after the overlay (the focusable canvas is its last child), and no div opens in between
+    const closing = inside.indexOf('</div>')
+    expect(inside.slice(0, closing)).not.toContain('<div')
+    expect(canvasTags(inside.slice(0, closing))).toHaveLength(5)
+    expect(inside.slice(0, closing).lastIndexOf('role="application"')).toBeGreaterThan(inside.slice(0, closing).lastIndexOf('data-canvas-layer'))
+  })
+
+  it('every canvas is positioned at the stack origin and sized as the surface', () => {
+    for (const t of canvasTags(markup)) {
+      expect(t).toContain('position:absolute')
+      expect(t).toContain('left:0')
+      expect(t).toContain('top:0')
+      expect(t).toContain(`width:${cssWidth}px`)
+      expect(t).toContain(`height:${cssHeight}px`)
+    }
+  })
+
   it('touch-action is none and the focus outline is off on the overlay only', () => {
     expect(overlayTag(markup)).toContain('touch-action:none')
     expect(overlayTag(markup)).toContain('outline:none')
