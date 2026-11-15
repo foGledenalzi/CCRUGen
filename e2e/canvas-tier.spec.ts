@@ -20,14 +20,23 @@ import { DEFAULT_LABEL_SCHEME, formatZoneLabel } from '../app/lib/labelScheme'
 import { regionLabel, regionOfZone } from '../app/lib/regions'
 import { SELECTION_LIST_MAX } from '../app/lib/selectionList'
 import { INTERACTIVE_MAX_N, LABEL_MIN_RADIUS_PX, SVG_RICH_MAX_N } from '../app/lib/tierBounds'
-import { buildZoneGrid, flattenChords, pickAt, PICK_RADIUS_PX, type PickFilter, type ZoneGrid } from '../app/lib/canvas/pickIndex'
+import { CALLOUT_OFFSET_PX, gestureMapping } from '../app/lib/canvas/diagramModel'
+import { wheelZoomFactor } from '../app/lib/canvas/interaction'
+import { buildZoneGrid, flattenChords, pickAt, PICK_RADIUS_PX, zonesInWorldRect, type PickFilter, type ZoneGrid } from '../app/lib/canvas/pickIndex'
 import {
+  CANVAS_SURFACE_AREA_LIMIT_PX,
   IDENTITY_TRANSFORM,
+  ZOOM_STEP,
   canvasFootprint,
   fitZones,
   onScreenRadius,
+  panBy,
   scaleOf,
+  surfaceOf,
+  surfaceStore,
   toScreen,
+  toWorld,
+  zoomAt,
   type CanvasFrame,
   type CanvasTransform,
 } from '../app/lib/canvas/viewTransform'
@@ -244,14 +253,22 @@ async function svgCentre(page: Page, zone: number): Promise<{ x: number; y: numb
   return { x: circleBox.x + circleBox.width / 2 - svgBox.x, y: circleBox.y + circleBox.height / 2 - svgBox.y }
 }
 
-/** Alpha (0..255) of the node layer's pixel under a canvas-relative CSS point. */
+/**
+ * Alpha (0..255) of the node layer's pixel under a window-relative CSS point (the window is the root element). The layer is
+ * the paint surface, larger than the window, so the point is first offset by where the window sits inside the canvas.
+ */
 async function nodeAlpha(page: Page, sx: number, sy: number): Promise<number> {
   return page.evaluate(
     ([x, y]) => {
       const c = document.querySelector('canvas[data-canvas-layer="node"]') as HTMLCanvasElement
+      const root = document.querySelector('[data-render-tier="canvas"]') as HTMLElement
+      const cr = c.getBoundingClientRect()
+      const rr = root.getBoundingClientRect()
       const ctx = c.getContext('2d') as CanvasRenderingContext2D
-      const px = Math.min(c.width - 1, Math.max(0, Math.round(((x as number) * c.width) / c.clientWidth)))
-      const py = Math.min(c.height - 1, Math.max(0, Math.round(((y as number) * c.height) / c.clientHeight)))
+      const lx = (x as number) + (rr.left - cr.left)
+      const ly = (y as number) + (rr.top - cr.top)
+      const px = Math.min(c.width - 1, Math.max(0, Math.round((lx * c.width) / c.clientWidth)))
+      const py = Math.min(c.height - 1, Math.max(0, Math.round((ly * c.height) / c.clientHeight)))
       return ctx.getImageData(px, py, 1, 1).data[3] ?? 0
     },
     [sx, sy],
@@ -795,4 +812,467 @@ test('a Canvas rubber band does not swallow the first background click of the ne
   await expect(pinned).toHaveCount(0)
 
   expect(errors).toEqual([])
+})
+
+// ── 14 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// A zoomed Canvas diagram fills the viewport (as the SVG tier's CSS transform does) instead of being clipped to a box. The
+// window (the SVG tier's 580 px column) stays the LOGICAL frame: the root element keeps its rectangle and every transform is
+// in its coordinates. Only the paint surface grows: the five canvases are the viewport united with the window, and the overlay
+// on them takes hover, click, wheel, pan and rubber band wherever zoomed content shows. Expected positions come from the
+// engine scene, the transform the overlay reports and the pure view functions (surfaceOf, toScreen, zoomAt, panBy), never
+// from the app's own numbers; the DOM is read for boxes, pixels and what the app publishes (data-zoom, [data-canvas-callout]).
+// Timings are never asserted.
+
+const ZOOM_IN = 'button[aria-label="Zoom in"]'
+const LAYER = 'canvas[data-canvas-layer]'
+const FILL_ZOOM_STEPS = 3
+const EDGE_MARGIN_PX = 6 // a zone this close to the viewport edge is not used (its disc and chip would meet the edge)
+const WINDOW_MARGIN_PX = 8 // a zone this far outside the window counts as outside it (a node's own disc is inside)
+
+type Side = 'left' | 'right' | 'above' | 'below'
+const SIDES: readonly Side[] = ['left', 'right', 'above', 'below']
+
+/** Zooms in with the toolbar and waits for the committed zoom (the re-raster ran in the same commit, before paint). */
+async function zoomInSteps(page: Page, steps: number): Promise<void> {
+  for (let i = 0; i < steps; i++) await page.locator(ZOOM_IN).click()
+  await expect(page.locator(OVERLAY)).toHaveAttribute('data-zoom', String(ZOOM_STEP ** steps))
+}
+
+async function viewportOf(page: Page): Promise<{ width: number; height: number }> {
+  const vp = page.viewportSize()
+  if (vp === null) throw new Error('no viewport size')
+  return vp
+}
+
+async function boxOf(loc: Locator): Promise<Box> {
+  const b = await loc.boundingBox()
+  if (b === null) throw new Error('no bounding box')
+  return b
+}
+
+/**
+ * What is wrong with the paint surface, as messages (empty when right): the overlay and the four layer canvases each contain
+ * the window and cover the viewport, and are the size surfaceOf gives for the window's page position.
+ */
+async function surfaceProblems(page: Page, scene: CanvasScene): Promise<string[]> {
+  const vp = await viewportOf(page)
+  const root = await canvasBox(page)
+  const frame = frameOf(scene)
+  const { cssWidth, cssHeight } = canvasFootprint(frame, vp.width, vp.height)
+  const expected = surfaceOf(root.x, root.y, cssWidth, cssHeight, vp.width, vp.height)
+  const problems: string[] = []
+  const canvases = [page.locator(OVERLAY), ...(await page.locator(LAYER).all())]
+  if (canvases.length !== 5) problems.push(`${canvases.length} canvases, not 5`)
+  for (const [i, loc] of canvases.entries()) {
+    const b = await boxOf(loc)
+    const tag = i === 0 ? 'overlay' : `layer ${i}`
+    if (b.x > root.x + 0.5 || b.y > root.y + 0.5) problems.push(`${tag} starts after the window's top-left`)
+    if (b.x + b.width < root.x + root.width - 0.5 || b.y + b.height < root.y + root.height - 0.5) problems.push(`${tag} ends before the window's far corner`)
+    if (b.x > 0.5 || b.y > 0.5) problems.push(`${tag} starts at (${b.x}, ${b.y}), not the viewport's top-left`)
+    if (b.x + b.width < vp.width - 0.5 || b.y + b.height < vp.height - 0.5) problems.push(`${tag} ends at (${b.x + b.width}, ${b.y + b.height}), short of the viewport`)
+    if (Math.abs(b.width - expected.width) > 0.5 || Math.abs(b.height - expected.height) > 0.5) {
+      problems.push(`${tag} is ${b.width} x ${b.height}, surfaceOf says ${expected.width} x ${expected.height}`)
+    }
+  }
+  return problems
+}
+
+/** How many pixels of a layer canvas are not fully transparent inside a page rectangle (CSS px); -1 when it lies off the canvas. */
+async function paintedPixels(page: Page, layer: string, rect: Box): Promise<number> {
+  return page.evaluate(
+    ({ layer: name, rect: r }) => {
+      const c = document.querySelector(`canvas[data-canvas-layer="${name}"]`) as HTMLCanvasElement | null
+      if (c === null) return -2
+      const b = c.getBoundingClientRect()
+      const kx = c.width / b.width
+      const ky = c.height / b.height
+      const x0 = Math.max(0, Math.floor((r.x - b.left) * kx))
+      const y0 = Math.max(0, Math.floor((r.y - b.top) * ky))
+      const x1 = Math.min(c.width, Math.ceil((r.x + r.width - b.left) * kx))
+      const y1 = Math.min(c.height, Math.ceil((r.y + r.height - b.top) * ky))
+      if (x1 <= x0 || y1 <= y0) return -1
+      const ctx = c.getContext('2d')
+      if (ctx === null) return -3
+      const data = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data
+      let n = 0
+      for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) n++
+      return n
+    },
+    { layer, rect },
+  )
+}
+
+interface OutsideZone {
+  readonly zone: number
+  readonly side: Side
+  readonly x: number // page coordinates of the zone's centre
+  readonly y: number
+  readonly sx: number // window coordinates of the same point
+  readonly sy: number
+}
+
+/** Every zone whose centre is outside the window (by more than a node) and inside the viewport, from the engine and the reported transform. */
+async function zonesOutsideWindow(page: Page, scene: CanvasScene): Promise<OutsideZone[]> {
+  const vp = await viewportOf(page)
+  const { frame, cssWidth, cssHeight, box } = await windowOf(page, scene)
+  const t = await liveTransform(page)
+  const out: OutsideZone[] = []
+  for (let z = 0; z < scene.x.length; z++) {
+    const p = toScreen(t, frame, cssWidth, cssHeight, at(scene.x, z), at(scene.y, z))
+    const x = box.x + p.x
+    const y = box.y + p.y
+    if (x < EDGE_MARGIN_PX || x > vp.width - EDGE_MARGIN_PX || y < EDGE_MARGIN_PX || y > vp.height - EDGE_MARGIN_PX) continue
+    const side: Side | null =
+      p.x < -WINDOW_MARGIN_PX ? 'left' : p.x > cssWidth + WINDOW_MARGIN_PX ? 'right' : p.y < -WINDOW_MARGIN_PX ? 'above' : p.y > cssHeight + WINDOW_MARGIN_PX ? 'below' : null
+    if (side !== null) out.push({ zone: z, side, x, y, sx: p.x, sy: p.y })
+  }
+  return out
+}
+
+/** Whether the spec's own pick (the 12 px rule) at a window point resolves to the zone. */
+function picksZone(scene: CanvasScene, grid: ZoneGrid, t: CanvasTransform, frame: CanvasFrame, w: number, h: number, sx: number, sy: number, zone: number): boolean {
+  const world = toWorld(t, frame, w, h, sx, sy)
+  const hit = pickAt(scene, grid, world.x, world.y, scaleOf(t, frame, w, h), allowAllButGates)
+  return hit !== null && hit.kind === 'zone' && hit.id === zone
+}
+
+async function reaches(page: Page, x: number, y: number): Promise<boolean> {
+  return page.evaluate(([px, py]) => document.elementFromPoint(px as number, py as number)?.hasAttribute('data-diagram') ?? false, [x, y])
+}
+
+/** For each side of the window with one, a zone outside it that picks itself and whose point reaches the overlay (no panel above it). */
+async function reachableZonePerSide(page: Page, scene: CanvasScene): Promise<OutsideZone[]> {
+  const { frame, cssWidth, cssHeight } = await windowOf(page, scene)
+  const t = await liveTransform(page)
+  const grid = buildZoneGrid(scene.x, scene.y, scene.nodeRadius)
+  const all = await zonesOutsideWindow(page, scene)
+  const chosen: OutsideZone[] = []
+  for (const side of SIDES) {
+    for (const o of all) {
+      if (o.side !== side || !picksZone(scene, grid, t, frame, cssWidth, cssHeight, o.sx, o.sy, o.zone)) continue
+      if (!(await reaches(page, o.x, o.y))) continue
+      chosen.push(o)
+      break
+    }
+  }
+  return chosen
+}
+
+/** The bands of the viewport outside the window, as page rectangles (empty ones left out). */
+async function bandsOutsideWindow(page: Page): Promise<Box[]> {
+  const vp = await viewportOf(page)
+  const root = await canvasBox(page)
+  const bands: Box[] = [
+    { x: 0, y: root.y, width: root.x, height: root.height }, // left of the window
+    { x: root.x + root.width, y: root.y, width: vp.width - (root.x + root.width), height: root.height }, // right
+    { x: 0, y: 0, width: vp.width, height: root.y }, // above
+    { x: 0, y: root.y + root.height, width: vp.width, height: vp.height - (root.y + root.height) }, // below
+  ]
+  return bands.filter(b => b.width > 24 && b.height > 24)
+}
+
+/** A point outside the window that reaches the overlay (the first on a coarse grid over the bands, clear of the viewport edge). */
+async function emptyPointOutsideWindow(page: Page, scene: CanvasScene): Promise<{ x: number; y: number }> {
+  const { frame, cssWidth, cssHeight, box } = await windowOf(page, scene)
+  const t = await liveTransform(page)
+  const grid = buildZoneGrid(scene.x, scene.y, scene.nodeRadius)
+  for (const band of await bandsOutsideWindow(page)) {
+    for (let y = Math.ceil(band.y) + 20; y < band.y + band.height - 10; y += 24) { // whole CSS px: a synthetic wheel event truncates a fractional clientY
+      for (let x = Math.ceil(band.x) + 20; x < band.x + band.width - 10; x += 24) {
+        const world = toWorld(t, frame, cssWidth, cssHeight, x - box.x, y - box.y)
+        const hit = pickAt(scene, grid, world.x, world.y, scaleOf(t, frame, cssWidth, cssHeight), allowAllButGates)
+        if (hit === null && (await reaches(page, x, y))) return { x, y }
+      }
+    }
+  }
+  throw new Error('no point outside the window reaches the overlay')
+}
+
+function selectedZoneIds(page: Page): number[] {
+  const raw = new URL(page.url()).searchParams.get('selected')
+  return raw === null || raw === '' ? [] : raw.split(',').map(Number).sort((a, b) => a - b)
+}
+
+const FILL_VIEWPORTS = [
+  { name: '1600 x 900', width: 1600, height: 900 },
+  { name: '375 x 667', width: 375, height: 667 },
+] as const
+
+for (const vp of FILL_VIEWPORTS) {
+  test.describe(`a zoomed Canvas diagram fills the viewport at ${vp.name}`, () => {
+    test.use({ viewport: { width: vp.width, height: vp.height } })
+
+    test('the five canvases are the paint surface, before and after zooming; the root keeps the window rectangle', async ({ page }) => {
+      const errors = trackErrors(page)
+      const scene = zoneScene(CANVAS_BASE)
+      await openCanvas(page, `base=${CANVAS_BASE}`)
+      await windowOf(page, scene) // the footprint rule and the root's box agree
+      await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
+
+      await zoomInSteps(page, FILL_ZOOM_STEPS)
+      await windowOf(page, scene) // still the window: only the pixels grew
+      await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
+      expect(errors).toEqual([])
+    })
+
+    test('zoomed content is painted outside the window, where the engine puts every node', async ({ page }) => {
+      const errors = trackErrors(page)
+      const scene = zoneScene(CANVAS_BASE)
+      await openCanvas(page, `base=${CANVAS_BASE}`)
+      await zoomInSteps(page, FILL_ZOOM_STEPS)
+
+      const outside = await zonesOutsideWindow(page, scene)
+      expect(outside.length, 'zones outside the window and inside the viewport').toBeGreaterThan(0)
+      // the node canvas has a disc at the centre of every one of them (a window-sized canvas would have nothing there)
+      const missing: number[] = []
+      for (const o of outside) if ((await paintedPixels(page, 'node', { x: o.x - 2, y: o.y - 2, width: 5, height: 5 })) <= 0) missing.push(o.zone)
+      expect(missing, 'zones outside the window with no disc painted at their centre').toEqual([])
+
+      // and the dotted syzygy lines run on into every band that has zones in it
+      const bands = await bandsOutsideWindow(page)
+      let checked = 0
+      for (const band of bands) {
+        const hasZone = outside.some(o => o.x >= band.x && o.x <= band.x + band.width && o.y >= band.y && o.y <= band.y + band.height)
+        if (!hasZone) continue
+        checked++
+        expect(await paintedPixels(page, 'syzygy', band), `the syzygy layer in the band at (${band.x}, ${band.y})`).toBeGreaterThan(0)
+      }
+      expect(checked, 'bands with zones').toBeGreaterThan(0)
+      expect(errors).toEqual([])
+    })
+
+    test('hover names and a click selects a zone outside the window, with the chip beside the pointer', async ({ page }) => {
+      const errors = trackErrors(page)
+      const scene = zoneScene(CANVAS_BASE)
+      await openCanvas(page, `base=${CANVAS_BASE}`)
+      await zoomInSteps(page, FILL_ZOOM_STEPS)
+
+      const chosen = await reachableZonePerSide(page, scene)
+      console.log(`fills-viewport ${vp.name}: zones outside the window by side ${chosen.map(c => `${c.side}=${c.zone}`).join(' ')}`)
+      expect(chosen.length, 'sides of the window with a pickable zone that no panel covers').toBeGreaterThanOrEqual(2)
+      for (const [i, o] of chosen.entries()) {
+        if (i > 0) {
+          // a click opens the Selection panel, which can cover the next zone: every side starts from a fresh page (same layout)
+          await openCanvas(page, `base=${CANVAS_BASE}`)
+          await zoomInSteps(page, FILL_ZOOM_STEPS)
+        }
+        await page.mouse.move(o.x, o.y)
+        await expect(page.locator(CALLOUT)).toHaveText(zoneText(o.zone, CANVAS_BASE))
+        // the chip sits CALLOUT_OFFSET_PX beside the pointer (flipped at the surface edge), also left of and above the window
+        await expect
+          .poll(async () => {
+            const chip = await boxOf(page.locator(CALLOUT))
+            const near = (a: number, b: number): boolean => Math.abs(a - b) <= 1.5
+            const horizontal = near(chip.x, o.x + CALLOUT_OFFSET_PX) || near(chip.x + chip.width, o.x - CALLOUT_OFFSET_PX)
+            const vertical = near(chip.y, o.y + CALLOUT_OFFSET_PX) || near(chip.y + chip.height, o.y - CALLOUT_OFFSET_PX)
+            return horizontal && vertical
+          }, { message: `the chip for zone ${o.zone} (${o.side} of the window) is beside the pointer` })
+          .toBe(true)
+
+        await page.mouse.click(o.x, o.y)
+        await expect.poll(() => selectedZoneIds(page)).toEqual([o.zone])
+      }
+      expect(errors).toEqual([])
+    })
+
+    test('a wheel turn over the surface outside the window zooms about the pointer, and the stack pivots on the window', async ({ page }) => {
+      const errors = trackErrors(page)
+      const scene = zoneScene(CANVAS_BASE)
+      await openCanvas(page, `base=${CANVAS_BASE}`)
+      await zoomInSteps(page, FILL_ZOOM_STEPS)
+      const { frame, cssWidth, cssHeight, box } = await windowOf(page, scene)
+      const t = await liveTransform(page)
+      const point = await emptyPointOutsideWindow(page, scene)
+      const sx = point.x - box.x
+      const sy = point.y - box.y
+      const inWindow = sx >= 0 && sx <= cssWidth && sy >= 0 && sy <= cssHeight
+      expect(inWindow, 'the wheel point lies outside the window').toBe(false)
+
+      // the live gesture, synchronously: the CSS transform of the stack maps the window as the pure functions say, pivoting on
+      // the window's top-left (a stack pivoting on its own corner would land elsewhere for any zoom but 1)
+      const deltaY = -200
+      const factor = wheelZoomFactor(deltaY, 0)
+      const live = zoomAt(t, factor, sx, sy, frame, cssWidth, cssHeight)
+      const m = gestureMapping(t, live, cssWidth, cssHeight)
+      expect(m.k, 'the wheel turn changes the zoom').toBeGreaterThan(1)
+      const vpSize = await viewportOf(page)
+      const surface = surfaceOf(box.x, box.y, cssWidth, cssHeight, vpSize.width, vpSize.height)
+      const got = await page.evaluate(
+        ({ x, y, dy }) => {
+          const overlay = document.querySelector('canvas[data-diagram]') as HTMLElement
+          const stack = overlay.parentElement as HTMLElement
+          const event = new WheelEvent('wheel', { deltaY: dy, deltaMode: 0, clientX: x, clientY: y, bubbles: true, cancelable: true })
+          const notPrevented = overlay.dispatchEvent(event) // the root's listener prevents the page scroll
+          const r = stack.getBoundingClientRect()
+          return { notPrevented, left: r.left, top: r.top, width: r.width, height: r.height, origin: getComputedStyle(stack).transformOrigin }
+        },
+        { x: point.x, y: point.y, dy: deltaY },
+      )
+      expect(got.notPrevented, 'the wheel event from the overlay reached the root listener (it is a DOM child)').toBe(false)
+      // Chromium snaps the pivot of a transformed element to a whole pixel when the window's page position is fractional (the
+      // 169.5 of a 900 px viewport), so the live mapping may be off by up to half a pixel of the extra scale; a pivot on the
+      // stack's own corner would be off by originX x (k - 1), tens of pixels
+      const snap = 0.5 * Math.abs(m.k - 1) + 0.01
+      expect(Math.abs(got.left - (box.x + m.tx - m.k * surface.originX))).toBeLessThanOrEqual(snap)
+      expect(Math.abs(got.top - (box.y + m.ty - m.k * surface.originY))).toBeLessThanOrEqual(snap)
+      expect(got.width).toBeCloseTo(m.k * surface.width, 2)
+      expect(got.height).toBeCloseTo(m.k * surface.height, 2)
+      expect(got.origin).toBe(`${surface.originX}px ${surface.originY}px`)
+
+      // the committed zoom follows (the burst commits when the wheel is idle), about the same point
+      const overlay = page.locator(OVERLAY)
+      await expect.poll(async () => Number(await overlay.getAttribute('data-zoom'))).toBeCloseTo(live.zoom, 9)
+      expect(Number(await overlay.getAttribute('data-tx'))).toBeCloseTo(live.tx, 3)
+      expect(Number(await overlay.getAttribute('data-ty'))).toBeCloseTo(live.ty, 3)
+
+      // and a real wheel turn over the surface does the same, from the new committed view
+      const before = await liveTransform(page)
+      const next = await emptyPointOutsideWindow(page, scene)
+      await page.mouse.move(next.x, next.y)
+      await page.mouse.wheel(0, -240)
+      await expect.poll(async () => Number(await overlay.getAttribute('data-zoom'))).toBeGreaterThan(before.zoom)
+      expect(errors).toEqual([])
+    })
+
+    test('a middle-button drag pans and a rubber band selects, both started outside the window', async ({ page }) => {
+      const errors = trackErrors(page)
+      const scene = zoneScene(CANVAS_BASE)
+      await openCanvas(page, `base=${CANVAS_BASE}`)
+      await zoomInSteps(page, FILL_ZOOM_STEPS)
+      const { frame, cssWidth, cssHeight, box } = await windowOf(page, scene)
+      const t = await liveTransform(page)
+      const overlay = page.locator(OVERLAY)
+
+      // pan: the pure panBy gives the committed transform
+      const start = await emptyPointOutsideWindow(page, scene)
+      const dx = -40
+      const dy = 24
+      const panned = panBy(t, dx, dy, frame, cssWidth, cssHeight)
+      expect(panned.tx).not.toBe(t.tx)
+      await page.mouse.move(start.x, start.y)
+      await page.mouse.down({ button: 'middle' })
+      await page.mouse.move(start.x + dx, start.y + dy, { steps: 5 })
+      await page.mouse.up({ button: 'middle' })
+      await expect.poll(async () => Number(await overlay.getAttribute('data-tx'))).toBeCloseTo(panned.tx, 3)
+      expect(Number(await overlay.getAttribute('data-ty'))).toBeCloseTo(panned.ty, 3)
+
+      // rubber band: a box around a zone outside the window, pressed on empty space outside the window
+      const t2 = await liveTransform(page)
+      const grid = buildZoneGrid(scene.x, scene.y, scene.nodeRadius)
+      const half = 22
+      const candidates = await zonesOutsideWindow(page, scene)
+      let plan: { from: { x: number; y: number }; to: { x: number; y: number }; expected: number[] } | null = null
+      for (const o of candidates) {
+        const corners = [
+          [o.x + half, o.y + half, o.x - half, o.y - half],
+          [o.x - half, o.y + half, o.x + half, o.y - half],
+          [o.x + half, o.y - half, o.x - half, o.y + half],
+          [o.x - half, o.y - half, o.x + half, o.y + half],
+        ] as const
+        for (const [fx, fy, tx, ty] of corners) {
+          const vpSize = await viewportOf(page)
+          if (fx < 10 || fx > vpSize.width - 10 || fy < 10 || fy > vpSize.height - 10) continue
+          const a = toWorld(t2, frame, cssWidth, cssHeight, fx - box.x, fy - box.y)
+          const b = toWorld(t2, frame, cssWidth, cssHeight, tx - box.x, ty - box.y)
+          if (pickAt(scene, grid, a.x, a.y, scaleOf(t2, frame, cssWidth, cssHeight), allowAllButGates) !== null) continue
+          if (!(await reaches(page, fx, fy))) continue
+          // no zone centre within 2 px of the band's edge (the inclusive rectangle rule is not under test)
+          const lo = { x: Math.min(fx, tx), y: Math.min(fy, ty) }
+          const hi = { x: Math.max(fx, tx), y: Math.max(fy, ty) }
+          let clear = true
+          for (let z = 0; z < scene.x.length && clear; z++) {
+            const p = toScreen(t2, frame, cssWidth, cssHeight, at(scene.x, z), at(scene.y, z))
+            const px = box.x + p.x
+            const py = box.y + p.y
+            const nearEdge = (v: number, e: number): boolean => Math.abs(v - e) < 2
+            const inX = px > lo.x - 2 && px < hi.x + 2
+            const inY = py > lo.y - 2 && py < hi.y + 2
+            if (inX && inY && (nearEdge(px, lo.x) || nearEdge(px, hi.x) || nearEdge(py, lo.y) || nearEdge(py, hi.y))) clear = false
+          }
+          if (!clear) continue
+          const expected = zonesInWorldRect(scene, a.x, a.y, b.x, b.y, allowAllButGates)
+          if (!expected.includes(o.zone)) continue
+          plan = { from: { x: fx, y: fy }, to: { x: tx, y: ty }, expected }
+          break
+        }
+        if (plan !== null) break
+      }
+      if (plan === null) throw new Error('no band around a zone outside the window starts on empty space that reaches the overlay')
+      console.log(`fills-viewport ${vp.name}: rubber band from (${plan.from.x}, ${plan.from.y}) to (${plan.to.x}, ${plan.to.y}) selects ${plan.expected.join(',')}`)
+      await page.mouse.move(plan.from.x, plan.from.y)
+      await page.mouse.down()
+      await page.mouse.move((plan.from.x + plan.to.x) / 2, (plan.from.y + plan.to.y) / 2, { steps: 3 })
+      await page.mouse.move(plan.to.x, plan.to.y, { steps: 3 })
+      await page.mouse.up()
+      await expect.poll(() => selectedZoneIds(page)).toEqual(plan.expected)
+      expect(errors).toEqual([])
+    })
+  })
+}
+
+test.describe('the surface follows the window', () => {
+  test.use({ viewport: { width: 1600, height: 900 } })
+
+  test('resizing the viewport moves the window and the surface still covers it and the new viewport', async ({ page }) => {
+    const errors = trackErrors(page)
+    const scene = zoneScene(CANVAS_BASE)
+    await openCanvas(page, `base=${CANVAS_BASE}`)
+    await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
+    const before = await canvasBox(page)
+
+    await page.setViewportSize({ width: 1400, height: 800 })
+    await expect.poll(async () => (await canvasBox(page)).x, { message: 'the window re-centres' }).not.toBe(before.x)
+    await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
+    await page.setViewportSize({ width: 1000, height: 700 })
+    await expect.poll(() => surfaceProblems(page, scene)).toEqual([])
+    expect(errors).toEqual([])
+  })
+})
+
+// The backing store of the surface is bounded (five layers share the memory): a big viewport at a high device pixel ratio gets a lower
+// ratio, a laptop keeps its own. The expected store is the pure surfaceStore of the surface surfaceOf gives, never the app's numbers.
+test.describe('the paint surface backing store', () => {
+  const storesOf = (page: Page): Promise<{ width: number; height: number; cssWidth: number; cssHeight: number }[]> =>
+    page.locator(`${OVERLAY}, ${LAYER}`).evaluateAll(els =>
+      els.map(e => ({ width: (e as HTMLCanvasElement).width, height: (e as HTMLCanvasElement).height, cssWidth: e.getBoundingClientRect().width, cssHeight: e.getBoundingClientRect().height })),
+    )
+
+  test.describe('Full HD at a device pixel ratio of 3', () => {
+    test.use({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 3 })
+
+    test('every canvas is under the surface area limit and its ratio is lowered', async ({ page }) => {
+      const errors = trackErrors(page)
+      const scene = zoneScene(CANVAS_BASE)
+      await openCanvas(page, `base=${CANVAS_BASE}`)
+      const root = await canvasBox(page)
+      const { cssWidth, cssHeight } = canvasFootprint(frameOf(scene), 1920, 1080)
+      const expected = surfaceStore(surfaceOf(root.x, root.y, cssWidth, cssHeight, 1920, 1080), 3)
+      expect(expected.dpr).toBeLessThan(3)
+      await expect
+        .poll(async () => (await storesOf(page)).map(s => [s.width, s.height]))
+        .toEqual(Array.from({ length: 5 }, () => [expected.pixelWidth, expected.pixelHeight]))
+      for (const s of await storesOf(page)) expect(s.width * s.height).toBeLessThanOrEqual(CANVAS_SURFACE_AREA_LIMIT_PX)
+      console.log(`surface store 1920 x 1080 at dpr 3: ${expected.pixelWidth} x ${expected.pixelHeight} px per layer (dpr ${expected.dpr.toFixed(4)}), limit ${CANVAS_SURFACE_AREA_LIMIT_PX}`)
+      expect(errors).toEqual([])
+    })
+  })
+
+  test.describe('a 1280 x 800 laptop at a device pixel ratio of 2', () => {
+    test.use({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 })
+
+    test('keeps its ratio of 2', async ({ page }) => {
+      const errors = trackErrors(page)
+      const scene = zoneScene(CANVAS_BASE)
+      await openCanvas(page, `base=${CANVAS_BASE}`)
+      const root = await canvasBox(page)
+      const { cssWidth, cssHeight } = canvasFootprint(frameOf(scene), 1280, 800)
+      const expected = surfaceStore(surfaceOf(root.x, root.y, cssWidth, cssHeight, 1280, 800), 2)
+      expect(expected).toEqual({ dpr: 2, pixelWidth: 2560, pixelHeight: 1600 })
+      await expect
+        .poll(async () => (await storesOf(page)).map(s => [s.width, s.height]))
+        .toEqual(Array.from({ length: 5 }, () => [2560, 1600]))
+      expect(errors).toEqual([])
+    })
+  })
 })

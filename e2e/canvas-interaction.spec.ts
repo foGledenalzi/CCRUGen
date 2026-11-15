@@ -289,13 +289,26 @@ async function pageOverflow(page: Page): Promise<{ doc: number; body: number }> 
   return page.evaluate(() => ({ doc: document.documentElement.scrollWidth, body: document.body.scrollWidth }))
 }
 
-/** The overlay canvas and the wrapper agree on width and left edge: nothing of the diagram is clipped by the wrapper. */
+/**
+ * Nothing of the diagram is clipped to the window: the overlay canvas is the paint surface, which contains the window (the
+ * wrapper, the logical frame) and covers the whole viewport, so a zoomed diagram fills the screen instead of ending at a box.
+ */
 async function expectDiagramNotClipped(page: Page): Promise<void> {
+  const viewport = page.viewportSize()
+  if (viewport === null) throw new Error('no viewport size')
   const root = await canvasBox(page)
   const overlay = await page.locator(OVERLAY).boundingBox()
   if (overlay === null) throw new Error('the overlay canvas has no bounding box')
-  expect(Math.abs(overlay.width - root.width), 'the diagram is wider than its window: its right edge is clipped').toBeLessThan(0.5)
-  expect(Math.abs(overlay.x - root.x)).toBeLessThan(0.5)
+  // the surface contains the window
+  expect(overlay.x, 'the surface starts at or before the window on the left').toBeLessThanOrEqual(root.x + 0.5)
+  expect(overlay.y, 'the surface starts at or before the window on the top').toBeLessThanOrEqual(root.y + 0.5)
+  expect(overlay.x + overlay.width, 'the surface ends at or after the window on the right').toBeGreaterThanOrEqual(root.x + root.width - 0.5)
+  expect(overlay.y + overlay.height, 'the surface ends at or after the window at the bottom').toBeGreaterThanOrEqual(root.y + root.height - 0.5)
+  // and covers the viewport
+  expect(overlay.x, 'the surface reaches the left edge of the viewport').toBeLessThanOrEqual(0.5)
+  expect(overlay.y, 'the surface reaches the top edge of the viewport').toBeLessThanOrEqual(0.5)
+  expect(overlay.x + overlay.width, 'the surface reaches the right edge of the viewport').toBeGreaterThanOrEqual(viewport.width - 0.5)
+  expect(overlay.y + overlay.height, 'the surface reaches the bottom edge of the viewport').toBeGreaterThanOrEqual(viewport.height - 0.5)
 }
 
 test.describe('375 x 667 phone window with touch', () => {
