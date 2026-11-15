@@ -26,6 +26,8 @@ export interface NamingContextValue {
   readonly interactiveMaxN: number
   /** The text the persistent sr-only carrier of the panel currently says. */
   readonly announcement: string
+  /** New with every announcement, even one that repeats the text, so the carrier changes its DOM and a screen reader says it again (WR-08). */
+  readonly announcementNonce: number
   /** Bumped by an undo or redo that restored a naming; `zone` is the single changed zone to scroll into view, else null. */
   readonly restored: { readonly tick: number; readonly zone: number | null }
   /** Applies a naming action; false when it was refused (previewing, invalid, nothing to change). */

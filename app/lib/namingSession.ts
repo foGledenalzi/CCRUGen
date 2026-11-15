@@ -278,3 +278,23 @@ export function namesPanelState(base: number, s: NamingSession, env: NamingEnv, 
 export function autosaveWanted(s: NamingSession, env: NamingEnv): boolean {
   return s.edited && !s.preview && s.base <= env.interactiveMaxN
 }
+
+// ----- the announcement of the Names live carrier (review WR-08) -----
+
+/**
+ * What the one live carrier of the Names panel says. A screen reader announces a CHANGE of a live region, and setting the text it
+ * already holds changes nothing, so a second identical sentence (two Undos that both restore a naming, a second Export, a second Share
+ * with uncarried edits) would be silent. Every announcement therefore gets a new `nonce`, and the carrier renders the text under a key
+ * made of it: each announcement is a fresh node, so it is a DOM change even when the words are the same.
+ */
+export interface Announcement {
+  readonly text: string
+  readonly nonce: number
+}
+
+export const EMPTY_ANNOUNCEMENT: Announcement = Object.freeze({ text: '', nonce: 0 })
+
+/** The announcement that follows `previous` with `text` (an empty text clears the line, and is a change like any other). */
+export function announced(previous: Announcement, text: string): Announcement {
+  return { text, nonce: previous.nonce + 1 }
+}

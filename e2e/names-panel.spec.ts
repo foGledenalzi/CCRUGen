@@ -16,7 +16,7 @@ import { openFor, openHeadless, openViewer, panel } from './viewer-helpers'
 import { demonRow, demonsDialog, openDemons, searchDemons } from './demons-helpers'
 import {
   NAMING_ENV, closeDemons, defaultResolver, demonEditor, gotoZone, inlineUndo, listMessage, lockButton, lockedOf, lockedZones, nameCell, nameRow,
-  namesBody, namesBox, namesScroll, namesState, namesToggle, openNames, pinFromOverlay, readTable, redoButton, rerollButton, seedField,
+  NAMES_LIVE, namesBody, namesBox, namesScroll, namesState, namesToggle, openNames, pinFromOverlay, readTable, redoButton, rerollButton, seedField,
   settleAnimations, settleFrames, soundField, statusLine, stubRerollRandom, switchBase, undoButton,
 } from './names-helpers'
 
@@ -616,7 +616,7 @@ test('the seed field ignores Enter and Escape while an input method is composing
   const seed = seedField(page)
   const start = await seed.inputValue()
 
-  const keydown = (init: KeyboardEventInit): Promise<void> =>
+  const keydown = (init: { key: string; isComposing?: boolean; keyCode?: number }): Promise<void> =>
     seed.evaluate((el, i) => { el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...i })) }, init)
 
   await seed.fill('composing')
@@ -637,6 +637,45 @@ test('the seed field ignores Enter and Escape while an input method is composing
   await expect(seed).toHaveValue('composing')
   expect(start).not.toBe('composing')
   await expect(seed).toHaveAttribute('dir', 'auto')
+  expect(errors).toEqual([])
+})
+
+// Review WR-08: a screen reader announces a change of a live region, and setting the same text again changes nothing. Two undos in a row
+// both say the same sentence (the restored naming), a second Export says the same sentence again, and so on: each announcement must be
+// a DOM change of its own. The page's one carrier is watched with a MutationObserver that counts how often it changed to the sentence.
+test('the live carrier changes again for an identical announcement: two Undos both say the restored sentence', async ({ page }) => {
+  const errors = trackErrors(page)
+  await openViewer(page)
+  await switchBase(page, BASE)
+  await openNames(page)
+  await soundField(page, 3).fill('gl')
+  await soundField(page, 3).press('Enter')
+  await expect(nameRow(page, 3)).toHaveAttribute('data-locked', 'true')
+  await soundField(page, 5).fill('qq')
+  await soundField(page, 5).press('Enter')
+  await expect(nameRow(page, 5)).toHaveAttribute('data-locked', 'true')
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+
+  await page.evaluate(() => {
+    const el = document.querySelector('[data-names-live]')
+    if (el === null) throw new Error('the live carrier is not mounted')
+    const seen: string[] = []
+    ;(window as unknown as { __liveChanges: string[] }).__liveChanges = seen
+    new MutationObserver(() => { seen.push(el.textContent ?? '') }).observe(el, { childList: true, characterData: true, subtree: true })
+  })
+  const changesTo = (text: string): Promise<number> =>
+    page.evaluate(t => (window as unknown as { __liveChanges: string[] }).__liveChanges.filter(x => x === t).length, text)
+
+  await undoButton(page).click()
+  await expect(nameRow(page, 5)).toHaveAttribute('data-locked', 'false')
+  await expect(page.locator(NAMES_LIVE)).toHaveText(NAMES_COPY.restored)
+  expect(await changesTo(NAMES_COPY.restored)).toBe(1)
+
+  await undoButton(page).click()
+  await expect(nameRow(page, 3)).toHaveAttribute('data-locked', 'false')
+  await expect(page.locator(NAMES_LIVE)).toHaveText(NAMES_COPY.restored)
+  // the same sentence again is a second change of the carrier, which is what a screen reader reads
+  await expect.poll(() => changesTo(NAMES_COPY.restored)).toBe(2)
   expect(errors).toEqual([])
 })
 

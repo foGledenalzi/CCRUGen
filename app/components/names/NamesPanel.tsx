@@ -302,8 +302,9 @@ export function NamesPanel({ open, bodyMax, pinnedMesh, pinnedZone }: NamesPanel
   return (
     <div data-post-baseline="" data-names-panel="" data-names-state={naming.state} data-names-base={naming.base}>
       {/* Persistent sr-only live carrier (Pitfall 13): it exists before its text changes, also while the panel is collapsed. */}
+      {/* The text is keyed by the announcement's nonce, so a repeated sentence is a new node: a DOM change a screen reader says again (WR-08). */}
       <div role="status" aria-live="polite" className="sr-only" data-names-live="">
-        {naming.announcement}
+        {naming.announcement !== '' && <span key={naming.announcementNonce}>{naming.announcement}</span>}
       </div>
       {/* Keyed by the displayed base: a base switch starts the body afresh (scroll at the top, no status, no draft). */}
       {open && <NamesBody key={naming.base} nc={naming} open={open} bodyMax={bodyMax} pinnedMesh={pinnedMesh} pinnedZone={pinnedZone} />}

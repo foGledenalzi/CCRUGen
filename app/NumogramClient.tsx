@@ -36,9 +36,9 @@ import {
   computeDesktopStack, DESKTOP_PANEL_LEFT_X, DESKTOP_PANEL_RIGHT_X, INFO_PANEL_WIDTH, INITIAL_INFO_X, NAMES_PANEL_WIDTH, namesBodyMax, PANEL_WIDTH,
 } from './lib/panelStack'
 import {
-  applyNamingAction, autosaveWanted, hasUncarriedEdits, keepPreview, linkFormOf, namesPanelState, restoreNaming, revertPreview,
-  sessionForBase, snapshotNaming,
-  type NamingAction, type NamingEnv, type NamingSession,
+  EMPTY_ANNOUNCEMENT, announced, applyNamingAction, autosaveWanted, hasUncarriedEdits, keepPreview, linkFormOf, namesPanelState,
+  restoreNaming, revertPreview, sessionForBase, snapshotNaming,
+  type Announcement, type NamingAction, type NamingEnv, type NamingSession,
 } from './lib/namingSession'
 import { browserStorage, readSlot, writeSlot } from './lib/namingStorage'
 import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
@@ -232,7 +232,7 @@ export default function NumogramPage() {
   // Whether the Names panel is open (collapsed on first load at every width; a link preview opens it once, below). Not persisted.
   const [namesOpen, setNamesOpen] = useState(false)
   const [namesSaved, setNamesSaved] = useState<'none' | 'saved' | 'failed'>('none')
-  const [namesAnnouncement, setNamesAnnouncement] = useState('')
+  const [namesAnnouncement, setNamesAnnouncement] = useState<Announcement>(EMPTY_ANNOUNCEMENT)
   const [namesRestored, setNamesRestored] = useState<{ tick: number; zone: number | null }>({ tick: 0, zone: null })
   // Every naming state change goes through here: the ref moves first (synchronously), then the state follows.
   const commitSession = useCallback((next: NamingSession) => {
@@ -455,7 +455,7 @@ export default function NumogramPage() {
       const zone = singleChangedZone(sessionRef.current.working, snapshot.naming)
       commitSession(restoreNaming(sessionRef.current, snapshot.naming, snapshot.namingRev))
       setNamesRestored(r => ({ tick: r.tick + 1, zone }))
-      setNamesAnnouncement(NAMES_COPY.restored)
+      setNamesAnnouncement(a => announced(a, NAMES_COPY.restored))
     }
     if (layout !== snapshot.layout) {
       if (layout === 'pairGraph' || snapshot.layout === 'pairGraph') jumpToTarget()
@@ -501,7 +501,7 @@ export default function NumogramPage() {
     flushPendingSave()
     commitSession(sessionForBase(nextBase, readSlot(browserStorage(), nextBase, NAMING_ENV), null, NAMING_ENV, nextRev))
     setNamesSaved('none')
-    setNamesAnnouncement('')
+    setNamesAnnouncement(a => announced(a, ''))
     historyCurrentRef.current = null
     setUndoStack([])
     setRedoStack([])
@@ -1277,7 +1277,7 @@ export default function NumogramPage() {
   }, [nextRev, commitSession])
   const keepNaming = useCallback(() => commitSession(keepPreview(sessionRef.current, nextRev)), [nextRev, commitSession])
   const revertNaming = useCallback(() => commitSession(revertPreview(sessionRef.current)), [commitSession])
-  const announceNaming = useCallback((text: string) => setNamesAnnouncement(text), [])
+  const announceNaming = useCallback((text: string) => setNamesAnnouncement(a => announced(a, text)), [])
   // The panel's inline `Undo this change` goes through the app's own undo, but only while the newest history entry IS a naming change
   // (review WR-05): every other change (a layer, a selection, a layout...) is an entry too, and undoing one of those from a button
   // that names a naming change would leave the names as they were. It reports whether it undid anything, so the panel can drop its
@@ -1308,7 +1308,8 @@ export default function NumogramPage() {
     saved: namingSession.preview ? 'preview' : base > INTERACTIVE_MAX_N ? 'seed-only' : namesSaved,
     uncarried: namingUncarried,
     interactiveMaxN: NAMING_ENV.interactiveMaxN,
-    announcement: namesAnnouncement,
+    announcement: namesAnnouncement.text,
+    announcementNonce: namesAnnouncement.nonce,
     restored: namesRestored,
     apply: applyNaming,
     keep: keepNaming,

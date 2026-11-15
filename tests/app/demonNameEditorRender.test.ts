@@ -88,6 +88,7 @@ function namingValue(naming: Naming, preset: NamingPreset | null, over: Partial<
     uncarried: false,
     interactiveMaxN: INTERACTIVE_MAX_N,
     announcement: '',
+    announcementNonce: 0,
     restored: { tick: 0, zone: null },
     apply: () => false,
     keep: noop,

@@ -30,6 +30,8 @@ import { CCRU_NAMING_PRESET } from '../../app/presets/base10/naming'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
 import { sameNamesLink, type NamesLink } from '../../app/lib/namesLink'
 import {
+  EMPTY_ANNOUNCEMENT,
+  announced,
   applyNamingAction,
   autosaveWanted,
   defaultNamingFor,
@@ -701,6 +703,46 @@ describe('namesPanelState and autosaveWanted', () => {
     expect(autosaveWanted(p, env)).toBe(false)
     expect(autosaveWanted(keepPreview(p, counter()), env)).toBe(true)
     expect(autosaveWanted(revertPreview(p), env)).toBe(false)
+  })
+})
+
+// Review WR-08: every announcement is a new value, so the live carrier (which renders it under a key of its nonce) changes its DOM even
+// when the sentence is the one it already said, and a screen reader reads it again.
+describe('announced', () => {
+  it('starts empty', () => {
+    expect(EMPTY_ANNOUNCEMENT).toEqual({ text: '', nonce: 0 })
+  })
+
+  it('carries the text and a nonce that is new every time', () => {
+    const first = announced(EMPTY_ANNOUNCEMENT, 'Restored.')
+    expect(first.text).toBe('Restored.')
+    expect(first.nonce).toBeGreaterThan(EMPTY_ANNOUNCEMENT.nonce)
+  })
+
+  it('gives the same sentence a different nonce the second time, which is what makes it a DOM change again', () => {
+    const first = announced(EMPTY_ANNOUNCEMENT, 'Restored.')
+    const second = announced(first, 'Restored.')
+    expect(second.text).toBe(first.text)
+    expect(second.nonce).not.toBe(first.nonce)
+    expect(second).not.toBe(first)
+  })
+
+  it('a cleared line is an announcement too, with its own nonce, and never reuses an earlier one', () => {
+    const seen = new Set<number>()
+    let a = EMPTY_ANNOUNCEMENT
+    for (const text of ['a', 'a', '', '', 'b', 'a']) {
+      a = announced(a, text)
+      expect(seen.has(a.nonce)).toBe(false)
+      seen.add(a.nonce)
+      expect(a.text).toBe(text)
+    }
+  })
+
+  it('does not change its input', () => {
+    const before = announced(EMPTY_ANNOUNCEMENT, 'x')
+    const snapshot = { ...before }
+    announced(before, 'y')
+    expect(before).toEqual(snapshot)
   })
 })
 

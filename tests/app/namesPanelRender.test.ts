@@ -165,6 +165,7 @@ function valueFor(naming: Naming, over: Partial<NamingContextValue> = {}): Namin
     uncarried: false,
     interactiveMaxN: INTERACTIVE_MAX_N,
     announcement: '',
+    announcementNonce: 0,
     restored: { tick: 0, zone: null },
     apply: () => false,
     keep: noop,
@@ -293,6 +294,15 @@ describe('NamesPanel: provider and carrier', () => {
     expect(markup).not.toContain('<table')
     // the prerendered HTML stays small while collapsed (research Pitfall 13)
     expect(markup.length).toBeLessThan(600)
+  })
+
+  // Review WR-08: the sentence sits in its own node (keyed by the announcement's nonce in the component), and an empty line has no node.
+  it('the carrier holds the sentence in one child node, and nothing at all when nothing is said', () => {
+    const said = render(valueFor(namingOf(OTHER_BASE), { announcement: NAMES_COPY.restored, announcementNonce: 3 }), { open: false })
+    const live = need(said, 'data-names-live')
+    expect(live.inner).toBe(`<span>${NAMES_COPY.restored}</span>`)
+    const quiet = need(render(valueFor(namingOf(OTHER_BASE)), { open: false }), 'data-names-live')
+    expect(quiet.inner).toBe('')
   })
 
   it('open: the carrier is the same element and the body adds one scroller with the documented inline style', () => {
