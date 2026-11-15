@@ -2732,7 +2732,7 @@ describe('paint surface: origin and surface fields', () => {
 
   it('overlay: a highlighted zone left of the window is drawn when the surface reaches it, and not when only the window is painted', () => {
     const fx = zoneFx(202)
-    const t = centerOn(fx, fx.scene.x[0] as number, fx.scene.y[0] as number, 40)
+    const t = centerOn(fx, fx.scene.x[0] as number, fx.scene.y[0] as number, 5)
     const rDraw = Math.max(onScreenRadius(t, fx.frame, fx.w, fx.h), NODE_MIN_RADIUS_PX)
     // a zone whose centre is left of the window, past the cull room, but inside the margin
     let target = -1

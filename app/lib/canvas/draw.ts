@@ -16,6 +16,10 @@
 // "world value x strokeScale", multiplied by the on-screen scale and floored at 1 CSS px; text sizes are world sizes
 // times the scale. Level of detail goes through labelsShown(on-screen node radius) only, so the threshold stays data.
 // No blur-based glow exists on Canvas: a highlighted element gets an underlay stroke instead. A NaN curve is skipped.
+//
+// The paint surface: the canvases are sized to the viewport united with the window (the optional originX, originY,
+// surfaceWidth, surfaceHeight of DrawState), so a zoomed diagram fills the viewport. Geometry stays in window coordinates;
+// the surface moves only the dpr transform's translation, the clear and the culling bounds.
 
 import { parseRouteCurve } from '../../../engine/index'
 import type { CanvasScene } from '../../../engine/index'
@@ -79,8 +83,20 @@ export interface DrawState {
    */
   readonly zoneSounds?: readonly string[] | null
   readonly transform: CanvasTransform
+  /** The window: the logical frame of the view transform (fit, zoom, clamp, pick), in CSS px. */
   readonly cssWidth: number
   readonly cssHeight: number
+  /**
+   * The paint surface the canvas is sized to (the viewport united with the window, surfaceOf in viewTransform.ts): where the
+   * window's top-left sits inside it and its size, in CSS px, so a zoomed diagram fills the viewport instead of being clipped
+   * at the window's edge. Geometry stays in window coordinates; the surface only moves the dpr transform's translation, the
+   * clear and the culling bounds. Absent fields default to the window itself (0, 0, cssWidth, cssHeight), and a surface
+   * that is not finite or not positive falls back to it, so existing callers draw exactly what they did.
+   */
+  readonly originX?: number
+  readonly originY?: number
+  readonly surfaceWidth?: number
+  readonly surfaceHeight?: number
   readonly dpr: number
   readonly layers: ReadonlySet<Layer>
   readonly labelVisibility: LabelVisibility
@@ -172,7 +188,7 @@ const MARKER_VIEW_H = 6
 const MARKER_BACK = 7 // the marker tip sits 7 view units from its base
 const MARKER_HALF = 2.5 // and its base is 2.5 view units either side
 
-const EDGE_CULL_PAD_PX = 12 // room for line width, dots and arrowheads when culling edges against the window
+const EDGE_CULL_PAD_PX = 12 // room for line width, dots and arrowheads when culling edges against the paint surface
 const TWO_PI = Math.PI * 2
 
 /** The data-identity palette carried from the SVG tier (UI-SPEC Color), byte-identical hexes. */
@@ -291,14 +307,38 @@ interface Geo {
   readonly oy: number
   readonly k: number // nodeRadius / 21, world units (the SVG tier's scale for dots, labels and triangles)
   readonly ss: number // layout strokeScale
-  readonly w: number
-  readonly h: number
+  // The culling bounds: the paint surface in window coordinates, so a node or an edge on the surface but outside the window
+  // is still painted (geometry itself stays in window coordinates).
+  readonly minX: number
+  readonly maxX: number
+  readonly minY: number
+  readonly maxY: number
   readonly rPx: number // on-screen node radius (pill half height for the pair graph): the level-of-detail input
   readonly lod: boolean // label level of detail, through labelsShown only
 }
 
 function frameOf(scene: CanvasScene): CanvasFrame {
   return { width: scene.width, height: scene.height, nodeRadius: scene.kind === 'pairs' ? scene.pillHeight / 2 : scene.nodeRadius }
+}
+
+/** The paint surface of a state: where the window's top-left sits inside it (origin) and its size, in CSS px. */
+interface SurfaceBox {
+  readonly originX: number
+  readonly originY: number
+  readonly width: number
+  readonly height: number
+}
+
+/** The state's paint surface; absent fields default to the window itself, and a surface that is not finite or not positive is the window. */
+function surfaceBoxOf(st: DrawState): SurfaceBox {
+  const originX = st.originX ?? 0
+  const originY = st.originY ?? 0
+  const width = st.surfaceWidth ?? st.cssWidth
+  const height = st.surfaceHeight ?? st.cssHeight
+  if (Number.isFinite(originX) && Number.isFinite(originY) && Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+    return { originX, originY, width, height }
+  }
+  return { originX: 0, originY: 0, width: st.cssWidth, height: st.cssHeight }
 }
 
 function geoOf(st: DrawState): Geo {
@@ -308,6 +348,7 @@ function geoOf(st: DrawState): Geo {
   const o = toScreen(st.transform, frame, st.cssWidth, st.cssHeight, 0, 0)
   const rPx = onScreenRadius(st.transform, frame, st.cssWidth, st.cssHeight)
   const ok = Number.isFinite(s) && s > 0 && Number.isFinite(o.x) && Number.isFinite(o.y) && Number.isFinite(rPx)
+  const surface = surfaceBoxOf(st)
   return {
     ok,
     s,
@@ -315,8 +356,11 @@ function geoOf(st: DrawState): Geo {
     oy: o.y,
     k: scene.nodeRadius / 21,
     ss: scene.strokeScale,
-    w: st.cssWidth,
-    h: st.cssHeight,
+    // the surface in window coordinates (0 - x keeps a +0 where the origin is 0)
+    minX: 0 - surface.originX,
+    maxX: surface.width - surface.originX,
+    minY: 0 - surface.originY,
+    maxY: surface.height - surface.originY,
     rPx,
     lod: ok && labelsShown(rPx),
   }
@@ -337,22 +381,26 @@ function minState3(states: Uint8Array | null, a: number, b: number, c: number): 
   return Math.min(zoneState(states, a), zoneState(states, b), zoneState(states, c))
 }
 
-/** Starts a layer: save, the dpr transform, a transparent clear of the window (never a background fill). */
+/**
+ * Starts a layer: save, the dpr transform whose translation puts the window's top-left at (originX, originY) of the paint
+ * surface (window coordinates stay the drawing coordinates), a transparent clear of the whole surface (never a background fill).
+ */
 function beginLayer(env: DrawEnv, st: DrawState): void {
   const { ctx } = env
   ctx.save()
   const dpr = Number.isFinite(st.dpr) && st.dpr > 0 ? st.dpr : 1
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.clearRect(0, 0, st.cssWidth, st.cssHeight)
+  const surface = surfaceBoxOf(st)
+  ctx.setTransform(dpr, 0, 0, dpr, surface.originX * dpr, surface.originY * dpr)
+  ctx.clearRect(0 - surface.originX, 0 - surface.originY, surface.width, surface.height)
 }
 
-/** True when the world box misses the window (a NaN box counts as missing: an edge without geometry draws nothing). */
+/** True when the world box misses the paint surface (a NaN box counts as missing: an edge without geometry draws nothing). */
 function boxOutside(geo: Geo, minX: number, minY: number, maxX: number, maxY: number, pad: number): boolean {
   const x0 = geo.ox + minX * geo.s
   const x1 = geo.ox + maxX * geo.s
   const y0 = geo.oy + minY * geo.s
   const y1 = geo.oy + maxY * geo.s
-  return !(x1 >= -pad && x0 <= geo.w + pad && y1 >= -pad && y0 <= geo.h + pad)
+  return !(x1 >= geo.minX - pad && x0 <= geo.maxX + pad && y1 >= geo.minY - pad && y0 <= geo.maxY + pad)
 }
 
 function edgeOutside(geo: Geo, scene: CanvasScene, edge: number): boolean {
@@ -362,7 +410,7 @@ function edgeOutside(geo: Geo, scene: CanvasScene, edge: number): boolean {
 }
 
 function discOutside(geo: Geo, cx: number, cy: number, radius: number): boolean {
-  return !(cx + radius >= 0 && cx - radius <= geo.w && cy + radius >= 0 && cy - radius <= geo.h)
+  return !(cx + radius >= geo.minX && cx - radius <= geo.maxX && cy + radius >= geo.minY && cy - radius <= geo.maxY)
 }
 
 interface Bucket {
@@ -755,7 +803,7 @@ function drawRegionCaptions(env: DrawEnv, st: DrawState, geo: Geo): void {
  * The node layer: region captions, then the zone discs (or the pair pills). Below the label threshold a node is a disc
  * at max(R_px, 1.5) with the idle fill and stroke and nothing else; at or above it the SVG node is complete: syzygy
  * triangle, bold zone label (and the xenotation when its toggle is on) and the region dot. Muted zones never draw,
- * isolate-dimmed ones draw at 0.2, zones outside the window are culled.
+ * isolate-dimmed ones draw at 0.2, zones outside the paint surface (the viewport united with the window) are culled.
  */
 export function drawNodeLayer(env: DrawEnv, st: DrawState, index: SceneIndex): void {
   const { ctx } = env

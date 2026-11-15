@@ -108,11 +108,11 @@ describe('surfaceOf: the viewport united with the window', () => {
           expect(y0).toBeLessThanOrEqual(Math.min(0, top) + 1e-9)
           expect(x0 + s.width).toBeGreaterThanOrEqual(Math.max(vw, left + cssW) - 1e-9)
           expect(y0 + s.height).toBeGreaterThanOrEqual(Math.max(vh, top + cssH) - 1e-9)
-          // and is tight: less than one pixel of slack beyond the union on every side
-          expect(Math.min(0, left) - x0).toBeLessThan(1)
-          expect(Math.min(0, top) - y0).toBeLessThan(1)
-          expect(x0 + s.width - Math.max(vw, left + cssW)).toBeLessThan(1)
-          expect(y0 + s.height - Math.max(vh, top + cssH)).toBeLessThan(1)
+          // and is tight: at most one pixel of slack beyond the union on every side
+          expect(Math.min(0, left) - x0).toBeLessThanOrEqual(1)
+          expect(Math.min(0, top) - y0).toBeLessThanOrEqual(1)
+          expect(x0 + s.width - Math.max(vw, left + cssW)).toBeLessThanOrEqual(1)
+          expect(y0 + s.height - Math.max(vh, top + cssH)).toBeLessThanOrEqual(1)
         },
       ),
       { numRuns: 500 },

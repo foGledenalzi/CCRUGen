@@ -4,8 +4,9 @@
 // w x h CSS px. The frame is letterboxed by fitScale = min(w / width, h / height) and the user's zoom is RELATIVE to that
 // fit, so s = fitScale x zoom CSS px per world unit and a tall frame (the ladder is 19 x 4096 at n = 4000) never
 // overflows the window at zoom 1. The zoom ceiling is derived from the label threshold in the tier table (never a literal)
-// so a node can always be zoomed to twice the threshold, and the backing store covers the window only, bounded by the
-// table's area limit (T-06-02). Every function returns a finite, in-range result for any input: a non-finite transform
+// so a node can always be zoomed to twice the threshold. The window is the logical frame of every function here; the
+// pixels are painted on a surface (the viewport united with the window, surfaceOf) whose backing store is bounded by an
+// area limit (surfaceStore, T-06-02). Every function returns a finite, in-range result for any input: a non-finite transform
 // falls back to the identity, a non-positive or non-finite zoom factor is a no-op (the demonMatrix conventions).
 
 import { CANVAS_AREA_LIMIT_PX, LABEL_MIN_RADIUS_PX } from '../tierBounds'
@@ -251,10 +252,56 @@ export function canvasFootprint(
 }
 
 /**
+ * The most pixels one layer's backing store may hold when it is painted on the paint surface (the viewport united with the
+ * window, see surfaceOf): 2^23. The Canvas tier keeps five layers, so the worst case is 5 x 32 MiB of bitmap. Full HD at a
+ * device pixel ratio of 2 is 3840 x 2160 = 8.29 M px and keeps its ratio; 4K at a ratio of 2 (33 M px) is lowered to about
+ * 1. Tighter than the table's per-window canvasAreaLimitPx, so it is the limit that applies to a surface.
+ */
+export const CANVAS_SURFACE_AREA_LIMIT_PX = 8_388_608
+
+/** The pixels the Canvas layers are painted on, in CSS px: where the window's top-left sits inside it, and its size. */
+export interface CanvasSurface {
+  readonly originX: number
+  readonly originY: number
+  readonly width: number
+  readonly height: number
+}
+
+/**
+ * The paint surface of a window at page position (left, top) of cssWidth x cssHeight CSS px in a viewport of viewportW x
+ * viewportH: the union of the viewport [0, vw] x [0, vh] and the window, so a zoomed diagram fills the viewport instead of
+ * being cut off at the window's edge. The window stays the logical frame of every transform function (fit, zoom, clamp,
+ * pan, pick); only the pixels grow. The surface starts at x0 = min(0, floor(left)) and y0 = min(0, floor(top)) (a whole
+ * pixel, so the layer canvases land on the pixel grid) and ends at the ceiling of the larger far edge, so its size is whole
+ * CSS px. originX = left - x0 and originY = top - y0 locate the window's top-left inside it (fractional when the window's
+ * page position is). A non-finite position or viewport gives the window itself (origin 0, the window's own size): a layout
+ * that cannot be measured paints what it always did (T-06-02). A negative viewport counts as 0.
+ */
+export function surfaceOf(
+  left: number,
+  top: number,
+  cssWidth: number,
+  cssHeight: number,
+  viewportW: number,
+  viewportH: number,
+): CanvasSurface {
+  const w = Number.isFinite(cssWidth) && cssWidth > 0 ? cssWidth : 0
+  const h = Number.isFinite(cssHeight) && cssHeight > 0 ? cssHeight : 0
+  if (!Number.isFinite(left) || !Number.isFinite(top) || !Number.isFinite(viewportW) || !Number.isFinite(viewportH)) {
+    return { originX: 0, originY: 0, width: w, height: h }
+  }
+  const x0 = Math.min(0, Math.floor(left))
+  const y0 = Math.min(0, Math.floor(top))
+  const x1 = Math.max(Math.max(0, viewportW), Math.ceil(left + w))
+  const y1 = Math.max(Math.max(0, viewportH), Math.ceil(top + h))
+  return { originX: left - x0, originY: top - y0, width: x1 - x0, height: y1 - y0 }
+}
+
+/**
  * The backing store for a cssW x cssH window: the device pixel ratio (a non-finite or non-positive one counts as 1)
  * capped at 3 and reduced when the area would exceed the limit (the table's canvasAreaLimitPx unless one is injected),
- * so pixelWidth x pixelHeight never exceeds it. The store covers the window only, never the zoomed frame. An invalid
- * size gives a 0 x 0 store.
+ * so pixelWidth x pixelHeight never exceeds it. The store covers the size it is given (the Canvas tier gives it the paint
+ * surface, through surfaceStore), never the zoomed frame. An invalid size gives a 0 x 0 store.
  */
 export function backingStore(
   cssW: number,
@@ -269,4 +316,16 @@ export function backingStore(
   let dpr = Math.min(DPR_MAX, Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1)
   if (cssW * cssH * dpr * dpr > limit) dpr = Math.sqrt(limit / (cssW * cssH))
   return { dpr, pixelWidth: Math.floor(cssW * dpr), pixelHeight: Math.floor(cssH * dpr) }
+}
+
+/**
+ * The backing store of a paint surface: backingStore for the surface's size, bounded by the tighter of the table's limit and
+ * CANVAS_SURFACE_AREA_LIMIT_PX (five layers share the memory), so the device pixel ratio drops on a very large viewport
+ * rather than the bitmaps growing without bound. The window's own footprint is untouched; this is only for the surface.
+ */
+export function surfaceStore(
+  surface: CanvasSurface,
+  devicePixelRatio: number,
+): { dpr: number; pixelWidth: number; pixelHeight: number } {
+  return backingStore(surface.width, surface.height, devicePixelRatio, Math.min(CANVAS_AREA_LIMIT_PX, CANVAS_SURFACE_AREA_LIMIT_PX))
 }
