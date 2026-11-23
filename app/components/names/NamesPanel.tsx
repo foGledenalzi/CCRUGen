@@ -49,7 +49,7 @@ import {
   unknownKeysSuffix,
   type ImportCopyContext,
 } from '../../lib/namingCopy'
-import { NAMES_PREVIEW_ROWS, NAMES_SCROLL_INSET_PX, REROLL_SEED_LENGTH } from '../../lib/namingLimits'
+import { NAMES_EXPORT_REVOKE_DELAY_MS, NAMES_PREVIEW_ROWS, NAMES_SCROLL_INSET_PX, REROLL_SEED_LENGTH } from '../../lib/namingLimits'
 import type { NamesPanelState } from '../../lib/namingSession'
 import { CyberButton } from '../ui/CyberButton'
 import { CyberCheckbox } from '../ui/CyberCheckbox'
@@ -156,7 +156,7 @@ export interface DownloadEnv {
   defer(fn: () => void): void
 }
 
-/** The real environment: an object URL, a hidden anchor appended to the body, and a zero-delay timer. Every member reads the browser lazily. */
+/** The real environment: an object URL, a hidden anchor appended to the body, and a timer for the revoke. Every member reads the browser lazily. */
 export function browserDownloadEnv(): DownloadEnv {
   return {
     makeUrl: blob => URL.createObjectURL(blob),
@@ -168,8 +168,9 @@ export function browserDownloadEnv(): DownloadEnv {
       document.body.appendChild(anchor)
       return anchor
     },
+    // seconds, not a tick (IN-20): a browser that starts the download after the click handler returns would otherwise find the URL revoked
     defer: fn => {
-      window.setTimeout(fn, 0)
+      window.setTimeout(fn, NAMES_EXPORT_REVOKE_DELAY_MS)
     },
   }
 }

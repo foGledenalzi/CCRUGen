@@ -13,6 +13,12 @@ export const NAMING_COLLISION_SCAN_MAX_N = 1024
 /** [default] Quiet time (ms) after the last committed edit before the per-base browser slot is written. */
 export const NAMING_AUTOSAVE_DEBOUNCE_MS = 400
 
+/**
+ * [default] Time (ms) an export's object URL stays valid after the click. Some browsers start the download after the click handler has
+ * returned, and a revoked URL cancels it (the file can be megabytes), so the URL is revoked seconds later, not on the next tick.
+ */
+export const NAMES_EXPORT_REVOKE_DELAY_MS = 10_000
+
 /** [default] Key prefix of the per-base browser storage slot; the base number follows it. The slot holds the export JSON. */
 export const NAMING_STORAGE_PREFIX = 'ccrug.naming.v1.'
 

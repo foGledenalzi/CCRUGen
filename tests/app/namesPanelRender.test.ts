@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 // The zone list (plan 19) is windowed by @tanstack/react-virtual, which renders no rows in a server render (it has no scroll element to
 // measure). The real library is kept, with one injected starting rectangle, so a render shows the first window the real windowing
@@ -74,6 +74,7 @@ import {
   NamesHeaderTag,
   NamesPanel,
   NamesStatusSlot,
+  browserDownloadEnv,
   downloadJson,
   exportFileName,
   exportNaming,
@@ -123,6 +124,7 @@ import {
 import {
   COLLISION_JUMPS_SHOWN,
   COLLISION_LINES_STEP,
+  NAMES_EXPORT_REVOKE_DELAY_MS,
   NAMES_PREVIEW_ROWS,
   NAMES_SCROLL_INSET_PX,
   REROLL_SEED_LENGTH,
@@ -1270,6 +1272,27 @@ function fakeDownload(): {
   }
   return { env, log, blobs, anchors, runDeferred: () => deferred.splice(0).forEach(fn => fn()) }
 }
+
+// Review IN-20: the object URL of a download was revoked on a zero-delay timer, but some browsers start the download after the click
+// handler has returned, and a revoked URL cancels it (the file can be large). It is revoked a few seconds later.
+describe('browserDownloadEnv', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('defers the revoke by the documented delay, not by zero', () => {
+    const timers: Array<{ fn: () => void; ms: number }> = []
+    vi.stubGlobal('window', { setTimeout: (fn: () => void, ms: number) => timers.push({ fn, ms }) })
+    const ran: string[] = []
+    browserDownloadEnv().defer(() => ran.push('revoke'))
+    expect(timers).toHaveLength(1)
+    expect(timers[0]?.ms).toBe(NAMES_EXPORT_REVOKE_DELAY_MS)
+    expect(NAMES_EXPORT_REVOKE_DELAY_MS).toBe(10_000)
+    expect(ran).toEqual([]) // not run by the call itself
+    timers[0]?.fn()
+    expect(ran).toEqual(['revoke'])
+  })
+})
 
 describe('downloadJson and exportNaming', () => {
   it('downloads one JSON blob through a temporary anchor and revokes the URL after the click', () => {
