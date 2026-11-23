@@ -5,7 +5,7 @@
 // NOTICE section 1).
 import { parseNumeral, toNfc, validateSound, type TextProblem } from '../../engine/index'
 import { zoneIssue } from './namingCopy'
-import { ZONE_PAGE_STEP } from './namingLimits'
+import { SOUND_FIELD_MAX_INPUT, ZONE_PAGE_STEP } from './namingLimits'
 
 /** [default] Characters a Go to zone text may have: longer text is no zone (and the field's own limit is the same number). */
 export const GOTO_MAX_LENGTH = 40
@@ -21,11 +21,22 @@ export const ZONE_FOCUS_RETRY_FRAMES = 12
 const PASTE_SEPARATORS = /[,;\t\n\r ]+/
 
 /**
- * The tokens of a pasted text: split on commas, semicolons, tabs, newlines and spaces, empty tokens dropped. One token is the same as
- * typing, so the caller treats only two or more as a bulk paste. A linear pass (the pattern has no nested repeat).
+ * The most characters of a pasted text a bulk paste into a list of `base` zones can use: one longest sound field and one separator for
+ * every row (review IN-26). A paste fills at most base - zone rows, so the rest of a huge clipboard text is never looked at.
  */
-export function splitPaste(text: string): string[] {
-  return text.split(PASTE_SEPARATORS).filter(token => token.length > 0)
+export function pasteTextLimit(base: number): number {
+  return base * (SOUND_FIELD_MAX_INPUT + 1)
+}
+
+/**
+ * The tokens of a pasted text: split on commas, semicolons, tabs, newlines and spaces, empty tokens dropped. One token is the same as
+ * typing, so the caller treats only two or more as a bulk paste. A linear pass (the pattern has no nested repeat). With `maxChars` the
+ * text is cut to that many characters BEFORE it is split (IN-26: a 100 MB clipboard would otherwise become millions of tokens before the
+ * plan looks at the first few); a cut can only shorten the last token, and the first bad token of the paste is never after the cut.
+ */
+export function splitPaste(text: string, maxChars?: number): string[] {
+  const bounded = maxChars === undefined ? text : text.slice(0, maxChars)
+  return bounded.split(PASTE_SEPARATORS).filter(token => token.length > 0)
 }
 
 /** A bulk paste ready to apply, or the first token that cannot be a sound. */

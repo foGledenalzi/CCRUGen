@@ -21,6 +21,7 @@ import {
   listMessageOf,
   nextRowIndex,
   pinScrollTarget,
+  pasteTextLimit,
   planPaste,
   refuseRow,
   resolveGoTo,
@@ -353,7 +354,8 @@ function ZoneListBody({ nc, sounds, scrollEl, scrollMargin, pinnedZone }: BodyPr
 
   function onPaste(e: React.ClipboardEvent<HTMLInputElement>, zone: number): void {
     if (!editable) return
-    const tokens = splitPaste(e.clipboardData.getData('text'))
+    // cut to what the rows can use before it is split (IN-26)
+    const tokens = splitPaste(e.clipboardData.getData('text'), pasteTextLimit(base))
     // one token is the same as typing: the browser pastes it into the field (cut at the field's own limit) and the commit validates it
     if (tokens.length < 2) return
     e.preventDefault()

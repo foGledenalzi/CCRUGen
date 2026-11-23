@@ -21,6 +21,7 @@ import {
   resolveGoTo,
   restoredScrollTarget,
   settleRow,
+  pasteTextLimit,
   settleRows,
   soundCommitOf,
   splitPaste,
@@ -54,6 +55,41 @@ describe('splitPaste', () => {
 
   it('does not split on a dot, a hyphen, an underscore or a letter (those stay inside a token for validation to refuse)', () => {
     expect(splitPaste('a.b-c_d')).toEqual(['a.b-c_d'])
+  })
+})
+
+// Review IN-26: a bulk paste fills at most base - zone rows, but the whole clipboard text used to be split first, so a 100 MB paste became
+// millions of tokens before the plan looked at the first few. The text is cut to what the rows can use before it is split.
+describe('pasteTextLimit and the bounded splitPaste', () => {
+  it('is a base-sized number of characters: room for every row to hold a longest sound field and its separator', () => {
+    expect(pasteTextLimit(28)).toBe(28 * (SOUND_FIELD_MAX_INPUT + 1))
+    expect(pasteTextLimit(1000)).toBe(1000 * (SOUND_FIELD_MAX_INPUT + 1))
+  })
+
+  it('cuts a huge text before it is split: 20 million characters give at most limit tokens, not ten million', () => {
+    const huge = 'a '.repeat(10_000_000)
+    const tokens = splitPaste(huge, pasteTextLimit(28))
+    expect(tokens.length).toBeLessThanOrEqual(pasteTextLimit(28))
+    expect(tokens.length).toBeGreaterThan(28) // still more tokens than rows, so the plan reports the unused ones
+    expect(tokens.every(t => t === 'a')).toBe(true)
+  })
+
+  it('leaves every realistic paste whole: the same tokens, and so the same plan, with or without the bound', () => {
+    const text = Array.from({ length: 30 }, (_, i) => 'q' + String.fromCharCode(97 + (i % 26))).join(', ')
+    expect(splitPaste(text, pasteTextLimit(28))).toEqual(splitPaste(text))
+    expect(planPaste(splitPaste(text, pasteTextLimit(28)), 20, 28)).toEqual(planPaste(splitPaste(text), 20, 28))
+  })
+
+  it('does not change the first bad token: a long word at the cut is still refused', () => {
+    const limit = pasteTextLimit(28)
+    const text = 'ok ' + 'x'.repeat(limit * 3) // one over-long token that runs past the cut
+    const plan = planPaste(splitPaste(text, limit), 0, 28)
+    expect(plan.ok).toBe(false)
+    if (!plan.ok) expect(plan.zone).toBe(1)
+  })
+
+  it('without a limit it is the old behaviour', () => {
+    expect(splitPaste('a b c')).toEqual(['a', 'b', 'c'])
   })
 })
 
