@@ -2,16 +2,16 @@
 phase: 07-naming-builder
 fixed_at: 2026-11-23
 review_path: .planning/phases/07-naming-builder/07-REVIEW.md
-findings_in_scope: 22
-fixed: 22
+findings_in_scope: 20
+fixed: 20
 skipped: 0
-deferred_to_todo: 15
+deferred_to_todo: 17
 status: all_fixed
 ---
 
 # Phase 7: Code Review Fix Report
 
-All ten warnings and twelve of the 27 info items were fixed, each as its own commit (`fix(07-review): ...`) with a regression test. The other fifteen info
+All ten warnings and ten of the 27 info items were fixed (22 commits, since WR-02 and WR-03 took extra commits), each with a regression test. The other seventeen info
 items are design notes, pre-existing code, a signed-off file or refactors; they are recorded in `.planning/todos/pending/010-phase7-review-info-followups.md`.
 
 The fixer agent was stopped before it could write this report and before its last gate runs; the gate below was run by the orchestrator on the final

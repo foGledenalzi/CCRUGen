@@ -63,10 +63,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Naming
 
-- [ ] **NAM-01**: The user can edit a per-zone sound table and can generate one for any base from a seed, with per-zone locks
-- [ ] **NAM-02**: Demon names derive from net-span sounds (high-then-low by default, low-then-high as an option), with sparse per-demon overrides
-- [ ] **NAM-03**: Naming data imports and exports as versioned JSON; the URL carries only a preset or seed; name collisions are reported to the user
-- [ ] **NAM-04**: Base 10 ships a CCRU preset (the 10 zone phonemes plus the 45 canonical names)
+- [x] **NAM-01**: The user can edit a per-zone sound table and can generate one for any base from a seed, with per-zone locks
+- [x] **NAM-02**: Demon names derive from net-span sounds (high-then-low by default, low-then-high as an option), with sparse per-demon overrides
+- [x] **NAM-03**: Naming data imports and exports as versioned JSON; the URL carries only a preset or seed; name collisions are reported to the user
+- [x] **NAM-04**: Base 10 ships a CCRU preset (the 10 zone phonemes plus the 45 canonical names)
 
 ### Export
 
@@ -151,10 +151,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEM-05 | Phase 5 | Complete (05-01, 05-06, 05-09, 05-10) |
 | REN-02 | Phase 6 | Complete |
 | REN-03 | Phase 6 | Complete (06-01..06-15; the message and freeze-proof degradation are delivered, the headless export it names lands in Phase 8, EXP-01..EXP-04) |
-| NAM-01 | Phase 7 | Pending |
-| NAM-02 | Phase 7 | Pending |
-| NAM-03 | Phase 7 | Pending |
-| NAM-04 | Phase 7 | Pending |
+| NAM-01 | Phase 7 | Complete |
+| NAM-02 | Phase 7 | Complete |
+| NAM-03 | Phase 7 | Complete |
+| NAM-04 | Phase 7 | Complete |
 | EXP-01 | Phase 8 | Pending |
 | EXP-02 | Phase 8 | Pending |
 | EXP-03 | Phase 8 | Pending |

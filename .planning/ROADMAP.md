@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Base Picker and Generator UI** - Interactive SVG viewer for any even base with URL state, labels, region legend, accessibility and text view (completed 2026-09-29)
 - [x] **Phase 5: Demons Layer** - Facets, virtualized browser, focus chords, triangular matrix and canonical base-10 names for all C(n,2) demons (completed 2026-09-30)
 - [x] **Phase 6: Canvas Tier and Worker** - Canvas rendering for large bases, worker-offloaded computation and graceful degradation past the measured ceiling (completed 2026-10-19)
-- [ ] **Phase 7: Naming Builder** - Per-zone sound table, seeded generator, derived demon names, JSON import/export and the CCRU base-10 preset
+- [x] **Phase 7: Naming Builder** - Per-zone sound table, seeded generator, derived demon names, JSON import/export and the CCRU base-10 preset (completed 2026-11-23)
 - [ ] **Phase 8: Export, CLI and Hardening** - SVG/PNG/JSON export, headless CLI, performance and accessibility checks, cross-platform CI and glossary
 
 ## Phase Details
@@ -233,7 +233,7 @@ Plans:
 - [x] 07-22-PLAN.md - E2E: editing, locks, generation, derivation, renaming, scale, undo; sounds label mode on both tiers (wave 10)
 - [x] 07-23-PLAN.md - E2E: import/export, autosave per base, storage failure, collisions and jumps, CCRU preset, shared-link previews (wave 10)
 - [x] 07-24-PLAN.md - E2E: Names geometry at every viewport, mobile and planetary clearance, layout re-runs; page weight via --reason (wave 10)
-- [ ] 07-25-PLAN.md - Phase gate: full verify, validation sign-off, todo 008 closed, manual screen-reader/stack/narrow-window checkpoint (wave 11)
+- [x] 07-25-PLAN.md - Phase gate: full verify, validation sign-off, todo 008 closed, manual screen-reader/stack/narrow-window checkpoint (wave 11)
 **UI hint**: yes
 **Research**: YES, run `/gsd-research-phase` for the naming generator: euphony rules, phoneme-bank sizing, prefix-free or separator-aware inventory, and generator quality (little prior art).
 **Notes**: PRNG is `sfc32-cyrb128@1` with frozen test vectors; the seeded generator uses Feistel plus cycle-walking as a proposal to validate (fallback seeded Fisher-Yates). Zone-sound distinctness does not imply demon-name distinctness (concatenation is not injective), hence the collision report. Override keys are decimal `"a:b"`; verify against `app/data/demons.ts`. The CCRU preset uses the 45 names as overrides, not derivations. Validator is hand-written, rejects wrong base and caps size; text handling is NFC-normalized and grapheme-safe.
@@ -280,5 +280,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 (Phases 6 
 | 4. Base Picker and Generator UI | 16/16 | Complete    | 2026-09-29 |
 | 5. Demons Layer | 12/12 | Complete    | 2026-09-30 |
 | 6. Canvas Tier and Worker | 15/15 | Complete    | 2026-10-19 |
-| 7. Naming Builder | 24/25 | In Progress | - |
+| 7. Naming Builder | 25/25 | Complete    | 2026-11-23 |
 | 8. Export, CLI and Hardening | 0/TBD | Not started | - |

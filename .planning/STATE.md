@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: 07-25 Task 1 complete (full gate green, validation signed off, todo 008 closed); Task 2 (the manual checkpoint) pending the user
-last_updated: "2026-11-11T18:20:00.000Z"
-last_activity: 2026-11-11 -- 07-25 Task 1 (npm run verify exit 0 in 11 min 23 s: 118 unit files / 3,916 tests in two timezones, 412 e2e passed incl. the 60 DOM goldens and the behaviour baseline, every frozen oracle byte-identical to 0f25f1b; 07-VALIDATION.md green for the automated rows; todo 008 moved to completed); Task 2 waits for the user
+status: ready_to_plan
+stopped_at: Phase 7 complete and verified; Phase 8 (Export, CLI and Hardening) is next
+last_updated: "2026-11-23T22:30:00.000Z"
+last_activity: 2026-11-23 -- Phase 7 (Naming Builder) complete: 25 plans, deep code review (10 warnings and 10 info items fixed), verification 15/15 with human checks outstanding, npm run verify exit 0
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 99
-  completed_plans: 98
-  percent: 75
+  completed_plans: 99
+  percent: 88
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-25)
 
 **Core value:** For any even base n, derive the numogram correctly (base-10 must reproduce the canonical numogram exactly) and draw it legibly.
-**Current focus:** Phase 7 — Naming Builder
+**Current focus:** Phase 8 — Export, CLI and Hardening (not started)
 
 ## Current Position
 
-Phase: 7 (Naming Builder) — EXECUTING
-Plan: 24 of 25 complete (07-01 to 07-24); 07-25 Task 1 (the full gate, validation sign-off, todo 008 close-out) is done and committed, Task 2 (the blocking manual checkpoint) is pending the user, so 07-25 is not counted as complete
-Status: Executing Phase 7 (waiting for the user's sign-off at 07-25 Task 2)
-Last activity: 2026-11-11 -- 07-25 Task 1 (npm run verify exit 0 in 11 min 23 s: 118 unit files / 3,916 tests in two timezones, 412 e2e passed incl. the 60 DOM goldens and the behaviour baseline, every frozen oracle byte-identical to 0f25f1b; 07-VALIDATION.md green for the automated rows; todo 008 moved to completed); Task 2 waits for the user
+Phase: 8 (Export, CLI and Hardening) — NOT STARTED
+Plan: Not started (Phase 7 closed with 25 of 25 plans)
+Status: Ready to discuss Phase 8
+Last activity: 2026-11-23 -- Phase 7 closed (see the frontmatter line)
 
-Progress: [███████░░░] 75%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 98
+- Total plans completed: 99
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -50,6 +50,7 @@ Progress: [███████░░░] 75%
 | 04 | 16 | - | - |
 | 05 | 12 | - | - |
 | 6 | 15 | - | - |
+| 7 | 25 | - | - |
 
 **Recent Trend:**
 
@@ -260,12 +261,16 @@ Recent decisions affecting current work:
 - [Phase 7 P24] The Names panel's placement is proved by geometry in both stacks and the /numogram/ page-weight baseline is raised once through the ledger (NAM-01 e2e-proven for the panel's layout; it stays Pending until the 07-25 gate, D-01, T-07-16d, T-07-25; no app, engine or frozen file changed, so `test:swap` was not needed): e2e/panel-stack.spec.ts gained 53 tests (62 in all, the 9 of 07-07 unchanged, one `test.skip`): no two of the ten panel boxes intersect at 821x768, 900x800, 991x800, 1024x768, 1280x800, 1280x900 and 1440x900 for bases 10, 28, 64 and 202, plus Canvas bases 1000 and the ceiling at two sizes, in the defaults, Names open, Text open and 8-selected-zones states, with Names at `max(selectionX, 548)` clamped to `vw - 252`, 240 wide, directly under Selection (top = Selection bottom + 18), clear of the zoom toolbar and the shortcuts button, both still clickable; the body room equals `namesBodyMax` and the clamp literal, and the open box ends at or above `vh - 96`; Selection at its 52vh cap (base 64, 40 selected zones, five windows down to 1024x600) leaves the room at the clamp, the body scrolling in its one scroller and the toolbar and shortcuts button on top where the box reaches them; at 375x667 and 768x1024 with touch Names is first at (8, 64), the ten panels form one column 6 px apart, nothing overflows sideways, the wrapper does not scroll, every control in the panel is at least 24x24 and the base dropdown covers Names; the planetary controls stay clear at 992 to 1440 wide; Names drags with no jump on mouse down, the exact mouse delta and no move when Selection above it changes; 80 header presses keep every z at most 69 with Names on top and the Demons overlay (80) and base dropdown (120) above it; the todo 008 picker trigger is also proved with Names open. Contract numbers are literals in the spec and the pure model (namesX, namesBodyMax) is checked against the measured page too. Four full runs of the extended spec (the first on both projects, the ny project skipping by design) were 62/62; canvas-interaction, layers-zoom, canvas-tier, row-click-regression, region-legend, names-smoke and names-session all passed (71 tests); 18 app mutants were killed (one, the toolbar's z-index, only after the clickability check was strengthened to hit-test the overlap). No overlap, clipping or covered control was found, so no app code changed; three contract observations are in deferred-items.md (the visible body at the 80 px minimum is 68 px because the scroller is 12 px shorter than the room, the UI-SPEC's worst-case figures are conservative because Selection at its cap is 48 + 0.52 vh tall, and the shared CyberPanel header toggle is 10x10). Page weight: `check:weight` failed only on /numogram/ JS; after a clean build of unmodified source and with the prerendered HTML free of the Names body, `node scripts/page-weight.mjs update --reason "Phase 7 naming builder ..."` (history entry 10) raised the baseline: jsBytes 808,836 to 890,987 (+10.2%), jsGzip 245,874 to 273,143 (+11.1%), html +1,364, shared CSS +924, `/` JS unchanged, domNodes unchanged (6,405); +22.7% raw and +25.0% gzip over the pre-Phase-6 baseline. The raise is for the user to review at the 07-25 checkpoint; lazy-loading (todo 007) stays pending.
 - [Phase 7 P25, Task 1 only] The phase gate ran green and the validation map is signed off for the automated rows, but the plan is NOT complete: Task 2 is the blocking manual checkpoint (screen reader at ?base=28, the desktop stack by eye at 1280x800, narrow windows 375x667 and 768x1024, and the review of 30 [default] decisions) and waits for the user. `MSYS_NO_PATHCONV=1 npm run verify` exit 0 in 11 min 23 s (typecheck clean, 118 files and 3,916 tests in UTC and America/New_York, sub-path e2e 12, page weight OK, e2e 412 passed and 340 skipped by design with the 60 DOM goldens and 5 behaviour stages, clean-tree and static-out OK); `git status` of e2e/__golden__, e2e/__behaviour__, engine/test/fixtures and engine/test/layout.digest.test.ts is empty, their diff against the pre-Phase-7 commit 0f25f1b is empty, package.json and package-lock.json are unchanged, `new Worker(` still appears once, the 07-06 signed-off banks and vectors are unchanged. 07-VALIDATION.md: 50 rows green, 07-25-T2 pending, Wave 0 and the six sign-off boxes ticked (the 60 s feedback box with the panel-stack 144 s and behaviour 124 s exceptions written beside it), nyquist_compliant and wave_0_complete true, `status` still draft (set to approved only after the user's reply). Todo 008 moved to .planning/todos/completed/ with its resolution. The 07-25 box in ROADMAP.md stays unticked and completed_plans stays 98, percent 75, completed_phases 6; REQUIREMENTS.md untouched. Resume at .planning/phases/07-naming-builder/07-25-PLAN.md Task 2 (the checkpoint text and the [default] list are in 07-25-SUMMARY.md)
 - [Phase 7 canvas-surface fix, between 07-24 and 07-25; user-reported, not a numbered plan] A zoomed Canvas diagram now fills the viewport instead of being hard-clipped to the 580 px window (the SVG tier already did). The window stays the LOGICAL frame of every transform (fit, zoom, clamp, pan, pick, keyboard ensureVisible, fitZones, gestureMapping, data-zoom/tx/ty, the identity view) and `[data-render-tier="canvas"]` keeps the window's rectangle (e2e uses it as the coordinate frame); only the PAINT SURFACE grew: the five canvases are `surfaceOf(left, top, w, h, vw, vh)` = the viewport united with the window (whole-pixel start, whole-CSS-px size, fractional origin kept), in a stack at `left/top: -origin` with `transform-origin` on the window's top-left so the existing gesture mapping is exact, the overlay is the whole surface (hover, click, wheel, drag, rubber band work wherever zoomed content shows) and the root's `overflow: hidden` is gone (the page shell, h-screen overflow-hidden, clips at the viewport). draw.ts gained optional `originX, originY, surfaceWidth, surfaceHeight` on DrawState (absent = the window, call for call the old drawing, `0 - origin` keeps +0) that move the dpr transform's translation, the clear and the culling bounds (geometry stays in window coordinates; level of detail unchanged). The window's page position is measured after layout in `CanvasDiagram` (state only when the hundredth-rounded position changed, once per commit; the first raster waits one re-render so nothing is painted twice at the window size); the backing store is `surfaceStore` = `backingStore` bounded by `CANVAS_SURFACE_AREA_LIMIT_PX` = 2^23 px per layer (five layers: at most about 160 MB; 1920 x 1080 at a device pixel ratio of 2 = 8.29 M px keeps its ratio, 3840 x 2160 at 2 drops to 1.006, Full HD at 3 to 2.011). Decision beyond the brief: `calloutPosition` takes optional bounds (default the window, so every old caller is unchanged) and the chip flips and clamps at the surface edge, because a pointer left of or above the window otherwise got its chip pinned to the window corner (an e2e on the chip showed it). Known and accepted: Chromium snaps the live gesture pivot to a whole pixel when the window's page position is fractional (a 900 px viewport gives 169.5), so the CSS-stretched bitmap can be off by at most 0.5 x (k - 1) px until the commit re-rasters. Tests: tests/app/canvasSurface.test.ts (20), 24 new draw tests covering every painter, 3 render and 3 callout tests, 15 new e2e in canvas-tier.spec.ts (1600 x 900 and 375 x 667: node discs at the engine's positions on the node canvas outside the window, hover names, the chip beside the pointer, click selects, wheel (live CSS mapping and committed zoom about the pointer), middle-button pan, rubber band, resize, a layout shift, no wasted first raster, and the store at Full HD with ratio 3 and at 1280 x 800 with ratio 2); `expectDiagramNotClipped` now asserts the surface contains the window and covers the viewport and `nodeAlpha` reads through the window's offset. 16 mutants all killed (surface = window, origin ignored in the dpr transform, culling against the window, stack at 0,0, pivot ignoring the origin, root overflow hidden, wheel ignoring the surface, store limit removed, re-measure removed, raster not waiting for the measure, chip clamped at the window, five pure-function mutants: surfaceOf far side, floor to ceil, non-finite guard, clear covering the window only, callout bounds ignored). `MSYS_NO_PATHCONV=1 npm run test:swap` exit 0 (65 passed, 5 skipped with the 60 DOM goldens and the behaviour baseline; 119 files and 3,966 unit tests, also in America/New_York), typecheck and check-repo clean, `check:weight` OK (/numogram/ jsBytes 890,987 to 893,081 and jsGzip 273,143 to 273,787, within the 5 percent tolerance, baseline not edited); no frozen oracle, engine, perf, SVG-tier or base-10 preset file touched.
+- [Phase 7 close, 2026-11-23] Phase 7 complete. The user's manual review (2026-11-15, base 666) reported two defects, both fixed and re-verified in the browser pane: the zoomed Canvas diagram was hard-clipped to the 580 x 648 window (now a viewport-sized paint surface behind the same window, commits e7071e8..f10c305; 5 layers at most 2^23 px each) and the header crowded its brand and pushed the buttons off a phone screen (1425bd4; the base readout is 13 px). Deep code review (two parallel reviewers, 0 critical, 10 warning, 27 info): all warnings and 10 info items fixed with regression tests (07-REVIEW-FIX.md), the other 17 in todo 010. An undo-history bug older than Phase 7 (an edit right after Undo/Redo was swallowed, Redo not cleared) was fixed in 18c8f57 and 4bf1fce with the frozen after-undo/after-redo stages unchanged. Page weight: /numogram/ is +25% gzip over the pre-Phase-6 baseline (ledger entry 10); todo 007 (lazy-load Canvas, worker and Names code) stays pending as the way to recover it. Verification: 07-VERIFICATION.md 15/15, status human_needed (screen-reader pass, short-window Names minimum, header against the layout switcher, Sounds mode by eye, IME input, the pending [default] decisions). npm run verify exit 0 on the closing tree (119 unit files / 4,098 tests in two timezones, e2e 440 passed, 0 failed, 368 skipped by design).
 
 ### Pending Todos
 
 - 002 (P3): Phase 1 code review findings deferred, not fixed in Phase 1
 - 004 (P3): Phase 2 code review findings deferred, not fixed in Phase 2 (IN-02, IN-03, IN-05, IN-07; MIG-02 closed in Phase 4 plan 04-16)
 - 007 (P2): lazy-load the Canvas tier and the worker fallback core to recover the Phase 6 page-weight raise (the user decides at the 06-15 checkpoint whether to keep the raise or schedule the split)
+- 009 (P3): three low-severity Phase 6 review follow-ups (alphabet validation cost, stale picker commit, worker watchdog)
+- 010 (P3): the 17 Phase 7 review info items left unfixed (hardening notes, duplicated helpers, the NumogramClient naming hook extraction, header against the layout switcher)
+- 006 (P2): base 10's drawn shape should match the CCRU numogram (touches the frozen oracle: needs the user's sign-off first)
 
 ### Blockers/Concerns
 
@@ -294,9 +299,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-11T18:20:00.000Z
-Stopped at: 07-25 Task 1 complete; Task 2 (manual checkpoint) pending the user
-Resume file: .planning/phases/07-naming-builder/07-25-PLAN.md (Task 2, the blocking checkpoint; its text and the [default] decisions are in 07-25-SUMMARY.md)
+Last session: 2026-11-23T22:30:00.000Z
+Stopped at: Phase 7 complete; next is /gsd-discuss-phase 8
+Resume file: None (Phase 8 has no context yet)
 
 **Planned Phase:** 6 (Canvas Tier and Worker) — 15 plans — 2026-10-06T05:05:08.880Z
 **Planned Phase:** 2 (Engine Core and Base-10 Migration) — 13 plans — 2026-09-26T15:32:00Z

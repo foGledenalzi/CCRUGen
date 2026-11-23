@@ -9,7 +9,7 @@ theme: hardening
 
 ## Goal
 
-The Phase 7 review found 0 critical, 10 warning and 27 info items. All ten warnings and twelve of the info items were fixed (see `07-REVIEW-FIX.md`). The items below were left on purpose: design notes, pre-existing code, a signed-off file, or refactors that belong in their own change.
+The Phase 7 review found 0 critical, 10 warning and 27 info items. All ten warnings and ten of the info items were fixed (IN-01, 04, 05, 16, 17, 19, 20, 21, 22, 26) (see `07-REVIEW-FIX.md`). The items below were left on purpose: design notes, pre-existing code, a signed-off file, or refactors that belong in their own change.
 
 ## Items (ids from 07-REVIEW.md)
 

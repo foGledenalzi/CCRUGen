@@ -1,7 +1,7 @@
 ---
 phase: 7
 slug: naming-builder
-status: draft
+status: approved
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-10-20
@@ -92,7 +92,7 @@ Sampling bases: 2, 4, 10, 12, 28, 64, 202, 666, 1024, 4000, 4002 (first seed-onl
 | 07-24-T1 | 24 | 10 | NAM-01 | T-07-16d | No-overlap matrix (bases 10, 28, 64, Canvas 202), toolbar and planetary clearance, mobile geometry | e2e | `PW e2e/panel-stack.spec.ts e2e/canvas-interaction.spec.ts e2e/layers-zoom.spec.ts e2e/canvas-tier.spec.ts e2e/row-click-regression.spec.ts e2e/region-legend.spec.ts` | exists after 07-07 (extended) | ✅ green |
 | 07-24-T2 | 24 | 10 | NAM-01 | T-07-25 | Budget raised only via `update --reason`; domNodes unchanged | budget | `npm run build && node scripts/page-weight.mjs check` | exists | ✅ green |
 | 07-25-T1 | 25 | 11 | NAM-01..04 | T-07-13g, T-07-12d | Full gate with every frozen oracle untouched; todo 008 closed | full gate | `MSYS_NO_PATHCONV=1 npm run verify` | exists | ✅ green |
-| 07-25-T2 | 25 | 11 | NAM-01..04 | T-07-15b | Manual-only checks signed off (blocking checkpoint) | manual | `grep -c "Manual-Only Verifications" .planning/phases/07-naming-builder/07-VALIDATION.md` | exists | ⬜ pending |
+| 07-25-T2 | 25 | 11 | NAM-01..04 | T-07-15b | Manual-only checks signed off (blocking checkpoint) | manual | `grep -c "Manual-Only Verifications" .planning/phases/07-naming-builder/07-VALIDATION.md` | exists | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -133,9 +133,9 @@ Test files that do not exist yet; each is written test-first by the task that ne
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Style banks contact-sheet sign-off (harsh, soft, syllabic at bases 10, 28, 64, 666, 4000, raw and smoothed) | NAM-01 (D-04) | Whether generated sounds look and feel right is a taste judgement; the structure and capacity are measured, the look is not | Plan 07-06 Task 2: open `.review/naming-sheet.html`, judge the three styles, approve or request bank changes; only after approval are sha256 digests of the sound tables pinned (never update a digest to make a test pass). **Outcome: approved 2026-11-09 (plan 07-06, two rounds: the harsh bank revised once to drop the eight verbatim CCRU zone sounds, then approved; soft and syllabic approved as shown).** |
-| Screen-reader pass on the Names panel (zone list, lock toggles, generation and import announcements, collision jump into the inline editor) | NAM-01..NAM-03 (UI-SPEC accessibility) | Live-region behaviour differs per screen reader and cannot be automated here | Plan 07-25 Task 2 check 1: with NVDA or VoiceOver at base 28, Tab through the panel, edit a sound, lock a zone, reroll, import a file, jump from a collision; each action should be announced once |
-| The desktop panel stack by eye at larger bases | Stack (todo 008) | The e2e geometry hooks assert boxes, not how it feels | Plan 07-25 Task 2 check 2: at 1280 x 800 open `/numogram/`, type 28 in the picker, collapse and expand panels, drag one, open Names: no panel covers another, the zoom toolbar and shortcuts button stay clear |
-| Narrow windows (375 x 667 and 768 x 1024) with the Names panel first in the mobile stack | NAM-01 (UI-SPEC) | Reachability and the look of the stack are judged by eye | Plan 07-25 Task 2 check 3: open `?base=28` at both widths: Names is first and reachable with default panels, no panel overlaps another or the zoom toolbar, no horizontal scroll |
+| Screen-reader pass on the Names panel (zone list, lock toggles, generation and import announcements, collision jump into the inline editor) | NAM-01..NAM-03 (UI-SPEC accessibility) | Live-region behaviour differs per screen reader and cannot be automated here | Plan 07-25 Task 2 check 1: with NVDA or VoiceOver at base 28, Tab through the panel, edit a sound, lock a zone, reroll, import a file, jump from a collision; each action should be announced once **Outcome: not reported by the user (2026-11-23: the user directed the phase to close and the push); carried to `07-VERIFICATION.md` human_verification item 1. After this check was written the live carrier was changed to re-announce identical texts (review WR-08).** |
+| The desktop panel stack by eye at larger bases | Stack (todo 008) | The e2e geometry hooks assert boxes, not how it feels | Plan 07-25 Task 2 check 2: at 1280 x 800 open `/numogram/`, type 28 in the picker, collapse and expand panels, drag one, open Names: no panel covers another, the zoom toolbar and shortcuts button stay clear **Outcome: the user reviewed the viewer by eye on 2026-11-15 (base 666, a 2000 px wide window) and reported two defects, a hard box clipping the zoomed Canvas diagram and a crowded header with clashing type; both fixed (commits 1425bd4 and e7071e8 to f10c305) and re-verified in the browser pane. No panel overlap was reported. A look at the 68 px Names minimum in a short window remains in `07-VERIFICATION.md`.** |
+| Narrow windows (375 x 667 and 768 x 1024) with the Names panel first in the mobile stack | NAM-01 (UI-SPEC) | Reachability and the look of the stack are judged by eye | Plan 07-25 Task 2 check 3: open `?base=28` at both widths: Names is first and reachable with default panels, no panel overlaps another or the zoom toolbar, no horizontal scroll **Outcome: while diagnosing the user's header report the orchestrator found the Undo, Redo, Share and Filter buttons pushed off the right edge of a 375 px window and fixed it (1425bd4), plus the Base dropdown clamp (review WR-09); the 375 x 667 and 768 x 1024 geometry is proven by `e2e/panel-stack.spec.ts`. An eye check on a real phone width remains in `07-VERIFICATION.md`.** |
 
 ---
 
@@ -148,4 +148,4 @@ Test files that do not exist yet; each is written test-first by the task that ne
 - [x] Feedback latency < 60s per touched spec (measured in the 07-25 gate, chromium-utc project: every touched spec runs in under 60 s except `e2e/panel-stack.spec.ts`, 62 geometry cases that take 144 s together (1 to 5 s each, so a filtered run with `-g` is seconds), and the frozen `e2e/behaviour.spec.ts` at 124 s, which is Phase 1 and was not touched)
 - [x] `nyquist_compliant` is set to true in the frontmatter
 
-**Approval:** pending (the automated rows are green as of 2026-11-11; the frontmatter status becomes approved only after the user's sign-off of the manual-only checks in plan 07-25 Task 2)
+**Approval:** approved 2026-11-23 by the user's direction to push and begin the next phase after the two reported defects were fixed (the user did not answer the screen-reader check or the [default] decisions individually); the outstanding human checks are carried in `07-VERIFICATION.md`.
