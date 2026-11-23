@@ -50,6 +50,7 @@ import {
 } from '../../app/lib/namingSession'
 
 const SESSION_SOURCE = fileURLToPath(new URL('../../app/lib/namingSession.ts', import.meta.url))
+const CLIENT_SOURCE = fileURLToPath(new URL('../../app/NumogramClient.tsx', import.meta.url))
 
 const env: NamingEnv = { interactiveMaxN: INTERACTIVE_MAX_N, preset: CCRU_NAMING_PRESET }
 const CCRU_BASE = CCRU_NAMING_PRESET.base
@@ -743,6 +744,21 @@ describe('announced', () => {
     const snapshot = { ...before }
     announced(before, 'y')
     expect(before).toEqual(snapshot)
+  })
+})
+
+// Review IN-16: the viewer's session ref (the latest committed session, read by every naming action) has exactly one writer, commitSession,
+// which moves it synchronously before the state follows. A second write during render would take it BACKWARDS whenever a render that does
+// not yet include a pending lower-priority update runs (an async import, a blur timer, then a discrete click), and an action in that
+// window would overwrite the import. A render cannot be run here, so the source is what is pinned.
+describe('the viewer session ref has one writer', () => {
+  const client = readFileSync(CLIENT_SOURCE, 'utf8')
+
+  it('is assigned once, inside commitSession, and never during render', () => {
+    const writes = client.split('\n').filter(line => /\bsessionRef\.current\s*=[^=]/.test(line))
+    expect(writes).toHaveLength(1)
+    const commit = client.slice(client.indexOf('const commitSession = useCallback('))
+    expect(commit.slice(0, commit.indexOf('}, [])'))).toMatch(/sessionRef\.current = next\s+setNamingSession\(next\)/)
   })
 })
 

@@ -225,10 +225,10 @@ export default function NumogramPage() {
   const revRef = useRef(0)
   const nextRev = useCallback(() => ++revRef.current, [])
   const [namingSession, setNamingSession] = useState<NamingSession>(() => sessionForBase(10, null, null, NAMING_ENV, () => ++revRef.current))
-  // The latest session, updated synchronously by commitSession, so an action reads the session it is applied to and never a flag
-  // set inside a state updater (React may run an updater lazily or twice).
+  // The latest session, updated synchronously by commitSession and by nothing else, so an action reads the session it is applied to and
+  // never a flag set inside a state updater (React may run an updater lazily or twice). It is NOT re-assigned during render (IN-16): a
+  // render that does not yet include a pending lower-priority update would take the ref backwards until that render lands.
   const sessionRef = useRef(namingSession)
-  sessionRef.current = namingSession
   // Whether the Names panel is open (collapsed on first load at every width; a link preview opens it once, below). Not persisted.
   const [namesOpen, setNamesOpen] = useState(false)
   const [namesSaved, setNamesSaved] = useState<'none' | 'saved' | 'failed'>('none')
