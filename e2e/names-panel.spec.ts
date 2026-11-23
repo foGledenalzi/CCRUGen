@@ -1169,3 +1169,41 @@ test('a rename in the Demons overlay does not scroll the list back to the curren
   expect(await list.evaluate(el => el.scrollTop)).toBeGreaterThan(1000)
   expect(errors).toEqual([])
 })
+
+// ── 16 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Review IN-19: a refused seed draft stays in the field (dirty) so the visitor can fix it. When the seed then changes from outside while
+// the field has no focus (an Undo from the header, a Keep, Back), the field kept showing the old invalid text with its red line while the
+// real seed was another one.
+test('an invalid seed draft is dropped when the seed changes from outside and the field has no focus (base 28)', async ({ page }) => {
+  const errors = trackErrors(page)
+  await stubRerollRandom(page)
+  const s0 = defaultNaming(BASE)
+  await openViewer(page)
+  await switchBase(page, BASE)
+  await openNames(page)
+  await rerollButton(page).click()
+  await expect(seedField(page)).not.toHaveValue(s0.seed)
+  const rerolled = await seedField(page).inputValue()
+
+  // an empty seed is refused: the draft stays with its message
+  const seedError = namesBox(page).locator('[data-names-seed-error]')
+  await seedField(page).fill('')
+  await seedField(page).press('Enter')
+  await expect(seedError).toHaveCount(1)
+  await expect(seedField(page)).toHaveValue('')
+
+  // focus leaves the field (the header Undo button takes it) and the Undo changes the seed from outside
+  await undoButton(page).click()
+  await expect(seedField(page)).toHaveValue(s0.seed)
+  await expect(seedError).toHaveCount(0)
+  await expect(seedField(page)).not.toHaveAttribute('aria-invalid', /.*/)
+
+  // a draft the visitor is typing is never taken away: with focus in the field a seed change from outside leaves it alone
+  await redoButton(page).click()
+  await expect(seedField(page)).toHaveValue(rerolled)
+  await seedField(page).fill('typing')
+  await expect(seedField(page)).toBeFocused()
+  await expect(seedField(page)).toHaveValue('typing')
+  expect(errors).toEqual([])
+})

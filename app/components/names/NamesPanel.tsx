@@ -93,6 +93,16 @@ export function seedCommitOf(draft: string, current: string): SeedCommit {
   return seed === current ? { kind: 'unchanged' } : { kind: 'commit', seed }
 }
 
+/**
+ * Whether a seed that changed from outside the field (an Undo, a Keep, Back, a style change that regenerated) takes the field over:
+ * when the seed really changed and the field has no focus. A refused draft stays dirty so the visitor can fix it, which also kept it on
+ * screen with its red line after an outside change made it beside the point (review IN-19); a draft being typed (focus in the field)
+ * is never taken away.
+ */
+export function seedFieldFollowsChange(previousSeed: string, seed: string, fieldHasFocus: boolean): boolean {
+  return previousSeed !== seed && !fieldHasFocus
+}
+
 /** What a key in the seed field means: commit (Enter), revert (Escape), or nothing. */
 export type SeedKeyIntent = 'commit' | 'revert' | null
 
@@ -483,6 +493,16 @@ function NamesBody({ nc, open, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps
   useEffect(() => {
     if (!dirty) setDraft(n.seed)
   }, [n.seed, dirty])
+  // ...and a refused draft (dirty, with its red line) that an outside change has made beside the point goes too, unless it is being typed
+  const lastSeedRef = useRef(n.seed)
+  useEffect(() => {
+    const previous = lastSeedRef.current
+    lastSeedRef.current = n.seed
+    if (!seedFieldFollowsChange(previous, n.seed, document.activeElement === seedRef.current)) return
+    setDirty(false)
+    setSeedProblem(false)
+    setDraft(n.seed)
+  }, [n.seed])
   useEffect(
     () => () => {
       if (blurTimer.current !== null) window.clearTimeout(blurTimer.current)

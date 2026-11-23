@@ -84,6 +84,7 @@ import {
   readImportFile,
   rerollSeed,
   seedCommitOf,
+  seedFieldFollowsChange,
   seedKeyIntent,
   statusFate,
   type DownloadEnv,
@@ -853,6 +854,22 @@ describe('seedCommitOf', () => {
     expect(seedCommitOf('x'.repeat(SEED_MAX_LENGTH + 1), 'old')).toEqual({ kind: 'invalid' })
     expect(seedCommitOf('a\u0000b', 'old')).toEqual({ kind: 'invalid' })
     expect(seedCommitOf('x'.repeat(SEED_MAX_LENGTH), 'old').kind).toBe('commit')
+  })
+})
+
+// Review IN-19: a refused seed draft stays in the field (dirty), so an outside change of the seed must drop it unless it is being typed.
+describe('seedFieldFollowsChange', () => {
+  it('follows a real change of the seed when the field has no focus', () => {
+    expect(seedFieldFollowsChange('old', 'new', false)).toBe(true)
+  })
+
+  it('never takes a draft away while the field has focus', () => {
+    expect(seedFieldFollowsChange('old', 'new', true)).toBe(false)
+  })
+
+  it('does nothing when the seed did not change, with or without focus', () => {
+    expect(seedFieldFollowsChange('same', 'same', false)).toBe(false)
+    expect(seedFieldFollowsChange('same', 'same', true)).toBe(false)
   })
 })
 
