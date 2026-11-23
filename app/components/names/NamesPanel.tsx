@@ -176,11 +176,26 @@ export function downloadJson(text: string, fileName: string, env: DownloadEnv = 
 }
 
 /**
- * Exports the naming (pretty-printed, the form people read) under its fixed file name and returns the status sentence. Above the ceiling
- * the naming has no table, so the file carries the seed, style, join order and smoothing flag only and the sentence says so.
+ * The text of an export: pretty-printed (the form people read), except when that text would be over what the importer accepts, when it is
+ * the compact form (review IN-05). The pretty form adds about six characters per override, so a naming with 244,650 renamed demons is 9.4
+ * MB pretty and 8.0 MB compact against the 8 MiB cap: the app could not read back the backup it had just written. The size is counted in
+ * UTF-8 bytes, as the file chooser reports it. (A naming whose compact text is still over the cap cannot be read back either; that is
+ * the cap, not the format.)
+ */
+export function exportText(naming: Naming, maxBytes: number = NAMING_IMPORT_MAX_BYTES): string {
+  const pretty = serializeNaming(naming, { pretty: true })
+  // a UTF-16 unit is at most three UTF-8 bytes, so a text of at most a third of the cap needs no encoding to be known to fit
+  if (pretty.length * 3 <= maxBytes) return pretty
+  return new TextEncoder().encode(pretty).length > maxBytes ? serializeNaming(naming) : pretty
+}
+
+/**
+ * Exports the naming (pretty-printed, the form people read, see exportText) under its fixed file name and returns the status sentence.
+ * Above the ceiling the naming has no table, so the file carries the seed, style, join order and smoothing flag only and the sentence
+ * says so.
  */
 export function exportNaming(naming: Naming, base: number, env: DownloadEnv = browserDownloadEnv()): string {
-  downloadJson(serializeNaming(naming, { pretty: true }), exportFileName(base), env)
+  downloadJson(exportText(naming), exportFileName(base), env)
   return naming.sounds === null ? exportSeedOnly(base) : exportSuccess(base)
 }
 

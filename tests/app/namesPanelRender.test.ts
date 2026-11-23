@@ -77,6 +77,7 @@ import {
   downloadJson,
   exportFileName,
   exportNaming,
+  exportText,
   importAllowed,
   importOutcome,
   previewMeshes,
@@ -1297,6 +1298,57 @@ describe('downloadJson and exportNaming', () => {
   })
 })
 
+// Review IN-05: the export is pretty-printed, which adds about six characters per override, and the importer refuses a text over
+// NAMING_IMPORT_MAX_BYTES. A naming with 244,650 renamed demons (every demon of base 700, under the 250,000 override cap) is 7.97 MB
+// compact and 9.44 MB pretty: the app could not read back the backup it had just written. The export now falls back to the compact
+// form when the pretty text would be over the importer's cap (measured in bytes, as the file chooser's size is).
+describe('exportText', () => {
+  it('is the pretty text for every naming that fits (the form people read, ending in a newline)', () => {
+    const naming = { ...namingOf(OTHER_BASE, { seed: 'exported' }), locks: new Set([1]) }
+    expect(exportText(naming)).toBe(serializeNaming(naming, { pretty: true }))
+    expect(exportText(naming).endsWith(String.fromCharCode(10))).toBe(true)
+  })
+
+  it('falls back to the compact text exactly when the pretty text is over the cap, counted in bytes', () => {
+    const naming = namingOf(OTHER_BASE, { seed: 'exported' })
+    const pretty = serializeNaming(naming, { pretty: true })
+    const compact = serializeNaming(naming)
+    expect(compact.length).toBeLessThan(pretty.length)
+    expect(exportText(naming, pretty.length)).toBe(pretty) // exactly at the cap: still pretty
+    expect(exportText(naming, pretty.length - 1)).toBe(compact) // one byte over: compact
+    // a name in another script is wider in UTF-8 than in UTF-16 units, and the importer sees the file's byte size
+    const wide = { ...naming, overrides: new Map([[0, String.fromCodePoint(0x434).repeat(20)]]) }
+    const widePretty = serializeNaming(wide, { pretty: true })
+    const bytes = new TextEncoder().encode(widePretty).length
+    expect(bytes).toBeGreaterThan(widePretty.length)
+    expect(exportText(wide, bytes)).toBe(widePretty)
+    expect(exportText(wide, bytes - 1)).toBe(serializeNaming(wide))
+  })
+
+  it('a full rename of every demon at base 700 (244,650 overrides) is exported in a form the importer reads back', () => {
+    const base = 700
+    const total = (base * (base - 1)) / 2
+    expect(total).toBe(244650)
+    const overrides = new Map<number, string>()
+    for (let mesh = 0; mesh < total; mesh++) overrides.set(mesh, 'q'.repeat(21))
+    const naming: Naming = { ...namingOf(base, { seed: 'bulk' }), overrides }
+    const text = exportText(naming)
+    expect(new TextEncoder().encode(text).length).toBeLessThanOrEqual(NAMING_IMPORT_MAX_BYTES)
+    expect(text).toBe(serializeNaming(naming)) // the pretty form would have been 9.4 MB
+    expect(serializeNaming(naming, { pretty: true }).length).toBeGreaterThan(NAMING_IMPORT_MAX_BYTES)
+    const back = validated(text, base)
+    expect(back.ok).toBe(true)
+    if (back.ok) expect(back.naming.overrides.size).toBe(total)
+  })
+
+  it('is what exportNaming downloads', async () => {
+    const naming = namingOf(OTHER_BASE, { seed: 'exported' })
+    const fake = fakeDownload()
+    exportNaming(naming, OTHER_BASE, fake.env)
+    expect(await fake.blobs[0].text()).toBe(exportText(naming))
+  })
+})
+
 describe('importAllowed', () => {
   it('is true where the naming can be edited and false while previewing or building', () => {
     expect(importAllowed('ready')).toBe(true)
@@ -1437,7 +1489,8 @@ describe('NamesPanel source: the file path', () => {
   const count = (needle: string): number => source.split(needle).length - 1
 
   it('uses one serializer, one validator, a size check before reading and one revoke', () => {
-    expect(count('serializeNaming(')).toBe(1)
+    // still the one serializer: exportText calls it twice, for the pretty text and for the compact fallback (IN-05)
+    expect(count('serializeNaming(')).toBe(2)
     expect(count('validateNamingJson(')).toBe(1)
     expect(count('file.size > NAMING_IMPORT_MAX_BYTES')).toBe(1)
     expect(count('URL.revokeObjectURL')).toBe(1)
