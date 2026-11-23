@@ -15,6 +15,7 @@ import {
   parseDemonQuery,
   parseZoneNumeral,
   resolveDemonSearch,
+  searchHitKey,
   searchMessage,
   type DemonQuery,
 } from '../../app/lib/demonSearch'
@@ -555,3 +556,47 @@ describe('parseDemonQuery: names in any script (WR-04)', () => {
 function generatedNaming28NameOf(): NameOf {
   return nameOfOf(generatedNaming(28))
 }
+
+// ── the identity of a search hit (review IN-17) ─────────────────────────────────────────────────────────────────────────────
+// The browser reveals (scrolls to) a search hit when the HIT changes. Every naming change builds a new nameOf function and so a new
+// outcome object, which used to count as a fresh hit and jumped the list back to it; searchHitKey names the hit itself.
+describe('searchHitKey', () => {
+  const generated = nameOfOf(generatedNaming(28))
+
+  it('is the same for the same hit found through another naming (a rename of some other demon)', () => {
+    const renamed = nameOfOf(setOverride(generatedNaming(28), 200, 'Zorb', null))
+    const a = resolveDemonSearch('12', g28, null, DEFAULT_DEMON_SORT, generated)
+    const b = resolveDemonSearch('12', g28, null, DEFAULT_DEMON_SORT, renamed)
+    expect(a).not.toBe(b)
+    expect(searchHitKey('12', a, null, DEFAULT_DEMON_SORT)).not.toBeNull()
+    expect(searchHitKey('12', a, null, DEFAULT_DEMON_SORT)).toBe(searchHitKey('12', b, null, DEFAULT_DEMON_SORT))
+  })
+
+  it('differs when the query, the demon hit, the filter or the sort differs', () => {
+    const at = (q: string, filter: Parameters<typeof resolveDemonSearch>[2] = null, sort = DEFAULT_DEMON_SORT) =>
+      searchHitKey(q, resolveDemonSearch(q, g28, filter, sort, generated), filter, sort)
+    const base = at('12')
+    expect(at('13')).not.toBe(base)
+    expect(at('12', null, { key: 'mesh', direction: 'desc' })).not.toBe(base)
+    expect(at('12', null, { key: 'type', direction: 'asc' })).not.toBe(base)
+    // the same demon by its mesh number and by its net-span is a different query text, so Enter-free retyping still reveals
+    const [hi, lo] = g28.demons.netSpanOf(12)
+    expect(at(`${hi.toString(36)}::${lo.toString(36)}`)).not.toBe(base)
+  })
+
+  it('a rename that moves the hit to another demon changes the key (the browser then reveals the new hit)', () => {
+    const name5 = nameOfOf(setOverride(generatedNaming(28), 5, 'Zorb', null))
+    const name9 = nameOfOf(setOverride(generatedNaming(28), 9, 'Zorb', null))
+    const first = resolveDemonSearch('zorb', g28, null, DEFAULT_DEMON_SORT, name5)
+    const second = resolveDemonSearch('zorb', g28, null, DEFAULT_DEMON_SORT, name9)
+    expect(searchHitKey('zorb', first, null, DEFAULT_DEMON_SORT)).not.toBe(searchHitKey('zorb', second, null, DEFAULT_DEMON_SORT))
+  })
+
+  it('is null for every outcome that is not a hit in the list', () => {
+    expect(searchHitKey('', resolveDemonSearch('', g28, null, DEFAULT_DEMON_SORT, generated), null, DEFAULT_DEMON_SORT)).toBeNull()
+    expect(searchHitKey('9999', resolveDemonSearch('9999', g28, null, DEFAULT_DEMON_SORT, generated), null, DEFAULT_DEMON_SORT)).toBeNull()
+    expect(searchHitKey('1e3', resolveDemonSearch('1e3', g28, null, DEFAULT_DEMON_SORT, generated), null, DEFAULT_DEMON_SORT)).toBeNull()
+    const demon = g28.demons.at(3)
+    expect(searchHitKey('3', { kind: 'outside-filter', demon, echo: '3' }, 'chrono', DEFAULT_DEMON_SORT)).toBeNull()
+  })
+})

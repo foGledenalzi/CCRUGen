@@ -1131,3 +1131,41 @@ test('a Reroll made while the planetary orbit runs is its own undo entry, ahead 
   await expect(seedField(page)).toHaveValue(s0.seed)
   expect(errors).toEqual([])
 })
+
+// ── 15 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Review IN-17: a naming change builds a new name lookup for the Demons browser, which used to count as a fresh search hit and scroll the
+// list back to it. The visitor searches a far demon, scrolls back to the top, renames a demon there: the list must stay where it is.
+test('a rename in the Demons overlay does not scroll the list back to the current search hit (base 28)', async ({ page }) => {
+  const errors = trackErrors(page)
+  const hit = 300
+  const first = 0
+  await openViewer(page, `base=${BASE}`)
+  await openDemons(page)
+  await searchDemons(page, String(hit))
+  const list = demonsDialog(page).locator('[data-demon-list="browser"]')
+  await expect(demonRow(page, 'browser', hit)).toBeVisible()
+  const atHit = await list.evaluate(el => el.scrollTop)
+  expect(atHit).toBeGreaterThan(1000)
+
+  // back to the top, then rename the first demon from the overlay's editor
+  await list.evaluate(el => { el.scrollTop = 0 })
+  await expect(demonRow(page, 'browser', first)).toBeVisible()
+  await demonRow(page, 'browser', first).click()
+  const editor = page.locator(OVERLAY_EDITOR)
+  await editor.locator('button[data-demon-rename]').click()
+  await editor.locator('input[data-demon-name-input]').fill('Zed')
+  await editor.locator('input[data-demon-name-input]').press('Enter')
+  await expect(nameCell(page, first)).toHaveText(`Zed*${NAMES_COPY.overriddenHidden}`)
+  await settleFrames(page)
+
+  // the naming changed, the hit did not: the list stays at the top
+  expect(await list.evaluate(el => el.scrollTop)).toBeLessThan(200)
+  await expect(demonRow(page, 'browser', first)).toBeVisible()
+
+  // Enter in the search box is still the way to reveal the hit again
+  await searchDemons(page, String(hit))
+  await expect(demonRow(page, 'browser', hit)).toBeVisible()
+  expect(await list.evaluate(el => el.scrollTop)).toBeGreaterThan(1000)
+  expect(errors).toEqual([])
+})

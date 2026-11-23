@@ -212,6 +212,17 @@ export function resolveDemonSearch(
   return { kind: 'found', demon, index }
 }
 
+/**
+ * The identity of a search hit: the query, the demon found, its row in the ordered list, the filter and the sort, or null when the outcome
+ * is not a hit in the list. The browser reveals a hit when this changes (review IN-17), not when the outcome object does: every naming
+ * change builds a new name lookup and so a new outcome, and revealing on that jumped the list back to a hit the visitor had scrolled
+ * away from, whenever any demon was renamed. A rename that moves the hit (another demon, another row) is a new key, so it still reveals.
+ */
+export function searchHitKey(query: string, outcome: SearchOutcome, filter: DemonFilter | null, sort: DemonSort): string | null {
+  if (outcome.kind !== 'found') return null
+  return JSON.stringify([query, outcome.demon.mesh, outcome.index, filter, sort.key, sort.direction])
+}
+
 /** The exact UI-SPEC status copy for outcome, or null for 'found'/'empty' (no status line to show). */
 export function searchMessage(outcome: SearchOutcome, filter: DemonFilter | null, total: number): StatusMessage | null {
   switch (outcome.kind) {

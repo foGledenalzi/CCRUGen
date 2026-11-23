@@ -1,7 +1,7 @@
 // Demon browser tab (DEM-02, D-02, D-05). Original CCRUG code (MIT, NOTICE section 1).
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DemonRef } from '../../../engine/index'
 import { useNaming } from '../names/NamingContext'
 import { useNumogramView } from '../numogram/ViewContext'
@@ -15,7 +15,7 @@ import {
   type DemonSort,
   type DemonSortKey,
 } from '../../lib/demonBrowser'
-import { SEARCH_MAX_LENGTH, clampQuery, emptyFilterMessage, resolveDemonSearch, searchMessage } from '../../lib/demonSearch'
+import { SEARCH_MAX_LENGTH, clampQuery, emptyFilterMessage, resolveDemonSearch, searchHitKey, searchMessage } from '../../lib/demonSearch'
 
 export interface DemonBrowserProps {
   readonly filter: DemonFilter | null
@@ -40,8 +40,14 @@ export function DemonBrowser(props: DemonBrowserProps): JSX.Element {
   const nameOf = naming !== null && naming.base === g.base ? naming.resolver.nameOf : undefined
   const outcome = useMemo(() => resolveDemonSearch(query, g, filter, sort, nameOf), [query, g, filter, sort, nameOf])
 
-  // A fresh search hit reveals (scrolls to + marks) its row. Enter re-reveals the current hit via bumpReveal below.
+  // A fresh search hit reveals (scrolls to + marks) its row. Enter re-reveals the current hit via bumpReveal below. "Fresh" is the hit
+  // itself (searchHitKey), not the outcome object: a naming change builds a new name lookup and so a new outcome, and revealing on that
+  // jumped the list back to the hit whenever any demon was renamed (IN-17).
+  const revealedHitRef = useRef<string | null>(null)
   useEffect(() => {
+    const key = searchHitKey(query, outcome, filter, sort)
+    if (key === revealedHitRef.current) return
+    revealedHitRef.current = key
     if (outcome.kind === 'found') {
       setReveal(r => ({ index: outcome.index, nonce: r.nonce + 1 }))
     }
