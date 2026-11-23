@@ -24,7 +24,7 @@ import {
 import { CCRU_NAMING_PRESET } from '../../app/presets/base10/naming'
 import { INTERACTIVE_MAX_N } from '../../app/lib/tierBounds'
 import { NAMING_STORAGE_PREFIX } from '../../app/lib/namingLimits'
-import { browserStorage, flushSlot, readSlot, slotKey, writeSlot, type StorageLike } from '../../app/lib/namingStorage'
+import { browserStorage, flushOnVisibility, flushSlot, readSlot, slotKey, writeSlot, type StorageLike } from '../../app/lib/namingStorage'
 import { defaultNamingFor, type NamingEnv } from '../../app/lib/namingSession'
 import { NamingContext, useNaming, type NamingContextValue } from '../../app/components/names/NamingContext'
 
@@ -271,6 +271,16 @@ describe('flushSlot', () => {
     expect(flushSlot(workedNaming(), full)).toBe('failed')
     expect(flushSlot(workedNaming(), null)).toBe('failed')
     expect(flushSlot(defaultNamingFor(INTERACTIVE_MAX_N + 2, env), memoryStorage())).toBe('failed')
+  })
+})
+
+// Review IN-21: only a page that becomes hidden asks for the pending write; becoming visible again writes nothing.
+describe('flushOnVisibility', () => {
+  it('is true for hidden and false for every other state', () => {
+    expect(flushOnVisibility('hidden')).toBe(true)
+    expect(flushOnVisibility('visible')).toBe(false)
+    expect(flushOnVisibility('prerender')).toBe(false)
+    expect(flushOnVisibility('')).toBe(false)
   })
 })
 

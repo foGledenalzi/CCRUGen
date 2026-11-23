@@ -10,7 +10,7 @@ import {
   NAMES_COPY, collisionsAnnounceSome, collisionsNotChecked, collisionsSome, exportSeedOnly, exportSuccess, generated, importError,
   importSeedOnly, importSuccess, invalidEntries, jumpAriaLabel, moreJumps, nameFieldAria, renamed, savedLine as savedText, showingNames, summaryLine,
 } from '../app/lib/namingCopy'
-import { COLLISION_JUMPS_SHOWN, COLLISION_LINES_STEP, collisionScanLimit } from '../app/lib/namingLimits'
+import { COLLISION_JUMPS_SHOWN, COLLISION_LINES_STEP, NAMING_AUTOSAVE_DEBOUNCE_MS, collisionScanLimit } from '../app/lib/namingLimits'
 import { defaultNamingFor } from '../app/lib/namingSession'
 import { INTERACTIVE_MAX_N, SVG_RICH_MAX_N } from '../app/lib/tierBounds'
 import { CCRU_NAMING_PRESET } from '../app/presets/base10/naming'
@@ -1084,5 +1084,34 @@ test('canonical names never appear at another base: base 12 shows only generated
   expect(shown).toEqual(expected)
   expect(shown.filter(name => canonical.has(name))).toEqual([])
   await closeDemons(page)
+  expect(errors).toEqual([])
+})
+
+// Review IN-21: the pending slot write was flushed on `pagehide` only, and a mobile browser often backgrounds a page and later kills it with
+// no pagehide. A page that becomes hidden now writes the pending edit at once. The debounce timer is stretched so that it cannot be what
+// writes: only the flush can.
+test('an edit made just before the page is hidden is written at once (visibilitychange), not only on pagehide', async ({ page }) => {
+  const errors = trackErrors(page)
+  await page.addInitScript((ms: number) => {
+    const real = window.setTimeout.bind(window)
+    window.setTimeout = ((fn: TimerHandler, t?: number, ...args: unknown[]) => real(fn, t === ms ? 600_000 : t, ...args)) as typeof window.setTimeout
+  }, NAMING_AUTOSAVE_DEBOUNCE_MS)
+  const edited = editSound(defaultNaming(BASE), 3, 'gl')
+  await openViewer(page, `base=${BASE}`)
+  await openNames(page)
+  await typeSound(page, 3, 'gl')
+  expect(await readSlot(page, BASE)).toBeNull() // the debounced write has not happened (and cannot, here)
+
+  const setVisibility = (state: 'visible' | 'hidden'): Promise<void> =>
+    page.evaluate((st: string) => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => st })
+      document.dispatchEvent(new Event('visibilitychange'))
+    }, state)
+
+  // becoming visible writes nothing; becoming hidden writes the pending naming
+  await setVisibility('visible')
+  expect(await readSlot(page, BASE)).toBeNull()
+  await setVisibility('hidden')
+  expect(await readSlot(page, BASE)).toBe(serializeNaming(edited))
   expect(errors).toEqual([])
 })

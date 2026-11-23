@@ -69,3 +69,11 @@ export function writeSlot(storage: StorageLike | null, naming: Naming): 'saved' 
 export function flushSlot(pending: Naming | null, storage: StorageLike | null): 'none' | 'saved' | 'failed' {
   return pending === null ? 'none' : writeSlot(storage, pending)
 }
+
+/**
+ * Whether a change of the page's visibility state asks for the pending write at once: when the page is hidden (review IN-21). A mobile
+ * browser often backgrounds a page and later kills it without ever sending pagehide, so an edit made inside the debounce would be lost.
+ */
+export function flushOnVisibility(state: string): boolean {
+  return state === 'hidden'
+}

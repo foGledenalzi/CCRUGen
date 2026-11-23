@@ -40,7 +40,7 @@ import {
   restoreNaming, revertPreview, sessionForBase, snapshotNaming,
   type Announcement, type NamingAction, type NamingEnv, type NamingSession,
 } from './lib/namingSession'
-import { browserStorage, flushSlot, readSlot, writeSlot } from './lib/namingStorage'
+import { browserStorage, flushOnVisibility, flushSlot, readSlot, writeSlot } from './lib/namingStorage'
 import { NAMING_AUTOSAVE_DEBOUNCE_MS, NAMING_UNDO_HEAVY_DEPTH, NAMING_UNDO_OVERRIDE_LIMIT } from './lib/namingLimits'
 import { NAMES_COPY } from './lib/namingCopy'
 import { historySnapshotKey, historyStepFor, singleChangedZone, undoRestoresNaming, withHydratedNaming } from './lib/historyHydration'
@@ -954,9 +954,17 @@ export default function NumogramPage() {
     return () => window.clearTimeout(timer)
   }, [namingSession])
 
+  // The page going away writes the pending edit: pagehide, and a page that becomes hidden (a mobile browser may kill it afterwards with no pagehide).
   useEffect(() => {
+    const onVisibility = (): void => {
+      if (flushOnVisibility(document.visibilityState)) flushPendingSave()
+    }
     window.addEventListener('pagehide', flushPendingSave)
-    return () => window.removeEventListener('pagehide', flushPendingSave)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', flushPendingSave)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [flushPendingSave])
 
   // ── Worker results (Phase 6 REN-03, D-07) ───────────────────
