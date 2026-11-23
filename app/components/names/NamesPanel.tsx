@@ -2,9 +2,9 @@
 // Contract"): the global controls above the zone list, in the UI-SPEC order, in the four states the base alone decides (ready,
 // pending, seed-only, preview). The panel body mounts only while the panel is open, so the prerendered page stays small (research
 // Pitfall 13), but the persistent sr-only live carrier is always mounted, so the first announcement is reliable even while the panel
-// is collapsed. Every visible sentence comes from the copy module (app/lib/namingCopy.ts) and every limit from data. The zone list
-// (block 12) and the collision report (block 9) are mounted here by plans 07-19 and 07-20; the panel is mounted in the viewer by
-// plan 07-21. Original CCRUG code (MIT, NOTICE section 1).
+// is collapsed. Every visible sentence and every accessible name comes from the copy module (app/lib/namingCopy.ts) and every limit
+// from data. The zone list (ZoneList.tsx) and the collision report (CollisionReport.tsx) are mounted below the controls, and the panel
+// is mounted in the viewer by NumogramClient. Original CCRUG code (MIT, NOTICE section 1).
 'use client'
 
 import React, { useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -854,7 +854,7 @@ function NamesBody({ nc, open, bodyMax, pinnedMesh, pinnedZone }: NamesBodyProps
           <span className={EYEBROW}>{NAMES_COPY.previewEyebrow}</span>
           <table
             data-names-preview=""
-            aria-label="Name preview"
+            aria-label={NAMES_COPY.previewTableAria}
             className="w-full text-left"
             style={{ tableLayout: 'fixed', borderCollapse: 'collapse' }}
           >

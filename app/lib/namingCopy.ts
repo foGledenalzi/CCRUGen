@@ -106,6 +106,8 @@ export const NAMES_COPY = Object.freeze({
   lockHeader: 'Lock',
   gotoPlaceholder: 'zone number',
   gotoAria: 'Go to zone',
+  zoneListAria: 'Zone sounds',
+  previewTableAria: 'Name preview',
   listHelperLock: 'Editing a sound locks it. Locked zones keep their sound when you reroll or change the seed.',
   listHelperPaste: 'Paste a list into a row to fill the rows below it.',
   lockTitle: 'Locked zones keep their sound when you reroll or change the seed.',

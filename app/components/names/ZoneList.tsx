@@ -43,7 +43,6 @@ import { useNaming, type NamingContextValue } from './NamingContext'
 
 const EYEBROW = 'block text-[8px] uppercase tracking-[0.3em] text-gray-400'
 const HELPER = 'text-[10px] leading-[1.4] text-gray-400'
-const LIST_ARIA_LABEL = 'Zone sounds'
 const LABEL_WIDTH_PX = 32
 const LOCK_SIZE_PX = 24
 const ROW_GAP_PX = 4
@@ -493,7 +492,7 @@ function ZoneListBody({ nc, sounds, scrollEl, scrollMargin, pinnedZone }: BodyPr
           {message}
         </p>
       </div>
-      <div ref={listRef} role="list" aria-label={LIST_ARIA_LABEL} data-names-list="" onBlur={onListBlur}>
+      <div ref={listRef} role="list" aria-label={NAMES_COPY.zoneListAria} data-names-list="" onBlur={onListBlur}>
         <div
           aria-hidden="true"
           data-names-list-header=""

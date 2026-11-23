@@ -87,6 +87,8 @@ const EXPECTED_FIXED = {
   lockHeader: 'Lock',
   gotoPlaceholder: 'zone number',
   gotoAria: 'Go to zone',
+  zoneListAria: 'Zone sounds',
+  previewTableAria: 'Name preview',
   listHelperLock: 'Editing a sound locks it. Locked zones keep their sound when you reroll or change the seed.',
   listHelperPaste: 'Paste a list into a row to fill the rows below it.',
   lockTitle: 'Locked zones keep their sound when you reroll or change the seed.',
@@ -232,7 +234,7 @@ describe('NAMES_COPY: the fixed strings of the Copywriting Contract', () => {
   it('has exactly the keys the later plans read, no more and no fewer', () => {
     const expectedKeys = [...Object.keys(EXPECTED_FIXED), ...Object.keys(EXPECTED_RECORDS)].sort()
     expect(Object.keys(NAMES_COPY).sort()).toEqual(expectedKeys)
-    expect(expectedKeys).toHaveLength(77)
+    expect(expectedKeys).toHaveLength(79) // 77 and the two accessible names that the components used to type (IN-22)
   })
 
   it.each(Object.entries(EXPECTED_FIXED))('%s equals the UI-SPEC string', (key, text) => {
